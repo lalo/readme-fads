@@ -1,0 +1,178 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>DESCRIPTION</h1>
+
+<p>This is a syslog patch for Nginx-0.8.54+. With this patch, you can send your 
+access or error log to specific syslog facility and priority.</p>
+
+<p>Only access log support is available for nginx 1.5.6. Feel free to contribute an error_log patch. </p>
+
+<p>Original patch by yaoweibin access log support by SplitIce (for <a href="http://www.x4b.net/">http://www.x4b.net/</a>)</p>
+
+<h1>
+<a name="user-content-compatible" class="anchor" href="#compatible" aria-hidden="true"><span class="octicon octicon-link"></span></a>COMPATIBLE</h1>
+
+<pre><code>syslog_1.2.0.patch could work with nginx-1.2.0 - nginx-1.2.6 and nginx-1.3.0 - nginx-1.3.9
+syslog_1.2.7.patch could work with nginx-1.2.7+.
+syslog_1.3.11.patch could work with nginx-1.3.9
+syslog_1.3.14.patch could work with nginx-1.3.14+
+syslog_1.4.0.patch could work with nginx-1.4.0+
+syslog_1.5.6.patch could work with nginx-1.5.0+
+syslog_1.7.0.patch could work with nginx-1.7.0+
+</code></pre>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>INSTALLATION</h1>
+
+<pre><code>#download the latest code
+git clone https://github.com/splitice/nginx_syslog_patch
+
+#download the source code of Nginx
+wget http://nginx.org/download/nginx-0.8.54.tar.gz
+tar zxvf nginx-0.8.54
+cd nginx-0.8.54
+
+#patch to your Nginx source file.
+patch -p1 &lt; /path/to/this/directory/syslog_0.8.54.patch
+
+#add the module
+./configure --add-module=/path/to/nginx_syslog_patch
+</code></pre>
+
+<h1>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>EXAMPLE</h1>
+
+<pre><code>worker_processes  1;
+
+syslog local6 nginx;
+
+events {
+        worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] $request '
+        '"$status" $body_bytes_sent "$http_referer" '
+        '"$http_user_agent" "$http_x_forwarded_for"';
+
+    server {
+        listen       80;
+        server_name  localhost;
+
+        #send the log to syslog and file.
+        access_log  syslog:notice|logs/host1.access.log main;
+
+        # pre 1.5.x
+        error_log syslog:notice|logs/host1.error.log;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+
+    server {
+        listen       80;
+        server_name  www.example.com;
+
+        access_log  syslog:warn|logs/host2.access.log main;
+        error_log syslog:warn|logs/host2.error.log;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+
+    server {
+        listen       80;
+        server_name  www.test.com;
+
+        #send the log just to syslog.
+        access_log  syslog:error main;
+        error_log syslog:error;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+}
+</code></pre>
+
+<h1>
+<a name="user-content-directives" class="anchor" href="#directives" aria-hidden="true"><span class="octicon octicon-link"></span></a>DIRECTIVES</h1>
+
+<h2>
+<a name="user-content-syslog" class="anchor" href="#syslog" aria-hidden="true"><span class="octicon octicon-link"></span></a>SYSLOG</h2>
+
+<p>Sytax: syslog auth|authpriv|cron|daemon|ftp|kern|local0-7|lpr|mail|news|syslog|user|uucp [program_name]</p>
+
+<p>Default: none</p>
+
+<p>Context: main</p>
+
+<p>Enable the syslog and set its facility. The default program name is nginx.</p>
+
+<h2>
+<a name="user-content-error_log-pre-15x" class="anchor" href="#error_log-pre-15x" aria-hidden="true"><span class="octicon octicon-link"></span></a>ERROR_LOG (pre 1.5.x)</h2>
+
+<p>Syntax: error_log [syslog[:emerg|alert|crit|error|warn|notice|info|debug]]['|'file] [ debug | info | notice | warn | error | crit ]</p>
+
+<p>Default: ${prefix}/logs/error.log</p>
+
+<p>Context: main, http, server, location</p>
+
+<p>Enable the error_log with the syslog and set its priority. The default priority is error. The error log can be sent to syslog, file or both. </p>
+
+<p>Note: if you set the error_log directive in the main block, the syslog is switched on by default.</p>
+
+<h2>
+<a name="user-content-access_log" class="anchor" href="#access_log" aria-hidden="true"><span class="octicon octicon-link"></span></a>ACCESS_LOG</h2>
+
+<p>Syntax: access_log off|[syslog[:emerg|alert|crit|error|warn|notice|info|debug]]['|'path] [format [buffer=size]]]</p>
+
+<p>Default: access_log logs/access.log combined</p>
+
+<p>Context: http, server, location</p>
+
+<p>Enable the access_log with the syslog and set its priority. The default priority is notice. The access log can be sent to syslog, file or both.</p>
+
+<h1>
+<a name="user-content-contact" class="anchor" href="#contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>CONTACT</h1>
+
+<p>Reporting a bug
+Questions/patches may be directed to Weibin Yao, <a href="mailto:yaoweibin@gmail.com">yaoweibin@gmail.com</a>.</p>
+
+<h1>
+<a name="user-content-copyright--license" class="anchor" href="#copyright--license" aria-hidden="true"><span class="octicon octicon-link"></span></a>COPYRIGHT &amp; LICENSE</h1>
+
+<p>This patch is licensed under the BSD license.</p>
+
+<p>Copyright (C) 2011 by Weibin Yao <a href="mailto:yaoweibin@gmail.com">yaoweibin@gmail.com</a>.</p>
+
+<p>All rights reserved.</p>
+
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:</p>
+
+<ul class="task-list">
+<li><p>Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.</p></li>
+<li><p>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.</p></li>
+</ul><p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p></article></div>

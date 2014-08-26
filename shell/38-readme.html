@@ -1,0 +1,363 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-fasd" class="anchor" href="#fasd" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fasd</h1>
+
+<p>Fasd (pronounced similar to "fast") is a command-line productivity booster.
+Fasd offers quick access to files and directories for POSIX shells. It is
+inspired by tools like <a href="https://github.com/joelthelion/autojump">autojump</a>,
+<a href="http://github.com/rupa/z">z</a> and <a href="https://github.com/rupa/v">v</a>. Fasd keeps
+track of files and directories you have accessed, so that you can quickly
+reference them in the command line.</p>
+
+<p>The name fasd comes from the default suggested aliases <code>f</code>(files),
+<code>a</code>(files/directories), <code>s</code>(show/search/select), <code>d</code>(directories).</p>
+
+<p>Fasd ranks files and directories by "frecency," that is, by both "frequency" and
+"recency." The term "frecency" was first coined by Mozilla and used in Firefox
+(<a href="https://developer.mozilla.org/en/The_Places_frecency_algorithm">link</a>).</p>
+
+<h1>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
+
+<p>If you use your shell to navigate and launch applications, fasd can help you do
+it more efficiently. With fasd, you can open files regardless of which
+directory you are in. Just with a few key strings, fasd can find a "frecent"
+file or directory and open it with command you specify. Below are some
+hypothetical situations, where you can type in the command on the left and fasd
+will "expand" your command into the right side. Pretty magic, huh?</p>
+
+<pre><code>  v def conf       =&gt;     vim /some/awkward/path/to/type/default.conf
+  j abc            =&gt;     cd /hell/of/a/awkward/path/to/get/to/abcdef
+  m movie          =&gt;     mplayer /whatever/whatever/whatever/awesome_movie.mp4
+  o eng paper      =&gt;     xdg-open /you/dont/remember/where/english_paper.pdf
+  vim `f rc lo`    =&gt;     vim /etc/rc.local
+  vim `f rc conf`  =&gt;     vim /etc/rc.conf
+</code></pre>
+
+<p>Fasd comes with some useful aliases by default:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">alias </span><span class="nv">a</span><span class="o">=</span><span class="s1">'fasd -a'</span>        <span class="c"># any</span>
+<span class="nb">alias </span><span class="nv">s</span><span class="o">=</span><span class="s1">'fasd -si'</span>       <span class="c"># show / search / select</span>
+<span class="nb">alias </span><span class="nv">d</span><span class="o">=</span><span class="s1">'fasd -d'</span>        <span class="c"># directory</span>
+<span class="nb">alias </span><span class="nv">f</span><span class="o">=</span><span class="s1">'fasd -f'</span>        <span class="c"># file</span>
+<span class="nb">alias </span><span class="nv">sd</span><span class="o">=</span><span class="s1">'fasd -sid'</span>     <span class="c"># interactive directory selection</span>
+<span class="nb">alias </span><span class="nv">sf</span><span class="o">=</span><span class="s1">'fasd -sif'</span>     <span class="c"># interactive file selection</span>
+<span class="nb">alias </span><span class="nv">z</span><span class="o">=</span><span class="s1">'fasd_cd -d'</span>     <span class="c"># cd, same functionality as j in autojump</span>
+<span class="nb">alias </span><span class="nv">zz</span><span class="o">=</span><span class="s1">'fasd_cd -d -i'</span> <span class="c"># cd with interactive selection</span>
+</pre></div>
+
+<p>Fasd will smartly detect when to display a list of files or just the best
+match. For instance, when you call fasd in a subshell with some search
+parameters, fasd will only return the best match. This enables you to do:</p>
+
+<div class="highlight highlight-sh"><pre>mv update.html <span class="sb">`</span>d www<span class="sb">`</span>
+cp <span class="sb">`</span>f mov<span class="sb">`</span> .
+</pre></div>
+
+<h1>
+<a name="user-content-install" class="anchor" href="#install" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install</h1>
+
+<p>Fasd is available in various package managers. Please check
+<a href="https://github.com/clvv/fasd/wiki/Installing-via-Package-Managers">the wiki page</a>
+for an up-to-date list.</p>
+
+<p>You can also manually obtain a copy of fasd.</p>
+
+<p>Download fasd 1.0.1 from GitHub:
+<a href="https://github.com/clvv/fasd/zipball/1.0.1">zip</a>,
+<a href="https://github.com/clvv/fasd/tarball/1.0.1">tar.gz</a>.</p>
+
+<p>Fasd is a self-contained POSIX shell script that can be either sourced or
+executed. A Makefile is provided to install <code>fasd</code> and <code>fasd.1</code> to desired
+places.</p>
+
+<p>System-wide install:</p>
+
+<pre><code>make install
+</code></pre>
+
+<p>Install to $HOME:</p>
+
+<pre><code>PREFIX=$HOME make install
+</code></pre>
+
+<p>Or alternatively you can just copy <code>fasd</code> to anywhere you like (preferably
+under some directory in <code>$PATH</code>).</p>
+
+<p>To get fasd working in a shell, some initialization code must be run. Put the
+line below in your shell rc.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">eval</span> <span class="s2">"$(fasd --init auto)"</span>
+</pre></div>
+
+<p>This will setup a command hook that executes on every command and advanced tab
+completion for zsh and bash.</p>
+
+<p>If you want more control over what gets into your shell environment, you can
+pass customized set of arguments to <code>fasd --init</code>.</p>
+
+<pre><code>zsh-hook             # define _fasd_preexec and add it to zsh preexec array
+zsh-ccomp            # zsh command mode completion definitions
+zsh-ccomp-install    # setup command mode completion for zsh
+zsh-wcomp            # zsh word mode completion definitions
+zsh-wcomp-install    # setup word mode completion for zsh
+bash-hook            # add hook code to bash $PROMPT_COMMAND
+bash-ccomp           # bash command mode completion definitions
+bash-ccomp-install   # setup command mode completion for bash
+posix-alias          # define aliases that applies to all posix shells
+posix-hook           # setup $PS1 hook for shells that's posix compatible
+tcsh-alias           # define aliases for tcsh
+tcsh-hook            # setup tcsh precmd alias
+</code></pre>
+
+<p>Example for a minimal zsh setup (no tab completion):</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">eval</span> <span class="s2">"$(fasd --init posix-alias zsh-hook)"</span>
+</pre></div>
+
+<p>Note that this method will slightly increase your shell start-up time, since
+calling binaries has overhead. You can cache fasd init code if you want minimal
+overhead. Example code for bash (to be put into .bashrc):</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">fasd_cache</span><span class="o">=</span><span class="s2">"$HOME/.fasd-init-bash"</span>
+<span class="k">if</span> <span class="o">[</span> <span class="s2">"$(command -v fasd)"</span> -nt <span class="s2">"$fasd_cache"</span> -o ! -s <span class="s2">"$fasd_cache"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+  fasd --init posix-alias bash-hook bash-ccomp bash-ccomp-install &gt;<span class="p">|</span> <span class="s2">"$fasd_cache"</span>
+<span class="k">fi</span>
+<span class="nb">source</span> <span class="s2">"$fasd_cache"</span>
+<span class="nb">unset </span>fasd_cache
+</pre></div>
+
+<p>Optionally, if you can also source <code>fasd</code> if you want <code>fasd</code> to be a shell
+function instead of an executable.</p>
+
+<p>You can tweak initialization code. For instance, if you want to use "c"
+instead of "z" to do directory jumping, you can use the alias below:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">alias </span><span class="nv">c</span><span class="o">=</span><span class="s1">'fasd_cd -d'</span>
+<span class="c"># `-d` option present for bash completion</span>
+<span class="c"># function fasd_cd is defined in posix-alias</span>
+</pre></div>
+
+<p>After you first installed fasd, open some files (with any program) or <code>cd</code>
+around in your shell. Then try some examples below.</p>
+
+<h1>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h1>
+
+<div class="highlight highlight-sh"><pre>f foo           <span class="c"># list frecent files matching foo</span>
+a foo bar       <span class="c"># list frecent files and directories matching foo and bar</span>
+f js<span class="nv">$ </span>          <span class="c"># list frecent files that ends in js</span>
+f -e vim foo    <span class="c"># run vim on the most frecent file matching foo</span>
+mplayer <span class="sb">`</span>f bar<span class="sb">`</span> <span class="c"># run mplayer on the most frecent file matching bar</span>
+z foo           <span class="c"># cd into the most frecent directory matching foo</span>
+open <span class="sb">`</span>sf pdf<span class="sb">`</span>   <span class="c"># interactively select a file matching pdf and launch `open`</span>
+</pre></div>
+
+<p>You should add your own aliases to fully utilize the power of fasd. Here are
+some examples to get you started:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">alias </span><span class="nv">v</span><span class="o">=</span><span class="s1">'f -e vim'</span> <span class="c"># quick opening files with vim</span>
+<span class="nb">alias </span><span class="nv">m</span><span class="o">=</span><span class="s1">'f -e mplayer'</span> <span class="c"># quick opening files with mplayer</span>
+<span class="nb">alias </span><span class="nv">o</span><span class="o">=</span><span class="s1">'a -e xdg-open'</span> <span class="c"># quick opening files with xdg-open</span>
+</pre></div>
+
+<p>If you're using bash, you have to call <code>_fasd_bash_hook_cmd_complete</code> to make
+completion work. For instance:</p>
+
+<pre><code>_fasd_bash_hook_cmd_complete v m j o
+</code></pre>
+
+<p>You could select an entry in the list of matching files.</p>
+
+<h1>
+<a name="user-content-matching" class="anchor" href="#matching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Matching</h1>
+
+<p>Fasd has three matching modes: default, case-insensitive, and fuzzy.</p>
+
+<p>For a given set of queries (the set of command-line arguments passed to fasd),
+a path is a match if and only if:</p>
+
+<ol class="task-list">
+<li>Queries match the path <em>in order</em>.</li>
+<li>The last query matches the <em>last segment</em> of the path.</li>
+</ol><p>If no match is found, fasd will try the same process ignoring case. If still no
+match is found, fasd will allow extra characters to be placed between query
+characters for fuzzy matching.</p>
+
+<p>Tips:</p>
+
+<ul class="task-list">
+<li>If you want your last query not to match the last segment of the path, append
+<code>/</code> as the last query.</li>
+<li>If you want your last query to match the end of the filename, append <code>$</code> to
+the last query.</li>
+</ul><h1>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How It Works</h1>
+
+<p>When you run fasd init code or source <code>fasd</code>, fasd adds a hook which will be
+executed whenever you execute a command. The hook will scan your commands'
+arguments and determine if any of them refer to existing files or directories.
+If yes, fasd will add them to the database.</p>
+
+<h1>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h1>
+
+<p>Fasd's basic functionalities are POSIX compliant, meaning that you should be
+able to use fasd in all POSIX compliant shells. Your shell need to support
+command substitution in <code>$PS1</code> in order for fasd to automatically track your
+commands and files. This feature is not specified by the POSIX standard, but
+it's nonetheless present in many POSIX compliant shells. In shells without
+prompt command or prompt command substitution (csh for instance), you can add
+entries manually with <code>fasd -A</code>. You are very welcomed to contribute shell
+initialization code for not yet supported shells.</p>
+
+<p>Fasd has been tested on the following shells: bash, zsh, mksh, pdksh, dash,
+busybox ash, FreeBSD 9 /bin/sh and OpenBSD /bin/sh.</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h1>
+
+<pre><code>fasd [options] [query ...]
+[f|a|s|d|z] [options] [query ...]
+  options:
+    -s         list paths with scores
+    -l         list paths without scores
+    -i         interactive mode
+    -e &lt;cmd&gt;   set command to execute on the result file
+    -b &lt;name&gt;  only use &lt;name&gt; backend
+    -B &lt;name&gt;  add additional backend &lt;name&gt;
+    -a         match files and directories
+    -d         match directories only
+    -f         match files only
+    -r         match by rank only
+    -t         match by recent access only
+    -R         reverse listing order
+    -h         show a brief help message
+    -[0-9]     select the nth entry
+
+fasd [-A|-D] [paths ...]
+    -A    add paths
+    -D    delete paths
+</code></pre>
+
+<h1>
+<a name="user-content-tab-completion" class="anchor" href="#tab-completion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tab Completion</h1>
+
+<p>Fasd offers two completion modes, command mode completion and word mode
+completion. Command mode completion works in bash and zsh. Word mode
+completion only works in zsh.</p>
+
+<p>Command mode completion is just like completion for any other commands. It is
+triggered when you hit tab on a <code>fasd</code> command or its aliases. Under this mode
+your queries can be separated by a space. Tip: if you find that the completion
+result overwrites your queries, type an extra space before you hit tab.</p>
+
+<p>Word mode completion can be triggered on <em>any</em> command. Word completion is
+triggered by any command line argument that starts with <code>,</code> (all), <code>f,</code>
+(files), or <code>d,</code> (directories), or that ends with <code>,,</code> (all), <code>,,f</code> (files), or
+<code>,,d</code> (directories). Examples:</p>
+
+<pre><code>$ vim ,rc,lo&lt;Tab&gt;
+$ vim /etc/rc.local
+
+$ mv index.html d,www&lt;Tab&gt;
+$ mv index.html /var/www/
+</code></pre>
+
+<p>There are also three zle widgets: <code>fasd-complete</code>, <code>fasd-complete-f</code>,
+<code>fasd-complete-d</code>. You can bind them to keybindings you like:</p>
+
+<div class="highlight highlight-sh"><pre>bindkey <span class="s1">'^X^A'</span> fasd-complete    <span class="c"># C-x C-a to do fasd-complete (fils and directories)</span>
+bindkey <span class="s1">'^X^F'</span> fasd-complete-f  <span class="c"># C-x C-f to do fasd-complete-f (only files)</span>
+bindkey <span class="s1">'^X^D'</span> fasd-complete-d  <span class="c"># C-x C-d to do fasd-complete-d (only directories)</span>
+</pre></div>
+
+<h1>
+<a name="user-content-backends" class="anchor" href="#backends" aria-hidden="true"><span class="octicon octicon-link"></span></a>Backends</h1>
+
+<p>Fasd can take advantage of different sources of recent / frequent files. Most
+desktop environments (like Gtk) and some editors (like Vim) keep a list of
+accessed files. Fasd can use them as additional backends if the data can be
+converted into fasd's native format. As of now, fasd supports Gtk's
+<code>recently-used.xbel</code> and Vim's <code>viminfo</code> backends. You can define your own
+backend by declaring a function by that name in your <code>.fasdrc</code>. You set default
+backend with <code>_FASD_BACKENDS</code> variable in our <code>.fasdrc</code>.</p>
+
+<p>Fasd can mimic <a href="http://github.com/rupa/v">v</a>'s behavior by this alias:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">alias </span><span class="nv">v</span><span class="o">=</span><span class="s1">'f -t -e vim -b viminfo'</span>
+</pre></div>
+
+<h1>
+<a name="user-content-tweaks" class="anchor" href="#tweaks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tweaks</h1>
+
+<p>Some shell variables that you can set before sourcing <code>fasd</code>. You can set them
+in <code>$HOME/.fasdrc</code></p>
+
+<pre><code>$_FASD_DATA
+Path to the fasd data file, default "$HOME/.fasd".
+
+$_FASD_BLACKLIST
+List of blacklisted strings. Commands matching them will not be processed.
+Default is "--help".
+
+$_FASD_SHIFT
+List of all commands that needs to be shifted, defaults to "sudo busybox".
+
+$_FASD_IGNORE
+List of all commands that will be ignored, defaults to "fasd ls echo".
+
+$_FASD_TRACK_PWD
+Fasd defaults to track your "$PWD". Set this to 0 to disable this behavior.
+
+$_FASD_AWK
+Which awk to use. Fasd can detect and use a compatible awk.
+
+$_FASD_SINK
+File to log all STDERR to, defaults to "/dev/null".
+
+$_FASD_MAX
+Max total score / weight, defaults to 2000.
+
+$_FASD_SHELL
+Which shell to execute. Some shells will run faster than others. fasd
+runs faster with dash and ksh variants.
+
+$_FASD_BACKENDS
+Default backends.
+
+$_FASD_RO
+If set to any non-empty string, fasd will not add or delete entries from
+database. You can set and export this variable from command line.
+
+$_FASD_FUZZY
+Level of "fuzziness" when doing fuzzy matching. More precisely, the number of
+characters that can be skipped to generate a match. Set to empty or 0 to
+disable fuzzy matching. Default value is 2.
+
+$_FASD_VIMINFO
+Path to .viminfo file for viminfo backend, defaults to "$HOME/.viminfo"
+
+$_FASD_RECENTLY_USED_XBEL
+Path to XDG recently-used.xbel file for recently-used backend, defaults to
+"$HOME/.local/share/recently-used.xbel"
+
+</code></pre>
+
+<h1>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h1>
+
+<p>If fasd does not work as expected, please file a bug report describing the
+unexpected behavior along with your OS version, shell version, awk version, sed
+version, and a log file.</p>
+
+<p>You can set <code>_FASD_SINK</code> in your <code>.fasdrc</code> to obtain a log.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">_FASD_SINK</span><span class="o">=</span><span class="s2">"$HOME/.fasd.log"</span>
+</pre></div>
+
+<h1>
+<a name="user-content-copying" class="anchor" href="#copying" aria-hidden="true"><span class="octicon octicon-link"></span></a>COPYING</h1>
+
+<p>Fasd is originally written based on code from <a href="https://github.com/rupa/z">z</a> by
+rupa deadwyler under the WTFPL license. Most if not all of the code has been
+rewritten. Fasd is licensed under the "MIT/X11" license.</p></article></div>

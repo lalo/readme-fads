@@ -1,0 +1,130 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-wp-stack" class="anchor" href="#wp-stack" aria-hidden="true"><span class="octicon octicon-link"></span></a>WP Stack</h1>
+
+<p>A toolkit for creating professional <a href="http://wordpress.org/">WordPress</a> deployments.</p>
+
+<p>Commissioned by <a href="http://www.knewton.com/">Knewton</a>.</p>
+
+<h2>
+<a name="user-content-why" class="anchor" href="#why" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why</h2>
+
+<p>WordPress runs professional sites. You should have a professional deployment to go along with it. You should be using:</p>
+
+<ul class="task-list">
+<li>Version control (like Git)</li>
+<li>A code deployment system (like Capistrano)</li>
+<li>A staging environment to test changes before they go live</li>
+<li>CDN for static assets</li>
+</ul><p>Additionally, you should be able to easily scale out to multiple web servers, if needed.</p>
+
+<p>WP Stack is a toolkit that helps you do all that.</p>
+
+<h2>
+<a name="user-content-wordpress-must-use-plugins" class="anchor" href="#wordpress-must-use-plugins" aria-hidden="true"><span class="octicon octicon-link"></span></a>WordPress Must-use Plugins</h2>
+
+<p>"Must-use" plugins aka <code>mu-plugins</code> are WordPress plugins that are dropped into the <code>{WordPress content dir}/mu-plugins/</code> directory. They are autoloaded — no need to activate them. WP Stack comes with a number of these plugins for your use:</p>
+
+<h3>
+<a name="user-content-cdn" class="anchor" href="#cdn" aria-hidden="true"><span class="octicon octicon-link"></span></a>CDN</h3>
+
+<p><code>wp-stack-cdn.php</code></p>
+
+<p>This is a very simple CDN plugin. Simply configure the constant <code>WP_STACK_CDN_DOMAIN</code> in your <code>wp-config.php</code> or hook in and override the <code>wp_stack_cdn_domain</code> option. Provide a domain name only, like <code>static.example.com</code>. The plugin will look for static file URLs on your domain and repoint them to the CDN domain.</p>
+
+<h3>
+<a name="user-content-multisite-uploads" class="anchor" href="#multisite-uploads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multisite Uploads</h3>
+
+<p><code>wp-stack-ms-uploads.php</code></p>
+
+<p>The way WordPress Multisite serves uploads is not ideal. It streams them through a PHP file. Professional sites should not do this. This plugin allows one nginx rewrite rule to handle all uploads, eliminating the need for PHP streaming. It uses the following URL scheme for uploads: <code>{scheme}://{domain}/wp-files/{blog_id}/</code>. By inserting the <code>$blog_id</code>, one rewrite rule can make sure file requests go to the correct blog.</p>
+
+<p><strong>Note:</strong> You will need to implement this Nginx rewrite rule for this to work:</p>
+
+<p><code>rewrite ^/wp-files/([0-9]+)/(.*)$ /wp-content/blogs.dir/$1/files/$2;</code></p>
+
+<h3>
+<a name="user-content-manual-db-upgrades" class="anchor" href="#manual-db-upgrades" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual DB Upgrades</h3>
+
+<p>Normally, WordPress redirects <code>/wp-admin/</code> requests to the WordPress database upgrade screen. On large sites, or sites with a lot of active authors, this may not be desired. This drop-in prevents the automatic redirect and instead lets you manually go to <code>/wp-admin/upgrade.php</code> to upgrade a site.</p>
+
+<h2>
+<a name="user-content-capistrano" class="anchor" href="#capistrano" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capistrano</h2>
+
+<p>Capistrano is a code deployment tool. When you have code that is ready to go "live", this is what does it.</p>
+
+<h3>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h3>
+
+<ol class="task-list">
+<li>Create a <code>deploy</code> user on your system (Ubuntu: <code>addgroup deploy; adduser --system --shell /bin/bash --ingroup deploy --disabled-password --home /home/deploy deploy
+</code>).</li>
+<li>Create an SSH key for <code>deploy</code>, make sure it can SSH to all of your web servers, and make sure it can pull down your site repo code.
+
+<ul class="task-list">
+<li>Switch to the deploy user (<code>su deploy</code>).</li>
+<li><code>ssh-keygen</code></li>
+<li><code>cat ~/.ssh/id_rsa.pub &gt;&gt; ~/.ssh/authorized_keys</code></li>
+<li>Add the contents of <code>~/.ssh/id_rsa.pub</code> to <code>~/.ssh/authorized_keys</code> on every server you're deploying to.</li>
+</ul>
+</li>
+<li>
+<a href="http://rubygems.org/pages/download">Install RubyGems</a>.</li>
+<li>Install Capistrano and friends: <code>sudo gem install capistrano capistrano-ext railsless-deploy</code>
+</li>
+<li>Switch to the deploy user (<code>su deploy</code>) and check out WP Stack somewhere on your server: <code>git clone git@github.com:markjaquith/WP-Stack.git ~/deploy</code>
+</li>
+<li>Customize and rename <code>config/SAMPLE.{config|production|staging}.rb</code>
+</li>
+<li>Make sure your <code>:deploy_to</code> path exists and is owned by the deploy user: <code>chown -R deploy:deploy /path/to/your/deployment</code>
+</li>
+<li>Run <code>cap deploy:setup</code> (from your WP Stack directory) to setup the initial <code>shared</code> and <code>releases</code> directories.</li>
+</ol><h3>
+<a name="user-content-deploying" class="anchor" href="#deploying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploying</h3>
+
+<ol class="task-list">
+<li>Switch to the deploy user: <code>su deploy</code>
+</li>
+<li>
+<code>cd</code> to the WP Stack directory.</li>
+<li>Run <code>cap production deploy</code> (to deploy to staging, use <code>cap staging deploy</code>)</li>
+</ol><h3>
+<a name="user-content-rolling-back" class="anchor" href="#rolling-back" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rolling Back</h3>
+
+<ol class="task-list">
+<li>Switch to the deploy user: <code>su deploy</code>
+</li>
+<li>
+<code>cd</code> to the WP Stack directory.</li>
+<li>Run <code>cap deploy:rollback</code>
+</li>
+</ol><h3>
+<a name="user-content-about-stages" class="anchor" href="#about-stages" aria-hidden="true"><span class="octicon octicon-link"></span></a>About Stages</h3>
+
+<p>There are two "stages": production and staging. These can be completely different servers, or different paths on the same set of servers.</p>
+
+<p>To sync from production to staging (DB and files), run <code>cap staging db:sync</code>.</p>
+
+<h2>
+<a name="user-content-assumptions-made-about-wordpress" class="anchor" href="#assumptions-made-about-wordpress" aria-hidden="true"><span class="octicon octicon-link"></span></a>Assumptions made about WordPress</h2>
+
+<p>If you're not using <a href="https://github.com/markjaquith/WordPress-Skeleton">WordPress Skeleton</a>, you should be aware of these assumptions:</p>
+
+<ol class="task-list">
+<li>Your <code>wp-config.php</code> file exists in your web root. So put it there.</li>
+<li>WP Stack replaces the following "stubs":
+
+<ul class="task-list">
+<li>
+<code>%%DB_NAME%%</code> — Database name.</li>
+<li>
+<code>%%DB_HOST%%</code> — Database host.</li>
+<li>
+<code>%%DB_USER%%</code> — Database username.</li>
+<li>
+<code>%%DB_PASSWORD%%</code> — Database password.</li>
+<li>
+<code>%%WP_STAGE%%</code> – will be <code>production</code> or <code>staging</code> after deploy.</li>
+</ul>
+</li>
+<li>WP Stack uses the constants <code>WP_STAGE</code> (which should be set to <code>'%%WP_STAGE%%'</code>) and <code>STAGING_DOMAIN</code>, which should be set to the domain you want to use for staging (something like <code>staging.example.com</code>).</li>
+</ol></article></div>

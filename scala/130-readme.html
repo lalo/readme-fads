@@ -1,0 +1,160 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-typesafe-activator" class="anchor" href="#typesafe-activator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Typesafe Activator</h1>
+
+<p>This project aims to be the snappiest snaptastic snapster you've every snapping laid eyes on!  And by that, we mean it builds stuff.</p>
+
+<p>For more information on using Activator, visit: <a href="http://typesafe.com/activator">http://typesafe.com/activator</a></p>
+
+<h1>
+<a name="user-content-activator-developer-documentation" class="anchor" href="#activator-developer-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Activator Developer Documentation</h1>
+
+<p>This project uses <a href="http://scala-sbt.org">SBT 0.13</a>.   Make sure you have an SBT launcher, and run it in the checked out directory.</p>
+
+<h2>
+<a name="user-content-running-the-ui" class="anchor" href="#running-the-ui" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running the UI</h2>
+
+<pre><code>sbt&gt; project activator-ui
+sbt&gt; run
+</code></pre>
+
+<p>or just</p>
+
+<pre><code>sbt "activator-ui/run"
+</code></pre>
+
+<h2>
+<a name="user-content-running-from-the-launcher" class="anchor" href="#running-from-the-launcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running from the Launcher</h2>
+
+<ol class="task-list">
+<li>
+<p>Stage the distribution:</p>
+
+<pre><code>sbt stage
+</code></pre>
+</li>
+<li>
+<p>Force the launcher to use the newly built launcher:</p>
+
+<pre><code>rm -r ~/.activator
+</code></pre>
+</li>
+<li>
+<p>Run Activator:</p>
+
+<pre><code>dist/target/stage/activator
+</code></pre>
+</li>
+</ol><h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>There are two types of tests:  Unit tests and integration tests.</p>
+
+<h3>
+<a name="user-content-unit-tests" class="anchor" href="#unit-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unit Tests</h3>
+
+<p>To run unit tests, simply:</p>
+
+<pre><code>sbt&gt; test
+</code></pre>
+
+<p>To run the tests of a particular project, simply:</p>
+
+<pre><code>sbt&gt; &lt;project&gt;/test
+</code></pre>
+
+<p>To run a specific test, simply:</p>
+
+<pre><code>sbt&gt; test-only TestName
+</code></pre>
+
+<h2>
+<a name="user-content-integration-tests" class="anchor" href="#integration-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Integration Tests</h2>
+
+<p>To run all the integration tests, simply:</p>
+
+<pre><code>sbt&gt; integrationTests
+</code></pre>
+
+<p>This also runs offlineTests.</p>
+
+<h2>
+<a name="user-content-staging-a-distribution" class="anchor" href="#staging-a-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Staging a distribution</h2>
+
+<pre><code>sbt&gt; activator-dist/stage
+</code></pre>
+
+<p>or just</p>
+
+<pre><code>sbt&gt; stage 
+</code></pre>
+
+<p><em>Note: just stage will also run <code>activator-ui/stage</code></em></p>
+
+<p>Generates a distribution in the <code>dist/target/stage</code> directory.  This will use a launcher version based on the current git commit id.  To rebuild a new launcher remove your <code>~/.sbt/boot/scala-*/com.typesafe.activator</code> directory.</p>
+
+<h2>
+<a name="user-content-building-the-distribution" class="anchor" href="#building-the-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building the Distribution</h2>
+
+<p>Activator is versioned by either the current git tag or if there isn't a tag, the latest commit hash.  To see the current version that Activator will use for the distribution run:</p>
+
+<pre><code>sbt show version
+</code></pre>
+
+<p>To create a distribution optionally create a tag and then run:</p>
+
+<pre><code>sbt dist
+</code></pre>
+
+<p>This generates the file <code>dist/target/universal/typeasafe-activator-&lt;VERSION&gt;.zip</code>.</p>
+
+<p>Activator auto-checks for new versions so to test a new unreleased version you will need to start Activator with the <code>-Dactivator.checkForUpdates=false</code> flag.  If you don't set this Activator will use the latest released version instead of the newly created one.</p>
+
+<h2>
+<a name="user-content-publishing-the-distribution" class="anchor" href="#publishing-the-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Publishing the Distribution</h2>
+
+<p>Release overview:</p>
+
+<ul class="task-list">
+<li>make sure you have the desired version of the template catalog configured in <code>project/LocalTemplateRepo.scala</code>, setting is <code>localTemplateCacheHash</code>. Run <code>latestTemplateCacheHash</code> task to get latest. Can get the hash for any existing Activator fat distribution by downloading it and digging it out of the included <code>cache.properties</code> file.</li>
+<li>if you're trying to ship with an old template catalog, you will need to <code>set LocalTemplateRepo.enableCheckTemplateCacheHash := false</code> temporarily before you type <code>publishSigned</code> and <code>s3Upload</code>.</li>
+<li>commit the desired template catalog hash to git so your build will be reproducible.</li>
+<li>if you want to make a "real" release (not a git-hash-versioned snapshot), create a git tag for it like <code>v1.0.2</code>.</li>
+<li>relaunch sbt; type <code>show version</code> and it should have picked up the tag.</li>
+<li>if you want to make a snapshot/test release, just let sbt use the git commit as the version. <code>show version</code> to verify.</li>
+<li>be sure <code>test</code>, <code>integrationTests</code>, <code>offlineTests</code>, and <code>checkTemplateCacheHash</code> are passing.</li>
+<li>
+<code>publishSigned</code> then <code>s3Upload</code>.</li>
+<li>push the version tag to github</li>
+</ul><p>We do both <code>publishSigned</code> and <code>s3Upload</code>. To <code>publishSigned</code> you need a GPG key.</p>
+
+<p>After <code>publishSigned</code>, upload to S3.</p>
+
+<p>Make sure your credentials are in an appropriate spot.  For me, that's in <code>~/.sbt/user.sbt</code> with the following content:</p>
+
+<pre><code>credentials += Credentials("Amazon S3", "downloads.typesafe.com.s3.amazonaws.com", &lt;AWS KEY&gt;, &lt;AWS PW&gt;)
+</code></pre>
+
+<p>Then you can run simply:</p>
+
+<pre><code>sbt&gt; activator-dist/s3Upload
+</code></pre>
+
+<p><em>OR</em></p>
+
+<pre><code>sbt&gt; s3Upload
+</code></pre>
+
+<h2>
+<a name="user-content-publishing-news-to-versions" class="anchor" href="#publishing-news-to-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Publishing NEWS to versions</h2>
+
+<p>First, edit the file <code>news/news.html</code> to display the news you'd like within builder.</p>
+
+<p>Then run:</p>
+
+<pre><code>sbt&gt; news/publish-news &lt;version&gt;
+</code></pre>
+
+<h1>
+<a name="user-content-issues" class="anchor" href="#issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Issues</h1>
+
+<p>If you run into staleness issues with a staged release of Activator, just run <code>reload</code> in SBT to regenerate the version number and then run <code>stage</code> again.   This should give you a new stable version of SNAP for the sbt-launcher so that the new code is used.   Should only be needed when doing integration tests.</p></article></div>

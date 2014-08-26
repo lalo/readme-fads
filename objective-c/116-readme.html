@@ -1,0 +1,276 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-webviewjavascriptbridge" class="anchor" href="#webviewjavascriptbridge" aria-hidden="true"><span class="octicon octicon-link"></span></a>WebViewJavascriptBridge</h1>
+
+<p>An iOS/OSX bridge for sending messages between Obj-C and JavaScript in UIWebViews/WebViews.</p>
+
+<p>If you like WebViewJavascriptBridge you may also want to check out <a href="https://github.com/marcuswestin/WebViewProxy">WebViewProxy</a>.</p>
+
+<h2>
+<a name="user-content-in-the-wild" class="anchor" href="#in-the-wild" aria-hidden="true"><span class="octicon octicon-link"></span></a>In the Wild</h2>
+
+<p>WebViewJavascriptBridge is used by a range of companies and projects. This list is incomplete, but feel free to add your's and send a PR.</p>
+
+<ul class="task-list">
+<li><a href="https://www.facebook.com/mobile/messenger">Facebook Messenger</a></li>
+<li><a href="https://facebook.com/paper">Facebook Paper</a></li>
+<li><a href="https://www.getyardsale.com/">Yardsale</a></li>
+<li><a href="http://www.evertrue.com/">EverTrue</a></li>
+<li><a href="http://www.game-insight.com/">Game Insight</a></li>
+<li><a href="http://www.altralogica.it">Altralogica</a></li>
+<li><a href="http://www.sush.io">Sush.io</a></li>
+<li>Flutterby Labs</li>
+<li>JD Media's <a href="https://itunes.apple.com/us/app/ding-sheng-zhong-hua/id537273940?mt=8">鼎盛中华</a>
+</li>
+<li>Dojo4's <a href="http://dojo4.github.io/imbed/">Imbed</a>
+</li>
+<li><a href="https://carezone.com">CareZone</a></li>
+</ul><h2>
+<a name="user-content-setup--examples-ios--osx" class="anchor" href="#setup--examples-ios--osx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup &amp; Examples (iOS &amp; OSX)</h2>
+
+<p>Start with the Example Apps/ folder. Open either the iOS or OSX project and hit run to see it in action.</p>
+
+<p>To use a WebViewJavascriptBridge in your own project:</p>
+
+<p>1) Drag the <code>WebViewJavascriptBridge</code> folder into your project.</p>
+
+<ul class="task-list">
+<li>In the dialog that appears, uncheck "Copy items into destination group's folder" and select "Create groups for any folders"</li>
+</ul><p>2) Import the header file:</p>
+
+<pre><code>#import "WebViewJavascriptBridge.h"
+</code></pre>
+
+<p>3) Instantiate WebViewJavascriptBridge with a UIWebView (iOS) or WebView (OSX):</p>
+
+<pre><code>WebViewJavascriptBridge* bridge = [WebViewJavascriptBridge bridgeForWebView:webView handler:^(id data, WVJBResponseCallback responseCallback) {
+    NSLog(@"Received message from javascript: %@", data);
+    responseCallback(@"Right back atcha");
+}];
+</code></pre>
+
+<p>4) Go ahead and send some messages from ObjC to javascript:</p>
+
+<pre><code>[bridge send:@"Well hello there"];
+[bridge send:[NSDictionary dictionaryWithObject:@"Foo" forKey:@"Bar"]];
+[bridge send:@"Give me a response, will you?" responseCallback:^(id responseData) {
+    NSLog(@"ObjC got its response! %@", responseData);
+}];
+</code></pre>
+
+<p>4) Finally, set up the javascript side:</p>
+
+<pre><code>function connectWebViewJavascriptBridge(callback) {
+    if (window.WebViewJavascriptBridge) {
+        callback(WebViewJavascriptBridge)
+    } else {
+        document.addEventListener('WebViewJavascriptBridgeReady', function() {
+            callback(WebViewJavascriptBridge)
+        }, false)
+    }
+}
+
+connectWebViewJavascriptBridge(function(bridge) {
+
+    /* Init your app here */
+
+    bridge.init(function(message, responseCallback) {
+        alert('Received message: ' + message)   
+        if (responseCallback) {
+            responseCallback("Right back atcha")
+        }
+    })
+    bridge.send('Hello from the javascript')
+    bridge.send('Please respond to this', function responseCallback(responseData) {
+        console.log("Javascript got its response", responseData)
+    })
+})
+</code></pre>
+
+<h2>
+<a name="user-content-contributors--forks" class="anchor" href="#contributors--forks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors &amp; Forks</h2>
+
+<p>Contributors: <a href="https://github.com/marcuswestin/WebViewJavascriptBridge/graphs/contributors">https://github.com/marcuswestin/WebViewJavascriptBridge/graphs/contributors</a></p>
+
+<p>Forks: <a href="https://github.com/marcuswestin/WebViewJavascriptBridge/network/members">https://github.com/marcuswestin/WebViewJavascriptBridge/network/members</a></p>
+
+<h2>
+<a name="user-content-api-reference" class="anchor" href="#api-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>API Reference</h2>
+
+<h3>
+<a name="user-content-objc-api" class="anchor" href="#objc-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>ObjC API</h3>
+
+<h5>
+<a name="user-content-webviewjavascriptbridge-bridgeforwebviewuiwebviewwebviewwebview-handlerwvjbhandlerhandler" class="anchor" href="#webviewjavascriptbridge-bridgeforwebviewuiwebviewwebviewwebview-handlerwvjbhandlerhandler" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[WebViewJavascriptBridge bridgeForWebView:(UIWebView/WebView*)webview handler:(WVJBHandler)handler]</code>
+</h5>
+
+<h5>
+<a name="user-content-webviewjavascriptbridge-bridgeforwebviewuiwebviewwebviewwebview-webviewdelegateuiwebviewdelegatewebviewdelegate-handlerwvjbhandlerhandler" class="anchor" href="#webviewjavascriptbridge-bridgeforwebviewuiwebviewwebviewwebview-webviewdelegateuiwebviewdelegatewebviewdelegate-handlerwvjbhandlerhandler" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[WebViewJavascriptBridge bridgeForWebView:(UIWebView/WebView*)webview webViewDelegate:(UIWebViewDelegate*)webViewDelegate handler:(WVJBHandler)handler]</code>
+</h5>
+
+<p>Create a javascript bridge for the given web view.</p>
+
+<p>The <code>WVJBResponseCallback</code> will not be <code>nil</code> if the javascript expects a response.</p>
+
+<p>Optionally, pass in <code>webViewDelegate:(UIWebViewDelegate*)webViewDelegate</code> if you need to respond to the <a href="http://developer.apple.com/library/ios/documentation/uikit/reference/UIWebViewDelegate_Protocol/Reference/Reference.html">web view's lifecycle events</a>.</p>
+
+<p>Example:</p>
+
+<pre><code>[WebViewJavascriptBridge bridgeForWebView:webView handler:^(id data, WVJBResponseCallback responseCallback) {
+    NSLog(@"Received message from javascript: %@", data);
+    if (responseCallback) {
+        responseCallback(@"Right back atcha");
+    }
+}]
+
+[WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) { /* ... */ }];
+</code></pre>
+
+<h5>
+<a name="user-content-bridge-sendiddata" class="anchor" href="#bridge-sendiddata" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[bridge send:(id)data]</code>
+</h5>
+
+<h5>
+<a name="user-content-bridge-sendiddata-responsecallbackwvjbresponsecallbackresponsecallback" class="anchor" href="#bridge-sendiddata-responsecallbackwvjbresponsecallbackresponsecallback" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[bridge send:(id)data responseCallback:(WVJBResponseCallback)responseCallback]</code>
+</h5>
+
+<p>Send a message to javascript. Optionally expect a response by giving a <code>responseCallback</code> block.</p>
+
+<p>Example:</p>
+
+<pre><code>[bridge send:@"Hi"];
+[bridge send:[NSDictionary dictionaryWithObject:@"Foo" forKey:@"Bar"]];
+[bridge send:@"I expect a response!" responseCallback:^(id responseData) {
+    NSLog(@"Got response! %@", responseData);
+}];
+</code></pre>
+
+<h5>
+<a name="user-content-bridge-registerhandlernsstringhandlername-handlerwvjbhandlerhandler" class="anchor" href="#bridge-registerhandlernsstringhandlername-handlerwvjbhandlerhandler" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[bridge registerHandler:(NSString*)handlerName handler:(WVJBHandler)handler]</code>
+</h5>
+
+<p>Register a handler called <code>handlerName</code>. The javascript can then call this handler with <code>WebViewJavascriptBridge.callHandler("handlerName")</code>.</p>
+
+<p>Example:</p>
+
+<pre><code>[bridge registerHandler:@"getScreenHeight" handler:^(id data, WVJBResponseCallback responseCallback) {
+    responseCallback([NSNumber numberWithInt:[UIScreen mainScreen].bounds.size.height]);
+}];
+</code></pre>
+
+<h5>
+<a name="user-content-bridge-callhandlernsstringhandlername-dataiddata" class="anchor" href="#bridge-callhandlernsstringhandlername-dataiddata" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[bridge callHandler:(NSString*)handlerName data:(id)data]</code>
+</h5>
+
+<h5>
+<a name="user-content-bridge-callhandlernsstringhandlername-dataiddata-responsecallbackwvjbresponsecallbackcallback" class="anchor" href="#bridge-callhandlernsstringhandlername-dataiddata-responsecallbackwvjbresponsecallbackcallback" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[bridge callHandler:(NSString*)handlerName data:(id)data responseCallback:(WVJBResponseCallback)callback]</code>
+</h5>
+
+<p>Call the javascript handler called <code>handlerName</code>. Optionally expect a response by giving a <code>responseCallback</code> block.</p>
+
+<p>Example:</p>
+
+<pre><code>[bridge callHandler:@"showAlert" data:@"Hi from ObjC to JS!"];
+[bridge callHandler:@"getCurrentPageUrl" data:nil responseCallback:^(id responseData) {
+    NSLog(@"Current UIWebView page URL is: %@", responseData);
+}];
+</code></pre>
+
+<h4>
+<a name="user-content-custom-bundle" class="anchor" href="#custom-bundle" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom bundle</h4>
+
+<p><code>WebViewJavascriptBridge</code> requires <code>WebViewJavascriptBridge.js.txt</code> file that is injected into web view to create a bridge on JS side. Standard implementation uses <code>mainBundle</code> to search for this file. If you e.g. build a static library and you have that file placed somewhere else you can use this method to specify which bundle should be searched for <code>WebViewJavascriptBridge.js.txt</code> file:</p>
+
+<h5>
+<a name="user-content-webviewjavascriptbridge-bridgeforwebviewuiwebviewwebviewwebview-webviewdelegateuiwebviewdelegatewebviewdelegate-handlerwvjbhandlerhandler-resourcebundlensbundlebundle" class="anchor" href="#webviewjavascriptbridge-bridgeforwebviewuiwebviewwebviewwebview-webviewdelegateuiwebviewdelegatewebviewdelegate-handlerwvjbhandlerhandler-resourcebundlensbundlebundle" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>[WebViewJavascriptBridge bridgeForWebView:(UIWebView/WebView*)webView webViewDelegate:(UIWebViewDelegate*)webViewDelegate handler:(WVJBHandler)handler resourceBundle:(NSBundle*)bundle</code>
+</h5>
+
+<p>Example:</p>
+
+<pre><code>[WebViewJavascriptBridge bridgeForWebView:_webView
+                          webViewDelegate:self
+                                  handler:^(id data, WVJBResponseCallback responseCallback) {
+                                      NSLog(@"Received message from javascript: %@", data);
+                                  }
+                           resourceBundle:[NSBundle bundleWithURL:[[NSBundle mainBundle] URLForResource:@"ResourcesBundle" withExtension:@"bundle"]]
+];
+</code></pre>
+
+<h3>
+<a name="user-content-javascript-api" class="anchor" href="#javascript-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>Javascript API</h3>
+
+<h5>
+<a name="user-content-documentaddeventlistenerwebviewjavascriptbridgeready-function-onbridgereadyevent----false" class="anchor" href="#documentaddeventlistenerwebviewjavascriptbridgeready-function-onbridgereadyevent----false" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>document.addEventListener('WebViewJavascriptBridgeReady', function onBridgeReady(event) { ... }, false)</code>
+</h5>
+
+<p>Always wait for the <code>WebViewJavascriptBridgeReady</code> DOM event.</p>
+
+<p>Example:</p>
+
+<pre><code>document.addEventListener('WebViewJavascriptBridgeReady', function(event) {
+    var bridge = event.bridge
+    // Start using the bridge
+}, false)
+</code></pre>
+
+<h5>
+<a name="user-content-bridgeinitfunction-messagehandlerdata-response---" class="anchor" href="#bridgeinitfunction-messagehandlerdata-response---" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>bridge.init(function messageHandler(data, response) { ... })</code>
+</h5>
+
+<p>Initialize the bridge. This should be called inside of the <code>'WebViewJavascriptBridgeReady'</code> event handler.</p>
+
+<p>The <code>messageHandler</code> function will receive all messages sent from ObjC via <code>[bridge send:(id)data]</code> and <code>[bridge send:(id)data responseCallback:(WVJBResponseCallback)responseCallback]</code>.</p>
+
+<p>The <code>response</code> object will be defined if if ObjC sent the message with a <code>WVJBResponseCallback</code> block.</p>
+
+<p>Example:</p>
+
+<pre><code>bridge.init(function(data, responseCallback) {
+    alert("Got data " + JSON.stringify(data))
+    if (responseCallback) {
+        responseCallback("Right back atcha!")
+    }
+})
+</code></pre>
+
+<h5>
+<a name="user-content-bridgesendhi-there" class="anchor" href="#bridgesendhi-there" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>bridge.send("Hi there!")</code>
+</h5>
+
+<h5>
+<a name="user-content-bridgesend-foobar-" class="anchor" href="#bridgesend-foobar-" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>bridge.send({ Foo:"Bar" })</code>
+</h5>
+
+<h5>
+<a name="user-content-bridgesenddata-function-responsecallbackresponsedata---" class="anchor" href="#bridgesenddata-function-responsecallbackresponsedata---" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>bridge.send(data, function responseCallback(responseData) { ... })</code>
+</h5>
+
+<p>Send a message to ObjC. Optionally expect a response by giving a <code>responseCallback</code> function.</p>
+
+<p>Example:</p>
+
+<pre><code>bridge.send("Hi there!")
+bridge.send("Hi there!", function(responseData) {
+    alert("I got a response! "+JSON.stringify(responseData))
+})
+</code></pre>
+
+<h5>
+<a name="user-content-bridgeregisterhandlerhandlername-functionresponsedata---" class="anchor" href="#bridgeregisterhandlerhandlername-functionresponsedata---" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>bridge.registerHandler("handlerName", function(responseData) { ... })</code>
+</h5>
+
+<p>Register a handler called <code>handlerName</code>. The ObjC can then call this handler with <code>[bridge callHandler:"handlerName" data:@"Foo"]</code> and <code>[bridge callHandler:"handlerName" data:@"Foo" responseCallback:^(id responseData) { ... }]</code></p>
+
+<p>Example:</p>
+
+<pre><code>bridge.registerHandler("showAlert", function(data) { alert(data) })
+bridge.registerHandler("getCurrentPageUrl", function(data, responseCallback) {
+    responseCallback(document.location.toString())
+})
+</code></pre>
+
+<h2>
+<a name="user-content-ios4-support-with-jsonkit" class="anchor" href="#ios4-support-with-jsonkit" aria-hidden="true"><span class="octicon octicon-link"></span></a>iOS4 support (with JSONKit)</h2>
+
+<p><em>Note</em>: iOS4 support has not yet been tested in v2+.</p>
+
+<p>WebViewJavascriptBridge uses <code>NSJSONSerialization</code> by default. If you need iOS 4 support then you can use <a href="https://github.com/johnezang/JSONKit/">JSONKit</a>, and add <code>USE_JSONKIT</code> to the preprocessor macros for your project.</p></article></div>

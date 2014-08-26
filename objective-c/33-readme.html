@@ -1,0 +1,156 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-tweaks" class="anchor" href="#tweaks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tweaks</h1>
+
+<p>Tweaks is an easy way to fine-tune an iOS app.</p>
+
+<p><a href="https://github.com/facebook/Tweaks/blob/master/Images/Tweaks.gif?raw=true" target="_blank"><img src="https://github.com/facebook/Tweaks/raw/master/Images/Tweaks.gif?raw=true" alt="Tweaks" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-why" class="anchor" href="#why" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why</h2>
+
+<p>The best way to improve an app is to use it every day. Even when ideas can be tested out in advance — for example, with <a href="http://origami.facebook.com">Origami</a> — it can still take some time with the app to see how it works in practice.</p>
+
+<p>Occasionally, it's perfect the first try. Sometimes, the idea doesn't work at all. But often, it just needs a few minor adjustments. That last case is where Tweaks fits in. Tweaks makes those small adjustments easy: with no code changes and no computer, you can try out different options and decide which works best.</p>
+
+<p>Some of the most useful parameters to adjust are animation timings, velocity thresholds, colors, and physics constants. At Facebook, we also use tweaks to temporarily disable new features during development. That way, the designers and engineers involved can enable it on just their devices, without getting in the way of others testing the app.</p>
+
+<p>Tweaks was invaluable for building <a href="http://www.facebook.com/paper">Paper</a>. We hope it can be useful for your app too.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Each configurable value is called a tweak. There's a few ways to set them up, found in <code>FBTweakInline.h</code>.</p>
+
+<h3>
+<a name="user-content-value" class="anchor" href="#value" aria-hidden="true"><span class="octicon octicon-link"></span></a>Value</h3>
+
+<p>The simplest way to create a tweak is to replace a constant with <code>FBTweakValue</code>:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">CGFloat</span> <span class="n">animationDuration</span> <span class="o">=</span> <span class="n">FBTweakValue</span><span class="p">(</span><span class="s">@"Category"</span><span class="p">,</span> <span class="s">@"Group"</span><span class="p">,</span> <span class="s">@"Duration"</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">);</span>
+</pre></div>
+
+<p>The first three parameters are where the tweak is listed and what it's called, and the last one is the default value. You can pass in many types of constants for the default:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="k">if</span> <span class="p">(</span><span class="n">FBTweakValue</span><span class="p">(</span><span class="s">@"Category"</span><span class="p">,</span> <span class="s">@"Feature"</span><span class="p">,</span> <span class="s">@"Enabled"</span><span class="p">,</span> <span class="nb">YES</span><span class="p">))</span> <span class="p">{</span>
+  <span class="n">label</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">FBTweakValue</span><span class="p">(</span><span class="s">@"Category"</span><span class="p">,</span> <span class="s">@"Group"</span><span class="p">,</span> <span class="s">@"Text"</span><span class="p">,</span> <span class="s">@"Tweaks example."</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>In release builds, the <code>FBTweakValue</code> macro expands to just the default value, so there's no performance impact. In debug builds, though, it fetches the latest value of the tweak.</p>
+
+<p>For numeric tweaks (<code>NSInteger</code>, <code>CGFloat</code>, and others), you can pass an extra two parameters which are used as the minimum and maximum value for the tweak:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="nb">self</span><span class="p">.</span><span class="n">red</span> <span class="o">=</span> <span class="n">FBTweakValue</span><span class="p">(</span><span class="s">@"Header"</span><span class="p">,</span> <span class="s">@"Colors"</span><span class="p">,</span> <span class="s">@"Red"</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-bind" class="anchor" href="#bind" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bind</h3>
+
+<p>To make tweaks update live, you can use <code>FBTweakBind</code>:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">FBTweakBind</span><span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">headerView</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="s">@"Main Screen"</span><span class="p">,</span> <span class="s">@"Header"</span><span class="p">,</span> <span class="s">@"Alpha"</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">);</span>
+</pre></div>
+
+<p>The first parameter is the object to bind to, and the second is the property. Whenever the tweak is changed, <code>self.headerView</code>'s <code>alpha</code> property is updated to match. A few more examples:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">FBTweakBind</span><span class="p">(</span><span class="n">audioPlayer</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="s">@"Player"</span><span class="p">,</span> <span class="s">@"Audio"</span><span class="p">,</span> <span class="s">@"Volume"</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">);</span>
+<span class="n">FBTweakBind</span><span class="p">(</span><span class="n">webView</span><span class="p">.</span><span class="n">scrollView</span><span class="p">,</span> <span class="n">scrollEnabled</span><span class="p">,</span> <span class="s">@"Browser"</span><span class="p">,</span> <span class="s">@"Scrolling"</span><span class="p">,</span> <span class="s">@"Enabled"</span><span class="p">,</span> <span class="nb">YES</span><span class="p">);</span>
+</pre></div>
+
+<p>As with <code>FBTweakValue</code>, in release builds <code>FBTweakBind</code> expands to just setting the property to the default value.</p>
+
+<h2>
+<a name="user-content-action" class="anchor" href="#action" aria-hidden="true"><span class="octicon octicon-link"></span></a>Action</h2>
+
+<p>Actions let you run a (global) block when a tweak is selected. To make one, use <code>FBTweakAction</code>:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">FBTweakAction</span><span class="p">(</span><span class="s">@"Player"</span><span class="p">,</span> <span class="s">@"Audio"</span><span class="p">,</span> <span class="s">@"Volume"</span><span class="p">,</span> <span class="o">^</span><span class="p">{</span>
+  <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Action selected."</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>The first three parameters are the standard tweak listing information, and the last is a block to call. You can use <code>FBTweakAction</code> in any scope, but the block must be global: it can't depend on any local or instance variables (it wouldn't know which object to adjust).</p>
+
+<p>Actions are useful for things like launching debug UIs, checking for updates, or (if you make one that intentionally crashes) testing crash reporting.</p>
+
+<h3>
+<a name="user-content-tweaks-ui" class="anchor" href="#tweaks-ui" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tweaks UI</h3>
+
+<p>To configure your tweaks, you need a way to show the configuration UI. There's two options for that:</p>
+
+<ul class="task-list">
+<li>Traditionally, tweaks is activated by shaking your phone. To use that, just replace your root <code>UIWindow</code> with a <code>FBTweakShakeWindow</code>. If you're using Storyboards, you can override <code>-window</code> on your app delegate:</li>
+</ul><div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="bp">UIWindow</span> <span class="o">*</span><span class="p">)</span><span class="nf">window</span>
+<span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">_window</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">_window</span> <span class="o">=</span> <span class="p">[[</span><span class="n">FBTweakShakeWindow</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithFrame</span><span class="p">:[[</span><span class="bp">UIScreen</span> <span class="n">mainScreen</span><span class="p">]</span> <span class="n">bounds</span><span class="p">]];</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="n">_window</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<ul class="task-list">
+<li>You can present a <code>FBTweakViewController</code> from anywhere in your app. Be sure to restrict the activation UI to debug builds!</li>
+</ul><h4>
+<a name="user-content-tweaks-ui-dismiss-notification" class="anchor" href="#tweaks-ui-dismiss-notification" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tweaks UI Dismiss Notification</h4>
+
+<p>Alternatively, when the Tweaks UI is dismissed, you can register your notification center to listen to <code>FBTweakShakeViewControllerDidDismissNotification</code>, which can be used after importing <code>FBTweakViewController.h</code> </p>
+
+<h3>
+<a name="user-content-advanced" class="anchor" href="#advanced" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced</h3>
+
+<p>You can also access the objects that make up the macros mentioned above. That can be useful for more complex scenarios, like adjusting members of a C structure.</p>
+
+<p>For example, to manually create a tweak:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">FBTweak</span> <span class="o">*</span><span class="n">tweak</span> <span class="o">=</span> <span class="p">[[</span><span class="n">FBTweak</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithIdentifier</span><span class="p">:</span><span class="s">@"com.tweaks.example.advanced"</span><span class="p">];</span>
+<span class="n">tweak</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">@"Advanced Settings"</span><span class="p">;</span>
+<span class="n">tweak</span><span class="p">.</span><span class="n">defaultValue</span> <span class="o">=</span> <span class="m">@NO</span><span class="p">;</span>
+
+<span class="n">FBTweakStore</span> <span class="o">*</span><span class="n">store</span> <span class="o">=</span> <span class="p">[</span><span class="n">FBTweakStore</span> <span class="n">sharedInstance</span><span class="p">];</span>
+<span class="n">FBTweakCategory</span> <span class="o">*</span><span class="n">category</span> <span class="o">=</span> <span class="p">[</span><span class="n">store</span> <span class="nl">tweakCategoryWithName</span><span class="p">:</span><span class="s">@"Settings"</span><span class="p">];</span>
+<span class="n">FBTweakCollection</span> <span class="o">*</span><span class="n">collection</span> <span class="o">=</span> <span class="p">[</span><span class="n">category</span> <span class="nl">tweakCollectionWithName</span><span class="p">:</span><span class="s">@"Enable"</span><span class="p">];</span>
+<span class="p">[</span><span class="n">collection</span> <span class="nl">addTweak</span><span class="p">:</span><span class="n">tweak</span><span class="p">];</span>
+
+<span class="p">[</span><span class="n">tweak</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span><span class="p">];</span>
+</pre></div>
+
+<p>Then, you can watch for when the tweak changes:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">tweakDidChange:</span><span class="p">(</span><span class="n">FBTweak</span> <span class="o">*</span><span class="p">)</span><span class="nv">tweak</span>
+<span class="p">{</span>
+  <span class="nb">self</span><span class="p">.</span><span class="n">advancedSettingsEnabled</span> <span class="o">=</span> <span class="o">!</span><span class="p">[</span><span class="n">tweak</span><span class="p">.</span><span class="n">currentValue</span> <span class="n">boolValue</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>To override when tweaks are enabled, you can define the <code>FB_TWEAK_ENABLED</code> macro. It's suggested to avoid including them when submitting to the App Store.</p>
+
+<h3>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h3>
+
+<p>In debug builds, the tweak macros use <code>__attribute__((section))</code> to statically store data about each tweak in the <code>__FBTweak</code> section of the mach-o. Tweaks loads that data at startup and loads the latest values from <code>NSUserDefaults</code>.</p>
+
+<p>In release builds, the macros just expand to the default value. Nothing extra is included in the binary.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>There are two options:</p>
+
+<ol class="task-list">
+<li>Tweaks is available as <code>Tweaks</code> in <a href="http://cocoapods.org">Cocoapods</a>. (If you have issues with custom Xcode configurations, <a href="https://github.com/facebook/Tweaks/issues/4#issuecomment-40629741">this comment</a> might help.)</li>
+<li>Manually add the files from <code>FBTweak/</code> into your Xcode project. Slightly simpler, but updates are also manual.</li>
+</ol><p>Tweaks requires iOS 6 or later.</p>
+
+<p>There's also a demo project available. To use it, make sure to open <code>FBTweakExample.xcworkspace</code> (rather than the <code>.xcodeproj</code>) so the dependencies build correctly.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>See the CONTRIBUTING file for how to help out.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Tweaks is BSD-licensed. We also provide an additional patent grant.</p></article></div>

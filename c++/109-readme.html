@@ -1,0 +1,73 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-thrust-code-at-the-speed-of-light" class="anchor" href="#thrust-code-at-the-speed-of-light" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thrust: Code at the speed of light</h1>
+
+<p>Thrust is a parallel algorithms library which resembles the C++ Standard
+Template Library (STL). Thrust's <strong>high-level</strong> interface greatly enhances
+programmer <strong>productivity</strong> while enabling performance portability between
+GPUs and multicore CPUs. <strong>Interoperability</strong> with established technologies
+(such as CUDA, TBB, and OpenMP) facilitates integration with existing
+software. Develop <strong>high-performance</strong> applications rapidly with Thrust!</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>Thrust is best explained through examples. The following source code
+generates random numbers serially and then transfers them to a parallel
+device where they are sorted.</p>
+
+<div class="highlight highlight-c++"><pre><span class="cp">#include &lt;thrust/host_vector.h&gt;</span>
+<span class="cp">#include &lt;thrust/device_vector.h&gt;</span>
+<span class="cp">#include &lt;thrust/generate.h&gt;</span>
+<span class="cp">#include &lt;thrust/sort.h&gt;</span>
+<span class="cp">#include &lt;thrust/copy.h&gt;</span>
+<span class="cp">#include &lt;algorithm&gt;</span>
+<span class="cp">#include &lt;cstdlib&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// generate 32M random numbers serially</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">host_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">h_vec</span><span class="p">(</span><span class="mi">32</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">generate</span><span class="p">(</span><span class="n">h_vec</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">h_vec</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">rand</span><span class="p">);</span>
+
+  <span class="c1">// transfer data to the device</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">d_vec</span> <span class="o">=</span> <span class="n">h_vec</span><span class="p">;</span>
+
+  <span class="c1">// sort data on the device (846M keys per second on GeForce GTX 480)</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">sort</span><span class="p">(</span><span class="n">d_vec</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">d_vec</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+
+  <span class="c1">// transfer data back to host</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">copy</span><span class="p">(</span><span class="n">d_vec</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">d_vec</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">h_vec</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This code sample computes the sum of 100 random numbers in parallel:</p>
+
+<div class="highlight highlight-c++"><pre><span class="cp">#include &lt;thrust/host_vector.h&gt;</span>
+<span class="cp">#include &lt;thrust/device_vector.h&gt;</span>
+<span class="cp">#include &lt;thrust/generate.h&gt;</span>
+<span class="cp">#include &lt;thrust/reduce.h&gt;</span>
+<span class="cp">#include &lt;thrust/functional.h&gt;</span>
+<span class="cp">#include &lt;algorithm&gt;</span>
+<span class="cp">#include &lt;cstdlib&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// generate random data serially</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">host_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">h_vec</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+  <span class="nl">std</span><span class="p">:</span><span class="n">generate</span><span class="p">(</span><span class="n">h_vec</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">h_vec</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">rand</span><span class="p">);</span>
+
+  <span class="c1">// transfer to device and compute sum</span>
+  <span class="n">thrust</span><span class="o">::</span><span class="n">device_vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">d_vec</span> <span class="o">=</span> <span class="n">h_vec</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="n">thrust</span><span class="o">::</span><span class="n">reduce</span><span class="p">(</span><span class="n">d_vec</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">d_vec</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">thrust</span><span class="o">::</span><span class="n">plus</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">());</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Refer to the <a href="http://github.com/thrust/thrust/wiki/Quick-Start-Guide">Quick Start Guide</a> page for further information and examples.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>The original creators of Thrust are <a href="http://github.com/jaredhoberock">Jared Hoberock</a> and <a href="http://research.nvidia.com/users/nathan-bell">Nathan Bell</a>.</p></article></div>

@@ -1,0 +1,713 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a>Name</h1>
+
+<p>lua-resty-redis - Lua redis client driver for the ngx_lua based on the cosocket API</p>
+
+<h1>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h1>
+
+<ul class="task-list">
+<li><a href="#name">Name</a></li>
+<li><a href="#status">Status</a></li>
+<li><a href="#description">Description</a></li>
+<li><a href="#synopsis">Synopsis</a></li>
+<li>
+<a href="#methods">Methods</a>
+
+<ul class="task-list">
+<li><a href="#new">new</a></li>
+<li><a href="#connect">connect</a></li>
+<li><a href="#set_timeout">set_timeout</a></li>
+<li><a href="#set_keepalive">set_keepalive</a></li>
+<li><a href="#get_reused_times">get_reused_times</a></li>
+<li><a href="#close">close</a></li>
+<li><a href="#init_pipeline">init_pipeline</a></li>
+<li><a href="#commit_pipeline">commit_pipeline</a></li>
+<li><a href="#cancel_pipeline">cancel_pipeline</a></li>
+<li><a href="#hmset">hmset</a></li>
+<li><a href="#array_to_hash">array_to_hash</a></li>
+<li><a href="#read_reply">read_reply</a></li>
+<li><a href="#add_commands">add_commands</a></li>
+</ul>
+</li>
+<li><a href="#redis-authentication">Redis Authentication</a></li>
+<li><a href="#redis-transactions">Redis Transactions</a></li>
+<li><a href="#load-balancing-and-failover">Load Balancing and Failover</a></li>
+<li><a href="#debugging">Debugging</a></li>
+<li><a href="#automatic-error-logging">Automatic Error Logging</a></li>
+<li><a href="#check-list-for-issues">Check List for Issues</a></li>
+<li><a href="#limitations">Limitations</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#todo">TODO</a></li>
+<li>
+<a href="#community">Community</a>
+
+<ul class="task-list">
+<li><a href="#english-mailing-list">English Mailing List</a></li>
+<li><a href="#chinese-mailing-list">Chinese Mailing List</a></li>
+</ul>
+</li>
+<li><a href="#bugs-and-patches">Bugs and Patches</a></li>
+<li><a href="#author">Author</a></li>
+<li><a href="#copyright-and-license">Copyright and License</a></li>
+<li><a href="#see-also">See Also</a></li>
+</ul><h1>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h1>
+
+<p>This library is considered production ready.</p>
+
+<h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h1>
+
+<p>This Lua library is a Redis client driver for the ngx_lua nginx module:</p>
+
+<p><a href="http://wiki.nginx.org/HttpLuaModule">http://wiki.nginx.org/HttpLuaModule</a></p>
+
+<p>This Lua library takes advantage of ngx_lua's cosocket API, which ensures
+100% nonblocking behavior.</p>
+
+<p>Note that at least <a href="https://github.com/chaoslawful/lua-nginx-module/tags">ngx_lua 0.5.14</a> or <a href="http://openresty.org/#Download">ngx_openresty 1.2.1.14</a> is required.</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h1>
+
+<div class="highlight highlight-lua"><pre>    <span class="o">#</span> <span class="n">you</span> <span class="k">do</span> <span class="ow">not</span> <span class="n">need</span> <span class="n">the</span> <span class="n">following</span> <span class="n">line</span> <span class="k">if</span> <span class="n">you</span> <span class="n">are</span> <span class="n">using</span>
+    <span class="o">#</span> <span class="n">the</span> <span class="n">ngx_openresty</span> <span class="n">bundle</span><span class="p">:</span>
+    <span class="n">lua_package_path</span> <span class="s2">"</span><span class="s">/path/to/lua-resty-redis/lib/?.lua;;"</span><span class="p">;</span>
+
+    <span class="n">server</span> <span class="p">{</span>
+        <span class="n">location</span> <span class="o">/</span><span class="n">test</span> <span class="p">{</span>
+            <span class="n">content_by_lua</span> <span class="s1">'</span>
+                <span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">resty.redis"</span>
+                <span class="kd">local</span> <span class="n">red</span> <span class="o">=</span> <span class="n">redis</span><span class="p">:</span><span class="n">new</span><span class="p">()</span>
+
+                <span class="n">red</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span> <span class="c1">-- 1 sec</span>
+
+                <span class="c1">-- or connect to a unix domain socket file listened</span>
+                <span class="c1">-- by a redis server:</span>
+                <span class="c1">--     local ok, err = red:connect("unix:/path/to/redis.sock")</span>
+
+                <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">connect</span><span class="p">(</span><span class="s2">"</span><span class="s">127.0.0.1"</span><span class="p">,</span> <span class="mi">6379</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+                    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to connect: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="k">end</span>
+
+                <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">set</span><span class="p">(</span><span class="s2">"</span><span class="s">dog"</span><span class="p">,</span> <span class="s2">"</span><span class="s">an animal"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+                    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to set dog: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="k">end</span>
+
+                <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">set result: "</span><span class="p">,</span> <span class="n">ok</span><span class="p">)</span>
+
+                <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">get</span><span class="p">(</span><span class="s2">"</span><span class="s">dog"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+                    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to get dog: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="k">end</span>
+
+                <span class="k">if</span> <span class="n">res</span> <span class="o">==</span> <span class="n">ngx</span><span class="p">.</span><span class="n">null</span> <span class="k">then</span>
+                    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">dog not found."</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="k">end</span>
+
+                <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">dog: "</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+
+                <span class="n">red</span><span class="p">:</span><span class="n">init_pipeline</span><span class="p">()</span>
+                <span class="n">red</span><span class="p">:</span><span class="n">set</span><span class="p">(</span><span class="s2">"</span><span class="s">cat"</span><span class="p">,</span> <span class="s2">"</span><span class="s">Marry"</span><span class="p">)</span>
+                <span class="n">red</span><span class="p">:</span><span class="n">set</span><span class="p">(</span><span class="s2">"</span><span class="s">horse"</span><span class="p">,</span> <span class="s2">"</span><span class="s">Bob"</span><span class="p">)</span>
+                <span class="n">red</span><span class="p">:</span><span class="n">get</span><span class="p">(</span><span class="s2">"</span><span class="s">cat"</span><span class="p">)</span>
+                <span class="n">red</span><span class="p">:</span><span class="n">get</span><span class="p">(</span><span class="s2">"</span><span class="s">horse"</span><span class="p">)</span>
+                <span class="kd">local</span> <span class="n">results</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">commit_pipeline</span><span class="p">()</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span> <span class="k">then</span>
+                    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to commit the pipelined requests: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="k">end</span>
+
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">res</span> <span class="k">in</span> <span class="nb">ipairs</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="k">do</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"</span><span class="s">table"</span> <span class="k">then</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">then</span>
+                            <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to run command "</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="s2">"</span><span class="s">: "</span><span class="p">,</span> <span class="n">res</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                        <span class="k">else</span>
+                            <span class="c1">-- process the table value</span>
+                        <span class="k">end</span>
+                    <span class="k">else</span>
+                        <span class="c1">-- process the scalar value</span>
+                    <span class="k">end</span>
+                <span class="k">end</span>
+
+                <span class="c1">-- put it into the connection pool of size 100,</span>
+                <span class="c1">-- with 10 seconds max idle time</span>
+                <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">set_keepalive</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+                    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to set keepalive: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+                    <span class="k">return</span>
+                <span class="k">end</span>
+
+                <span class="c1">-- or just close the connection right away:</span>
+                <span class="c1">-- local ok, err = red:close()</span>
+                <span class="c1">-- if not ok then</span>
+                <span class="c1">--     ngx.say("failed to close: ", err)</span>
+                <span class="c1">--     return</span>
+                <span class="c1">-- end</span>
+            <span class="s1">'</span><span class="s">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-methods" class="anchor" href="#methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Methods</h1>
+
+<p>All of the Redis commands have their own methods with the same name except all in lower case.</p>
+
+<p>You can find the complete list of Redis commands here:</p>
+
+<p><a href="http://redis.io/commands">http://redis.io/commands</a></p>
+
+<p>You need to check out this Redis command reference to see what Redis command accepts what arguments.</p>
+
+<p>The Redis command arguments can be directly fed into the corresponding method call. For example, the "GET" redis command accepts a single key argument, then you can just call the "get" method like this:</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">get</span><span class="p">(</span><span class="s2">"</span><span class="s">key"</span><span class="p">)</span>
+</pre></div>
+
+<p>Similarly, the "LRANGE" redis command accepts threee arguments, then you should call the "lrange" method like this:</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">lrange</span><span class="p">(</span><span class="s2">"</span><span class="s">nokey"</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+<p>For example, "SET", "GET", "LRANGE", and "BLPOP" commands correspond to the methods "set", "get", "lrange", and "blpop".</p>
+
+<p>Here are some more examples:</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="c1">-- HMGET myhash field1 field2 nofield</span>
+    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">hmget</span><span class="p">(</span><span class="s2">"</span><span class="s">myhash"</span><span class="p">,</span> <span class="s2">"</span><span class="s">field1"</span><span class="p">,</span> <span class="s2">"</span><span class="s">field2"</span><span class="p">,</span> <span class="s2">"</span><span class="s">nofield"</span><span class="p">)</span>
+</pre></div>
+
+<div class="highlight highlight-lua"><pre>    <span class="c1">-- HMSET myhash field1 "Hello" field2 "World"</span>
+    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">hmset</span><span class="p">(</span><span class="s2">"</span><span class="s">myhash"</span><span class="p">,</span> <span class="s2">"</span><span class="s">field1"</span><span class="p">,</span> <span class="s2">"</span><span class="s">Hello"</span><span class="p">,</span> <span class="s2">"</span><span class="s">field2"</span><span class="p">,</span> <span class="s2">"</span><span class="s">World"</span><span class="p">)</span>
+</pre></div>
+
+<p>All these command methods returns a single result in success and <code>nil</code> otherwise. In case of errors or failures, it will also return a second value which is a string describing the error.</p>
+
+<p>A Redis "status reply" results in a string typed return value with the "+" prefix stripped.</p>
+
+<p>A Redis "integer reply" results in a Lua number typed return value.</p>
+
+<p>A Redis "error reply" results in a <code>false</code> value <em>and</em> a string describing the error.</p>
+
+<p>A non-nil Redis "bulk reply" results in a Lua string as the return value. A nil bulk reply results in a <code>ngx.null</code> return value.</p>
+
+<p>A non-nil Redis "multi-bulk reply" results in a Lua table holding all the composing values (if any). If any of the composing value is a valid redis error value, then it will be a two element table <code>{false, err}</code>.</p>
+
+<p>A nil multi-bulk reply returns in a <code>ngx.null</code> value.</p>
+
+<p>See <a href="http://redis.io/topics/protocol">http://redis.io/topics/protocol</a> for details regarding various Redis reply types.</p>
+
+<p>In addition to all those redis command methods, the following methods are also provided:</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-new" class="anchor" href="#new" aria-hidden="true"><span class="octicon octicon-link"></span></a>new</h2>
+
+<p><code>syntax: red, err = redis:new()</code></p>
+
+<p>Creates a redis object. In case of failures, returns <code>nil</code> and a string describing the error.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-connect" class="anchor" href="#connect" aria-hidden="true"><span class="octicon octicon-link"></span></a>connect</h2>
+
+<p><code>syntax: ok, err = red:connect(host, port, options_table?)</code></p>
+
+<p><code>syntax: ok, err = red:connect("unix:/path/to/unix.sock", options_table?)</code></p>
+
+<p>Attempts to connect to the remote host and port that the redis server is listening to or a local unix domain socket file listened by the redis server.</p>
+
+<p>Before actually resolving the host name and connecting to the remote backend, this method will always look up the connection pool for matched idle connections created by previous calls of this method.</p>
+
+<p>An optional Lua table can be specified as the last argument to this method to specify various connect options:</p>
+
+<ul class="task-list">
+<li>
+<p><code>pool</code></p>
+
+<p>Specifies a custom name for the connection pool being used. If omitted, then the connection pool name will be generated from the string template <code>&lt;host&gt;:&lt;port&gt;</code> or <code>&lt;unix-socket-path&gt;</code>.</p>
+</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-set_timeout" class="anchor" href="#set_timeout" aria-hidden="true"><span class="octicon octicon-link"></span></a>set_timeout</h2>
+
+<p><code>syntax: red:set_timeout(time)</code></p>
+
+<p>Sets the timeout (in ms) protection for subsequent operations, including the <code>connect</code> method.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-set_keepalive" class="anchor" href="#set_keepalive" aria-hidden="true"><span class="octicon octicon-link"></span></a>set_keepalive</h2>
+
+<p><code>syntax: ok, err = red:set_keepalive(max_idle_timeout, pool_size)</code></p>
+
+<p>Puts the current Redis connection immediately into the ngx_lua cosocket connection pool.</p>
+
+<p>You can specify the max idle timeout (in ms) when the connection is in the pool and the maximal size of the pool every nginx worker process.</p>
+
+<p>In case of success, returns <code>1</code>. In case of errors, returns <code>nil</code> with a string describing the error.</p>
+
+<p>Only call this method in the place you would have called the <code>close</code> method instead. Calling this method will immediately turn the current redis object into the <code>closed</code> state. Any subsequent operations other than <code>connect()</code> on the current objet will return the <code>closed</code> error.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-get_reused_times" class="anchor" href="#get_reused_times" aria-hidden="true"><span class="octicon octicon-link"></span></a>get_reused_times</h2>
+
+<p><code>syntax: times, err = red:get_reused_times()</code></p>
+
+<p>This method returns the (successfully) reused times for the current connection. In case of error, it returns <code>nil</code> and a string describing the error.</p>
+
+<p>If the current connection does not come from the built-in connection pool, then this method always returns <code>0</code>, that is, the connection has never been reused (yet). If the connection comes from the connection pool, then the return value is always non-zero. So this method can also be used to determine if the current connection comes from the pool.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-close" class="anchor" href="#close" aria-hidden="true"><span class="octicon octicon-link"></span></a>close</h2>
+
+<p><code>syntax: ok, err = red:close()</code></p>
+
+<p>Closes the current redis connection and returns the status.</p>
+
+<p>In case of success, returns <code>1</code>. In case of errors, returns <code>nil</code> with a string describing the error.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-init_pipeline" class="anchor" href="#init_pipeline" aria-hidden="true"><span class="octicon octicon-link"></span></a>init_pipeline</h2>
+
+<p><code>syntax: red:init_pipeline()</code></p>
+
+<p><code>syntax: red:init_pipeline(n)</code></p>
+
+<p>Enable the redis pipelining mode. All subsequent calls to Redis command methods will automatically get cached and will send to the server in one run when the <code>commit_pipeline</code> method is called or get cancelled by calling the <code>cancel_pipeline</code> method.</p>
+
+<p>This method always succeeds.</p>
+
+<p>If the redis object is already in the Redis pipelining mode, then calling this method will discard existing cached Redis queries.</p>
+
+<p>The optional <code>n</code> argument specifies the (approximate) number of commands that are going to add to this pipeline, which can make things a little faster.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-commit_pipeline" class="anchor" href="#commit_pipeline" aria-hidden="true"><span class="octicon octicon-link"></span></a>commit_pipeline</h2>
+
+<p><code>syntax: results, err = red:commit_pipeline()</code></p>
+
+<p>Quits the pipelining mode by committing all the cached Redis queries to the remote server in a single run. All the replies for these queries will be collected automatically and are returned as if a big multi-bulk reply at the highest level.</p>
+
+<p>This method returns <code>nil</code> and a Lua string describing the error upon failures.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-cancel_pipeline" class="anchor" href="#cancel_pipeline" aria-hidden="true"><span class="octicon octicon-link"></span></a>cancel_pipeline</h2>
+
+<p><code>syntax: red:cancel_pipeline()</code></p>
+
+<p>Quits the pipelining mode by discarding all existing cached Redis commands since the last call to the <code>init_pipeline</code> method.</p>
+
+<p>This method always succeeds.</p>
+
+<p>If the redis object is not in the Redis pipelining mode, then this method is a no-op.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-hmset" class="anchor" href="#hmset" aria-hidden="true"><span class="octicon octicon-link"></span></a>hmset</h2>
+
+<p><code>syntax: red:hmset(myhash, field1, value1, field2, value2, ...)</code></p>
+
+<p><code>syntax: red:hmset(myhash, { field1 = value1, field2 = value2, ... })</code></p>
+
+<p>Special wrapper for the Redis "hmset" command.</p>
+
+<p>When there are only three arguments (including the "red" object
+itself), then the last argument must be a Lua table holding all the field/value pairs.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-array_to_hash" class="anchor" href="#array_to_hash" aria-hidden="true"><span class="octicon octicon-link"></span></a>array_to_hash</h2>
+
+<p><code>syntax: hash = red:array_to_hash(array)</code></p>
+
+<p>Auxiliary function that converts an array-like Lua table into a hash-like table.</p>
+
+<p>This method was first introduced in the <code>v0.11</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-read_reply" class="anchor" href="#read_reply" aria-hidden="true"><span class="octicon octicon-link"></span></a>read_reply</h2>
+
+<p><code>syntax: res, err = red:read_reply()</code></p>
+
+<p>Reading a reply from the redis server. This method is mostly useful for the <a href="http://redis.io/topics/pubsub/">Redis Pub/Sub API</a>, for example,</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">cjson</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">cjson"</span>
+    <span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">resty.redis"</span>
+
+    <span class="kd">local</span> <span class="n">red</span> <span class="o">=</span> <span class="n">redis</span><span class="p">:</span><span class="n">new</span><span class="p">()</span>
+    <span class="kd">local</span> <span class="n">red2</span> <span class="o">=</span> <span class="n">redis</span><span class="p">:</span><span class="n">new</span><span class="p">()</span>
+
+    <span class="n">red</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span> <span class="c1">-- 1 sec</span>
+    <span class="n">red2</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span> <span class="c1">-- 1 sec</span>
+
+    <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">connect</span><span class="p">(</span><span class="s2">"</span><span class="s">127.0.0.1"</span><span class="p">,</span> <span class="mi">6379</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">1: failed to connect: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red2</span><span class="p">:</span><span class="n">connect</span><span class="p">(</span><span class="s2">"</span><span class="s">127.0.0.1"</span><span class="p">,</span> <span class="mi">6379</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">2: failed to connect: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">subscribe</span><span class="p">(</span><span class="s2">"</span><span class="s">dog"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">1: failed to subscribe: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">1: subscribe: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+
+    <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red2</span><span class="p">:</span><span class="n">publish</span><span class="p">(</span><span class="s2">"</span><span class="s">dog"</span><span class="p">,</span> <span class="s2">"</span><span class="s">Hello"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">2: failed to publish: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">2: publish: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+
+    <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">read_reply</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">1: failed to read reply: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">1: receive: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+
+    <span class="n">red</span><span class="p">:</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">red2</span><span class="p">:</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+<p>Running this example gives the output like this:</p>
+
+<pre><code>1: subscribe: ["subscribe","dog",1]
+2: publish: 1
+1: receive: ["message","dog","Hello"]
+</code></pre>
+
+<p>The following class methods are provieded:</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-add_commands" class="anchor" href="#add_commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>add_commands</h2>
+
+<p><code>syntax: hash = redis.add_commands(cmd_name1, cmd_name2, ...)</code></p>
+
+<p>Adds new redis commands to the <code>resty.redis</code> class. Here is an example:</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">resty.redis"</span>
+
+    <span class="n">redis</span><span class="p">.</span><span class="n">add_commands</span><span class="p">(</span><span class="s2">"</span><span class="s">foo"</span><span class="p">,</span> <span class="s2">"</span><span class="s">bar"</span><span class="p">)</span>
+
+    <span class="kd">local</span> <span class="n">red</span> <span class="o">=</span> <span class="n">redis</span><span class="p">:</span><span class="n">new</span><span class="p">()</span>
+
+    <span class="n">red</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span> <span class="c1">-- 1 sec</span>
+
+    <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">connect</span><span class="p">(</span><span class="s2">"</span><span class="s">127.0.0.1"</span><span class="p">,</span> <span class="mi">6379</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to connect: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">foo</span><span class="p">(</span><span class="s2">"</span><span class="s">a"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to foo: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="k">end</span>
+
+    <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">bar</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to bar: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+    <span class="k">end</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-redis-authentication" class="anchor" href="#redis-authentication" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redis Authentication</h1>
+
+<p>Redis uses the <code>AUTH</code> command to do authentication: <a href="http://redis.io/commands/auth">http://redis.io/commands/auth</a></p>
+
+<p>There is nothing special for this command as compared to other Redis
+commands like <code>GET</code> and <code>SET</code>. So one can just invoke the <code>auth</code> method on your <code>resty.redis</code> instance. Here is an example:</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">resty.redis"</span>
+    <span class="kd">local</span> <span class="n">red</span> <span class="o">=</span> <span class="n">redis</span><span class="p">:</span><span class="n">new</span><span class="p">()</span>
+
+    <span class="n">red</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span> <span class="c1">-- 1 sec</span>
+
+    <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">connect</span><span class="p">(</span><span class="s2">"</span><span class="s">127.0.0.1"</span><span class="p">,</span> <span class="mi">6379</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to connect: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">auth</span><span class="p">(</span><span class="s2">"</span><span class="s">foobared"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to authenticate: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+</pre></div>
+
+<p>where we assume that the Redis server is configured with the
+password <code>foobared</code> in the <code>redis.conf</code> file:</p>
+
+<pre><code>requirepass foobared
+</code></pre>
+
+<p>If the password specified is wrong, then the sample above will output the
+following to the HTTP client:</p>
+
+<pre><code>failed to authenticate: ERR invalid password
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-redis-transactions" class="anchor" href="#redis-transactions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redis Transactions</h1>
+
+<p>This library supports the <a href="http://redis.io/topics/transactions/">Redis transactions</a>. Here is an example:</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">cjson</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">cjson"</span>
+    <span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">resty.redis"</span>
+    <span class="kd">local</span> <span class="n">red</span> <span class="o">=</span> <span class="n">redis</span><span class="p">:</span><span class="n">new</span><span class="p">()</span>
+
+    <span class="n">red</span><span class="p">:</span><span class="n">set_timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span> <span class="c1">-- 1 sec</span>
+
+    <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">connect</span><span class="p">(</span><span class="s2">"</span><span class="s">127.0.0.1"</span><span class="p">,</span> <span class="mi">6379</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to connect: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+
+    <span class="kd">local</span> <span class="n">ok</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">multi</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to run multi: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">multi ans: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">ok</span><span class="p">))</span>
+
+    <span class="kd">local</span> <span class="n">ans</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">set</span><span class="p">(</span><span class="s2">"</span><span class="s">a"</span><span class="p">,</span> <span class="s2">"</span><span class="s">abc"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ans</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to run sort: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">set ans: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">ans</span><span class="p">))</span>
+
+    <span class="kd">local</span> <span class="n">ans</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">lpop</span><span class="p">(</span><span class="s2">"</span><span class="s">a"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ans</span> <span class="k">then</span>
+        <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">failed to run sort: "</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">end</span>
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">set ans: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">ans</span><span class="p">))</span>
+
+    <span class="n">ans</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">exec</span><span class="p">()</span>
+    <span class="n">ngx</span><span class="p">.</span><span class="n">say</span><span class="p">(</span><span class="s2">"</span><span class="s">exec ans: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">ans</span><span class="p">))</span>
+
+    <span class="n">red</span><span class="p">:</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+<p>Then the output will be</p>
+
+<pre><code>multi ans: "OK"
+set ans: "QUEUED"
+set ans: "QUEUED"
+exec ans: ["OK",[false,"ERR Operation against a key holding the wrong kind of value"]]
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-load-balancing-and-failover" class="anchor" href="#load-balancing-and-failover" aria-hidden="true"><span class="octicon octicon-link"></span></a>Load Balancing and Failover</h1>
+
+<p>You can trivially implement your own Redis load balancing logic yourself in Lua. Just keep a Lua table of all available Redis backend information (like host name and port numbers) and pick one server according to some rule (like round-robin or key-based hashing) from the Lua table at every request. You can keep track of the current rule state in your own Lua module's data, see <a href="http://wiki.nginx.org/HttpLuaModule#Data_Sharing_within_an_Nginx_Worker">http://wiki.nginx.org/HttpLuaModule#Data_Sharing_within_an_Nginx_Worker</a></p>
+
+<p>Similarly, you can implement automatic failover logic in Lua at great flexibility.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h1>
+
+<p>It is usually convenient to use the <a href="http://www.kyne.com.au/%7Emark/software/lua-cjson.php">lua-cjson</a> library to encode the return values of the redis command methods to JSON. For example,</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">cjson</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">cjson"</span>
+    <span class="o">...</span>
+    <span class="kd">local</span> <span class="n">res</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">red</span><span class="p">:</span><span class="n">mget</span><span class="p">(</span><span class="s2">"</span><span class="s">h1234"</span><span class="p">,</span> <span class="s2">"</span><span class="s">h5678"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">res</span> <span class="k">then</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="s">res: "</span><span class="p">,</span> <span class="n">cjson</span><span class="p">.</span><span class="n">encode</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+    <span class="k">end</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-automatic-error-logging" class="anchor" href="#automatic-error-logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Automatic Error Logging</h1>
+
+<p>By default the underlying <a href="http://wiki.nginx.org/HttpLuaModule">ngx_lua</a> module
+does error logging when socket errors happen. If you are already doing proper error
+handling in your own Lua code, then you are recommended to disable this automatic error logging by turning off <a href="http://wiki.nginx.org/HttpLuaModule">ngx_lua</a>'s <a href="http://wiki.nginx.org/HttpLuaModule#lua_socket_log_errors">lua_socket_log_errors</a> directive, that is,</p>
+
+<div class="highlight highlight-nginx"><pre>    <span class="k">lua_socket_log_errors</span> <span class="no">off</span><span class="p">;</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-check-list-for-issues" class="anchor" href="#check-list-for-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Check List for Issues</h1>
+
+<ol class="task-list">
+<li>Ensure you configure the connection pool size properly in the <a href="#set_keepalive">set_keepalive</a> . Basically if your NGINX handle <code>n</code> concurrent requests and your NGINX has <code>m</code> workers, then the connection pool size should be configured as <code>n/m</code>. For example, if your NGINX usually handles 1000 concurrent requests and you have 10 NGINX workers, then the connection pool size should be 100.</li>
+<li>Ensure the backlog setting on the Redis side is large enough. For Redis 2.8+, you can directly tune the <code>tcp-backlog</code> parameter in the <code>redis.conf</code> file (and also tune the kernel parameter <code>SOMAXCONN</code> accordingly at least on Linux). You may also want to tune the <code>maxclients</code> parameter in <code>redis.conf</code>.</li>
+<li>Ensure you are not using too short timeout setting in the <a href="#set_timeout">set_timeout</a> method. If you have to, try redoing the operation upon timeout and turning off <a href="#automatic-error-logging">automatic error logging</a> (because you are already doing proper error handling in your own Lua code).</li>
+<li>If your NGINX worker processes' CPU usage is very high under load, then the NGINX event loop might be blocked by the CPU computation too much. Try sampling a <a href="https://github.com/agentzh/nginx-systemtap-toolkit#sample-bt">C-land on-CPU Flame Graph</a> and <a href="https://github.com/agentzh/stapxx#ngx-lj-lua-stacks">Lua-land on-CPU Flame Graph</a> for a typical NGINX worker process. You can optimize the CPU-bound things according to these Flame Graphs.</li>
+<li>If your NGINX worker processes' CPU usage is very low under load, then the NGINX event loop might be blocked by some blocking system calls (like file IO system calls). You can confirm the issue by running the <a href="https://github.com/agentzh/stapxx#epoll-loop-blocking-distr">epoll-loop-blocking-distr</a> tool against a typical NGINX worker process. If it is indeed the case, then you can further sample a <a href="https://github.com/agentzh/nginx-systemtap-toolkit#sample-bt-off-cpu">C-land off-CPU Flame Graph</a> for a NGINX worker process to analyze the actual blockers.</li>
+<li>If your <code>redis-server</code> process is running near 100% CPU usage, then you should consider scale your Redis backend by multiple nodes or use the <a href="https://github.com/agentzh/nginx-systemtap-toolkit#sample-bt">C-land on-CPU Flame Graph tool</a> to analyze the internal bottlenecks within the Redis server process.</li>
+</ol><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h1>
+
+<ul class="task-list">
+<li>This library cannot be used in code contexts like init_by_lua*, set_by_lua*, log_by_lua*, and
+header_filter_by_lua* where the ngx_lua cosocket API is not available.</li>
+<li>The <code>resty.redis</code> object instance cannot be stored in a Lua variable at the Lua module level,
+because it will then be shared by all the concurrent requests handled by the same nginx
+worker process (see
+<a href="http://wiki.nginx.org/HttpLuaModule#Data_Sharing_within_an_Nginx_Worker">http://wiki.nginx.org/HttpLuaModule#Data_Sharing_within_an_Nginx_Worker</a> ) and
+result in bad race conditions when concurrent requests are trying to use the same <code>resty.redis</code> instance
+(you would see the "bad request" or "socket busy" error to be returned from the method calls).
+You should always initiate <code>resty.redis</code> objects in function local
+variables or in the <code>ngx.ctx</code> table. These places all have their own data copies for
+each request.</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>If you are using the ngx_openresty bundle (<a href="http://openresty.org">http://openresty.org</a> ), then
+you do not need to do anything because it already includes and enables
+lua-resty-redis by default. And you can just use it in your Lua code,
+as in</p>
+
+<div class="highlight highlight-lua"><pre>    <span class="kd">local</span> <span class="n">redis</span> <span class="o">=</span> <span class="nb">require</span> <span class="s2">"</span><span class="s">resty.redis"</span>
+    <span class="o">...</span>
+</pre></div>
+
+<p>If you are using your own nginx + ngx_lua build, then you need to configure
+the lua_package_path directive to add the path of your lua-resty-redis source
+tree to ngx_lua's LUA_PATH search path, as in</p>
+
+<div class="highlight highlight-nginx"><pre>    <span class="c1"># nginx.conf</span>
+    <span class="k">http</span> <span class="p">{</span>
+        <span class="kn">lua_package_path</span> <span class="s">"/path/to/lua-resty-redis/lib/?.lua</span><span class="p">;</span>;<span class="kn">"</span><span class="p">;</span>
+        <span class="kn">...</span>
+    <span class="err">}</span>
+</pre></div>
+
+<p>Ensure that the system account running your Nginx ''worker'' proceses have
+enough permission to read the <code>.lua</code> file.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-english-mailing-list" class="anchor" href="#english-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>English Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty-en">openresty-en</a> mailing list is for English speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-chinese-mailing-list" class="anchor" href="#chinese-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chinese Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty">openresty</a> mailing list is for Chinese speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-bugs-and-patches" class="anchor" href="#bugs-and-patches" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bugs and Patches</h1>
+
+<p>Please report bugs or submit patches by</p>
+
+<ol class="task-list">
+<li>creating a ticket on the <a href="http://github.com/agentzh/lua-resty-redis/issues">GitHub Issue Tracker</a>,</li>
+<li>or posting to the <a href="#community">OpenResty community</a>.</li>
+</ol><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h1>
+
+<p>Yichun "agentzh" Zhang (章亦春) <a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>, CloudFlare Inc.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-copyright-and-license" class="anchor" href="#copyright-and-license" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright and License</h1>
+
+<p>This module is licensed under the BSD license.</p>
+
+<p>Copyright (C) 2012-2014, by Yichun Zhang (agentzh) <a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>, CloudFlare Inc.</p>
+
+<p>All rights reserved.</p>
+
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
+<ul class="task-list">
+<li><p>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p></li>
+<li><p>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p></li>
+</ul><p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>See Also</h1>
+
+<ul class="task-list">
+<li>the ngx_lua module: <a href="http://wiki.nginx.org/HttpLuaModule">http://wiki.nginx.org/HttpLuaModule</a>
+</li>
+<li>the redis wired protocol specification: <a href="http://redis.io/topics/protocol">http://redis.io/topics/protocol</a>
+</li>
+<li>the <a href="https://github.com/agentzh/lua-resty-memcached">lua-resty-memcached</a> library</li>
+<li>the <a href="https://github.com/agentzh/lua-resty-mysql">lua-resty-mysql</a> library</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p></article></div>

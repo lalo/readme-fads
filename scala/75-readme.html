@@ -1,0 +1,287 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-ordasity" class="anchor" href="#ordasity" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ordasity</h1>
+
+<h2>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h2>
+
+<ol class="task-list">
+<li>Overview, Use Cases, and Features</li>
+<li>A Clustered Service in 30 Seconds</li>
+<li>In Action at Boundary</li>
+<li>Distribution / Coordination Strategy</li>
+<li>Rebalancing</li>
+<li>Draining and Handoff</li>
+<li>Wrapping Up</li>
+<li><a href="https://github.com/boundary/ordasity/wiki/Ordasity-API-Documentation">API Documentation</a></li>
+</ol><h2>
+<a name="user-content-building-stateful-clustered-services-on-the-jvm" class="anchor" href="#building-stateful-clustered-services-on-the-jvm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Stateful Clustered Services on the JVM</h2>
+
+<p>Ordasity is a library designed to make building and deploying reliable clustered services on the JVM as straightforward as possible. It's written in Scala and uses Zookeeper for coordination.</p>
+
+<p>Ordasity's simplicity and flexibility allows us to quickly write, deploy, and (most importantly) operate distributed systems on the JVM without duplicating distributed "glue" code or revisiting complex reasoning about distribution strategies.</p>
+
+<hr><h3>
+<a name="user-content-primary-use-cases" class="anchor" href="#primary-use-cases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Primary Use Cases</h3>
+
+<p>Ordasity is designed to spread persistent or long-lived workloads across several machines. It's a toolkit for building systems which can be described in terms of individual nodes serving a partition or shard of a cluster's total load. Ordasity is not designed to express a "token range" (though it may be possible to implement one); the focus is on discrete work units.</p>
+
+<hr><h3>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h3>
+
+<ul class="task-list">
+<li>Cluster membership (joining / leaving / mutual awareness)</li>
+<li>Work claiming and distribution</li>
+<li>Load-based workload balancing</li>
+<li>Count-based workload balancing</li>
+<li>Automatic periodic rebalancing</li>
+<li>Graceful cluster exiting ("draining")</li>
+<li>Graceful handoff of work units between nodes</li>
+<li>Pegging of work units to a specific node</li>
+</ul><hr><h3>
+<a name="user-content-a-clustered-service-in-30-seconds" class="anchor" href="#a-clustered-service-in-30-seconds" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Clustered Service in 30 Seconds</h3>
+
+<p>Let's get started with an example. Here's how to build a clustered service in 25 lines of code with Ordasity:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">import</span> <span class="nn">com.yammer.metrics.scala.Meter</span>
+    <span class="k">import</span> <span class="nn">com.twitter.common.zookeeper.ZooKeeperClient</span>
+    <span class="k">import</span> <span class="nn">com.boundary.ordasity.</span><span class="o">{</span><span class="nc">Cluster</span><span class="o">,</span> <span class="nc">ClusterConfig</span><span class="o">,</span> <span class="nc">SmartListener</span><span class="o">}</span>
+
+    <span class="k">class</span> <span class="nc">MyService</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">listener</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">SmartListener</span> <span class="o">{</span>
+
+        <span class="c1">// Called after successfully joining the cluster.</span>
+        <span class="k">def</span> <span class="n">onJoin</span><span class="o">(</span><span class="n">client</span><span class="k">:</span> <span class="kt">ZooKeeperClient</span><span class="o">)</span> <span class="o">{</span> <span class="o">}</span> 
+
+        <span class="c1">// Do yer thang, mark that meter.</span>
+        <span class="k">def</span> <span class="n">startWork</span><span class="o">(</span><span class="n">workUnit</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">meter</span><span class="k">:</span> <span class="kt">Meter</span><span class="o">)</span> <span class="o">{</span> <span class="o">}</span>
+
+        <span class="c1">// Stop doin' that thang.</span>
+        <span class="k">def</span> <span class="n">shutdownWork</span><span class="o">(</span><span class="n">workUnit</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="o">{</span> <span class="o">}</span>
+
+        <span class="c1">// Called after leaving the cluster.</span>
+        <span class="k">def</span> <span class="n">onLeave</span><span class="o">()</span> <span class="o">{</span> <span class="o">}</span>
+      <span class="o">}</span>
+
+      <span class="k">val</span> <span class="n">config</span> <span class="k">=</span> <span class="nc">ClusterConfig</span><span class="o">.</span><span class="n">builder</span><span class="o">().</span><span class="n">setHosts</span><span class="o">(</span><span class="s">"localhost:2181"</span><span class="o">).</span><span class="n">build</span><span class="o">()</span>
+      <span class="k">val</span> <span class="n">cluster</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Cluster</span><span class="o">(</span><span class="s">"ServiceName"</span><span class="o">,</span> <span class="n">listener</span><span class="o">,</span> <span class="n">config</span><span class="o">)</span>
+
+      <span class="n">cluster</span><span class="o">.</span><span class="n">join</span><span class="o">()</span>
+    <span class="o">}</span>
+</pre></div>
+
+<p><strong>Maven</strong> folks and friends with compatible packaging systems, here's the info for your pom.xml:</p>
+
+<div class="highlight highlight-xml"><pre>        <span class="c">&lt;!-- Dependency --&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>com.boundary<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>ordasity-scala_2.9.1<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>0.4.5<span class="nt">&lt;/version&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+
+        <span class="c">&lt;!-- Repo --&gt;</span>
+        <span class="nt">&lt;repository&gt;</span>
+            <span class="nt">&lt;id&gt;</span>boundary-public<span class="nt">&lt;/id&gt;</span>
+            <span class="nt">&lt;name&gt;</span>Boundary Public<span class="nt">&lt;/name&gt;</span>
+            <span class="nt">&lt;url&gt;</span>http://maven.boundary.com/artifactory/external<span class="nt">&lt;/url&gt;</span>
+        <span class="nt">&lt;/repository&gt;</span>
+</pre></div>
+
+<hr><h3>
+<a name="user-content-in-action-at-boundary" class="anchor" href="#in-action-at-boundary" aria-hidden="true"><span class="octicon octicon-link"></span></a>In Action at Boundary</h3>
+
+<p>At Boundary, the library holds together our pubsub and event stream processing systems. It's a critical part of ensuring that at any moment, we're consuming and aggregating data from our network of collectors at one tier, and processing this data at hundreds of megabits a second in another. Ordasity also helps keep track of the mappings between these services, wiring everything together for us behind the scenes.</p>
+
+<p>Ordasity's distribution enables us to spread the work of our pubsub aggregation and event stream processing systems across any number of nodes. Automatic load balancing keeps the cluster's workload evenly distributed, with nodes handing off work to others as workload changes. Graceful draining and handoff allows us to iterate rapidly on these systems, continously deploying updates without disrupting operation of the cluster. Ordasity's membership and work claiming approach ensures transparent failover within a couple seconds if a node becomes unavailable due to a network partition or system failure.</p>
+
+<hr><h3>
+<a name="user-content-distribution--coordination-strategy" class="anchor" href="#distribution--coordination-strategy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Distribution / Coordination Strategy</h3>
+
+<p>Ordasity's architecture is masterless, relying on Zookeeper only for coordination between individual nodes. The service is designed around the principle that many nodes acting together under a common set of rules can cooperatively form a self-organizing, self-regulating system.</p>
+
+<p>Ordasity supports two work claiming strategies: "simple" (count-based), and "smart" (load-based).</p>
+
+<h4>
+<a name="user-content-count-based-distribution" class="anchor" href="#count-based-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Count-Based Distribution</h4>
+
+<p>The count-based distribution strategy is simple. When in effect, each node in the cluster will attempt to claim its fair share of available work units according to the following formula:</p>
+
+<div class="highlight highlight-scala"><pre>      <span class="k">val</span> <span class="n">maxToClaim</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">allWorkUnits</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="o">)</span> <span class="n">allWorkUnits</span><span class="o">.</span><span class="n">size</span>
+        <span class="k">else</span> <span class="o">(</span><span class="n">allWorkUnits</span><span class="o">.</span><span class="n">size</span> <span class="o">/</span> <span class="n">nodeCount</span><span class="o">.</span><span class="n">toDouble</span><span class="o">).</span><span class="n">ceil</span>
+      <span class="o">}</span>
+</pre></div>
+
+<p>If zero or one work units are present, the node will attempt to claim up to one work unit. Otherwise, the node will attempt to claim up to the number of work units divided by the number of active nodes.</p>
+
+<h4>
+<a name="user-content-load-based-distribution" class="anchor" href="#load-based-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Load-Based Distribution</h4>
+
+<p>Ordasity's load-based distribution strategy assumes that all work units are not equal. It's unlikely that balancing simply by count will result in an even load distribution -- some nodes would probably end up much busier than others. The load-based strategy is smarter. It divides up work based on the amount of actual "work" done.</p>
+
+<h5>
+<a name="user-content-meters-measure-load" class="anchor" href="#meters-measure-load" aria-hidden="true"><span class="octicon octicon-link"></span></a>Meters Measure Load</h5>
+
+<p>When you enable smart balancing and initialize Ordasity with a SmartListener, you get back a "meter" to mark when work occurs. Here's a simple, contrived example:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">val</span> <span class="n">listener</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">SmartListener</span> <span class="o">{</span>
+      <span class="o">...</span>
+      <span class="k">def</span> <span class="n">startWork</span><span class="o">(</span><span class="n">workUnit</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">meter</span><span class="k">:</span> <span class="kt">Meter</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+
+        <span class="k">val</span> <span class="n">somethingOrOther</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Runnable</span><span class="o">()</span> <span class="o">{</span>
+          <span class="k">def</span> <span class="n">run</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+              <span class="k">val</span> <span class="n">processingAmount</span> <span class="k">=</span> <span class="n">process</span><span class="o">(</span><span class="n">workUnit</span><span class="o">)</span>
+              <span class="n">meter</span><span class="o">.</span><span class="n">mark</span><span class="o">(</span><span class="n">processingAmount</span><span class="o">)</span>
+              <span class="nc">Thread</span><span class="o">.</span><span class="n">sleep</span><span class="o">(</span><span class="mi">100</span><span class="o">)</span>
+            <span class="o">}</span>
+          <span class="o">}</span>
+        <span class="o">}</span>
+
+        <span class="k">new</span> <span class="nc">Thread</span><span class="o">(</span><span class="n">somethingOrOther</span><span class="o">).</span><span class="n">start</span><span class="o">()</span>
+      <span class="o">}</span>
+
+      <span class="o">...</span>
+    <span class="o">}</span>
+</pre></div>
+
+<p>Ordasity uses this meter to determine how much "work" each work unit in the cluster represents. If the application were a database or frontend to a data service, you might mark the meter each time a query is performed. In a messaging system, you'd mark it each time a message is sent or received. In an event stream processing system, you'd mark it each time an event is processed. You get the idea.</p>
+
+<p><em>(Bonus: Each of these meters expose their metrics via JMX, providing you and your operations team with insight into what's happening when your service is in production).</em></p>
+
+<h5>
+<a name="user-content-knowing-the-load-lets-us-balance" class="anchor" href="#knowing-the-load-lets-us-balance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Knowing the Load Lets us Balance</h5>
+
+<p>Ordasity checks the meters once per minute (configurable) and updates this information in Zookeeper. The "load map" determines the actual load represented by each work unit. All nodes watch the cluster's "load map" and are notified via Zookeeper's Atomic Broadcast mechanism when this changes. Each node in the cluster will attempt to claim its fair share of available work units according to the following formula:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">def</span> <span class="n">evenDistribution</span><span class="o">()</span> <span class="k">:</span> <span class="kt">Double</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="n">loadMap</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">sum</span> <span class="o">/</span> <span class="n">activeNodeSize</span><span class="o">().</span><span class="n">toDouble</span>
+    <span class="o">}</span>
+</pre></div>
+
+<p>As the number of nodes or the load of individual work units change, each node's idea of an "even distribution" changes as well. Using this "even distribution" value, each node will choose to claim additional work, or in the event of a rebalance, drain its workload to other nodes if it's processing more than its fair share.</p>
+
+<hr><h3>
+<a name="user-content-rebalancing" class="anchor" href="#rebalancing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rebalancing</h3>
+
+<p>Ordasity supports automatic and manual rebalancing to even out the cluster's load distribution as workloads change.</p>
+
+<p>To trigger a manual rebalance on all nodes, touch "/service-name/meta/rebalance" in Zookeeper. However, automatic rebalancing is preferred. To enable it, just turn it on in your cluster config:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">val</span> <span class="n">config</span> <span class="k">=</span> <span class="nc">ClusterConfig</span><span class="o">.</span><span class="n">builder</span><span class="o">().</span>
+      <span class="n">setHosts</span><span class="o">(</span><span class="s">"localhost:2181"</span><span class="o">).</span>
+      <span class="n">setAutoRebalance</span><span class="o">(</span><span class="kc">true</span><span class="o">).</span>
+      <span class="n">setRebalanceInterval</span><span class="o">(</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="o">).</span><span class="n">build</span><span class="o">()</span> <span class="c1">// One hour</span>
+</pre></div>
+
+<p>As a masterless service, the rebalance process is handled uncoordinated by the node itself. The rebalancing logic is very simple. If a node has more than its fair share of work when a rebalance is triggered, it will drain or release this work to other nodes in the cluster. As the cluster sees this work become available, lighter-loaded nodes will claim it (or receive handoff) and begin processing.</p>
+
+<p>If you're using <strong>count-based distribution</strong>, it looks like this:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">def</span> <span class="n">simpleRebalance</span><span class="o">()</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">target</span> <span class="k">=</span> <span class="n">fairShare</span><span class="o">()</span>
+
+      <span class="k">if</span> <span class="o">(</span><span class="n">myWorkUnits</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">target</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="o">(</span><span class="s">"Simple Rebalance triggered. Load: %s. Target: %s."</span><span class="o">,</span>  <span class="n">myWorkUnits</span><span class="o">.</span><span class="n">size</span><span class="o">,</span> <span class="n">target</span><span class="o">)</span>
+        <span class="n">drainToCount</span><span class="o">(</span><span class="n">target</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+</pre></div>
+
+<p>If you're using <strong>load-based distribution</strong>, it looks like this:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">def</span> <span class="n">smartRebalance</span><span class="o">()</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">target</span> <span class="k">=</span> <span class="n">evenDistribution</span><span class="o">()</span>
+
+      <span class="k">if</span> <span class="o">(</span><span class="n">myLoad</span><span class="o">()</span> <span class="o">&gt;</span> <span class="n">target</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="o">(</span><span class="s">"Smart Rebalance triggered. Load: %s. Target: %s"</span><span class="o">,</span> <span class="n">myLoad</span><span class="o">(),</span> <span class="n">target</span><span class="o">)</span>
+        <span class="n">drainToLoad</span><span class="o">(</span><span class="n">target</span><span class="o">.</span><span class="n">longValue</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+</pre></div>
+
+<hr><h3>
+<a name="user-content-draining-and-handoff" class="anchor" href="#draining-and-handoff" aria-hidden="true"><span class="octicon octicon-link"></span></a>Draining and Handoff</h3>
+
+<p>To avoid dumping a bucket of work on an already-loaded cluster at once, Ordasity supports "draining." Draining is a process by which a node can gradually release work to other nodes in the cluster. In addition to draining, Ordasity also supports graceful handoff, allowing for a period of overlap during which a new node can begin serving a work unit before the previous owner shuts it down.</p>
+
+<h4>
+<a name="user-content-draining" class="anchor" href="#draining" aria-hidden="true"><span class="octicon octicon-link"></span></a>Draining</h4>
+
+<p>Ordasity's work claiming strategies (count-based and load-based) have internal counterparts for releasing work: <em>drainToLoad</em> and <em>drainToCount</em>.</p>
+
+<p>The <em>drainToCount</em> and <em>drainToLoad</em> strategies invoked by a rebalance will release work units until the node's load is just greater than its fair share. That is to say, each node is "generous" in that it will strive to maintain slightly greater than a mathematically even distribution of work to guard against a scenario where work units are caught in a cycle of being claimed, released, and reclaimed continually. (Similarly, both claiming strategies will attempt to claim one unit beyond their fair share to avoid a scenario in which a work unit is claimed by no one).</p>
+
+<p>Ordasity allows you to configure the period of time for a drain to complete: </p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">val</span> <span class="n">config</span> <span class="k">=</span> <span class="nc">ClusterConfig</span><span class="o">.</span><span class="n">builder</span><span class="o">().</span><span class="n">setHosts</span><span class="o">(</span><span class="s">"localhost:2181"</span><span class="o">).</span><span class="n">setDrainTime</span><span class="o">(</span><span class="mi">60</span><span class="o">).</span><span class="n">build</span><span class="o">()</span> <span class="c1">// 60 Seconds</span>
+</pre></div>
+
+<p>When a drain is initiated, Ordasity will pace the release of work units over the time specified. If 15 work units were to be released over a 60-second period, the library would release one every four seconds.</p>
+
+<p>Whether you're using count-based or load-based distribution, the drain process is the same. Ordasity makes a list of work units to unclaim, then paces their release over the configured drain time.</p>
+
+<p>Draining is especially useful for scheduled maintenance and deploys. Ordasity exposes a "shutdown" method via JMX. When invoked, the node will set its status to "Draining," cease claiming new work, and release all existing work to other nodes in the cluster over the configured interval before exiting the cluster.</p>
+
+<h4>
+<a name="user-content-handoff" class="anchor" href="#handoff" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handoff</h4>
+
+<p>When Handoff is enabled, Ordasity will allow another node to begin processing for a work unit before the former owner shuts it down. This eliminates the very brief gap between one node releasing and another node claiming a work unit. Handoff ensures that at any point, a work unit is being served.</p>
+
+<p>To enable it, just turn it on in your ClusterConfig:</p>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">val</span> <span class="n">clusterConfig</span> <span class="k">=</span> <span class="nc">ClusterConfig</span><span class="o">.</span><span class="n">builder</span><span class="o">().</span>
+      <span class="n">setHosts</span><span class="o">(</span><span class="s">"localhost:2181"</span><span class="o">).</span>
+      <span class="n">setUseSoftHandoff</span><span class="o">(</span><span class="kc">true</span><span class="o">).</span>
+      <span class="n">setHandoffShutdownDelay</span><span class="o">(</span><span class="mi">10</span><span class="o">).</span><span class="n">build</span><span class="o">()</span> <span class="c1">// Seconds</span>
+</pre></div>
+
+<p>The handoff process is fairly straightforward. When a node has decided to release a work unit (either due to a rebalance or because it is being drained for shutdown), it creates an entry in Zookeeper at /service-name/handoff-requests. Following their count-based or load-based claiming policies, other nodes will claim the work being handed off by creating an entry at /service-name/handoff-results.</p>
+
+<p>When a node has successfully accepted handoff by creating this entry, the new owner will begin work. The successful "handoff-results" entry signals to the original owner that handoff has occurred and that it is free to cease processing after a configurable overlap (default: 10 seconds). After this time, Ordasity will call the "shutdownWork" method on your listener.</p>
+
+<hr><h3>
+<a name="user-content-registering-work-units" class="anchor" href="#registering-work-units" aria-hidden="true"><span class="octicon octicon-link"></span></a>Registering work units</h3>
+
+<p>Work units are registered by creating ZooKeeper nodes under <code>/work-units</code>. (If you have set <code>Cluster.workUnitName</code> to a custom value then this ZooKeeper path will change accordingly.)</p>
+
+<p>The name of the work unit is the same as the name of the ZooKeeper node. So, for example to create 3 work units called "a", "b", and "c", your ZK directory should look like this:</p>
+
+<pre><code>/work-units
+    /a
+    /b
+    /c
+</code></pre>
+
+<p>Any String that is a valid ZK node name can be used as a work unit name. This is the string that is passed to your <code>ClusterListener</code> methods.</p>
+
+<p>The ZK node data must be a JSON-encoded <code>Map[String, String]</code>. This may be simply an empty map (<code>{}</code>), or you may want to include information about the work unit, for use by your cluster nodes.</p>
+
+<p>Note that Ordasity does not pass the ZK node data to your <code>ClusterListener</code>, so you will have to retrieve it yourself using the ZK client. It also does not provide a helper to deserialize the JSON string.</p>
+
+<h4>
+<a name="user-content-pegging" class="anchor" href="#pegging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pegging</h4>
+
+<p>The ZK node data can also be used for pegging work units to specific nodes. </p>
+
+<p>To do this, include a key-value pair of the form <code>"servicename": "nodeId"</code> in the JSON map. </p>
+
+<p>Here <code>servicename</code> is the name of the cluster, as specified in <code>Cluster</code>'s constructor, and <code>nodeId</code> is the unique ID of a node, as set in <code>ClusterConfig</code>.</p>
+
+<p>For example to peg a work unit to Node <code>node123</code> in cluster <code>mycluster</code>, set the ZK node's data to <code>{"mycluster": "node123"}</code>.</p>
+
+<hr><h3>
+<a name="user-content-wrapping-up" class="anchor" href="#wrapping-up" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wrapping Up</h3>
+
+<p>So, that's Ordasity! We hope you enjoy using it to build reliable distributed services quickly.</p>
+
+<h4>
+<a name="user-content-questions" class="anchor" href="#questions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Questions</h4>
+
+<p>If you have any questions, please feel free to shoot us an e-mail or get in touch on Twitter.</p>
+
+<h4>
+<a name="user-content-bug-reports-and-contributions" class="anchor" href="#bug-reports-and-contributions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bug Reports and Contributions</h4>
+
+<p>Think you've found a bug? Sorry about that. Please open an issue on GitHub and we'll check it out as soon as possible.</p>
+
+<p>Want to contribute to Ordasity? Awesome! Fork the repo, make your changes, and issue a pull request. Please make effort to keep commits small, clean, and confined to specific changes. If you'd like to propose a new feature, give us a heads-up by getting in touch beforehand. We'd like to talk with you.</p></article></div>

@@ -1,0 +1,140 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hulk-irc-server-guide-" class="anchor" href="#hulk-irc-server-guide-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hulk IRC Server Guide <a href="https://hackage.haskell.org/package/hulk"><img src="https://camo.githubusercontent.com/b22b195345a7d267c9daad52b428c964996acb1e/68747470733a2f2f696d672e736869656c64732e696f2f6861636b6167652f762f68756c6b2e7376673f7374796c653d666c6174" alt="Hackage" data-canonical-src="https://img.shields.io/hackage/v/hulk.svg?style=flat" style="max-width:100%;"></a>
+</h1>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-from-hackage" class="anchor" href="#from-hackage" aria-hidden="true"><span class="octicon octicon-link"></span></a>From Hackage</h3>
+
+<pre><code>$ cabal install hulk
+</code></pre>
+
+<h3>
+<a name="user-content-from-github" class="anchor" href="#from-github" aria-hidden="true"><span class="octicon octicon-link"></span></a>From Github</h3>
+
+<pre><code>$ git clone git://github.com/chrisdone/hulk.git
+$ cd hulk
+$ cabal install
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>See a complete example in the <code>example/</code> directory in the root of the
+project. You can go into that directory and run <code>hulk -chulk.conf</code> to
+have an immediate server running on localhost port 6667.</p>
+
+<h3>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h3>
+
+<pre><code>$ cp example/hulk.conf hulk.conf
+</code></pre>
+
+<p>You can edit the port, server name and MOTD file in here.</p>
+
+<p>Detailed instructions follow.</p>
+
+<h3>
+<a name="user-content-auth" class="anchor" href="#auth" aria-hidden="true"><span class="octicon octicon-link"></span></a>Auth</h3>
+
+<pre><code>$ mkdir auth
+</code></pre>
+
+<p>Put a salt for your passwords in auth/passwd. For example:</p>
+
+<pre><code>$ head -c 128 /dev/random | sha1sum &gt; auth/passwd-key
+</code></pre>
+
+<p>Then generate a password for your IRC user:</p>
+
+<pre><code>$ hulk-generate-pass -u demo -c=hulk.conf &gt;&gt; auth/passwd
+</code></pre>
+
+<p>(It will wait for a single line containing a pass and output the user
+and sha1 sum.)</p>
+
+<h3>
+<a name="user-content-start-the-server" class="anchor" href="#start-the-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Start the server</h3>
+
+<pre><code>$ hulk -chulk.conf
+</code></pre>
+
+<p>Logs / events will be outputted to stdout. This will be a
+configuration option later. (Send me a patch if you already did this!)</p>
+
+<p>Clients <em>must</em> connect with a password and user that matches the users
+and passwords in your <code>auth/passwd</code> file.</p>
+
+<h2>
+<a name="user-content-using-with-ssl" class="anchor" href="#using-with-ssl" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using with SSL</h2>
+
+<p>You can use it with stunnel.</p>
+
+<p>Change the port setting in hulk.conf:</p>
+
+<pre><code>port = 6666
+</code></pre>
+
+<p>Generate an SSL certificate:</p>
+
+<pre><code>$ openssl req -new -out hulk.pem -keyout hulk.pem -nodes -x509 -days 365
+</code></pre>
+
+<p>Make a stunnel.conf file:</p>
+
+<pre><code>pid = /path/to/wherever/stunnel.pid
+client = no
+foreground = yes
+output = /dev/stdout
+cert = hulk.pem
+[hulk]
+connect = 127.0.0.1:6666
+accept = 6667
+</code></pre>
+
+<p>Then run it:</p>
+
+<pre><code>stunnel stunnel.conf
+</code></pre>
+
+<p>(It may be in <code>/usr/sbin/stunnel</code> depending on your system.)</p>
+
+<p>Then run hulk:</p>
+
+<pre><code>hulk -chulk.conf
+</code></pre>
+
+<h2>
+<a name="user-content-logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h2>
+
+<p>Hulk doesn't support specific channel logging yet, but you can use a
+logger bot.</p>
+
+<pre><code>$ cabal install hog
+$ hog -h=127.0.0.1 --port=6666 -n=hog -u=hog --pass=mypassword --channels=#dev,#x -l/directory/of/logs -d5
+</code></pre>
+
+<p><code>-d5</code> is the timeout before reconnect.</p>
+
+<h2>
+<a name="user-content-using-an-announcer-bot" class="anchor" href="#using-an-announcer-bot" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using an announcer bot</h2>
+
+<p>If you're using a private IRC server you're probably using it at a dev
+company, and you probably want to make announcements about commits,
+tickets, etc. from a feed.</p>
+
+<p>You can use rss2irc. But you need a patched version which supports
+sending the PASS command:</p>
+
+<pre><code>$ git clone git://github.com/chrisdone/rss2irc.git
+$ cd rss2irc
+$ cabal install
+</code></pre>
+
+<p>Then run it:</p>
+
+<pre><code>$ rss2irc http://myserver/foo.atom announce@127.0.0.1/#dev \
+  -p 6667 -i 1 -l  --pass myannouncepass
+</code></pre></article></div>

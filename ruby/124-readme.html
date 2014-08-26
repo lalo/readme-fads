@@ -1,0 +1,373 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-janky" class="anchor" href="#janky" aria-hidden="true"><span class="octicon octicon-link"></span></a>Janky</h1>
+
+<p>This is Janky, a continuous integration server built on top of
+<a href="http://jenkins-ci.org">Jenkins</a>, controlled by <a href="http://hubot.github.com">Hubot</a>, and designed for <a href="https://github.com">GitHub</a>.</p>
+
+<ul class="task-list">
+<li><p><strong>Built on top of Jenkins.</strong> The power, vast amount of plugins and large
+community of the popular CI server all wrapped up in a great experience.</p></li>
+<li><p><strong>Controlled by Hubot.</strong> Day to day operations are exposed as simple
+Hubot commands that the whole team can use.</p></li>
+<li><p><strong>Designed for GitHub.</strong> Janky creates the appropriate <a href="http://developer.github.com/v3/repos/hooks/">web hooks</a> for
+you and the web app restricts access to members of your GitHub organization.</p></li>
+</ul><h2>
+<a name="user-content-hubot-usage" class="anchor" href="#hubot-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hubot usage</h2>
+
+<p>Start by setting up a new Jenkins job and GitHub web hook for a
+repository:</p>
+
+<pre><code>hubot ci setup github/janky
+</code></pre>
+
+<p>The <code>setup</code> command can safely be run over and over again. It won't do
+anything unless it needs to. It takes an optional name argument:</p>
+
+<pre><code>hubot ci setup github/janky janky-ruby1.9.2
+</code></pre>
+
+<p>It also takes an optional template name argument:</p>
+
+<pre><code>hubot ci setup github/janky janky-ruby1.9.2 ruby-build
+</code></pre>
+
+<p>All branches are built automatically on push. Disable auto build with:</p>
+
+<pre><code>hubot ci toggle janky
+</code></pre>
+
+<p>Run the command again to re-enable it. Force a build of the master
+branch:</p>
+
+<pre><code>hubot ci build janky
+</code></pre>
+
+<p>Of a specific branch:</p>
+
+<pre><code>hubot ci build janky/libgit2
+</code></pre>
+
+<p>Different builds aren't relevant to the same Campfire room and so Janky
+lets you choose where notifications are sent to. First get a list of
+available rooms:</p>
+
+<pre><code>hubot ci rooms
+</code></pre>
+
+<p>Then pick one:</p>
+
+<pre><code>hubot ci set room janky The Serious Room
+</code></pre>
+
+<p>Get the status of a build:</p>
+
+<pre><code>hubot ci status janky
+</code></pre>
+
+<p>Specific branch:</p>
+
+<pre><code>hubot ci status janky/libgit2
+</code></pre>
+
+<p>All builds:</p>
+
+<pre><code>hubot ci status
+</code></pre>
+
+<p>Finally, get a quick reference of the available commands with:</p>
+
+<pre><code>hubot ci?
+</code></pre>
+
+<h2>
+<a name="user-content-installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing</h2>
+
+<h3>
+<a name="user-content-jenkins" class="anchor" href="#jenkins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jenkins</h3>
+
+<p>Janky requires access to a Jenkins server. Version <strong>1.427</strong> is
+recommended. Refer to the Jenkins <a href="https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins">documentation</a> for installation
+instructions and install the <a href="https://wiki.jenkins-ci.org/display/JENKINS/Notification+Plugin">Notification Plugin</a> version 1.4.</p>
+
+<p>Remember to set the Jenkins URL in <code>http://your-jenkins-server.com/configure</code>.
+Janky will still trigger builds but will not update the build status without this set.</p>
+
+<h3>
+<a name="user-content-deploying" class="anchor" href="#deploying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploying</h3>
+
+<p>Janky is designed to be deployed to <a href="https://heroku.com">Heroku</a>.</p>
+
+<p>Grab all the necessary files from <a href="https://gist.github.com/1497335">the gist</a>:</p>
+
+<pre><code>$ git clone git://gist.github.com/1497335 janky
+</code></pre>
+
+<p>Then push it up to a new Heroku app:</p>
+
+<pre><code>$ cd janky
+$ heroku create --stack cedar
+$ bundle install
+$ git add Gemfile.lock
+$ git commit Gemfile.lock -m "lock bundle"
+$ git push heroku master
+</code></pre>
+
+<p>After configuring the app (see below), create the database:</p>
+
+<pre><code>$ heroku run rake db:migrate
+</code></pre>
+
+<p><strong>NOTE:</strong> Ruby version 2.0.0+ is required to run Janky.</p>
+
+<h2>
+<a name="user-content-upgrading" class="anchor" href="#upgrading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading</h2>
+
+<p>We <strong>strongly recommend</strong> backing up your Janky database before upgrading.</p>
+
+<p>The general process is to then upgrade the gem, and then run migrate.  Here is how
+you do that on a local box you have access to (this process will differ for Heroku):</p>
+
+<pre><code>cd [PATH-TO-JANKY]
+gem update janky
+rake db:migrate
+</code></pre>
+
+<h2>
+<a name="user-content-configuring" class="anchor" href="#configuring" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring</h2>
+
+<p>Janky is configured using environment variables. Use the <code>heroku config</code>
+command:</p>
+
+<pre><code>$ heroku config:add VARIABLE=value
+</code></pre>
+
+<p>Required settings:</p>
+
+<ul class="task-list">
+<li>
+<code>JANKY_BASE_URL</code>: The application URL <strong>with</strong> a trailing slash. Example:
+<code>http://mf-doom-42.herokuapp.com/</code>.</li>
+<li>
+<code>JANKY_BUILDER_DEFAULT</code>: The Jenkins server URL <strong>with</strong> a trailing slash.
+Example: <code>http://jenkins.example.com/</code>. For basic auth, include the
+credentials in the URL: <code>http://user:pass@jenkins.example.com/</code>.
+Using GitHub OAuth with Jenkins is not supported by Janky.</li>
+<li>
+<code>JANKY_CONFIG_DIR</code>: Directory where build config templates are stored.
+Typically set to <code>/app/config</code> on Heroku.</li>
+<li>
+<code>JANKY_HUBOT_USER</code>: Login used to protect the Hubot API.</li>
+<li>
+<code>JANKY_HUBOT_PASSWORD</code>: Password for the Hubot API.</li>
+<li>
+<code>JANKY_GITHUB_USER</code>: The login of the GitHub user used to access the
+API. Requires Administrative privileges to set up service hooks.</li>
+<li>
+<code>JANKY_GITHUB_PASSWORD</code>: The password for the GitHub user.</li>
+<li>
+<code>JANKY_GITHUB_HOOK_SECRET</code>: Secret used to sign hook requests from
+GitHub.</li>
+<li>
+<code>JANKY_CHAT_DEFAULT_ROOM</code>: Chat room where notifications are sent by default.</li>
+</ul><p>Optional database settings:</p>
+
+<ul class="task-list">
+<li>
+<code>DATABASE_URL</code>: Database connection URL. Example:
+<code>postgres://user:password@host:port/db_name</code>.</li>
+<li>
+<code>JANKY_DATABASE_SOCKET</code>: Path to the database socket. Example:
+<code>/var/run/mysql5/mysqld.sock</code>.</li>
+</ul><h3>
+<a name="user-content-github-enterprise" class="anchor" href="#github-enterprise" aria-hidden="true"><span class="octicon octicon-link"></span></a>GitHub Enterprise</h3>
+
+<p>Using Janky with <a href="https://enterprise.github.com">GitHub Enterprise</a> requires one extra setting:</p>
+
+<ul class="task-list">
+<li>
+<code>JANKY_GITHUB_API_URL</code>: Full API URL of the instance, <em>with</em> a trailing
+slash. Example: <code>https://github.example.com/api/v3/</code>.</li>
+</ul><h3>
+<a name="user-content-github-status-api" class="anchor" href="#github-status-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>GitHub Status API</h3>
+
+<p><a href="https://github.com/blog/1227-commit-status-api">https://github.com/blog/1227-commit-status-api</a></p>
+
+<p>To update pull requests with the build status generate an OAuth token
+via the GitHub API:</p>
+
+<pre><code>curl -u username:password \
+  -d '{ "scopes": [ "repo:status" ], "note": "janky" }' \
+  https://api.github.com/authorizations
+</code></pre>
+
+<p>then set <code>JANKY_GITHUB_STATUS_TOKEN</code>.  Optionally, you can also set
+<code>JANKY_GITHUB_STATUS_CONTEXT</code> to send a context to the GitHub API by
+default</p>
+
+<p><code>username</code> and <code>password</code> in the above example should be the same as the
+values provided for <code>JANKY_GITHUB_USER</code> and <code>JANKY_GITHUB_PASSWORD</code>
+respectively.</p>
+
+<h3>
+<a name="user-content-chat-notifications" class="anchor" href="#chat-notifications" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chat notifications</h3>
+
+<h4>
+<a name="user-content-campfire" class="anchor" href="#campfire" aria-hidden="true"><span class="octicon octicon-link"></span></a>Campfire</h4>
+
+<p>Janky notifies <a href="http://campfirenow.com/">Campfire</a> chat rooms by default. Required settings:</p>
+
+<ul class="task-list">
+<li>
+<code>JANKY_CHAT_CAMPFIRE_ACCOUNT</code>: account name.</li>
+<li>
+<code>JANKY_CHAT_CAMPFIRE_TOKEN</code>: authentication token for the user sending
+build notifications.</li>
+</ul><h4>
+<a name="user-content-hipchat" class="anchor" href="#hipchat" aria-hidden="true"><span class="octicon octicon-link"></span></a>HipChat</h4>
+
+<p>Required settings:</p>
+
+<ul class="task-list">
+<li><code>JANKY_CHAT=hipchat</code></li>
+<li>
+<code>JANKY_CHAT_HIPCHAT_TOKEN</code>: authentication token (This token needs to be an
+admin token, not a notification token.)</li>
+<li>
+<code>JANKY_CHAT_HIPCHAT_FROM</code>: name that messages will appear be sent from.
+Defaults to <code>CI</code>.</li>
+<li>
+<code>JANKY_HUBOT_USER</code> should be XMPP/Jabber username in format xxxxx_xxxxxx
+rather than email</li>
+<li>
+<code>JANKY_CHAT_DEFAULT_ROOM</code> should be the name of the room instead of the
+XMPP format, for example: <code>Engineers</code> instead of xxxx_xxxxxx.</li>
+</ul><p>Installation:</p>
+
+<ul class="task-list">
+<li>Add <code>require "janky/chat_service/hipchat"</code> to the <code>config/environment.rb</code>
+file <strong>before</strong> the <code>Janky.setup(ENV)</code> line.</li>
+<li><code>echo 'gem "hipchat", "~&gt;0.4"' &gt;&gt; Gemfile</code></li>
+<li><code>bundle</code></li>
+<li><code>git commit -am "install hipchat"</code></li>
+</ul><h4>
+<a name="user-content-hubot" class="anchor" href="#hubot" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hubot</h4>
+
+<p>Sends notifications to Hubot via <a href="http://git.io/hubot-janky">janky script</a>.</p>
+
+<p>Required settings:</p>
+
+<ul class="task-list">
+<li>
+<code>JANKY_CHAT_HUBOT_URL</code>: URL to your Hubot instance.</li>
+<li>
+<code>JANKY_CHAT_HUBOT_ROOMS</code>: List of rooms which can be set via <code>ci set room</code>.
+
+<ul class="task-list">
+<li>For IRC: Comma-separated list of channels <code>"#room, #another-room"</code>
+</li>
+<li>For Campfire/HipChat: List with room id and name <code>"34343:room, 23223:another-room"</code>
+</li>
+</ul>
+</li>
+</ul><h3>
+<a name="user-content-authentication" class="anchor" href="#authentication" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authentication</h3>
+
+<p>To restrict access to members of a GitHub organization, <a href="https://github.com/settings/applications">register a new
+OAuth application on GitHub</a>
+with the callback set to <code>$JANKY_BASE_URL/auth/github/callback</code> then set
+a few extra settings:</p>
+
+<ul class="task-list">
+<li>
+<code>JANKY_SESSION_SECRET</code>: Random session cookie secret. Typically
+generated by a tool like <code>pwgen</code>.</li>
+<li>
+<code>JANKY_AUTH_CLIENT_ID</code>: The client ID of the OAuth application.</li>
+<li>
+<code>JANKY_AUTH_CLIENT_SECRET</code>: The client secret of the OAuth application.</li>
+<li>
+<code>JANKY_AUTH_ORGANIZATION</code>: The organization name. Example: "github".</li>
+<li>
+<code>JANKY_AUTH_TEAM_ID</code>: An optional team ID to give auth to. Example: "1234".</li>
+</ul><h3>
+<a name="user-content-hubot-1" class="anchor" href="#hubot-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hubot</h3>
+
+<p>Install the <a href="http://git.io/hubot-janky">janky script</a> in your Hubot
+then set the <code>HUBOT_JANKY_URL</code> environment variable. Example:
+<code>http://user:password@janky.example.com/_hubot/</code>, with user and password
+replaced by <code>JANKY_HUBOT_USER</code> and <code>JANKY_HUBOT_PASSWORD</code> respectively.</p>
+
+<h3>
+<a name="user-content-custom-build-configuration" class="anchor" href="#custom-build-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom build configuration</h3>
+
+<p>The default build command should suffice for most Ruby applications:</p>
+
+<pre><code>$ bundle install --path vendor/gems --binstubs
+$ bundle exec rake
+</code></pre>
+
+<p>For more control you can add a <code>script/cibuild</code> at the root of your
+repository for Jenkins to execute instead.</p>
+
+<p>For total control, whole Jenkins' <code>config.xml</code> files can be associated
+with Janky builds. Given a build called <code>windows</code> and a template name
+of <code>psake</code>, Janky will try <code>config/jobs/psake.xml.erb</code> to use a template,
+<code>config/jobs/windows.xml.erb</code> to try the job name if the template does
+not exit,  before finally falling back to the default
+configuration, <code>config/jobs/default.xml.erb</code>. After updating or adding
+a custom config, run <code>hubot ci setup</code> again to update the Jenkins
+server.</p>
+
+<h2>
+<a name="user-content-hacking" class="anchor" href="#hacking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hacking</h2>
+
+<p>Get your environment up and running:</p>
+
+<pre><code>script/bootstrap
+</code></pre>
+
+<p>Create the databases:</p>
+
+<pre><code>mysqladmin -uroot create janky_development
+mysqladmin -uroot create janky_test
+</code></pre>
+
+<p>Create the tables:</p>
+
+<pre><code>RACK_ENV=development bin/rake db:migrate
+RACK_ENV=test bin/rake db:migrate
+</code></pre>
+
+<p>Seed some data into the development database:</p>
+
+<pre><code>bin/rake db:seed
+</code></pre>
+
+<p>Start the server:</p>
+
+<pre><code>script/server
+</code></pre>
+
+<p>Open the app:</p>
+
+<pre><code>open http://localhost:9393/
+</code></pre>
+
+<p>Run the test suite:</p>
+
+<pre><code>script/test
+</code></pre>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Fork the <a href="https://github.com/github/janky">Janky repository on GitHub</a> and
+send a Pull Request.  Note that any changes to behavior without tests will
+be rejected.  If you are adding significant new features, please add both
+tests and documentation.</p>
+
+<h2>
+<a name="user-content-copying" class="anchor" href="#copying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copying</h2>
+
+<p>Copyright © 2011-2013, GitHub, Inc. See the <code>COPYING</code> file for license
+rights and limitations (MIT).</p></article></div>

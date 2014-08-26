@@ -1,0 +1,71 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hawk" class="anchor" href="#hawk" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hawk</h1>
+
+<p>Transform text from the command-line using Haskell expressions. Similar to <a href="http://cm.bell-labs.com/cm/cs/awkbook/index.html">awk</a>, but using Haskell as the text-processing language.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>In <a href="http://en.wikipedia.org/wiki/Unix">Unix</a> the file <code>/etc/passwd</code> is used to
+keep track of every registered user in the system. Each entry in the file
+contains information about a single user, using a simple colon-separated format.
+For example:</p>
+
+<pre><code>root:x:0:0:root:/root:/bin/bash
+</code></pre>
+
+<p>The first field is the username. We can use Hawk to list all usernames as follows:</p>
+
+<div class="highlight highlight-bash"><pre>&gt; cat /etc/passwd <span class="p">|</span> hawk -d: -m <span class="s1">'head'</span>
+root
+</pre></div>
+
+<p>The <code>-d</code> option tells Hawk to use <code>:</code> as field delimiters, causing the first line to be interpreted as <code>["root", "x", "0", "0", "root", "/root", "/bin/bash"]</code>.
+The <code>-m</code> tells Hawk to map a function over each line of the input. In this case, the function <code>head</code> extracts the first field of the line, which happens to be the username.</p>
+
+<p>We could of course have achieved identical results by using awk instead of Hawk:</p>
+
+<div class="highlight highlight-bash"><pre>&gt; cat /etc/passwd <span class="p">|</span> awk -F: <span class="s1">'{print $1}'</span>
+root
+</pre></div>
+
+<p>While Hawk and awk have similar use cases, the philosophy behind the two is very
+different. Awk uses a specialized language designed to concisely express many text transformations,
+while Hawk uses the general-purpose language Haskell, which is also known for being concise, among other things.
+There are many standard command-line tools that can be easily approximated using
+<a href="http://www.haskell.org/haskellwiki/Simple_Unix_tools">short Haskell expressions</a>.</p>
+
+<p>Another important difference is that while awk one-liners are self-contained, Hawk encourages the use of libraries and user-defined functions. By adding function definitions, module imports and language pragmas to Hawk's user-configurable <a href="https://github.com/gelisam/hawk/tree/master/doc#user-prelude">prelude file</a>, those functions, libraries and language extensions become available to Hawk one-liners.
+For instance, we could add a <code>takeLast</code> function extracting the last <code>n</code> elements from a list, and use it to (inefficiently) approximate <code>tail</code>:</p>
+
+<div class="highlight highlight-bash"><pre>&gt; <span class="nb">echo</span> <span class="s1">'takeLast n = reverse . take n . reverse'</span> &gt;&gt; ~/.hawk/prelude.hs
+&gt; seq <span class="m">0</span> <span class="m">100</span> <span class="p">|</span> hawk -a <span class="s1">'takeLast 3'</span>
+98
+99
+100
+</pre></div>
+
+<p>For more details, see the
+<a href="http://melrief.github.io/HawkPresentation/#/">presentation</a> and the
+<a href="doc/README.md">documentation</a>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>To install the stable version, simply use <code>cabal install haskell-awk</code> (<em>not</em>
+<code>cabal install hawk</code>, that's another unrelated package) and
+add <code>~/.cabal/bin</code> (or your sandbox's <code>bin</code> folder) to your PATH. You should
+be ready to use Hawk:</p>
+
+<div class="highlight highlight-bash"><pre>&gt; hawk <span class="s1">'[1..3]'</span>
+1
+2
+3
+</pre></div>
+
+<p>To install the development version, clone this repository and use <code>cabal
+install</code> to compile Hawk and its dependencies.
+The first run will create a default configuration file into
+<code>~/.hawk/prelude.hs</code> if it doesn't exist.</p>
+
+<p><a href="http://travis-ci.org/gelisam/hawk"><img src="https://camo.githubusercontent.com/ed680167fa53efe7aa905f9936e8e3957919c8b6/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f67656c6973616d2f6861776b2e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/gelisam/hawk.png" style="max-width:100%;"></a></p></article></div>

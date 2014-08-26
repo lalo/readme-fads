@@ -1,0 +1,345 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-implicitcad-math-inspired-cad" class="anchor" href="#implicitcad-math-inspired-cad" aria-hidden="true"><span class="octicon octicon-link"></span></a>ImplicitCAD: Math Inspired CAD</h1>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>ImplicitCAD is a programmatic CAD program, implemented in haskell. Unlike traditional CAD programs, programmatic CAD programs use text descriptions of objects, as in programming. Concepts like variables, control structures and abstraction are used, just as in programming. This provides a number of advantages:</p>
+
+<ul class="task-list">
+<li>Objects can abstracted and reused</li>
+<li>Repetitive tasks can be automated</li>
+<li>Objects can be designed parametrically</li>
+<li>The usual tools for software development (like version control) can be used</li>
+</ul><p>The traditional example of programmatic CAD is OpenSCAD.</p>
+
+<p>Generally, objects in programmatic CAD are built with Constructive Solid Geometry or CSG. Unions, intersections and differences of simpler shapes slowly build the object. ImplicitCAD supports all this and much more! For example, it provides rounded unions so that one can have smooth interfaces between objects.</p>
+
+<p>It also directly provides GCode generation, and has a parser for OpenSCAD to make it easier for people to transition.</p>
+
+<p>ImplicitCAD is very much a work in progress. The author considers it ready for beta testers and greatly appreciates bug reports.</p>
+
+<h2>
+<a name="user-content-extopenscad-examples" class="anchor" href="#extopenscad-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>ExtOpenSCAD Examples</h2>
+
+<p>Let's being with OpenSCAD examples, since they're likely a more comfortable format that Haskell for most readers :)</p>
+
+<p>ImplicitCAD supports an extended version of OpenSCAD, the popular programmatic CAD tool. This is very new functionality, so expect bugs!</p>
+
+<p>Generally, normal openscad code should work. For example, save the following as <code>file.scad</code>.</p>
+
+<div class="highlight highlight-c"><pre><span class="k">union</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">square</span><span class="p">([</span><span class="mi">80</span><span class="p">,</span><span class="mi">80</span><span class="p">]);</span>
+    <span class="n">translate</span> <span class="p">([</span><span class="mi">80</span><span class="p">,</span><span class="mi">80</span><span class="p">])</span> <span class="n">circle</span><span class="p">(</span><span class="mi">30</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Running <code>extopenscad file.scad</code> will produce <code>file.svg</code>, which will look like:</p>
+
+<p><a href="https://camo.githubusercontent.com/cd40100e20007fb070a6b4c39a0d0e38b0f31328/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/cd40100e20007fb070a6b4c39a0d0e38b0f31328/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e2e706e67" alt="A Union of a Square and Circle" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/SquareCircleUnion.png" style="max-width:100%;"></a></p>
+
+<p>You can read more about standard openscad functionality in <a href="http://en.wikibooks.org/wiki/OpenSCAD_User_Manual">OpenSCAD User Manual</a>. </p>
+
+<p>However, there are additional ImplicitCAD specific features. For example a rounded union:</p>
+
+<div class="highlight highlight-c"><pre><span class="k">union</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">square</span><span class="p">([</span><span class="mi">80</span><span class="p">,</span><span class="mi">80</span><span class="p">]);</span>
+    <span class="n">translate</span> <span class="p">([</span><span class="mi">80</span><span class="p">,</span><span class="mi">80</span><span class="p">])</span> <span class="n">circle</span><span class="p">(</span><span class="mi">30</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/b6ac35f2ab305f2e111cee368d98e4df35d171ed/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e522e706e67" target="_blank"><img src="https://camo.githubusercontent.com/b6ac35f2ab305f2e111cee368d98e4df35d171ed/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e522e706e67" alt="A Rounded Union of a Square and Circle" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/SquareCircleUnionR.png" style="max-width:100%;"></a></p>
+
+<p>(For code like this that is not backwards compatible with OpenSCAD, it is recommended that you save it as a .escad file -- Extended OpenSCAD.)</p>
+
+<p>Like openscad, ImplicitCAD supports extruding objects.</p>
+
+<div class="highlight highlight-c"><pre><span class="n">linear_extrude</span> <span class="p">(</span><span class="n">height</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="nb">true</span><span class="p">){</span>  
+        <span class="k">union</span> <span class="p">(</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="o">-</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<p>And we allow you to twist them as you extrude.</p>
+
+<p><a href="https://camo.githubusercontent.com/3d0caa65a25e4c3c40ffe192344b8f2c64213e0a/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f457874727564654f626a2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/3d0caa65a25e4c3c40ffe192344b8f2c64213e0a/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f457874727564654f626a2e706e67" alt="An Extrusion" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/ExtrudeObj.png" style="max-width:100%;"></a></p>
+
+<div class="highlight highlight-c"><pre><span class="n">linear_extrude</span> <span class="p">(</span><span class="n">height</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">twist</span><span class="o">=</span><span class="mi">90</span><span class="p">){</span>
+        <span class="k">union</span> <span class="p">(</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="o">-</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/d11ae2e42b60f049e5882370a93544b83855b8a8/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f4578747275646554776973744f626a2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/d11ae2e42b60f049e5882370a93544b83855b8a8/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f4578747275646554776973744f626a2e706e67" alt="An twisted extrusion" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/ExtrudeTwistObj.png" style="max-width:100%;"></a></p>
+
+<p>In fact, we've extended this to allow you to twist at non-constant rates and even reverse directions. You just make <code>twist</code> a function! (We're following the openscad convention of using degrees...)</p>
+
+<div class="highlight highlight-c"><pre><span class="n">linear_extrude</span> <span class="p">(</span><span class="n">height</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">twist</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">=</span> <span class="mi">35</span><span class="o">*</span><span class="n">cos</span><span class="p">(</span><span class="n">h</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="mi">60</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">union</span> <span class="p">(</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="o">-</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/8987209e0f4b90ea4675673c36817a5f24e07063/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f4578747275646556617254776973744f626a2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/8987209e0f4b90ea4675673c36817a5f24e07063/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f4578747275646556617254776973744f626a2e706e67" alt="An variably twisted ImplicitCAD extrusion" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/ExtrudeVarTwistObj.png" style="max-width:100%;"></a></p>
+
+<p>We also allow you to do rounded extrusions. See, we heard you like rounding, so we set this up so you can rounded extrude your rounded union...</p>
+
+<div class="highlight highlight-c"><pre><span class="n">linear_extrude</span> <span class="p">(</span><span class="n">height</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">5</span><span class="p">){</span>
+        <span class="k">union</span> <span class="p">(</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="o">-</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/7b4eb4825d81608d5292d6ad5248f06451992aff/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f45787472756465526f756e644f626a2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/7b4eb4825d81608d5292d6ad5248f06451992aff/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f45787472756465526f756e644f626a2e706e67" alt="A rounded extrusion made with ImplicitCAD" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/ExtrudeRoundObj.png" style="max-width:100%;"></a></p>
+
+<p>This is fully compatible with twisting, of course!</p>
+
+<div class="highlight highlight-c"><pre><span class="n">linear_extrude</span> <span class="p">(</span><span class="n">height</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span> <span class="n">twist</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">5</span><span class="p">){</span>
+        <span class="k">union</span> <span class="p">(</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="o">-</span><span class="mi">22</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+                <span class="n">translate</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">22</span><span class="p">])</span> <span class="n">circle</span> <span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+        <span class="p">}</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/2685ab4884f6c737a20fee4735ff0349a828d761/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f45787472756465526f756e6454776973742e706e67" target="_blank"><img src="https://camo.githubusercontent.com/2685ab4884f6c737a20fee4735ff0349a828d761/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f45787472756465526f756e6454776973742e706e67" alt="A rounded twisted extrusion" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/ExtrudeRoundTwist.png" style="max-width:100%;"></a></p>
+
+<p>ImplicitCAD also provides full programmatic functionality, like variable assignment in loops, which are sadly absent in OpenSCAD. For example, the trivial program:</p>
+
+<div class="highlight highlight-c"><pre><span class="n">a</span> <span class="o">=</span> <span class="mi">5</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span> <span class="p">{</span>
+    <span class="n">echo</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="o">*</span><span class="n">c</span><span class="p">;</span>
+    <span class="n">echo</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Has the output:</p>
+
+<pre><code>1.0
+5.0
+2.0
+10.0
+3.0
+30.0
+Nothing to render
+</code></pre>
+
+<p>As a functional programmer, I couldn't resist adding some other niceties to the language. For example, function currying:</p>
+
+<div class="highlight highlight-c"><pre><span class="n">f</span> <span class="o">=</span> <span class="n">max</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span>
+<span class="n">echo</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="mi">5</span><span class="p">));</span>
+<span class="n">echo</span><span class="p">(</span><span class="n">max</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">));</span>
+</pre></div>
+
+<p>And some higher order functions, like my friend map:</p>
+
+<div class="highlight highlight-c"><pre><span class="n">echo</span><span class="p">(</span><span class="n">map</span><span class="p">(</span><span class="n">cos</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">pi</span><span class="p">]));</span>
+</pre></div>
+
+<h2>
+<a name="user-content-haskell-examples" class="anchor" href="#haskell-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Haskell Examples</h2>
+
+<p>Everything you saw above can be done with the Haskell API. For example, a simple 2D example, the same as our first ExtOpenSCAD one:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">import</span> <span class="nn">Graphics.Implicit</span>
+
+<span class="nf">out</span> <span class="ow">=</span> <span class="n">union</span> <span class="p">[</span>
+    <span class="n">rectR</span> <span class="mi">0</span> <span class="p">(</span><span class="o">-</span><span class="mi">40</span><span class="p">,</span><span class="o">-</span><span class="mi">40</span><span class="p">)</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span><span class="mi">40</span><span class="p">),</span>
+    <span class="n">translate</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span><span class="mi">40</span><span class="p">)</span> <span class="p">(</span><span class="n">circle</span> <span class="mi">30</span><span class="p">)</span> <span class="p">]</span>
+
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">writeSVG</span> <span class="mi">2</span> <span class="s">"test.svg"</span> <span class="n">out</span>
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/cd40100e20007fb070a6b4c39a0d0e38b0f31328/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/cd40100e20007fb070a6b4c39a0d0e38b0f31328/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e2e706e67" alt="A Union of a Square and Circle" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/SquareCircleUnion.png" style="max-width:100%;"></a></p>
+
+<p>A rounded union:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">import</span> <span class="nn">Graphics.Implicit</span>
+
+<span class="nf">out</span> <span class="ow">=</span> <span class="n">unionR</span> <span class="mi">14</span> <span class="p">[</span>
+    <span class="n">rectR</span> <span class="mi">0</span> <span class="p">(</span><span class="o">-</span><span class="mi">40</span><span class="p">,</span><span class="o">-</span><span class="mi">40</span><span class="p">)</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span><span class="mi">40</span><span class="p">),</span>
+    <span class="n">translate</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span><span class="mi">40</span><span class="p">)</span> <span class="p">(</span><span class="n">circle</span> <span class="mi">30</span><span class="p">)</span> <span class="p">]</span>
+
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">writeSVG</span> <span class="mi">2</span> <span class="s">"test.svg"</span> <span class="n">out</span>
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/b6ac35f2ab305f2e111cee368d98e4df35d171ed/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e522e706e67" target="_blank"><img src="https://camo.githubusercontent.com/b6ac35f2ab305f2e111cee368d98e4df35d171ed/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f537175617265436972636c65556e696f6e522e706e67" alt="A Rounded Union of a Square and Circle" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/SquareCircleUnionR.png" style="max-width:100%;"></a></p>
+
+<p>A simple 3D example:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">import</span> <span class="nn">Graphics.Implicit</span>
+
+<span class="nf">out</span> <span class="ow">=</span> <span class="n">union</span> <span class="p">[</span>
+    <span class="n">rect3R</span> <span class="mi">0</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">),</span>
+    <span class="n">translate</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">20</span><span class="p">)</span> <span class="p">(</span><span class="n">sphere</span> <span class="mi">15</span><span class="p">)</span> <span class="p">]</span>
+
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">writeSTL</span> <span class="mi">1</span> <span class="s">"test.stl"</span> <span class="n">out</span> 
+</pre></div>
+
+<p><a href="https://camo.githubusercontent.com/4ef230cd49befc84ee10467a60cba13cc449244a/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f43756265537068657265556e696f6e2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/4ef230cd49befc84ee10467a60cba13cc449244a/687474703a2f2f636f6c61682e6769746875622e636f6d2f496d706c69636974434144446f63496d616765732f302e302f43756265537068657265556e696f6e2e706e67" alt="A Rounded Union of a Square and Circle" data-canonical-src="http://colah.github.com/ImplicitCADDocImages/0.0/CubeSphereUnion.png" style="max-width:100%;"></a></p>
+
+<p>You can do a whole lot more!</p>
+
+<h2>
+<a name="user-content-try-implicitcad" class="anchor" href="#try-implicitcad" aria-hidden="true"><span class="octicon octicon-link"></span></a>Try ImplicitCAD!</h2>
+
+<ol class="task-list">
+<li>Install GHC and cabal.
+
+<ul class="task-list">
+<li>Debain/Ubuntu: <code>apt-get install ghc cabal-install</code>
+</li>
+<li>Archlinux: <code>pacman -S ghc cabal-install</code>
+</li>
+<li>Red Hat/Fedora: <code>yum install ghc cabal-install</code>
+</li>
+<li>Mac OSX:
+
+<ul class="task-list">
+<li>Homebrew: <code>brew install ghc cabal-install</code>
+</li>
+<li>
+<em>Fink doesn't seem to have a package for cabal</em> Install the Haskell Platform manually as described <a href="http://hackage.haskell.org/platform/mac.html">here</a>.</li>
+</ul>
+</li>
+<li>Windows: Follows <a href="http://hackage.haskell.org/platform/windows.html">these install instructions</a>.</li>
+<li>Other unices: If your package manager does not include ghc and cabal you should install the Haskell platform as described [here](</li>
+</ul>
+</li>
+<li>You now have two options for installation:
+
+<ul class="task-list">
+<li>Latest release:
+
+<ul class="task-list">
+<li>Use cabal to install ImplicitCAD: <code>cabal update &amp;&amp; cabal install implicit</code>
+</li>
+</ul>
+</li>
+<li>Development version:
+
+<ul class="task-list">
+<li>Install the dependencies: <code>cabal update &amp;&amp; cabal install hashmap parallel parsec plugins JuicyPixels blaze-builder blaze-markup blaze-svg storable-endian unordered-containers vector-space</code>
+</li>
+<li>Git clone this repo: <code>git clone https://github.com/colah/ImplicitCAD.git</code>
+</li>
+<li>cd in: <code>cd ImplicitCAD/</code>
+</li>
+<li>cabal install it: <code>cabal configure &amp;&amp; cabal install</code>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Try it!
+
+<ul class="task-list">
+<li>extopenscad test:
+
+<ul class="task-list">
+<li>Make a test file: <code>echo "circle(30);" &gt; test.escad</code>
+</li>
+<li>Run extopencad: <code>extopenscad test.escad</code>
+
+<ul class="task-list">
+<li>Alternatively, <code>~/.cabal/bin/extopenscad test.escad</code> -- see bellow.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Haskell ImplicitCAD test: 
+
+<ul class="task-list">
+<li>Start ghci: <code>ghci</code>
+</li>
+<li>Load ImplicitCAD: <code>import Graphics.Implicit</code>
+</li>
+<li>Try it! <code>writeSVG 1 "test.svg" (circle 30)</code>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Known issues:
+
+<ul class="task-list">
+<li>extopenscad test results in <code>bash: extopenscad: command not found</code> (or similar for your shell)
+
+<ul class="task-list">
+<li>This probably means <code>~/.cabal/bin/</code> is not in your <code>$PATH</code> variable. 
+Try using <code>~/.cabal/bin/extopenscad</code> as your command instead.</li>
+</ul>
+</li>
+<li>Haskell test results in <code>module is not loaded: 'Graphics.Implicit' (./Graphics/Implicit.hs)</code>
+
+<ul class="task-list">
+<li>This is most likely a problem with your Linux distro and cabal not playing nice. 
+GHC is not configured to see the ImplicitCAD libraries. You can confirm this by 
+try the test in <code>~/.cabal/lib/</code>. If that works, you should be able to use ghc
+anywhere with the <code>-Ldir</code> or <code>-llib</code> options. Alternatively, some people have
+permanently fixed this by doing the cabal install as root.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol><h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>Documentation can be generated from the source code of ImplicitCAD by Haddock by running <code>cabal haddock</code>.</p>
+
+<p>Releases of ImplicitCAD are uploaded to HackageDB which, in addition to making them avaialable through <code>cabal install</code>, puts the generated documentation on the Internet. So you can read the documentation for the most recent release of ImplicitCAD, 0.0.1, <a href="http://hackage.haskell.org/packages/archive/implicit/0.0.1/doc/html/Graphics-Implicit.html">on HackageDB</a> (for some reason the latest version doesn't seem to have built).</p>
+
+<p>A description of the mathematical ideas underpinning ImplicitCAD are described in a <a href="http://christopherolah.wordpress.com/2011/11/06/manipulation-of-implicit-functions-with-an-eye-on-cad/">blog post on colah's blog</a>. Note that substantial changes have happened since that post. You can also look at the <a href="http://christopherolah.wordpress.com/2012/02/06/implicitcad-0-0-1-release/">0.0.1 relase notes</a>.</p>
+
+<h2>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p>ImplicitCAD is very much a work in progress.</p>
+
+<p>What works (Nov 2, 2011 -- regressions are possible if not probable):</p>
+
+<ul class="task-list">
+<li>CSG, bevelled CSG, shells.</li>
+<li>2D output (svg)</li>
+<li>3D output (stl) -- rare bugs that can be fixed by increasing re</li>
+<li>gcode generation for 2D to hacklab laser cutter. Not configurable.</li>
+</ul><p>What still needs to be done:</p>
+
+<ul class="task-list">
+<li>gcode generation for 3D printers, gcode generator config</li>
+<li>openscad parser for backwards compatibility (partially complete)</li>
+</ul><p>And a wishlist of things further in the future:</p>
+
+<ul class="task-list">
+<li>More optimisation</li>
+<li>openGL viewer?</li>
+<li>openCL acceleration?</li>
+</ul></article></div>

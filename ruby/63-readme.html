@@ -1,0 +1,717 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-rabl" class="anchor" href="#rabl" aria-hidden="true"><span class="octicon octicon-link"></span></a>RABL</h1>
+
+<p><a href="http://travis-ci.org/nesquena/rabl"><img src="https://camo.githubusercontent.com/b0ea26bba1875845af0da2d151aa815ab110cf9e/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6e65737175656e612f7261626c2e706e67" alt="Continuous Integration status" data-canonical-src="https://secure.travis-ci.org/nesquena/rabl.png" style="max-width:100%;"></a>
+<a href="https://gemnasium.com/nesquena/rabl"><img src="https://camo.githubusercontent.com/9bdcd7a10e992385fe72a595c1d06c774666470e/68747470733a2f2f67656d6e617369756d2e636f6d2f6e65737175656e612f7261626c2e706e67" alt="Dependency Status" data-canonical-src="https://gemnasium.com/nesquena/rabl.png" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/nesquena/rabl"><img src="https://camo.githubusercontent.com/ba210ceb54f452be58bf1375f7cb35c507c8451e/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f6e65737175656e612f7261626c2e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/nesquena/rabl.png" style="max-width:100%;"></a></p>
+
+<p>RABL (Ruby API Builder Language) is a Rails and <a href="http://padrinorb.com">Padrino</a> ruby templating system for generating JSON, XML, MessagePack, PList and BSON.
+When using the ActiveRecord 'to_json' method, I find myself wanting a more expressive and powerful solution for generating APIs.
+This is especially true when the JSON representation is complex or doesn't match the exact schema defined within the database.</p>
+
+<p>In particular, I want to easily:</p>
+
+<ul class="task-list">
+<li>Create arbitrary nodes named based on combining data in an object</li>
+<li>Pass arguments to methods and store the result as a child node</li>
+<li>Render partial templates and inherit to reduce code duplication</li>
+<li>Rename or alias attributes to change the name from the model</li>
+<li>Append attributes from a child into a parent node</li>
+<li>Include nodes only if a certain condition has been met</li>
+</ul><p>Anyone who has tried the 'to_json' method used in ActiveRecord for generating a JSON response has felt the pain of this restrictive approach.
+RABL is a general templating system created to solve these problems by approaching API response generation in an entirely new way.</p>
+
+<p>RABL at the core is all about adhering to MVC principles by deferring API data representations to the <strong>view</strong> layer of your application.
+For a breakdown of common misconceptions about RABL, please check out our guide to
+<a href="https://github.com/nesquena/rabl/wiki/Understanding-RABL">understanding RABL</a> which can help clear up any confusion about this project.</p>
+
+<h2>
+<a name="user-content-breaking-changes" class="anchor" href="#breaking-changes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Breaking Changes</h2>
+
+<ul class="task-list">
+<li><p>v0.9.0 (released Oct 14, 2013) changes the <a href="https://github.com/nesquena/rabl/issues/505">default node name for certain associations</a>
+especially around STI models. You might want to verify for any breakages as a result and
+be more explicit by specifying an alias i.e <code>@users =&gt; :users</code></p></li>
+<li><p>v0.8.0 (released Feb 14, 2013) removes multi_json dependency and
+relies on Oj (or JSON) as the json parser. Simplifies code, removes a dependency
+but you might want to remove any references to MultiJson.</p></li>
+<li><p>v0.6.14 (released June 28, 2012) requires the use of render_views
+with RSpec to test templates. Otherwise, the controller will simply
+pass through the render command as it does with ERB templates.</p></li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Install RABL as a gem:</p>
+
+<pre><code>gem install rabl
+</code></pre>
+
+<p>or add to your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Gemfile</span>
+<span class="n">gem</span> <span class="s1">'rabl'</span>
+<span class="c1"># Also add either `oj` or `yajl-ruby` as the JSON parser</span>
+<span class="n">gem</span> <span class="s1">'oj'</span>
+</pre></div>
+
+<p>and run <code>bundle install</code> to install the dependency.</p>
+
+<p>If you are using <strong>Rails 2.3.8 (and up), Rails 3.X or Padrino</strong>, RABL works without configuration.</p>
+
+<p><strong>Important:</strong> With Padrino, be sure that <strong>the rabl gem is listed after the padrino gem in your Gemfile</strong>, otherwise
+Rabl will not register properly as a template engine.</p>
+
+<p>With Sinatra, or any other tilt-based framework, simply register:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rabl</span><span class="o">.</span><span class="n">register!</span>
+</pre></div>
+
+<p>and RABL will be initialized and ready for use. For usage with Sinatra, check out
+the <a href="https://github.com/nesquena/rabl/wiki/Setup-for-Sinatra">Sinatra Usage</a> guide.</p>
+
+<h2>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h2>
+
+<p>You can use RABL to generate JSON and XML based APIs from any ruby object.
+With RABL, the data typically is derived primarily from models (ORM-agnostic) and the representation of the API output is described within
+a view template using a simple ruby DSL. This allows you to keep your data separated from the JSON or XML you wish to output.</p>
+
+<p>Once you have installed RABL (explained above), you can construct a RABL view template and then render the template
+from your Sinatra, Padrino or Rails applications from the controller (or route) very easily. Using <a href="http://padrinorb.com">Padrino</a> as an
+example, assuming you have a <code>Post</code> model filled with blog posts, you can render an API representation (both JSON and XML) by creating a route:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/app.rb</span>
+<span class="n">get</span> <span class="s2">"/posts"</span><span class="p">,</span> <span class="ss">:provides</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:json</span><span class="p">,</span> <span class="ss">:xml</span><span class="o">]</span> <span class="k">do</span>
+  <span class="vi">@user</span> <span class="o">=</span> <span class="n">current_user</span>
+  <span class="vi">@posts</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="s2">"id DESC"</span><span class="p">)</span>
+  <span class="n">render</span> <span class="s2">"posts/index"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then we can create the following RABL template to express the API output of <code>@posts</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/posts/index.rabl</span>
+<span class="n">collection</span> <span class="vi">@posts</span>
+<span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:subject</span>
+<span class="n">child</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="n">attributes</span> <span class="ss">:full_name</span> <span class="p">}</span>
+<span class="n">node</span><span class="p">(</span><span class="ss">:read</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">post</span><span class="o">|</span> <span class="n">post</span><span class="o">.</span><span class="n">read_by?</span><span class="p">(</span><span class="vi">@user</span><span class="p">)</span> <span class="p">}</span>
+</pre></div>
+
+<p>Which would output the following JSON or XML when visiting <code>http://localhost:3000/posts.json</code></p>
+
+<div class="highlight highlight-js"><pre><span class="p">[{</span>  <span class="s2">"post"</span> <span class="o">:</span>
+  <span class="p">{</span>
+    <span class="s2">"id"</span> <span class="o">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"title"</span><span class="o">:</span> <span class="s2">"..."</span><span class="p">,</span> <span class="s2">"subject"</span><span class="o">:</span> <span class="s2">"..."</span><span class="p">,</span>
+    <span class="s2">"user"</span> <span class="o">:</span> <span class="p">{</span> <span class="s2">"full_name"</span> <span class="o">:</span> <span class="s2">"..."</span> <span class="p">},</span>
+    <span class="s2">"read"</span> <span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+<span class="p">}]</span>
+</pre></div>
+
+<p>That's a basic overview but there is a lot more to see such as partials, inheritance, custom nodes, etc. Read the full details of RABL below.</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>RABL is intended to require little to no configuration to get working. This is the case in most scenarios, but depending on your needs you may want to set the following global configurations in your application (this block is completely optional):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/initializers/rabl_init.rb</span>
+<span class="nb">require</span> <span class="s1">'rabl'</span>
+<span class="no">Rabl</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="c1"># Commented as these are defaults</span>
+  <span class="c1"># config.cache_all_output = false</span>
+  <span class="c1"># config.cache_sources = Rails.env != 'development' # Defaults to false</span>
+  <span class="c1"># config.cache_engine = Rabl::CacheEngine.new # Defaults to Rails cache</span>
+  <span class="c1"># config.perform_caching = false</span>
+  <span class="c1"># config.escape_all_output = false</span>
+  <span class="c1"># config.json_engine = nil # Class with #dump class method (defaults JSON)</span>
+  <span class="c1"># config.msgpack_engine = nil # Defaults to ::MessagePack</span>
+  <span class="c1"># config.bson_engine = nil # Defaults to ::BSON</span>
+  <span class="c1"># config.plist_engine = nil # Defaults to ::Plist::Emit</span>
+  <span class="c1"># config.include_json_root = true</span>
+  <span class="c1"># config.include_msgpack_root = true</span>
+  <span class="c1"># config.include_bson_root = true</span>
+  <span class="c1"># config.include_plist_root = true</span>
+  <span class="c1"># config.include_xml_root  = false</span>
+  <span class="c1"># config.include_child_root = true</span>
+  <span class="c1"># config.enable_json_callbacks = false</span>
+  <span class="c1"># config.xml_options = { :dasherize  =&gt; true, :skip_types =&gt; false }</span>
+  <span class="c1"># config.view_paths = []</span>
+  <span class="c1"># config.raise_on_missing_attribute = true # Defaults to false</span>
+  <span class="c1"># config.replace_nil_values_with_empty_strings = true # Defaults to false</span>
+  <span class="c1"># config.replace_empty_string_values_with_nil_values = true # Defaults to false</span>
+  <span class="c1"># config.exclude_nil_values = true # Defaults to false</span>
+  <span class="c1"># config.exclude_empty_values_in_collections = true # Defaults to false</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Each option specifies behavior related to RABL's output.</p>
+
+<p>If <code>include_json_root</code> is disabled that removes the root node for each root object in the output, and <code>enable_json_callbacks</code> enables support for 'jsonp' style callback
+output if the incoming request has a 'callback' parameter.</p>
+
+<p>If <code>include_child_root</code> is set to false then child objects in the response will not include
+a root node by default. This allows you to further fine-tune your desired response structure.</p>
+
+<p>If <code>cache_engine</code> is set, you should assign it to a class with a <code>fetch</code> method. See the <a href="https://github.com/nesquena/rabl/blob/master/lib/rabl/cache_engine.rb">default engine</a> for an example.</p>
+
+<p>If <code>perform_caching</code> is set to <code>true</code> then it will perform caching. You
+can ignore this option if you are using Rails, it's same to Rails
+<code>config.action_controller.perform_caching</code></p>
+
+<p>If <code>cache_sources</code> is set to <code>true</code>, template lookups will be cached for improved performance.
+The cache can be reset manually by running <code>Rabl.reset_source_cache!</code> within your application.</p>
+
+<p>If <code>cache_all_output</code> is set to <code>true</code>, every template including each individual template used as part of a collection will be cached separately.
+Additionally, anything within child, glue and partial will also be cached separately.
+To cache just a single template, see the section titled 'Caching' below.</p>
+
+<p>If <code>escape_all_output</code> is set to <code>true</code> and ActiveSupport is available, attribute output will be escaped using <a href="http://corelib.rubyonrails.org/classes/ERB/Util.html">ERB::Util.html_escape</a>.</p>
+
+<p>If <code>view_paths</code> is set to a path, this view path will be checked for every rabl template within your application.
+Add to this path especially when including Rabl in an engine and using view paths within a another Rails app.</p>
+
+<p>If <code>raise_on_missing_attribute</code> is set to <code>true</code>, a RuntimeError will be raised whenever Rabl
+attempts to render an attribute that does not exist. Otherwise, the attribute will simply be omitted.
+Setting this to true during development may help increase the robustness of your code, but using <code>true</code> in
+production code is not recommended.</p>
+
+<p>If <code>replace_nil_values_with_empty_strings</code> is set to <code>true</code>, all values that are <code>nil</code> and would normally be displayed as <code>null</code> in the response are converted to empty strings.</p>
+
+<p>If <code>exclude_nil_values</code> is set to <code>true</code>, all values that are <code>nil</code> and would normally be displayed as <code>null</code> in the response are not included in the response.</p>
+
+<p>if <code>exclude_empty_values_in_collections</code> is set to <code>true</code>, all vaules in a collection that are <code>{}</code> and would normally be displayed as <code>{}</code> in the response are not included in the response.</p>
+
+<p>If you wish to use <a href="https://github.com/ohler55/oj">oj</a> as
+the primary JSON encoding engine simply add that to your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Gemfile</span>
+<span class="n">gem</span> <span class="s1">'oj'</span>
+</pre></div>
+
+<p>and RABL will use that engine automatically for encoding your JSON responses.
+Set your own custom json_engine which define a <code>dump</code> or <code>encode</code>
+method for converting to JSON from ruby data:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">json_engine</span> <span class="o">=</span> <span class="no">ActiveSupport</span><span class="o">::</span><span class="no">JSON</span>
+</pre></div>
+
+<h3>
+<a name="user-content-format-configuration" class="anchor" href="#format-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Format Configuration</h3>
+
+<p>RABL supports configuration for MessagePack, BSON, and Plist. Check the
+<a href="https://github.com/nesquena/rabl/wiki/Configuring-Formats">Format Configuration</a> page for more details.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-object-assignment" class="anchor" href="#object-assignment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Object Assignment</h3>
+
+<p>To declare the data object for use in the template:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/users/show.json.rabl</span>
+<span class="n">object</span> <span class="vi">@user</span>
+</pre></div>
+
+<p>or specify an alias for the object:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">object</span> <span class="vi">@user</span> <span class="o">=&gt;</span> <span class="ss">:person</span>
+<span class="c1"># =&gt; { "person" : { ... } }</span>
+</pre></div>
+
+<p>or pass a collection of objects:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@users</span>
+<span class="c1"># =&gt; [ { "user" : { ... } } ]</span>
+</pre></div>
+
+<p>or specify a root node label for the collection:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@users</span> <span class="o">=&gt;</span> <span class="ss">:people</span>
+<span class="c1"># =&gt; { "people" : [ { "person" : { ... } } ] }</span>
+</pre></div>
+
+<p>or even specify both the child and root labels for a collection:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@users</span><span class="p">,</span> <span class="ss">:root</span> <span class="o">=&gt;</span> <span class="s2">"people"</span><span class="p">,</span> <span class="ss">:object_root</span> <span class="o">=&gt;</span> <span class="s2">"user"</span>
+<span class="c1"># =&gt; { "people" : [ { "user" : { ... } } ] }</span>
+</pre></div>
+
+<p>and this will be used as the default data for the rendering, or disable the object root explicitly:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@users</span><span class="p">,</span> <span class="ss">:root</span> <span class="o">=&gt;</span> <span class="s2">"people"</span><span class="p">,</span> <span class="ss">:object_root</span> <span class="o">=&gt;</span> <span class="kp">false</span>
+<span class="c1"># =&gt; { "people" : [ { ... }, { ... } ] }</span>
+</pre></div>
+
+<p>There can also be odd cases where the root-level of the response doesn't map directly to any object:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">object</span> <span class="kp">false</span>
+<span class="n">node</span><span class="p">(</span><span class="ss">:some_count</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="vi">@user</span><span class="o">.</span><span class="n">posts</span><span class="o">.</span><span class="n">count</span> <span class="p">}</span>
+<span class="n">child</span><span class="p">(</span><span class="vi">@user</span><span class="p">)</span> <span class="p">{</span> <span class="n">attribute</span> <span class="ss">:name</span> <span class="p">}</span>
+</pre></div>
+
+<p>In those cases, object can be assigned to 'false' and nodes can be constructed free-form.</p>
+
+<h3>
+<a name="user-content-attributes" class="anchor" href="#attributes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Attributes</h3>
+
+<p>Basic usage of the templater to define a few simple attributes for the response:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/users/show.json.rabl</span>
+<span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:foo</span><span class="p">,</span> <span class="ss">:bar</span>
+</pre></div>
+
+<p>or use with aliased attributes:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Take the value of model attribute `foo` and name the node `bar`</span>
+<span class="n">attribute</span> <span class="ss">:foo</span> <span class="o">=&gt;</span> <span class="ss">:bar</span>
+<span class="c1"># =&gt; { bar : 5 }</span>
+</pre></div>
+
+<p>or even multiple aliased attributes:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">attributes</span> <span class="ss">:bar</span> <span class="o">=&gt;</span> <span class="ss">:baz</span><span class="p">,</span> <span class="ss">:dog</span> <span class="o">=&gt;</span> <span class="ss">:animal</span>
+<span class="c1"># =&gt; # { baz : &lt;bar value&gt;, animal : &lt;dog value&gt; }</span>
+</pre></div>
+
+<p>or show attributes only if a condition is true:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># m is the object being rendered, also supports :unless</span>
+<span class="n">attributes</span> <span class="ss">:foo</span><span class="p">,</span> <span class="ss">:bar</span><span class="p">,</span> <span class="ss">:if</span> <span class="o">=&gt;</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="n">m</span><span class="o">.</span><span class="n">condition?</span> <span class="p">}</span>
+</pre></div>
+
+<p>Named and aliased attributes can not be combined on the same line. This currently does not work:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">attributes</span> <span class="ss">:foo</span><span class="p">,</span> <span class="ss">:bar</span> <span class="o">=&gt;</span> <span class="ss">:baz</span> <span class="c1"># throws exception</span>
+</pre></div>
+
+<h3>
+<a name="user-content-child-nodes" class="anchor" href="#child-nodes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Child Nodes</h3>
+
+<p>Often a response requires including nested information from data associated with the parent model:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">child</span> <span class="ss">:address</span> <span class="k">do</span>
+  <span class="n">attributes</span> <span class="ss">:street</span><span class="p">,</span> <span class="ss">:city</span><span class="p">,</span> <span class="ss">:zip</span><span class="p">,</span> <span class="ss">:state</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can also disable object root for child node:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">child</span> <span class="ss">:posts</span><span class="p">,</span> <span class="ss">:object_root</span> <span class="o">=&gt;</span> <span class="kp">false</span> <span class="k">do</span>
+  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:title</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can also add child nodes from an arbitrary data source:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">child</span> <span class="vi">@posts</span> <span class="o">=&gt;</span> <span class="ss">:foobar</span> <span class="k">do</span>
+  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:title</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>or use model associations with an alias:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Renders all the 'posts' association</span>
+<span class="c1"># from the model into a node called 'foobar'</span>
+<span class="n">child</span> <span class="ss">:posts</span> <span class="o">=&gt;</span> <span class="ss">:foobar</span> <span class="k">do</span>
+  <span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:title</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can also pass in the current object:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">object</span> <span class="vi">@user</span>
+<span class="n">child</span> <span class="ss">:posts</span> <span class="k">do</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+  <span class="n">attribute</span> <span class="ss">:title</span> <span class="k">unless</span> <span class="n">user</span><span class="o">.</span><span class="n">suspended?</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-gluing-attributes" class="anchor" href="#gluing-attributes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Gluing Attributes</h3>
+
+<p>You can also append child attributes back to the root node:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Appends post_id and post_name to parent json object</span>
+<span class="n">glue</span> <span class="vi">@post</span> <span class="k">do</span>
+  <span class="n">attributes</span> <span class="ss">:id</span> <span class="o">=&gt;</span> <span class="ss">:post_id</span><span class="p">,</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="ss">:post_name</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Use glue to add additional attributes to the parent object.</p>
+
+<p>You can also pass in the current object:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">object</span> <span class="vi">@user</span>
+<span class="n">glue</span><span class="p">(</span><span class="vi">@post</span><span class="p">)</span> <span class="p">{</span><span class="o">|</span><span class="n">user</span><span class="o">|</span> <span class="n">attribute</span> <span class="ss">:title</span> <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">active?</span> <span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-custom-nodes" class="anchor" href="#custom-nodes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Nodes</h3>
+
+<p>This will generate a json response based on the result of the <code>node</code> block:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/users/show.json.rabl</span>
+<span class="n">node</span> <span class="ss">:full_name</span> <span class="k">do</span> <span class="o">|</span><span class="n">u</span><span class="o">|</span>
+  <span class="n">u</span><span class="o">.</span><span class="n">first_name</span> <span class="o">+</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">u</span><span class="o">.</span><span class="n">last_name</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>or don't pass a name and have the node block merged into the response:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">node</span> <span class="k">do</span> <span class="o">|</span><span class="n">u</span><span class="o">|</span>
+  <span class="p">{</span> <span class="ss">:full_name</span> <span class="o">=&gt;</span> <span class="n">u</span><span class="o">.</span><span class="n">first_name</span> <span class="o">+</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">u</span><span class="o">.</span><span class="n">last_name</span> <span class="p">}</span>
+  <span class="c1"># =&gt; { full_name : "Bob Johnson" }</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can use custom nodes like these to create flexible representations of a value utilizing all the data from the model.</p>
+
+<h3>
+<a name="user-content-partials" class="anchor" href="#partials" aria-hidden="true"><span class="octicon octicon-link"></span></a>Partials</h3>
+
+<p>Often you need to access other data objects in order to construct custom nodes in more complex associations. You can get access to the rabl representation of another data object by rendering a RABL partial:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">node</span> <span class="ss">:location</span> <span class="k">do</span>
+  <span class="p">{</span> <span class="ss">:city</span> <span class="o">=&gt;</span> <span class="vi">@city</span><span class="p">,</span> <span class="ss">:address</span> <span class="o">=&gt;</span> <span class="n">partial</span><span class="p">(</span><span class="s2">"users/address"</span><span class="p">,</span> <span class="ss">:object</span> <span class="o">=&gt;</span> <span class="vi">@address</span><span class="p">)</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>or even access an object associated with the parent model:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">node</span> <span class="ss">:location</span> <span class="k">do</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span>
+  <span class="p">{</span> <span class="ss">:city</span> <span class="o">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">city</span><span class="p">,</span> <span class="ss">:address</span> <span class="o">=&gt;</span> <span class="n">partial</span><span class="p">(</span><span class="s2">"users/address"</span><span class="p">,</span> <span class="ss">:object</span> <span class="o">=&gt;</span> <span class="n">m</span><span class="o">.</span><span class="n">address</span><span class="p">)</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can use this method to construct arbitrarily complex nodes for your APIs. Note that you need to have RABL templates defined
+for each of the objects you wish to construct representations for in this manner.</p>
+
+<h3>
+<a name="user-content-inheritance" class="anchor" href="#inheritance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inheritance</h3>
+
+<p>Another common issue of many template builders is unnecessary code redundancy. Typically many representations of an object across multiple endpoints share common attributes or nodes. The nodes for a 'post' object are probably the same or similar in most references throughout the various endpoints.</p>
+
+<p>RABL has the ability to extend other "base" rabl templates and additional attributes:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/users/advanced.json.rabl</span>
+<span class="n">extends</span> <span class="s2">"users/base"</span> <span class="c1"># another RABL template in "app/views/users/base.json.rabl"</span>
+
+<span class="n">node</span> <span class="ss">:can_drink</span> <span class="k">do</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span>
+  <span class="n">m</span><span class="o">.</span><span class="n">age</span> <span class="o">&gt;</span> <span class="mi">21</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can also extend other rabl templates while constructing child nodes to reduce duplication:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/users/show.json.rabl</span>
+<span class="n">child</span> <span class="vi">@address</span> <span class="k">do</span>
+  <span class="n">extends</span> <span class="s2">"address/item"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Using partials and inheritance can significantly reduce code duplication in your templates.</p>
+
+<p>You can see more examples on the <a href="https://github.com/nesquena/rabl/wiki/Reusing-templates">Reusing Templates wiki page</a>.</p>
+
+<h3>
+<a name="user-content-passing-locals-in-partials" class="anchor" href="#passing-locals-in-partials" aria-hidden="true"><span class="octicon octicon-link"></span></a>Passing Locals in Partials</h3>
+
+<p>You can pass an arbitrary set of locals when rendering partials or extending templates.
+For example, if we want to show on <code>posts/:id.json</code> any information regarding particular post and associated comments
+but in other cases we want to hide those comments. We can use locals to do this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/posts/index.json.rabl</span>
+<span class="n">collection</span> <span class="vi">@posts</span>
+
+<span class="n">extends</span><span class="p">(</span><span class="s1">'posts/show'</span><span class="p">,</span> <span class="ss">:locals</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:hide_comments</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="p">})</span>
+<span class="c1"># or using partial instead of extends</span>
+<span class="c1"># node(false) { |post| partial('posts/show', :object =&gt; :post, :locals =&gt; { :hide_comments =&gt; true })}</span>
+</pre></div>
+
+<p>and then access locals in the sub-template:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/posts/show.json.rabl</span>
+<span class="n">object</span> <span class="vi">@post</span>
+
+<span class="n">attributes</span> <span class="ss">:id</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:body</span><span class="p">,</span> <span class="ss">:created_at</span>
+<span class="n">node</span><span class="p">(</span><span class="ss">:comments</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">post</span><span class="o">|</span> <span class="n">post</span><span class="o">.</span><span class="n">comments</span> <span class="p">}</span> <span class="k">unless</span> <span class="n">locals</span><span class="o">[</span><span class="ss">:hide_comments</span><span class="o">]</span>
+</pre></div>
+
+<p>This can be useful as an advanced tool when extending or rendering partials.</p>
+
+<h3>
+<a name="user-content-conditions" class="anchor" href="#conditions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conditions</h3>
+
+<p>You can provide conditions to all kinds of nodes, attributes, extends, etc. which includes a given element only if the specified condition is true.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@posts</span>
+<span class="c1"># m is the object being rendered, also supports :unless</span>
+<span class="n">node</span><span class="p">(</span><span class="ss">:coolness</span><span class="p">,</span> <span class="ss">:if</span> <span class="o">=&gt;</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="n">m</span><span class="o">.</span><span class="n">coolness</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="p">})</span> <span class="k">do</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span>
+  <span class="n">m</span><span class="o">.</span><span class="n">coolness</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Because attributes take conditional options as well, we could simplify the example with:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@posts</span>
+<span class="c1"># m is the object being rendered, also supports :unless</span>
+<span class="n">attribute</span><span class="p">(</span><span class="ss">:coolness</span><span class="p">,</span> <span class="ss">:if</span> <span class="o">=&gt;</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">m</span><span class="o">|</span> <span class="n">m</span><span class="o">.</span><span class="n">coolness</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="p">})</span>
+</pre></div>
+
+<p>The value for the <code>:if</code> and <code>:unless</code> options may be a simple <code>Boolean</code>, <code>Proc</code> or a <code>Symbol</code>. If it is a <code>Symbol</code> and the specific <code>@object</code> responds to its, the method will be called. Thus the example above can be rewritten as:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span>
+  <span class="k">def</span> <span class="nf">cool?</span>
+    <span class="n">coolness</span> <span class="o">&gt;</span> <span class="mi">5</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>and then:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">collection</span> <span class="vi">@posts</span>
+<span class="n">attribute</span> <span class="ss">:coolness</span><span class="p">,</span> <span class="k">if</span><span class="p">:</span> <span class="ss">:cool?</span>
+</pre></div>
+
+<p>Using conditions allows for easy control over when certain elements render.</p>
+
+<h3>
+<a name="user-content-template-scope" class="anchor" href="#template-scope" aria-hidden="true"><span class="octicon octicon-link"></span></a>Template Scope</h3>
+
+<p>In RABL, you have access to everything you need to build an API response. Each RABL template has full access to the controllers
+instance variables as well as all view helpers and routing urls.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/some/template.rabl</span>
+<span class="n">object</span> <span class="vi">@post</span>
+<span class="c1"># Access instance variables</span>
+<span class="n">child</span><span class="p">(</span><span class="vi">@user</span> <span class="o">=&gt;</span> <span class="ss">:user</span><span class="p">)</span> <span class="p">{</span> <span class="o">.</span><span class="n">.</span><span class="o">.</span> <span class="p">}</span>
+<span class="c1"># or Rails helpers</span>
+<span class="n">node</span><span class="p">(</span><span class="ss">:formatted_body</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">post</span><span class="o">|</span> <span class="n">simple_format</span><span class="p">(</span><span class="n">post</span><span class="o">.</span><span class="n">body</span><span class="p">)</span> <span class="p">}</span>
+</pre></div>
+
+<p>There should be no problem fetching the appropriate data to construct a response.</p>
+
+<h3>
+<a name="user-content-deep-nesting" class="anchor" href="#deep-nesting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deep Nesting</h3>
+
+<p>In APIs, you can often need to construct 2nd or 3rd level nodes. Let's suppose we have a 'quiz' model that has many 'questions'
+and then each question has many 'answers'. We can display this hierarchy in RABL quite easily:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/quizzes/show.json.rabl</span>
+<span class="n">object</span> <span class="vi">@quiz</span>
+<span class="n">attribute</span> <span class="ss">:title</span>
+<span class="n">child</span> <span class="ss">:questions</span> <span class="k">do</span>
+  <span class="n">attribute</span> <span class="ss">:caption</span>
+  <span class="n">child</span> <span class="ss">:answers</span> <span class="k">do</span>
+    <span class="c1"># Use inheritance to reduce duplication</span>
+    <span class="n">extends</span> <span class="s2">"answers/item"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This will display the quiz object with nested questions and answers as you would expect with a quiz node, and embedded questions and answers.
+Note that RABL can be nested arbitrarily deep within child nodes to allow for these representations to be defined.</p>
+
+<h3>
+<a name="user-content-caching" class="anchor" href="#caching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caching</h3>
+
+<p>RABL has built-in caching support for templates leveraging fragment caching strategies. Note that caching is currently <strong>only available</strong> for Rails but support for other frameworks is planned in a future release. Simplest caching usage is:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/views/users/show.json.rabl</span>
+<span class="n">object</span> <span class="vi">@quiz</span>
+<span class="n">cache</span> <span class="vi">@quiz</span> <span class="c1"># key = rabl/quiz/[cache_key]</span>
+<span class="n">attribute</span> <span class="ss">:title</span>
+</pre></div>
+
+<p>Caching can significantly speed up the rendering of RABL templates in production and is strongly recommended when possible. For more a more detailed look at caching, check out the <a href="https://github.com/nesquena/rabl/wiki/Caching-in-RABL">Caching</a> guide on the wiki.</p>
+
+<h3>
+<a name="user-content-rendering-templates-directly" class="anchor" href="#rendering-templates-directly" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rendering Templates Directly</h3>
+
+<p>There are situations where an application requires RABL templates to be rendered outside
+a traditional view context. For instance, to render RABL within a Rake task or to create
+message queue payloads. For this case, <code>Rabl.render</code> can be used as show below:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rabl</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">object</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="ss">:view_path</span> <span class="o">=&gt;</span> <span class="s1">'app/views'</span><span class="p">,</span> <span class="ss">:format</span> <span class="o">=&gt;</span> <span class="ss">:json</span><span class="p">)</span> <span class="c1">#=&gt; "{...json...}"</span>
+</pre></div>
+
+<p>You can use convenience methods on <code>Rabl::Renderer</code> to render the objects as well:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rabl</span><span class="o">::</span><span class="no">Renderer</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="vi">@post</span><span class="p">,</span> <span class="s1">'posts/show'</span><span class="p">)</span>
+<span class="no">Rabl</span><span class="o">::</span><span class="no">Renderer</span><span class="o">.</span><span class="n">xml</span><span class="p">(</span><span class="vi">@post</span><span class="p">,</span> <span class="s1">'posts/show'</span><span class="p">)</span>
+</pre></div>
+
+<p>These methods allow RABL to be used for arbitrary conversions of an object into a desired format.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rabl</span><span class="o">::</span><span class="no">Renderer</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">'posts/show'</span><span class="p">,</span> <span class="vi">@post</span><span class="p">,</span> <span class="ss">:view_path</span> <span class="o">=&gt;</span> <span class="s1">'app/views'</span><span class="p">,</span> <span class="ss">:format</span> <span class="o">=&gt;</span> <span class="s1">'hash'</span><span class="p">)</span><span class="o">.</span><span class="n">render</span>
+</pre></div>
+
+<p>You can also pass in other instance variables to be used in your template as:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rabl</span><span class="o">::</span><span class="no">Renderer</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">'posts/show'</span><span class="p">,</span> <span class="vi">@post</span><span class="p">,</span> <span class="ss">:locals</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:custom_title</span> <span class="o">=&gt;</span> <span class="s2">"Hello world!"</span> <span class="p">})</span>
+</pre></div>
+
+<p>Then, in your template, you can use <code>@custom_title</code> as:</p>
+
+<pre><code>attribute :content
+node(:title) { @custom_title }
+</code></pre>
+
+<h3>
+<a name="user-content-content-type-headers" class="anchor" href="#content-type-headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Content Type Headers</h3>
+
+<p>Currently in RABL, the content-type of your response is not set automatically. This is because RABL is intended
+to work for any Rack-based framework and as agnostic to format as possible.
+Check <a href="https://github.com/nesquena/rabl/issues/185#issuecomment-4501232">this issue</a> for more
+details, and if you have any ideas or patches please let me know.</p>
+
+<p>In the meantime, be sure to set the proper content-types if needed. This is usually pretty simple in both
+Rails and Padrino. I recommend a before_filter on that controller or directly specified in an action.</p>
+
+<h2>
+<a name="user-content-resources" class="anchor" href="#resources" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resources</h2>
+
+<p>There are many resources available relating to RABL including the <a href="https://github.com/nesquena/rabl/wiki">RABL Wiki</a>,
+and many tutorials and guides detailed below.
+You can check out the <a href="http://nesquena.github.com/rabl">RABL Site</a> as well.</p>
+
+<h3>
+<a name="user-content-advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Usage</h3>
+
+<p>Links to resources for advanced usage:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/nesquena/rabl/wiki/Managing-complexity-with-presenters">Managing Complexity</a></li>
+<li><a href="https://github.com/nesquena/rabl/wiki/Rabl-In-Production">Production Optimizations</a></li>
+<li><a href="https://github.com/nesquena/rabl/wiki/Using-Rabl-with-Grape">Grape Integration</a></li>
+<li><a href="https://github.com/nesquena/rabl/issues/70">Rendering JSON for a tree structure using RABL</a></li>
+<li><a href="https://github.com/nesquena/rabl/wiki/Using-Layouts">Layouts (erb, haml and rabl) in RABL</a></li>
+<li><a href="https://github.com/nesquena/rabl/wiki/Backbone-Integration">Backbone or Ember.js Integration</a></li>
+<li><a href="https://github.com/nesquena/rabl/wiki/Setup-rabl-with-rails-engines">RABL with Rails Engines</a></li>
+</ul><p>Please add your own usages and let me know so we can add them here! Also be sure to check out
+the <a href="https://github.com/nesquena/rabl/wiki">RABL Wiki</a> for other usages.</p>
+
+<h3>
+<a name="user-content-tutorials" class="anchor" href="#tutorials" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tutorials</h3>
+
+<p>Tutorials can always be helpful when first getting started:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://railscasts.com/episodes/322-rabl">Railscasts #322</a> - Ryan Bates explains RABL</li>
+<li>
+<a href="http://www.backbonerails.com/">BackboneRails</a> - Great screencasts by Brian Mann</li>
+<li><a href="http://blog.crowdint.com/2012/10/22/rabl-with-padrino.html">Creating an API with RABL and Padrino</a></li>
+<li><a href="http://blog.joshsoftware.com/2011/12/23/designing-rails-api-using-rabl-and-devise/">http://blog.joshsoftware.com/2011/12/23/designing-rails-api-using-rabl-and-devise/</a></li>
+<li><a href="http://engineering.gomiso.com/2011/06/27/building-a-platform-api-on-rails/">http://engineering.gomiso.com/2011/06/27/building-a-platform-api-on-rails/</a></li>
+<li><a href="http://blog.lawrencenorton.com/better-json-requests-with-rabl">http://blog.lawrencenorton.com/better-json-requests-with-rabl</a></li>
+<li><a href="http://www.rodrigoalvesvieira.com/developing-json-api-rails-rabl/">http://www.rodrigoalvesvieira.com/developing-json-api-rails-rabl/</a></li>
+<li><a href="http://tech.favoritemedium.com/2011/06/using-rabl-in-rails-json-web-api.html">http://tech.favoritemedium.com/2011/06/using-rabl-in-rails-json-web-api.html</a></li>
+<li><a href="http://seesparkbox.com/foundry/better_rails_apis_with_rabl">http://seesparkbox.com/foundry/better_rails_apis_with_rabl</a></li>
+<li><a href="http://blog.dcxn.com/2011/06/22/rails-json-templates-through-rabl">http://blog.dcxn.com/2011/06/22/rails-json-templates-through-rabl</a></li>
+<li><a href="http://teohm.github.com/blog/2011/05/31/using-rabl-in-rails-json-web-api">http://teohm.github.com/blog/2011/05/31/using-rabl-in-rails-json-web-api</a></li>
+</ul><p>Let me know if there's any other useful resources not listed here.</p>
+
+<h3>
+<a name="user-content-related-libraries" class="anchor" href="#related-libraries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related Libraries</h3>
+
+<p>There are other libraries that can either complement or extend the functionality of RABL:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/bwillis/versioncake">versioncake</a> - Excellent library for easily versioning your RABL APIs</li>
+<li>
+<a href="https://github.com/gazay/gon">gon</a> - Exposes your Rails variables in JS with RABL support integrated.</li>
+<li>
+<a href="https://github.com/ccocchi/rabl-rails">rabl-rails</a> - Reimplementation for RABL and Rails
+<a href="https://github.com/ccocchi/rabl-benchmark/blob/master/BENCHMARK">focused on speed</a>.</li>
+</ul><p>Let me know if there's any other related libraries not listed here.</p>
+
+<h3>
+<a name="user-content-troubleshooting" class="anchor" href="#troubleshooting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Troubleshooting</h3>
+
+<ul class="task-list">
+<li><a href="https://github.com/nesquena/rabl/issues/142#issuecomment-2969107">Redundant calls for a collection</a></li>
+<li><a href="https://github.com/nesquena/rabl/issues/130#issuecomment-4179285">Testing RABL Views</a></li>
+</ul><h3>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h3>
+
+<p>See the <a href="https://github.com/nesquena/rabl/tree/master/examples">examples</a> directory.</p>
+
+<h2>
+<a name="user-content-issues" class="anchor" href="#issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Issues</h2>
+
+<p>Check out the <a href="https://github.com/nesquena/rabl/issues">Issues</a> tab for a full list:</p>
+
+<ul class="task-list">
+<li>Rigorous benchmarking and performance optimizations</li>
+</ul><h2>
+<a name="user-content-authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors and Contributors</h2>
+
+<p>Thanks to <a href="http://gomiso.com">Miso</a> for allowing me to create this for our applications and release this project!</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/nesquena">Nathan Esquenazi</a> - Creator of the project</li>
+<li>
+<a href="https://github.com/achiu">Arthur Chiu</a> - Core Maintainer, Riot Testing Guru</li>
+<li>
+<a href="https://github.com/timothy1ee">Tim Lee</a> - RABL was a great name chosen by the Miso CTO.</li>
+<li>
+<a href="https://github.com/databyte">David Sommers</a> - Template resolution, caching support, and much more</li>
+<li>
+<a href="https://github.com/rickthomasjr">Rick Thomas</a> - Added options for extends and Sinatra testing</li>
+<li>
+<a href="https://github.com/byu">Benjamin Yu</a> - Added msgpack format support</li>
+<li>
+<a href="https://github.com/kimptoc">Chris Kimpton</a> - Helping with documentation and wiki</li>
+<li>
+<a href="https://github.com/mpagalan">Marjun</a> - Added xml option configurations</li>
+<li>
+<a href="https://github.com/skyeagle">Anton Orel</a> - Added Rails 3.1 compatibility</li>
+<li>
+<a href="https://github.com/kossnocorp">Sasha Koss</a> - Added multi_json support</li>
+<li>
+<a href="https://github.com/mschulkind">Matthew Schulkind</a> - Cleanup of configuration and tests</li>
+<li>
+<a href="https://github.com/plukevdh">Luke van der Hoeven</a> - Support non-ORM objects in templates</li>
+<li>
+<a href="https://github.com/Antiarchitect">Andrey Voronkov</a> - Added BSON format support</li>
+<li>
+<a href="https://github.com/alzeih">Alli Witheford</a> - Added Plist format support</li>
+<li>
+<a href="https://github.com/radar">Ryan Bigg</a> - Improved template resolution code</li>
+<li>
+<a href="https://github.com/ivanvanderbyl">Ivan Vanderbyl</a> - Added general purpose renderer</li>
+<li>
+<a href="https://github.com/shingara">Cyril Mougel</a> - Added cache_engine pluggable support and renderer tweaks</li>
+<li>
+<a href="https://github.com/siong1987">Teng Siong Ong</a> - Improved renderer interface</li>
+<li>
+<a href="https://github.com/braddunbar">Brad Dunbar</a> - Pass current object into blocks</li>
+</ul><p>and many more contributors listed in the <a href="https://github.com/nesquena/rabl/blob/master/CHANGELOG.md">CHANGELOG</a>.</p>
+
+<p>Want to contribute support for another format?
+Check out the patches for <a href="https://github.com/nesquena/rabl/pull/69">msgpack support</a>, <a href="https://github.com/nesquena/rabl/pull/153">plist support</a> and
+<a href="https://github.com/nesquena/rabl/pull/163">BSON support</a> for reference.</p>
+
+<p>Please fork and contribute, any help in making this project better is appreciated!</p>
+
+<p>This project is a member of the <a href="http://ossmanifesto.org">OSS Manifesto</a>.</p>
+
+<h2>
+<a name="user-content-inspirations" class="anchor" href="#inspirations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inspirations</h2>
+
+<p>There are a few excellent libraries that helped inspire RABL and they are listed below:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/inem/tequila">Tequila</a></li>
+<li><a href="https://github.com/dewski/json_builder">JSON Builder</a></li>
+<li><a href="https://github.com/jbr/argonaut">Argonaut</a></li>
+</ul><p>Thanks again for all of these great projects.</p>
+
+<h2>
+<a name="user-content-copyright" class="anchor" href="#copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright</h2>
+
+<p>Copyright © 2011-2013 Nathan Esquenazi. See <a href="https://github.com/nesquena/rabl/blob/master/MIT-LICENSE">MIT-LICENSE</a> for details.</p></article></div>

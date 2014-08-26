@@ -1,0 +1,134 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-mailcatcher" class="anchor" href="#mailcatcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>MailCatcher</h1>
+
+<p>Catches mail and serves it through a dream.</p>
+
+<p>MailCatcher runs a super simple SMTP server which catches any message sent to it to display in a web interface. Run mailcatcher, set your favourite app to deliver to smtp://127.0.0.1:1025 instead of your default SMTP server, then check out <a href="http://127.0.0.1:1080">http://127.0.0.1:1080</a> to see the mail that's arrived so far.</p>
+
+<p><a href="https://camo.githubusercontent.com/641b6e89b6a1f82b48663720204a71075df51672/687474703a2f2f662e636c2e6c792f6974656d732f337732543170304633673030336232693146327a2f53637265656e25323073686f74253230323031312d30362d3233253230617425323031312e33392e3033253230504d2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/641b6e89b6a1f82b48663720204a71075df51672/687474703a2f2f662e636c2e6c792f6974656d732f337732543170304633673030336232693146327a2f53637265656e25323073686f74253230323031312d30362d3233253230617425323031312e33392e3033253230504d2e706e67" alt="MailCatcher screenshot" data-canonical-src="http://f.cl.ly/items/3w2T1p0F3g003b2i1F2z/Screen%20shot%202011-06-23%20at%2011.39.03%20PM.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Catches all mail and stores it for display.</li>
+<li>Shows HTML, Plain Text and Source version of messages, as applicable.</li>
+<li>Rewrites HTML enabling display of embedded, inline images/etc and open links in a new window.</li>
+<li>Lists attachments and allows separate downloading of parts.</li>
+<li>Download original email to view in your native mail client(s).</li>
+<li>Command line options to override the default SMTP/HTTP IP and port settings.</li>
+<li>Mail appears instantly if your browser supports <a href="http://www.whatwg.org/specs/web-socket-protocol/">WebSockets</a>, otherwise updates every thirty seconds.</li>
+<li>Runs as a daemon run in the background.</li>
+<li>Sendmail-analogue command, <code>catchmail</code>, makes <a href="http://webschuur.com/publications/blogs/2011-05-29-catchmail_for_drupal_and_other_phpapplications_the_simple_version">using mailcatcher from PHP</a> a lot easier.</li>
+<li>Written super-simply in EventMachine, easy to dig in and change.</li>
+<li>Keyboard navigation between messages</li>
+</ul><h2>
+<a name="user-content-how" class="anchor" href="#how" aria-hidden="true"><span class="octicon octicon-link"></span></a>How</h2>
+
+<ol class="task-list">
+<li><code>gem install mailcatcher</code></li>
+<li><code>mailcatcher</code></li>
+<li>Go to http://localhost:1080/</li>
+<li>Send mail through smtp://localhost:1025</li>
+</ol><p>Use <code>mailcatcher --help</code> to see the command line options. The brave can get the source from <a href="https://github.com/sj26/mailcatcher">the GitHub repository</a>.</p>
+
+<h3>
+<a name="user-content-bundler" class="anchor" href="#bundler" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bundler</h3>
+
+<p>Please don't put mailcatcher into your Gemfile. It will conflict with your applications gems at some point.</p>
+
+<p>Instead, pop a note in your README stating you use mailcatcher. Simply run <code>gem install mailcatcher</code> then <code>mailcatcher</code> to get started.</p>
+
+<h3>
+<a name="user-content-rvm" class="anchor" href="#rvm" aria-hidden="true"><span class="octicon octicon-link"></span></a>RVM</h3>
+
+<p>Under RVM your mailcatcher command may only be available under the ruby you install mailcatcher into. To prevent this, and to prevent gem conflicts, install mailcatcher into a dedicated gemset and create wrapper scripts:</p>
+
+<pre><code>rvm default@mailcatcher --create do gem install mailcatcher
+rvm wrapper default@mailcatcher --no-prefix mailcatcher catchmail
+</code></pre>
+
+<h3>
+<a name="user-content-rails" class="anchor" href="#rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rails</h3>
+
+<p>To set up your rails app, I recommend adding this to your <code>environments/development.rb</code>:</p>
+
+<pre><code>config.action_mailer.delivery_method = :smtp
+config.action_mailer.smtp_settings = { :address =&gt; "localhost", :port =&gt; 1025 }
+</code></pre>
+
+<h3>
+<a name="user-content-php" class="anchor" href="#php" aria-hidden="true"><span class="octicon octicon-link"></span></a>PHP</h3>
+
+<p>For projects using PHP, or PHP frameworks and application platforms like Drupal, you can set <a href="http://www.php.net/manual/en/mail.configuration.php">PHP's mail configuration</a> in your <a href="http://www.php.net/manual/en/configuration.file.php">php.ini</a> to send via MailCatcher with:</p>
+
+<pre><code>sendmail_path = /usr/bin/env catchmail -f some@from.address
+</code></pre>
+
+<p>You can do this in an <a href="http://php.net/manual/en/configuration.changes.php">Apache htaccess file</a> or general configuration like so:</p>
+
+<pre><code>php_value sendmail_path "/usr/bin/env catchmail -f some@from.address"
+</code></pre>
+
+<p>If you've installed via RVM this probably won't work unless you've manually added your RVM bin paths to your system environment's PATH. In that case, run <code>which catchmail</code> and put that path into the <code>sendmail_path</code> directive above instead of <code>/usr/bin/env catchmail</code>.</p>
+
+<p>If starting <code>mailcatcher</code> on alternative SMTP IP and/or port with parameters like <code>--smtp-ip 192.168.0.1 --smtp-port 10025</code>, add the same parameters to your <code>catchmail</code> command:</p>
+
+<pre><code>sendmail_path = /usr/bin/env catchmail --smtp-ip 192.160.0.1 --smtp-port 10025 -f some@from.address
+</code></pre>
+
+<h3>
+<a name="user-content-django" class="anchor" href="#django" aria-hidden="true"><span class="octicon octicon-link"></span></a>Django</h3>
+
+<p>For use in Django, simply add the following configuration to your projects' settings.py</p>
+
+<div class="highlight highlight-python"><pre><span class="k">if</span> <span class="n">DEBUG</span><span class="p">:</span>
+    <span class="n">EMAIL_HOST</span> <span class="o">=</span> <span class="s">'127.0.0.1'</span>
+    <span class="n">EMAIL_HOST_USER</span> <span class="o">=</span> <span class="s">''</span>
+    <span class="n">EMAIL_HOST_PASSWORD</span> <span class="o">=</span> <span class="s">''</span>
+    <span class="n">EMAIL_PORT</span> <span class="o">=</span> <span class="mi">1025</span>
+    <span class="n">EMAIL_USE_TLS</span> <span class="o">=</span> <span class="bp">False</span>
+</pre></div>
+
+<h3>
+<a name="user-content-api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h3>
+
+<p>A fairly RESTful URL schema means you can download a list of messages in JSON from <code>/messages</code>, each message's metadata with <code>/messages/:id.json</code>, and then the pertinent parts with <code>/messages/:id.html</code> and <code>/messages/:id.plain</code> for the default HTML and plain text version, <code>/messages/:id/:cid</code> for individual attachments by CID, or the whole message with <code>/messages/:id.source</code>.</p>
+
+<h2>
+<a name="user-content-caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
+
+<ul class="task-list">
+<li>Mail processing is fairly basic but easily modified. If something doesn't work for you, fork and fix it or <a href="https://github.com/sj26/mailcatcher/issues">file an issue</a> and let me know. Include the whole message you're having problems with.</li>
+<li>The interface is very basic and has not been tested on many browsers yet.</li>
+</ul><h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul class="task-list">
+<li>Add mail delivery on request, optionally multiple times.</li>
+<li>An API-compatible nodejs version, for fun and profit (and non-ruby npm users).</li>
+<li>Test suite.</li>
+<li>Compatibility testing against CampaignMonitor's <a href="http://www.campaignmonitor.com/design-guidelines/">design guidelines</a> and <a href="http://www.campaignmonitor.com/css/">CSS support matrix</a>.</li>
+<li>Forward mail to rendering service, maybe CampaignMonitor?</li>
+<li>Package as an app? Native interfaces? HotCocoa?</li>
+</ul><h2>
+<a name="user-content-thanks" class="anchor" href="#thanks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thanks</h2>
+
+<p>MailCatcher is just a mishmash of other people's hard work. Thank you so much to the people who have built the wonderful guts on which this project relies.</p>
+
+<p>Thanks also to <a href="http://www.thefrontiergroup.com.au">The Frontier Group</a> for giving me the idea, being great guinea pigs and letting me steal pieces of time to keep the project alive.</p>
+
+<h2>
+<a name="user-content-donations" class="anchor" href="#donations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Donations</h2>
+
+<p>I work on MailCatcher mostly in my own spare time. If you've found Mailcatcher useful and would like to help feed me and fund continued development and new features, please <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=522WUPLRWUSKE">donate via PayPal</a>. If you'd like a specific feature added to MailCatcher and are willing to pay for it, please <a href="mailto:sj26@sj26.com">email me</a>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright © 2010-2011 Samuel Cochran (<a href="mailto:sj26@sj26.com">sj26@sj26.com</a>). Released under the MIT License, see <a href="https://github.com/sj26/mailcatcher/blob/master/LICENSE">LICENSE</a> for details.</p>
+
+<h2>
+<a name="user-content-dreams" class="anchor" href="#dreams" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dreams</h2>
+
+<p>For dream catching, try <a href="http://goo.gl/kgbh">this</a>. OR <a href="http://www.nyanicorn.com">THIS</a>, OMG.</p></article></div>

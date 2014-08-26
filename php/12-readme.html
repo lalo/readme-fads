@@ -1,0 +1,963 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-faker" class="anchor" href="#faker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Faker</h1>
+
+<p>Faker is a PHP library that generates fake data for you. Whether you need to bootstrap your database, create good-looking XML documents, fill-in your persistence to stress test it, or anonymize data taken from a production service, Faker is for you.</p>
+
+<p>Faker is heavily inspired by Perl's <a href="http://search.cpan.org/%7Ejasonk/Data-Faker-0.07/">Data::Faker</a>, and by ruby's <a href="https://rubygems.org/gems/faker">Faker</a>.</p>
+
+<p>Faker requires PHP &gt;= 5.3.3.</p>
+
+<p><a href="https://packagist.org/packages/fzaninotto/faker"><img src="https://camo.githubusercontent.com/07c835a6fe322b3b9a04af9f98da14367dde99a0/68747470733a2f2f706f7365722e707567782e6f72672f667a616e696e6f74746f2f66616b65722f642f6d6f6e74686c792e706e67" alt="Monthly Downloads" data-canonical-src="https://poser.pugx.org/fzaninotto/faker/d/monthly.png" style="max-width:100%;"></a> <a href="http://travis-ci.org/fzaninotto/Faker"><img src="https://camo.githubusercontent.com/173bea86c664f10f595267255cc15e10ab622733/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f667a616e696e6f74746f2f46616b65722e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/fzaninotto/Faker.png" style="max-width:100%;"></a> <a href="https://insight.sensiolabs.com/projects/eceb78a9-38d4-4ad5-8b6b-b52f323e3549"><img src="https://camo.githubusercontent.com/d780165f7a8fc2de93ef77258353f52923ab8624/68747470733a2f2f696e73696768742e73656e73696f6c6162732e636f6d2f70726f6a656374732f65636562373861392d333864342d346164352d386236622d6235326633323365333534392f6d696e692e706e67" alt="SensioLabsInsight" data-canonical-src="https://insight.sensiolabs.com/projects/eceb78a9-38d4-4ad5-8b6b-b52f323e3549/mini.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h2>
+
+<p>Use <code>Faker\Factory::create()</code> to create and initialize a faker generator, which can generate data by accessing properties named after the type of data you want.</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="c1">// require the Faker autoloader</span>
+<span class="k">require_once</span> <span class="s1">'/path/to/Faker/src/autoload.php'</span><span class="p">;</span>
+<span class="c1">// alternatively, use another PSR-0 compliant autoloader (like the Symfony2 ClassLoader for instance)</span>
+
+<span class="c1">// use the factory to create a Faker\Generator instance</span>
+<span class="nv">$faker</span> <span class="o">=</span> <span class="nx">Faker\Factory</span><span class="o">::</span><span class="na">create</span><span class="p">();</span>
+
+<span class="c1">// generate data by accessing properties</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">;</span>
+  <span class="c1">// 'Lucy Cechtelar';</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">address</span><span class="p">;</span>
+  <span class="c1">// "426 Jordy Lodge</span>
+  <span class="c1">// Cartwrightshire, SC 88120-6700"</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">text</span><span class="p">;</span>
+  <span class="c1">// Sint velit eveniet. Rerum atque repellat voluptatem quia rerum. Numquam excepturi</span>
+  <span class="c1">// beatae sint laudantium consequatur. Magni occaecati itaque sint et sit tempore. Nesciunt</span>
+  <span class="c1">// amet quidem. Iusto deleniti cum autem ad quia aperiam.</span>
+  <span class="c1">// A consectetur quos aliquam. In iste aliquid et aut similique suscipit. Consequatur qui</span>
+  <span class="c1">// quaerat iste minus hic expedita. Consequuntur error magni et laboriosam. Aut aspernatur</span>
+  <span class="c1">// voluptatem sit aliquam. Dolores voluptatum est.</span>
+  <span class="c1">// Aut molestias et maxime. Fugit autem facilis quos vero. Eius quibusdam possimus est.</span>
+  <span class="c1">// Ea quaerat et quisquam. Deleniti sunt quam. Adipisci consequatur id in occaecati.</span>
+  <span class="c1">// Et sint et. Ut ducimus quod nemo ab voluptatum.</span>
+</pre></div>
+
+<p>Even if this example shows a property access, each call to <code>$faker-&gt;name</code> yields a different (random) result. This is because Faker uses <code>__get()</code> magic, and forwards <code>Faker\Generator-&gt;$property</code> calls to <code>Faker\Generator-&gt;format($property)</code>.</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
+<span class="p">}</span>
+  <span class="c1">// Adaline Reichel</span>
+  <span class="c1">// Dr. Santa Prosacco DVM</span>
+  <span class="c1">// Noemy Vandervort V</span>
+  <span class="c1">// Lexi O'Conner</span>
+  <span class="c1">// Gracie Weber</span>
+  <span class="c1">// Roscoe Johns</span>
+  <span class="c1">// Emmett Lebsack</span>
+  <span class="c1">// Keegan Thiel</span>
+  <span class="c1">// Wellington Koelpin II</span>
+  <span class="c1">// Ms. Karley Kiehn V</span>
+</pre></div>
+
+<p><strong>Tip</strong>: For a quick generation of fake data, you can also use Faker as a command line tool thanks to <a href="https://github.com/bit3/faker-cli">faker-cli</a>.</p>
+
+<h2>
+<a name="user-content-formatters" class="anchor" href="#formatters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Formatters</h2>
+
+<p>Each of the generator properties (like <code>name</code>, <code>address</code>, and <code>lorem</code>) are called "formatters". A faker generator has many of them, packaged in "providers". Here is a list of the bundled formatters in the default locale.</p>
+
+<h3>
+<a name="user-content-fakerproviderbase" class="anchor" href="#fakerproviderbase" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Base</code>
+</h3>
+
+<pre><code>randomDigit             // 7
+randomDigitNotNull      // 5
+randomNumber($nbDigits = NULL) // 79907610
+randomFloat($nbMaxDecimals = NULL, $min = 0, $max = NULL) // 48.8932
+numberBetween($min = 1000, $max = 9000) // 8567
+randomLetter            // 'b'
+randomElements($array = array ('a','b','c'), $count = 1) // array('c')
+randomElement($array = array ('a','b','c')) // 'b'
+numerify($string = '###') // '609'
+lexify($string = '????') // 'wgts'
+bothify($string = '## ??') // '42 jz'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderlorem" class="anchor" href="#fakerproviderlorem" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Lorem</code>
+</h3>
+
+<pre><code>word                    // 'aut'
+words($nb = 3)          // array('porro', 'sed', 'magni')
+sentence($nbWords = 6)  // 'Sit vitae voluptas sint non voluptates.'
+sentences($nb = 3)      // array('Optio quos qui illo error.', 'Laborum vero a officia id corporis.', 'Saepe provident esse hic eligendi.')
+paragraph($nbSentences = 3) // 'Ut ab voluptas sed a nam. Sint autem inventore aut officia aut aut blanditiis. Ducimus eos odit amet et est ut eum.'
+paragraphs($nb = 3)     // array('Quidem ut sunt et quidem est accusamus aut. Fuga est placeat rerum ut. Enim ex eveniet facere sunt.', 'Aut nam et eum architecto fugit repellendus illo. Qui ex esse veritatis.', 'Possimus omnis aut incidunt sunt. Asperiores incidunt iure sequi cum culpa rem. Rerum exercitationem est rem.')
+text($maxNbChars = 200) // 'Fuga totam reiciendis qui architecto fugiat nemo. Consequatur recusandae qui cupiditate eos quod.'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideren_usperson" class="anchor" href="#fakerprovideren_usperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\en_US\Person</code>
+</h3>
+
+<pre><code>title($gender = null|'male'|'female')     // 'Ms.'
+titleMale                                 // 'Mr.'
+titleFemale                               // 'Ms.'
+suffix                                    // 'Jr.'
+name($gender = null|'male'|'female')      // 'Dr. Zane Stroman'
+firstName($gender = null|'male'|'female') // 'Maynard'
+firstNameMale                             // 'Maynard'
+firstNameFemale                           // 'Rachel'
+lastName                                  // 'Zulauf'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideren_usaddress" class="anchor" href="#fakerprovideren_usaddress" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\en_US\Address</code>
+</h3>
+
+<pre><code>cityPrefix              // 'Lake'
+secondaryAddress        // 'Suite 961'
+state                   // 'NewMexico'
+stateAbbr               // 'OH'
+citySuffix              // 'borough'
+streetSuffix            // 'Keys'
+buildingNumber          // '484'
+city                    // 'West Judge'
+streetName              // 'Keegan Trail'
+streetAddress           // '439 Karley Loaf Suite 897'
+postcode                // '17916'
+address                 // '8888 Cummings Vista Apt. 101, Susanbury, NY 95473'
+country                 // 'Falkland Islands (Malvinas)'
+latitude                // '77.147489'
+longitude               // '86.211205'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideren_usphonenumber" class="anchor" href="#fakerprovideren_usphonenumber" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\en_US\PhoneNumber</code>
+</h3>
+
+<pre><code>phoneNumber             // '132-149-0269x3767'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideren_uscompany" class="anchor" href="#fakerprovideren_uscompany" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\en_US\Company</code>
+</h3>
+
+<pre><code>catchPhrase             // 'Monitored regional contingency'
+bs                      // 'e-enable robust architectures'
+company                 // 'Bogan-Treutel'
+companySuffix           // 'and Sons'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideren_ustext" class="anchor" href="#fakerprovideren_ustext" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\en_US\Text</code>
+</h3>
+
+<pre><code>realText($maxNbChars = 200, $indexSize = 2) // "And yet I wish you could manage it?) 'And what are they made of?' Alice asked in a shrill, passionate voice. 'Would YOU like cats if you were never even spoke to Time!' 'Perhaps not,' Alice replied."
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderdatetime" class="anchor" href="#fakerproviderdatetime" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\DateTime</code>
+</h3>
+
+<pre><code>unixTime($max = 'now')                // 58781813
+dateTime($max = 'now')                // DateTime('2008-04-25 08:37:17')
+dateTimeAD($max = 'now')              // DateTime('1800-04-29 20:38:49')
+iso8601($max = 'now')                 // '1978-12-09T10:10:29+0000'
+date($format = 'Y-m-d', $max = 'now') // '1979-06-09'
+time($format = 'H:i:s', $max = 'now') // '20:49:42'
+dateTimeBetween($startDate = '-30 years', $endDate = 'now') // DateTime('2003-03-15 02:00:49')
+dateTimeThisCentury($max = 'now')     // DateTime('1915-05-30 19:28:21')
+dateTimeThisDecade($max = 'now')      // DateTime('2007-05-29 22:30:48')
+dateTimeThisYear($max = 'now')        // DateTime('2011-02-27 20:52:14')
+dateTimeThisMonth($max = 'now')       // DateTime('2011-10-23 13:46:23')
+amPm($max = 'now')                    // 'pm'
+dayOfMonth($max = 'now')              // '04'
+dayOfWeek($max = 'now')               // 'Friday'
+month($max = 'now')                   // '06'
+monthName($max = 'now')               // 'January'
+year($max = 'now')                    // '1993'
+century                               // 'VI'
+timezone                              // 'Europe/Paris'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderinternet" class="anchor" href="#fakerproviderinternet" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Internet</code>
+</h3>
+
+<pre><code>email                   // 'tkshlerin@collins.com'
+safeEmail               // 'king.alford@example.org'
+freeEmail               // 'bradley72@gmail.com'
+companyEmail            // 'russel.durward@mcdermott.org'
+freeEmailDomain         // 'yahoo.com'
+safeEmailDomain         // 'example.org'
+userName                // 'wade55'
+domainName              // 'wolffdeckow.net'
+domainWord              // 'feeney'
+tld                     // 'biz'
+url                     // 'http://www.skilesdonnelly.biz/aut-accusantium-ut-architecto-sit-et.html'
+slug                    // 'aut-repellat-commodi-vel-itaque-nihil-id-saepe-nostrum'
+ipv4                    // '109.133.32.252'
+localIpv4               // '10.242.58.8'
+ipv6                    // '8e65:933d:22ee:a232:f1c1:2741:1f10:117c'
+macAddress              // '43:85:B7:08:10:CA'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideruseragent" class="anchor" href="#fakerprovideruseragent" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\UserAgent</code>
+</h3>
+
+<pre><code>userAgent              // 'Mozilla/5.0 (Windows CE) AppleWebKit/5350 (KHTML, like Gecko) Chrome/13.0.888.0 Safari/5350'
+chrome                 // 'Mozilla/5.0 (Macintosh; PPC Mac OS X 10_6_5) AppleWebKit/5312 (KHTML, like Gecko) Chrome/14.0.894.0 Safari/5312'
+firefox                // 'Mozilla/5.0 (X11; Linuxi686; rv:7.0) Gecko/20101231 Firefox/3.6'
+safari                 // 'Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10_7_1 rv:3.0; en-US) AppleWebKit/534.11.3 (KHTML, like Gecko) Version/4.0 Safari/534.11.3'
+opera                  // 'Opera/8.25 (Windows NT 5.1; en-US) Presto/2.9.188 Version/10.00'
+internetExplorer       // 'Mozilla/5.0 (compatible; MSIE 7.0; Windows 98; Win 9x 4.90; Trident/3.0)'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderpayment" class="anchor" href="#fakerproviderpayment" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Payment</code>
+</h3>
+
+<pre><code>creditCardType          // 'MasterCard'
+creditCardNumber        // '4485480221084675'
+creditCardExpirationDate // 04/13
+creditCardExpirationDateString // '04/13'
+creditCardDetails       // array('MasterCard', '4485480221084675', 'Aleksander Nowak', '04/13')
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovidercolor" class="anchor" href="#fakerprovidercolor" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Color</code>
+</h3>
+
+<pre><code>hexcolor               // '#fa3cc2'
+rgbcolor               // '0,255,122'
+rgbColorAsArray        // array(0,255,122)
+rgbCssColor            // 'rgb(0,255,122)'
+safeColorName          // 'fuchsia'
+colorName              // 'Gainsbor'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderfile" class="anchor" href="#fakerproviderfile" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\File</code>
+</h3>
+
+<pre><code>fileExtension          // 'avi'
+mimeType               // 'video/x-msvideo'
+// Copy a random file from the source to the target directory and returns the fullpath or filename
+file($sourceDir = '/tmp', $targetDir = '/tmp') // '/path/to/targetDir/13b73edae8443990be1aa8f1a483bc27.jpg'
+file($sourceDir, $targetDir, false) // '13b73edae8443990be1aa8f1a483bc27.jpg'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderimage" class="anchor" href="#fakerproviderimage" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Image</code>
+</h3>
+
+<pre><code>// Image generation provided by LoremPixel (http://lorempixel.com/)
+imageUrl($width = 640, $height = 480) // 'http://lorempixel.com/640/480/'
+imageUrl($width, $height, 'cats')     // 'http://lorempixel.com/800/600/cats/'
+image($dir = '/tmp', $width = 640, $height = 480) // '/tmp/13b73edae8443990be1aa8f1a483bc27.jpg'
+image($dir, $width, $height, 'cats')  // 'tmp/13b73edae8443990be1aa8f1a483bc27.jpg' it's a cat!
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovideruuid" class="anchor" href="#fakerprovideruuid" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Uuid</code>
+</h3>
+
+<pre><code>uuid                   // '7e57d004-2b97-0e7a-b45f-5387367791cd'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerproviderbarcode" class="anchor" href="#fakerproviderbarcode" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Barcode</code>
+</h3>
+
+<pre><code>ean13          // '4006381333931'
+ean8           // '73513537'
+</code></pre>
+
+<h3>
+<a name="user-content-fakerprovidermiscellaneous" class="anchor" href="#fakerprovidermiscellaneous" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\Miscellaneous</code>
+</h3>
+
+<pre><code>boolean($chanceOfGettingTrue = 50) // true
+md5                     // 'de99a620c50f2990e87144735cd357e7'
+sha1                    // 'f08e7f04ca1a413807ebc47551a40a20a0b4de5c'
+sha256                  // '0061e4c60dac5c1d82db0135a42e00c89ae3a333e7c26485321f24348c7e98a5'
+locale                  // en_UK
+countryCode             // UK
+languageCode            // en
+</code></pre>
+
+<h2>
+<a name="user-content-unique-and-optional-modifiers" class="anchor" href="#unique-and-optional-modifiers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unique and Optional modifiers</h2>
+
+<p>Faker provides two special providers, <code>unique()</code> and <code>optional()</code>, to be called before any provider. <code>optional()</code> can be useful for seeding non-required fields, like a mobile telephone number; <code>unique()</code> is required to populate fields that cannot accept twice the same value, like primary identifiers.</p>
+
+<div class="highlight highlight-php"><pre><span class="c1">// unique() forces providers to return unique values</span>
+<span class="nv">$values</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// get a random digit, but always a new one, to avoid duplicates</span>
+  <span class="nv">$values</span> <span class="p">[]</span><span class="o">=</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">unique</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">randomDigit</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nb">print_r</span><span class="p">(</span><span class="nv">$values</span><span class="p">);</span> <span class="c1">// [4, 1, 8, 5, 0, 2, 6, 9, 7, 3]</span>
+
+<span class="c1">// providers with a limited range will throw an exception when no new unique value can be generated</span>
+<span class="nv">$values</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="k">try</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="nv">$i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$values</span> <span class="p">[]</span><span class="o">=</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">unique</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">randomDigitNotNull</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">\OverflowException</span> <span class="nv">$e</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">echo</span> <span class="s2">"There are only 9 unique digits not null, Faker can't generate 10 of them!"</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// you can reset the unique modifier for all providers by passing true as first argument</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">unique</span><span class="p">(</span><span class="nv">$reset</span> <span class="o">=</span> <span class="k">true</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">randomDigitNotNull</span><span class="p">;</span> <span class="c1">// will not throw OverflowException since unique() was reset</span>
+<span class="c1">// tip: unique() keeps one array of values per provider</span>
+
+<span class="c1">// optional() sometimes bypasses the provider to return a default value instead (which defaults to NULL)</span>
+<span class="nv">$values</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>
+<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// get a random digit, but also null sometimes</span>
+  <span class="nv">$values</span> <span class="p">[]</span><span class="o">=</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">optional</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">randomDigit</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nb">print_r</span><span class="p">(</span><span class="nv">$values</span><span class="p">);</span> <span class="c1">// [1, 4, null, 9, 5, null, null, 4, 6, null]</span>
+
+<span class="c1">// optional() accepts a weight argument to specify the probability of receiving the default value.</span>
+<span class="c1">// 0 will always return the default value; 1 will always return the provider. Default weight is 0.5.</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">optional</span><span class="p">(</span><span class="nv">$weight</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">randomDigit</span><span class="p">;</span> <span class="c1">// 90% chance of NULL</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">optional</span><span class="p">(</span><span class="nv">$weight</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">randomDigit</span><span class="p">;</span> <span class="c1">// 10% chance of NULL</span>
+
+<span class="c1">// optional() accepts a default argument to specify the default value to return.</span>
+<span class="c1">// Defaults to NULL.</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">optional</span><span class="p">(</span><span class="nv">$weight</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="nv">$default</span> <span class="o">=</span> <span class="k">false</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">randomDigit</span><span class="p">;</span> <span class="c1">// 50% chance of FALSE</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">optional</span><span class="p">(</span><span class="nv">$weight</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span> <span class="nv">$default</span> <span class="o">=</span> <span class="s1">'abc'</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">word</span><span class="p">;</span> <span class="c1">// 10% chance of 'abc'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-localization" class="anchor" href="#localization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Localization</h2>
+
+<p><code>Faker\Factory</code> can take a locale as an argument, to return localized data. If no localized provider is found, the factory fallbacks to the default locale (en_EN).</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$faker</span> <span class="o">=</span> <span class="nx">Faker\Factory</span><span class="o">::</span><span class="na">create</span><span class="p">(</span><span class="s1">'fr_FR'</span><span class="p">);</span> <span class="c1">// create a French faker</span>
+<span class="k">for</span> <span class="p">(</span><span class="nv">$i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
+<span class="p">}</span>
+  <span class="c1">// Luce du Coulon</span>
+  <span class="c1">// Auguste Dupont</span>
+  <span class="c1">// Roger Le Voisin</span>
+  <span class="c1">// Alexandre Lacroix</span>
+  <span class="c1">// Jacques Humbert-Roy</span>
+  <span class="c1">// Thérèse Guillet-Andre</span>
+  <span class="c1">// Gilles Gros-Bodin</span>
+  <span class="c1">// Amélie Pires</span>
+  <span class="c1">// Marcel Laporte</span>
+  <span class="c1">// Geneviève Marchal</span>
+</pre></div>
+
+<p>You can check available Faker locales in the source code, <a href="https://github.com/fzaninotto/Faker/tree/master/src/Faker/Provider">under the <code>Provider</code> directory</a>. The localization of Faker is an ongoing process, for which we need your help. Don't hesitate to create localized providers to your own locale and submit a PR!</p>
+
+<h2>
+<a name="user-content-populating-entities-using-an-orm-or-an-odm" class="anchor" href="#populating-entities-using-an-orm-or-an-odm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Populating Entities Using an ORM or an ODM</h2>
+
+<p>Faker provides adapters for Object-Relational and Object-Document Mappers (currently, <a href="http://www.propelorm.org">Propel</a>, <a href="http://www.doctrine-project.org/projects/orm/2.0/docs/en">Doctrine2</a>, and <a href="https://github.com/mandango/mandango">Mandango</a> are supported). These adapters ease the population of databases through the Entity classes provided by an ORM library (or the population of document stores using Document classes provided by an ODM library).</p>
+
+<p>To populate entities, create a new populator class (using a generator instance as parameter), then list the class and number of all the entities that must be generated. To launch the actual data population, call the <code>execute()</code> method.</p>
+
+<p>Here is an example showing how to populate 5 <code>Author</code> and 10 <code>Book</code> objects:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$generator</span> <span class="o">=</span> <span class="nx">\Faker\Factory</span><span class="o">::</span><span class="na">create</span><span class="p">();</span>
+<span class="nv">$populator</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Faker\ORM\Propel\Populator</span><span class="p">(</span><span class="nv">$generator</span><span class="p">);</span>
+<span class="nv">$populator</span><span class="o">-&gt;</span><span class="na">addEntity</span><span class="p">(</span><span class="s1">'Author'</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+<span class="nv">$populator</span><span class="o">-&gt;</span><span class="na">addEntity</span><span class="p">(</span><span class="s1">'Book'</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+<span class="nv">$insertedPKs</span> <span class="o">=</span> <span class="nv">$populator</span><span class="o">-&gt;</span><span class="na">execute</span><span class="p">();</span>
+</pre></div>
+
+<p>The populator uses name and column type guessers to populate each column with relevant data. For instance, Faker populates a column named <code>first_name</code> using the <code>firstName</code> formatter, and a column with a <code>TIMESTAMP</code> type using the <code>dateTime</code> formatter. The resulting entities are therefore coherent. If Faker misinterprets a column name, you can still specify a custom closure to be used for populating a particular column, using the third argument to <code>addEntity()</code>:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$populator</span><span class="o">-&gt;</span><span class="na">addEntity</span><span class="p">(</span><span class="s1">'Book'</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span>
+  <span class="s1">'ISBN'</span> <span class="o">=&gt;</span> <span class="k">function</span><span class="p">()</span> <span class="k">use</span> <span class="p">(</span><span class="nv">$generator</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nv">$generator</span><span class="o">-&gt;</span><span class="na">randomNumber</span><span class="p">(</span><span class="mi">13</span><span class="p">);</span> <span class="p">}</span>
+<span class="p">));</span>
+</pre></div>
+
+<p>In this example, Faker will guess a formatter for all columns except <code>ISBN</code>, for which the given anonymous function will be used.</p>
+
+<p><strong>Tip</strong>: To ignore some columns, specify <code>null</code> for the column names in the third argument of <code>addEntity()</code>. This is usually necessary for columns added by a behavior:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$populator</span><span class="o">-&gt;</span><span class="na">addEntity</span><span class="p">(</span><span class="s1">'Book'</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span>
+  <span class="s1">'CreatedAt'</span> <span class="o">=&gt;</span> <span class="k">null</span><span class="p">,</span>
+  <span class="s1">'UpdatedAt'</span> <span class="o">=&gt;</span> <span class="k">null</span><span class="p">,</span>
+<span class="p">));</span>
+</pre></div>
+
+<p>Of course, Faker does not populate autoincremented primary keys. In addition, <code>Faker\ORM\Propel\Populator::execute()</code> returns the list of inserted PKs, indexed by class:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nb">print_r</span><span class="p">(</span><span class="nv">$insertedPKs</span><span class="p">);</span>
+<span class="c1">// array(</span>
+<span class="c1">//   'Author' =&gt; (34, 35, 36, 37, 38),</span>
+<span class="c1">//   'Book'   =&gt; (456, 457, 458, 459, 470, 471, 472, 473, 474, 475)</span>
+<span class="c1">// )</span>
+</pre></div>
+
+<p>In the previous example, the <code>Book</code> and <code>Author</code> models share a relationship. Since <code>Author</code> entities are populated first, Faker is smart enough to relate the populated <code>Book</code> entities to one of the populated <code>Author</code> entities.</p>
+
+<p>Lastly, if you want to execute an arbitrary function on an entity before insertion, use the fourth argument of the <code>addEntity()</code> method:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$populator</span><span class="o">-&gt;</span><span class="na">addEntity</span><span class="p">(</span><span class="s1">'Book'</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="k">array</span><span class="p">(),</span> <span class="k">array</span><span class="p">(</span>
+  <span class="k">function</span><span class="p">(</span><span class="nv">$book</span><span class="p">)</span> <span class="p">{</span> <span class="nv">$book</span><span class="o">-&gt;</span><span class="na">publish</span><span class="p">();</span> <span class="p">},</span>
+<span class="p">));</span>
+</pre></div>
+
+<h2>
+<a name="user-content-seeding-the-generator" class="anchor" href="#seeding-the-generator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Seeding the Generator</h2>
+
+<p>You may want to get always the same generated data - for instance when using Faker for unit testing purposes. The generator offers a <code>seed()</code> method, which seeds the random number generator. Calling the same script twice with the same seed produces the same results.</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$faker</span> <span class="o">=</span> <span class="nx">Faker\Factory</span><span class="o">::</span><span class="na">create</span><span class="p">();</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">seed</span><span class="p">(</span><span class="mi">1234</span><span class="p">);</span>
+
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">;</span> <span class="c1">// 'Jess Mraz I';</span>
+</pre></div>
+
+<blockquote>
+<p><strong>Tip</strong>: DateTime formatters won't reproduce the same fake data if you don't fix the <code>$max</code> value:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="c1">// even when seeded, this line will return different results because $max varies</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">dateTime</span><span class="p">();</span> <span class="c1">// equivalent to $faker-&gt;dateTime($max = 'now')</span>
+<span class="c1">// make sure you fix the $max parameter</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">dateTime</span><span class="p">(</span><span class="s1">'2014-02-25 08:37:17'</span><span class="p">);</span> <span class="c1">// will return always the same date when seeded</span>
+</pre></div>
+</blockquote>
+
+<h2>
+<a name="user-content-faker-internals-understanding-providers" class="anchor" href="#faker-internals-understanding-providers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Faker Internals: Understanding Providers</h2>
+
+<p>A <code>Faker\Generator</code> alone can't do much generation. It needs <code>Faker\Provider</code> objects to delegate the data generation to them. <code>Faker\Factory::create()</code> actually creates a <code>Faker\Generator</code> bundled with the default providers. Here is what happens under the hood:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$faker</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Faker\Generator</span><span class="p">();</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">Faker\Provider\en_US\Person</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">Faker\Provider\en_US\Address</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">Faker\Provider\en_US\PhoneNumber</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">Faker\Provider\en_US\Company</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">Faker\Provider\Lorem</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">Faker\Provider\Internet</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+</pre></div>
+
+<p>Whenever you try to access a property on the <code>$faker</code> object, the generator looks for a method with the same name in all the providers attached to it. For instance, calling <code>$faker-&gt;name</code> triggers a call to <code>Faker\Provider\Person::name()</code>. And since Faker starts with the last provider, you can easily override existing formatters: just add a provider containing methods named after the formatters you want to override.</p>
+
+<p>That means that you can easily add your own providers to a <code>Faker\Generator</code> instance. A provider is usually a class extending <code>\Faker\Provider\Base</code>. This parent class allows you to use methods like <code>lexify()</code> or <code>randomNumber()</code>; it also gives you access to formatters of other providers, through the protected <code>$generator</code> property. The new formatters are the public methods of the provider class.</p>
+
+<p>Here is an example provider for populating Book data:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="k">namespace</span> <span class="nx">Faker\Provider</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">Book</span> <span class="k">extends</span> <span class="nx">\Faker\Provider\Base</span>
+<span class="p">{</span>
+  <span class="k">public</span> <span class="k">function</span> <span class="nf">title</span><span class="p">(</span><span class="nv">$nbWords</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="nv">$sentence</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">generator</span><span class="o">-&gt;</span><span class="na">sentence</span><span class="p">(</span><span class="nv">$nbWords</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">substr</span><span class="p">(</span><span class="nv">$sentence</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">strlen</span><span class="p">(</span><span class="nv">$sentence</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">public</span> <span class="k">function</span> <span class="nf">ISBN</span><span class="p">()</span>
+  <span class="p">{</span>
+    <span class="k">return</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">generator</span><span class="o">-&gt;</span><span class="na">randomNumber</span><span class="p">(</span><span class="mi">13</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>To register this provider, just add a new instance of <code>\Faker\Provider\Book</code> to an existing generator:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">addProvider</span><span class="p">(</span><span class="k">new</span> <span class="nx">\Faker\Provider\Book</span><span class="p">(</span><span class="nv">$faker</span><span class="p">));</span>
+</pre></div>
+
+<p>Now you can use the two new formatters like any other Faker formatter:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$book</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Book</span><span class="p">();</span>
+<span class="nv">$book</span><span class="o">-&gt;</span><span class="na">setTitle</span><span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">title</span><span class="p">);</span>
+<span class="nv">$book</span><span class="o">-&gt;</span><span class="na">setISBN</span><span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">ISBN</span><span class="p">);</span>
+<span class="nv">$book</span><span class="o">-&gt;</span><span class="na">setSummary</span><span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">text</span><span class="p">);</span>
+<span class="nv">$book</span><span class="o">-&gt;</span><span class="na">setPrice</span><span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">randomNumber</span><span class="p">(</span><span class="mi">2</span><span class="p">));</span>
+</pre></div>
+
+<p><strong>Tip</strong>: A provider can also be a Plain Old PHP Object. In that case, all the public methods of the provider become available to the generator.</p>
+
+<h2>
+<a name="user-content-real-life-usage" class="anchor" href="#real-life-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Real Life Usage</h2>
+
+<p>The following script generates a valid XML document:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="k">require_once</span> <span class="s1">'/path/to/Faker/src/autoload.php'</span><span class="p">;</span>
+<span class="nv">$faker</span> <span class="o">=</span> <span class="nx">Faker\Factory</span><span class="o">::</span><span class="na">create</span><span class="p">();</span>
+<span class="cp">?&gt;</span><span class="x"></span>
+<span class="cp">&lt;?</span><span class="nx">xml</span> <span class="nx">version</span><span class="o">=</span><span class="s2">"1.0"</span> <span class="nx">encoding</span><span class="o">=</span><span class="s2">"UTF-8"</span><span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">&lt;contacts&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">for</span> <span class="p">(</span><span class="nv">$i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="nv">$i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nv">$i</span><span class="o">++</span><span class="p">)</span><span class="o">:</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">  &lt;contact firstName="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">firstName</span> <span class="cp">?&gt;</span><span class="x">" lastName="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">lastName</span> <span class="cp">?&gt;</span><span class="x">" email="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">email</span> <span class="cp">?&gt;</span><span class="x">"/&gt;</span>
+<span class="x">    &lt;phone number="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">phoneNumber</span> <span class="cp">?&gt;</span><span class="x">"/&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">boolean</span><span class="p">(</span><span class="mi">25</span><span class="p">))</span><span class="o">:</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">    &lt;birth date="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">dateTimeThisCentury</span><span class="o">-&gt;</span><span class="na">format</span><span class="p">(</span><span class="s1">'Y-m-d'</span><span class="p">)</span> <span class="cp">?&gt;</span><span class="x">" place="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">city</span> <span class="cp">?&gt;</span><span class="x">"/&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">endif</span><span class="p">;</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">    &lt;address&gt;</span>
+<span class="x">      &lt;street&gt;</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">streetAddress</span> <span class="cp">?&gt;</span><span class="x">&lt;/street&gt;</span>
+<span class="x">      &lt;city&gt;</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">city</span> <span class="cp">?&gt;</span><span class="x">&lt;/city&gt;</span>
+<span class="x">      &lt;postcode&gt;</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">postcode</span> <span class="cp">?&gt;</span><span class="x">&lt;/postcode&gt;</span>
+<span class="x">      &lt;state&gt;</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">state</span> <span class="cp">?&gt;</span><span class="x">&lt;/state&gt;</span>
+<span class="x">    &lt;/address&gt;</span>
+<span class="x">    &lt;company name="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">company</span> <span class="cp">?&gt;</span><span class="x">" catchPhrase="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">catchPhrase</span> <span class="cp">?&gt;</span><span class="x">"&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">boolean</span><span class="p">(</span><span class="mi">33</span><span class="p">))</span><span class="o">:</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">      &lt;offer&gt;</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">bs</span> <span class="cp">?&gt;</span><span class="x">&lt;/offer&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">endif</span><span class="p">;</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="cp">&lt;?php</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">boolean</span><span class="p">(</span><span class="mi">33</span><span class="p">))</span><span class="o">:</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">      &lt;director name="</span><span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">name</span> <span class="cp">?&gt;</span><span class="x">" /&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">endif</span><span class="p">;</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">    &lt;/company&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">if</span> <span class="p">(</span><span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">boolean</span><span class="p">(</span><span class="mi">15</span><span class="p">))</span><span class="o">:</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">    &lt;details&gt;</span>
+<span class="x">&lt;![CDATA[</span>
+<span class="cp">&lt;?php</span> <span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">text</span><span class="p">(</span><span class="mi">400</span><span class="p">)</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">]]&gt;</span>
+<span class="x">    &lt;/details&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">endif</span><span class="p">;</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">  &lt;/contact&gt;</span>
+<span class="cp">&lt;?php</span> <span class="k">endfor</span><span class="p">;</span> <span class="cp">?&gt;</span><span class="x"></span>
+<span class="x">&lt;/contacts&gt;</span>
+</pre></div>
+
+<p>Running this script produces a document looking like:</p>
+
+<div class="highlight highlight-xml"><pre><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;contacts&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Ona"</span> <span class="na">lastName=</span><span class="s">"Bednar"</span> <span class="na">email=</span><span class="s">"schamberger.frank@wuckert.com"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"1-265-479-1196x714"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>182 Harrison Cove<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>North Lloyd<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>45577<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Alabama<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Veum, Funk and Shanahan"</span> <span class="na">catchPhrase=</span><span class="s">"Function-based stable solution"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;offer&gt;</span>orchestrate compelling web-readiness<span class="nt">&lt;/offer&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+    <span class="nt">&lt;details&gt;</span>
+<span class="cp">&lt;![CDATA[</span>
+<span class="cp">Alias accusantium voluptatum autem nobis cumque neque modi. Voluptatem error molestiae consequatur alias.</span>
+<span class="cp">Illum commodi molestiae aut repellat id. Et sit consequuntur aut et ullam asperiores. Cupiditate culpa voluptatem et mollitia dolor. Nisi praesentium qui ut.</span>
+<span class="cp">]]&gt;</span>
+    <span class="nt">&lt;/details&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Aurelie"</span> <span class="na">lastName=</span><span class="s">"Paucek"</span> <span class="na">email=</span><span class="s">"alfonzo55@durgan.com"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"863.712.1363x9425"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>90111 Hegmann Inlet<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>South Geovanymouth<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>69961-9311<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Colorado<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Krajcik-Grimes"</span> <span class="na">catchPhrase=</span><span class="s">"Switchable cohesive instructionset"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Clifton"</span> <span class="na">lastName=</span><span class="s">"Kshlerin"</span> <span class="na">email=</span><span class="s">"kianna.wiegand@framiwyman.info"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"692-194-4746"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>9791 Nona Corner<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>Harberhaven<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>74062-8191<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>RhodeIsland<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Rosenbaum-Aufderhar"</span> <span class="na">catchPhrase=</span><span class="s">"Realigned asynchronous encryption"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Alexandre"</span> <span class="na">lastName=</span><span class="s">"Orn"</span> <span class="na">email=</span><span class="s">"thelma37@erdmancorwin.biz"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"189.655.8677x027"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>11161 Schultz Via<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>Feilstad<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>98019<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>NewJersey<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"O'Hara-Prosacco"</span> <span class="na">catchPhrase=</span><span class="s">"Re-engineered solution-oriented algorithm"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;director</span> <span class="na">name=</span><span class="s">"Dr. Berenice Auer V"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+    <span class="nt">&lt;details&gt;</span>
+<span class="cp">&lt;![CDATA[</span>
+<span class="cp">Ut itaque et quaerat doloremque eum praesentium. Rerum in saepe dolorem. Explicabo qui consequuntur commodi minima rem.</span>
+<span class="cp">Harum temporibus rerum dolores. Non molestiae id dolorem placeat.</span>
+<span class="cp">Aut asperiores nihil eius repellendus. Vero nihil corporis voluptatem explicabo commodi. Occaecati omnis blanditiis beatae quod aspernatur eos.</span>
+<span class="cp">]]&gt;</span>
+    <span class="nt">&lt;/details&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Katelynn"</span> <span class="na">lastName=</span><span class="s">"Kohler"</span> <span class="na">email=</span><span class="s">"reinger.trudie@stiedemannjakubowski.com"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"(665)713-1657"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>6106 Nader Village Suite 753<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>McLaughlinstad<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>43189-8621<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Missouri<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Herman-Tremblay"</span> <span class="na">catchPhrase=</span><span class="s">"Object-based explicit service-desk"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;offer&gt;</span>expedite viral synergies<span class="nt">&lt;/offer&gt;</span>
+      <span class="nt">&lt;director</span> <span class="na">name=</span><span class="s">"Arden Deckow"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Blanca"</span> <span class="na">lastName=</span><span class="s">"Stark"</span> <span class="na">email=</span><span class="s">"tad27@feest.net"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"168.719.4692x87177"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>7546 Kuvalis Plaza<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>South Wilfrid<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>77069<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Georgia<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Upton, Braun and Rowe"</span> <span class="na">catchPhrase=</span><span class="s">"Visionary leadingedge pricingstructure"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Rene"</span> <span class="na">lastName=</span><span class="s">"Spencer"</span> <span class="na">email=</span><span class="s">"anibal28@armstrong.info"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"715.222.0095x175"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;birth</span> <span class="na">date=</span><span class="s">"2008-08-07"</span> <span class="na">place=</span><span class="s">"Zulaufborough"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>478 Daisha Landing Apt. 510<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>West Lizethhaven<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>30566-5362<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>WestVirginia<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Wiza Inc"</span> <span class="na">catchPhrase=</span><span class="s">"Persevering reciprocal approach"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;offer&gt;</span>orchestrate dynamic networks<span class="nt">&lt;/offer&gt;</span>
+      <span class="nt">&lt;director</span> <span class="na">name=</span><span class="s">"Erwin Nienow"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+    <span class="nt">&lt;details&gt;</span>
+<span class="cp">&lt;![CDATA[</span>
+<span class="cp">Dolorem consequatur voluptates unde optio unde. Accusantium dolorem est est architecto impedit. Corrupti et provident quo.</span>
+<span class="cp">Reprehenderit dolores aut quidem suscipit repudiandae corporis error. Molestiae enim aperiam illo.</span>
+<span class="cp">Et similique qui non expedita quia dolorum. Ex rem incidunt ea accusantium temporibus minus non.</span>
+<span class="cp">]]&gt;</span>
+    <span class="nt">&lt;/details&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Alessandro"</span> <span class="na">lastName=</span><span class="s">"Hagenes"</span> <span class="na">email=</span><span class="s">"tbreitenberg@oharagorczany.com"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"1-284-958-6768"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>1251 Koelpin Mission<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>North Revastad<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>81620<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Maryland<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Stiedemann-Bruen"</span> <span class="na">catchPhrase=</span><span class="s">"Re-engineered 24/7 success"</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Novella"</span> <span class="na">lastName=</span><span class="s">"Rutherford"</span> <span class="na">email=</span><span class="s">"claud65@bogisich.biz"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"(091)825-7971"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>6396 Langworth Hills Apt. 446<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>New Carlos<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>89399-0268<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Wyoming<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Stroman-Legros"</span> <span class="na">catchPhrase=</span><span class="s">"Expanded 4thgeneration moratorium"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;director</span> <span class="na">name=</span><span class="s">"Earlene Bayer"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+  <span class="nt">&lt;contact</span> <span class="na">firstName=</span><span class="s">"Andreane"</span> <span class="na">lastName=</span><span class="s">"Mann"</span> <span class="na">email=</span><span class="s">"meggie17@ornbaumbach.com"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;phone</span> <span class="na">number=</span><span class="s">"941-659-9982x5689"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;birth</span> <span class="na">date=</span><span class="s">"1934-02-21"</span> <span class="na">place=</span><span class="s">"Stantonborough"</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;address&gt;</span>
+      <span class="nt">&lt;street&gt;</span>2246 Kreiger Station Apt. 291<span class="nt">&lt;/street&gt;</span>
+      <span class="nt">&lt;city&gt;</span>Kaydenmouth<span class="nt">&lt;/city&gt;</span>
+      <span class="nt">&lt;postcode&gt;</span>11397-1072<span class="nt">&lt;/postcode&gt;</span>
+      <span class="nt">&lt;state&gt;</span>Wyoming<span class="nt">&lt;/state&gt;</span>
+    <span class="nt">&lt;/address&gt;</span>
+    <span class="nt">&lt;company</span> <span class="na">name=</span><span class="s">"Lebsack, Bernhard and Kiehn"</span> <span class="na">catchPhrase=</span><span class="s">"Persevering actuating framework"</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;offer&gt;</span>grow sticky portals<span class="nt">&lt;/offer&gt;</span>
+    <span class="nt">&lt;/company&gt;</span>
+    <span class="nt">&lt;details&gt;</span>
+<span class="cp">&lt;![CDATA[</span>
+<span class="cp">Quia dolor ut quia error libero. Enim facilis iusto earum et minus rerum assumenda. Quia doloribus et reprehenderit ut. Occaecati voluptatum dolor voluptatem vitae qui velit quia.</span>
+<span class="cp">Fugiat non in itaque sunt nobis totam. Sed nesciunt est deleniti cumque alias. Repudiandae quo aut numquam modi dicta libero.</span>
+<span class="cp">]]&gt;</span>
+    <span class="nt">&lt;/details&gt;</span>
+  <span class="nt">&lt;/contact&gt;</span>
+<span class="nt">&lt;/contacts&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-language-specific-formatters" class="anchor" href="#language-specific-formatters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Language specific formatters</h2>
+
+<h3>
+<a name="user-content-fakerprovidercs_czaddress" class="anchor" href="#fakerprovidercs_czaddress" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\cs_CZ\Address</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">region</span><span class="p">;</span> <span class="c1">// "Liberecký kraj"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerprovidercs_czcompany" class="anchor" href="#fakerprovidercs_czcompany" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\cs_CZ\Company</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a valid IČO</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">ico</span><span class="p">;</span> <span class="c1">// "69663963"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerprovidercs_czdatetime" class="anchor" href="#fakerprovidercs_czdatetime" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\cs_CZ\DateTime</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">monthNameGenitive</span><span class="p">;</span> <span class="c1">// "prosince"</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">formattedDate</span><span class="p">;</span> <span class="c1">// "12. listopadu 2015"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderda_dkperson" class="anchor" href="#fakerproviderda_dkperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\da_DK\Person</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random CPR number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">cpr</span><span class="p">;</span> <span class="c1">// "051280-2387"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderda_dkaddress" class="anchor" href="#fakerproviderda_dkaddress" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\da_DK\Address</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random 'kommune' name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">kommune</span><span class="p">;</span> <span class="c1">// "Frederiksberg"</span>
+
+<span class="c1">// Generates a random region name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">region</span><span class="p">;</span> <span class="c1">// "Region Sjælland"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderda_dkcompany" class="anchor" href="#fakerproviderda_dkcompany" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\da_DK\Company</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random CVR number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">cvr</span><span class="p">;</span> <span class="c1">// "32458723"</span>
+
+<span class="c1">// Generates a random P number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">p</span><span class="p">;</span> <span class="c1">// "5398237590"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderfr_frcompany" class="anchor" href="#fakerproviderfr_frcompany" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\fr_FR\Company</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random SIREN number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">siren</span><span class="p">;</span> <span class="c1">// 082 250 104</span>
+
+<span class="c1">// Generates a random SIRET number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">siret</span><span class="p">;</span> <span class="c1">// 347 355 708 00224</span>
+
+<span class="c1">// Generates a random SIRET number (controlling the number of sequential digits)</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">siret</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span> <span class="c1">// 438 472 611 01513</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderfr_fraddress" class="anchor" href="#fakerproviderfr_fraddress" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\fr_FR\Address</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random department name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">departmentName</span><span class="p">;</span> <span class="c1">// "Haut-Rhin"</span>
+
+<span class="c1">// Generates a random department number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">departmentNumber</span><span class="p">;</span> <span class="c1">// "2B"</span>
+
+<span class="c1">// Generates a random department info (department number =&gt; department name)</span>
+<span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">department</span><span class="p">;</span> <span class="c1">// array('18' =&gt; 'Cher');</span>
+
+<span class="c1">// Generates a random region</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">region</span><span class="p">;</span> <span class="c1">// "Saint-Pierre-et-Miquelon"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderja_jpperson" class="anchor" href="#fakerproviderja_jpperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\ja_JP\Person</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a 'kana' name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">kanaName</span><span class="p">;</span> <span class="c1">// "アオタ ミノル"</span>
+
+<span class="c1">// Generates a 'kana' first name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">firstKanaName</span><span class="p">;</span> <span class="c1">// "ハルカ"</span>
+
+<span class="c1">// Generates a 'kana' last name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">lastKanaName</span><span class="p">;</span> <span class="c1">// "ナカジマ"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderpl_plperson" class="anchor" href="#fakerproviderpl_plperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\pl_PL\Person</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random PESEL number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">pesel</span><span class="p">;</span> <span class="c1">// "40061451555"</span>
+<span class="c1">// Generates a random personal identity card number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">personalIdentityNumber</span><span class="p">;</span> <span class="c1">// "AKX383360"</span>
+<span class="c1">// Generates a random taxpayer identification number (NIP)</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">taxpayerIdentificationNumber</span><span class="p">;</span> <span class="c1">// '8211575109'</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderpl_plcompany" class="anchor" href="#fakerproviderpl_plcompany" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\pl_PL\Company</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random REGON number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">regon</span><span class="p">;</span> <span class="c1">// "714676680"</span>
+<span class="c1">// Generates a random local REGON number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">regonLocal</span><span class="p">;</span> <span class="c1">// "15346111382836"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderpl_plpayment" class="anchor" href="#fakerproviderpl_plpayment" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\pl_PL\Payment</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random bank name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">bank</span><span class="p">;</span> <span class="c1">// "Narodowy Bank Polski"</span>
+<span class="c1">// Generates a random bank account number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">bankAccountNumber</span><span class="p">;</span> <span class="c1">// "PL14968907563953822118075816"</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderpt_ptperson" class="anchor" href="#fakerproviderpt_ptperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\pt_PT\Person</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random taxpayer identification number (in portuguese - Número de Identificação Fiscal NIF)</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">taxpayerIdentificationNumber</span><span class="p">;</span> <span class="c1">// '165249277'</span>
+
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderro_roperson" class="anchor" href="#fakerproviderro_roperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\ro_RO\Person</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random male name prefix/title</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">prefixMale</span><span class="p">;</span> <span class="c1">// "ing."</span>
+<span class="c1">// Generates a random female name prefix/title</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">prefixFemale</span><span class="p">;</span> <span class="c1">// "d-na."</span>
+<span class="c1">// Generates a random male fist name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">firstNameMale</span><span class="p">;</span> <span class="c1">// "Adrian"</span>
+<span class="c1">// Generates a random female fist name</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">firstNameFemale</span><span class="p">;</span> <span class="c1">// "Miruna"</span>
+
+<span class="c1">// Generates a random Personal Numerical Code (CNP)</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">cnp</span><span class="p">;</span> <span class="c1">// "2800523081231"</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">cnp</span><span class="p">(</span><span class="nv">$gender</span> <span class="o">=</span> <span class="k">NULL</span><span class="p">,</span> <span class="nv">$century</span> <span class="o">=</span> <span class="k">NULL</span><span class="p">,</span> <span class="nv">$county</span> <span class="o">=</span> <span class="k">NULL</span><span class="p">);</span>
+
+<span class="c1">// Valid option values:</span>
+<span class="c1">//  $gender: m, f, 1, 2</span>
+<span class="c1">//  $century: 1800, 1900, 2000, 1, 2, 3, 4, 5, 6</span>
+<span class="c1">//  $county: 2 letter ISO 3166-2:RO county codes and B1-B6 for Bucharest's 6 sectors</span>
+</pre></div>
+
+<h3>
+<a name="user-content-fakerproviderro_rophonenumber" class="anchor" href="#fakerproviderro_rophonenumber" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\ro_RO\PhoneNumber</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a random toll-free phone number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">tollFreePhoneNumber</span><span class="p">;</span> <span class="c1">// "0800123456"</span>
+<span class="c1">// Generates a random premium-rate phone number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">premiumRatePhoneNumber</span><span class="p">;</span> <span class="c1">// "0900123456"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-fakerprovideren_nzphone" class="anchor" href="#fakerprovideren_nzphone" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\en_NZ\Phone</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">// Generates a cell (mobile) phone number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">cellNumber</span><span class="p">;</span> <span class="c1">// "021 123 4567"</span>
+
+<span class="c1">// Generates a toll free number</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">tollFreeNumber</span><span class="p">;</span> <span class="c1">// "0800 123 456"</span>
+
+<span class="c1">// Area Code</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">areaCode</span><span class="p">;</span> <span class="c1">// "03"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-fakerprovidersv_seperson" class="anchor" href="#fakerprovidersv_seperson" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>Faker\Provider\sv_SE\Person</code>
+</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="c1">//Generates a valid Swedish personal identity number (in Swedish - Personnummer)</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">personalIdentityNumber</span><span class="p">()</span> <span class="c1">// '950910-0799'</span>
+
+<span class="c1">//Since the numbers are different for male and female persons, optionally you can specify gender.</span>
+<span class="k">echo</span> <span class="nv">$faker</span><span class="o">-&gt;</span><span class="na">personalIdentityNumber</span><span class="p">(</span><span class="s1">'female'</span><span class="p">)</span> <span class="c1">// '950910-0781'</span>
+
+</pre></div>
+
+<h2>
+<a name="user-content-third-party-libraries-extendingbased-on-faker" class="anchor" href="#third-party-libraries-extendingbased-on-faker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Third-Party Libraries Extending/Based On Faker</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/willdurand/BazingaFakerBundle">BazingaFakerBundle</a>: Put the awesome Faker library into the Symfony2 DIC and populate your database with fake data.</li>
+<li>
+<a href="https://github.com/EmanueleMinotto/FakerServiceProvider">FakerServiceProvider</a>: Faker Service Provider for Silex</li>
+<li>
+<a href="https://github.com/bit3/faker-cli">faker-cli</a>: Command Line Tool for the Faker PHP library</li>
+<li>
+<a href="https://github.com/h4cc/AliceFixturesBundle">AliceFixturesBundle</a>: A Symfony2 bundle for using Alice and Faker with data fixtures. Abled to use Doctrine ORM as well as Doctrine MongoDB ODM.</li>
+<li>
+<a href="https://github.com/fzaninotto/CompanyNameGenerator">CompanyNameGenerator</a>: Generate names for English tech companies with class</li>
+<li>
+<a href="https://github.com/spyrit/datalea">datalea</a> A highly customizable random test data generator web app</li>
+<li>
+<a href="https://github.com/frequenc1/newage-ipsum">newage-ipsum</a>: A new aged ipsum provider for the faker library inspired by <a href="http://sebpearce.com/bullshit/">http://sebpearce.com/bullshit/</a>
+</li>
+<li>
+<a href="https://github.com/prewk/xml-faker">xml-faker</a>: Create fake XML with Faker</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Faker is released under the MIT Licence. See the bundled LICENSE file for details.</p></article></div>

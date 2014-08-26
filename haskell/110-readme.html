@@ -1,0 +1,59 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p align="center">
+  <a href="https://camo.githubusercontent.com/2e1c037803f72921e0dcd826a13172308ded4291/687474703a2f2f74616b656f75747765696768742e6769746875622e696f2f73686164652f696d616765732f73686164652d6c6f676f2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/2e1c037803f72921e0dcd826a13172308ded4291/687474703a2f2f74616b656f75747765696768742e6769746875622e696f2f73686164652f696d616765732f73686164652d6c6f676f2e706e67" alt="Shade Logo" data-canonical-src="http://takeoutweight.github.io/shade/images/shade-logo.png" style="max-width:100%;"></a></p>
+
+<p><em>Interactive, client-side web apps in Haskell</em></p>
+
+<p>Shade is a DSL for writing browser-side applications in Haskell without the need for callbacks or pervasive mutation.</p>
+
+<p>Check out a <a href="https://takeoutweight.github.io/shade-todomvc/">live example</a> of the TodoMVC application and the accompanying <a href="https://github.com/takeoutweight/shade-todomvc/blob/master/src/Main.hs">source code</a>.</p>
+
+<p><em>Shade is currently quite experimental. Drastic changes are to be expected</em></p>
+
+<h2>
+<a name="user-content-hello-world" class="anchor" href="#hello-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hello, World!</h2>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">phrase</span> <span class="ow">=</span> <span class="s">"Hello, World!"</span>
+
+<span class="nf">helloInput</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Shade</span> <span class="n">s</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="n">s</span> <span class="p">(</span><span class="kt">Async</span> <span class="n">s</span> <span class="kt">String</span><span class="p">)</span>
+<span class="nf">helloInput</span> <span class="n">str</span> <span class="ow">=</span>
+  <span class="kr">do</span> <span class="p">(</span><span class="n">inpAsync</span><span class="p">,</span> <span class="n">inp</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">letElt</span> <span class="p">(</span><span class="n">input</span> <span class="p">[</span><span class="n">value</span> <span class="p">(</span><span class="n">fromString</span> <span class="n">valid</span><span class="p">)])</span>
+     <span class="n">div</span> <span class="kt">[]</span> <span class="o">$</span> <span class="kr">do</span> <span class="n">h1</span> <span class="kt">[]</span> <span class="p">(</span><span class="n">text</span> <span class="p">(</span><span class="s">"Enter '"</span><span class="o">++</span><span class="n">phrase</span><span class="o">++</span><span class="s">"': "</span><span class="o">++</span><span class="n">valid</span><span class="o">++</span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">))</span>
+                 <span class="n">inp</span>
+     <span class="n">return</span> <span class="p">(</span><span class="n">fmap</span> <span class="p">(</span><span class="n">toString</span> <span class="o">.</span> <span class="n">changeEventValue</span><span class="p">)</span> <span class="p">(</span><span class="n">onChange</span> <span class="n">inpAsync</span><span class="p">))</span>
+  <span class="kr">where</span>
+    <span class="n">valid</span> <span class="ow">=</span> <span class="n">map</span> <span class="n">fst</span> <span class="p">(</span><span class="n">takeWhile</span> <span class="p">(</span><span class="n">uncurry</span> <span class="p">(</span><span class="o">==</span><span class="p">))</span> <span class="p">(</span><span class="n">zip</span> <span class="n">str</span> <span class="n">phrase</span><span class="p">))</span>
+
+<span class="nf">mainLoop</span> <span class="n">elt</span> <span class="n">str</span> <span class="ow">=</span>
+  <span class="kr">do</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">runClient</span> <span class="p">(</span><span class="n">helloInput</span> <span class="n">str</span><span class="p">)</span>
+     <span class="n">listen</span> <span class="n">a</span> <span class="p">(</span><span class="nf">\</span><span class="n">s</span> <span class="ow">-&gt;</span> <span class="n">mainLoop</span> <span class="n">elt</span> <span class="n">s</span><span class="p">)</span>
+     <span class="n">renderClient</span> <span class="n">elt</span> <span class="n">r</span>
+
+<span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="kt">Just</span> <span class="n">e</span> <span class="ow">&lt;-</span> <span class="n">elemById</span> <span class="s">"reactroot"</span>
+  <span class="n">mainLoop</span> <span class="n">e</span> <span class="s">""</span>
+</pre></div>
+
+<h2>
+<a name="user-content-what-is-shade" class="anchor" href="#what-is-shade" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is Shade?</h2>
+
+<p>Shade offers a purely functional approach to specifying interactive web applications. Instead of consisting of two-way data bindings between GUI widgets, applications are conceived as pure, one-way functions from a model to a view. As the model changes, the view is simply re-rendered. Shade uses <a href="https://facebook.github.io/react">React</a> to make this repeated re-rendering extremely efficient.</p>
+
+<p>Applications are specified with Shade by using a <a href="http://okmij.org/ftp/tagless-final/course/">typed tagless-final</a> domain-specific syntax. A key advantage of the tagless-final style is its solution to the <a href="http://en.wikipedia.org/wiki/Expression_problem">expression problem</a>. This means you can add more terms to your syntax (allowing, for example, custom html tags in the style of Angular's <a href="https://docs.angularjs.org/guide/directive">Directives</a>) while, at the same time, interpreting the same syntax in various ways (for example, generating both a static file on the server side and an interactive app on the client side without changing the application code). Shade consists of the platform-agnostic <code>shade-core</code>, which is the tagless-final markup syntax and <code>shade-haste</code> which is compiled by <a href="http://haste-lang.org/">Haste</a> to Javascript and is responsible for rendering the markup on the client via <a href="https://facebook.github.io/react">React</a>. Additional rendering back-ends are planned.</p>
+
+<p>Shade eschews callbacks and mutation in favour of values and composition. Rendered components can be treated as  <a href="http://hackage.haskell.org/package/async/docs/Control-Concurrent-Async.html">Async</a>-like values that represent the delivery of an event at some point in the future. These can be mapped over like any other <a href="http://learnyouahaskell.com/making-our-own-types-and-typeclasses#the-functor-typeclass">functor</a> or merged together like a <a href="http://learnyouahaskell.com/functors-applicative-functors-and-monoids#monoids">monoid</a>. Shade's use of Asyncs allows for highly-composable interactive behaviours in a similar vein as those offered by <a href="http://www.haskell.org/haskellwiki/Functional_Reactive_Programming">Functional Reactive Programming</a> or <a href="http://msdn.microsoft.com/en-us/data/gg577609">Reactive Extensions</a>.</p>
+
+<p>Slides are available for a talk introducing <a href="http://www.slideshare.net/takeoutweight/haste-and-tagless-final-style">Haste and tagless-final style</a>.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>First, install <a href="http://haste-lang.org/">Haste</a>, a Haskell-to-Javascript compiler. You can then build and install <code>shade-core</code> and <code>shade-haste</code> by running <code>haste-inst install</code> in their respective subdirectories.</p>
+
+<p>To use shade in a new app, add <code>shade-core</code> and <code>shade-haste</code> to your .cabal file's <code>build-depends:</code>. You will need to directly specify the location of Shade's javascript stub file in your .cabal with a line like <code>ghc-options: --with-js=&lt;...&gt;/stubs.js</code>, where <code>&lt;...&gt;/stubs.js</code> is the path to the stub file <code>shade-haste/lib/stubs.js</code>.</p>
+
+<p>You will also need to include <a href="https://facebook.github.io/react">React</a> in your project. One option is to use <a href="http://bower.io/">Bower</a> and put the entry <code>"react": "~0.10.0"</code> in your <code>bower.json</code> file.</p>
+
+<p>Compiling your app and relocating the resulting javascript files can be done with a command like <code>haste-inst build &amp;&amp; mv src/*.js js/</code></p>
+
+<p>The <a href="https://github.com/takeoutweight/shade-todomvc">TodoMVC sample app</a> demonstrates one way to include the relevant generated Javascript in an html page. </p></article></div>

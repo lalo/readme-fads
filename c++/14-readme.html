@@ -1,0 +1,160 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-mosh-the-mobile-shell" class="anchor" href="#mosh-the-mobile-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mosh: the mobile shell</h1>
+
+<p>Mosh is a remote terminal application that supports intermittent
+connectivity, allows roaming, and provides speculative local echo
+and line editing of user keystrokes.</p>
+
+<p>It aims to support the typical interactive uses of SSH, plus:</p>
+
+<ul class="task-list">
+<li><p>Mosh keeps the session alive if the client goes to sleep and
+ wakes up later, or temporarily loses its Internet connection.</p></li>
+<li><p>Mosh allows the client and server to "roam" and change IP
+ addresses, while keeping the connection alive. Unlike SSH, Mosh
+ can be used while switching between Wi-Fi networks or from Wi-Fi
+ to cellular data to wired Ethernet.</p></li>
+<li>
+<p>The Mosh client runs a predictive model of the server's behavior
+ in the background and tries to guess intelligently how each
+ keystroke will affect the screen state. When it is confident in
+ its predictions, it will show them to the user while waiting for
+ confirmation from the server. Most typing and uses of the left-
+ and right-arrow keys can be echoed immediately.</p>
+
+<p>As a result, Mosh is usable on high-latency links, e.g. on a
+ cellular data connection or spotty Wi-Fi. In distinction from
+ previous attempts at local echo modes in other protocols, Mosh
+ works properly with full-screen applications such as emacs, vi,
+ alpine, and irssi, and automatically recovers from occasional
+ prediction errors within an RTT. On high-latency links, Mosh
+ underlines its predictions while they are outstanding and removes
+ the underline when they are confirmed by the server.</p>
+</li>
+</ul><p>Mosh does not support X forwarding or the non-interactive uses of SSH,
+including port forwarding.</p>
+
+<h2>
+<a name="user-content-other-features" class="anchor" href="#other-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other features</h2>
+
+<ul class="task-list">
+<li><p>Mosh adjusts its frame rate so as not to fill up network queues
+ on slow links, so "Control-C" always works within an RTT to halt
+ a runaway process.</p></li>
+<li><p>Mosh warns the user when it has not heard from the server
+ in a while.</p></li>
+<li><p>Mosh supports lossy links that lose a significant fraction
+ of their packets.</p></li>
+<li><p>Mosh handles some Unicode edge cases better than SSH and existing
+ terminal emulators by themselves, but requires a UTF-8
+ environment to run.</p></li>
+<li><p>Mosh leverages SSH to set up the connection and authenticate
+ users. Mosh does not contain any privileged (root) code.</p></li>
+</ul><h2>
+<a name="user-content-getting-mosh" class="anchor" href="#getting-mosh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Mosh</h2>
+
+<p><a href="http://mosh.mit.edu/#getting">The Mosh web site</a> has information about
+  packages for many operating systems, as well as instructions for building
+  from source.</p>
+
+<p>Note that <code>mosh-client</code> receives an AES session key as an environment
+  variable.  If you are porting Mosh to a new operating system, please make
+  sure that a running process's environment variables are not readable by other
+  users.  We have confirmed that this is the case on GNU/Linux, OS X, and
+  FreeBSD.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The <code>mosh-client</code> binary must exist on the user's machine, and the
+  <code>mosh-server</code> binary on the remote host.</p>
+
+<p>The user runs:</p>
+
+<pre><code>$ mosh [user@]host
+</code></pre>
+
+<p>If the <code>mosh-client</code> or <code>mosh-server</code> binaries live outside the user's
+  <code>$PATH</code>, <code>mosh</code> accepts the arguments <code>--client=PATH</code> and <code>--server=PATH</code> to
+  select alternate locations. More options are documented in the mosh(1) manual
+  page.</p>
+
+<p>There are <a href="http://mosh.mit.edu/#usage">more examples</a> and a
+  <a href="http://mosh.mit.edu/#faq">FAQ</a> on the Mosh web site.</p>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<p>The <code>mosh</code> program will SSH to <code>user@host</code> to establish the connection.
+  SSH may prompt the user for a password or use public-key
+  authentication to log in.</p>
+
+<p>From this point, <code>mosh</code> runs the <code>mosh-server</code> process (as the user)
+  on the server machine. The server process listens on a high UDP port
+  and sends its port number and an AES-128 secret key back to the
+  client over SSH. The SSH connection is then shut down and the
+  terminal session begins over UDP.</p>
+
+<p>If the client changes IP addresses, the server will begin sending
+  to the client on the new IP address within a few seconds.</p>
+
+<p>To function, Mosh requires UDP datagrams to be passed between client
+  and server. By default, <code>mosh</code> uses a port number between 60000 and
+  61000, but the user can select a particular port with the -p option.</p>
+
+<h2>
+<a name="user-content-advice-to-distributors" class="anchor" href="#advice-to-distributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advice to distributors</h2>
+
+<p>A note on compiler flags: Mosh is security-sensitive code. When making
+automated builds for a binary package, we recommend passing the option
+<code>--enable-compile-warnings=error</code> to <code>./configure</code>. On GNU/Linux with
+<code>g++</code> or <code>clang++</code>, the package should compile cleanly with
+<code>-Werror</code>. Please report a bug if it doesn't.</p>
+
+<p>Where available, Mosh builds with a variety of binary hardening flags
+such as <code>-fstack-protector-all</code>, <code>-D_FORTIFY_SOURCE=2</code>, etc.  These
+provide proactive security against the possibility of a memory
+corruption bug in Mosh or one of the libraries it uses.  For a full
+list of flags, search for <code>HARDEN</code> in <code>configure.ac</code>.  The <code>configure</code>
+script detects which flags are supported by your compiler, and enables
+them automatically.  To disable this detection, pass
+<code>--disable-hardening</code> to <code>./configure</code>.  Please report a bug if you
+have trouble with the default settings; we would like as many users as
+possible to be running a configuration as secure as possible.</p>
+
+<p>Mosh ships with a default optimization setting of <code>-O2</code>. Some
+distributors have asked about changing this to <code>-Os</code> (which causes a
+compiler to prefer space optimizations to time optimizations). We have
+benchmarked with the included <code>src/examples/benchmark</code> program to test
+this. The results are that <code>-O2</code> is 40% faster than <code>-Os</code> with g++ 4.6
+on GNU/Linux, and 16% faster than <code>-Os</code> with clang++ 3.1 on Mac OS
+X. In both cases, <code>-Os</code> did produce a smaller binary (by up to 40%,
+saving almost 200 kilobytes on disk). While Mosh is not especially CPU
+intensive and mostly sits idle when the user is not typing, we think
+the results suggest that <code>-O2</code> (the default) is preferable.</p>
+
+<h2>
+<a name="user-content-more-info" class="anchor" href="#more-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>More info</h2>
+
+<ul class="task-list">
+<li>
+<p>Mosh Web site:</p>
+
+<p><a href="http://mosh.mit.edu">http://mosh.mit.edu</a></p>
+</li>
+<li>
+<p><code>mosh-devel@mit.edu</code> mailing list:</p>
+
+<p><a href="http://mailman.mit.edu/mailman/listinfo/mosh-devel">http://mailman.mit.edu/mailman/listinfo/mosh-devel</a></p>
+</li>
+<li>
+<p><code>mosh-users@mit.edu</code> mailing list:</p>
+
+<p><a href="http://mailman.mit.edu/mailman/listinfo/mosh-users">http://mailman.mit.edu/mailman/listinfo/mosh-users</a></p>
+</li>
+<li>
+<p><code>#mosh</code> channel on <a href="http://freenode.net/">Freenode IRC</a></p>
+
+<p><a href="http://webchat.freenode.net/?channels=mosh">http://webchat.freenode.net/?channels=mosh</a></p>
+</li>
+</ul></article></div>

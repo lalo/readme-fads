@@ -1,0 +1,302 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-quick-summary" class="anchor" href="#quick-summary" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Summary</h1>
+
+<ul class="task-list">
+<li><p>Using the Mac OS X programs <em>pbpaste</em> and <em>pbcopy</em> under <em>tmux</em>
+does not work.<br>
+Other services and unpatched builds of <em>screen</em> are also affected.</p></li>
+<li><p>Certain undocumented, private API functions can fix the problem.</p></li>
+<li><p>Because the functions are private, undocumented, and unstable (one
+acquired an extra argument in 10.6), I think using a small wrapper
+program might be better than patching <em>tmux</em>.</p></li>
+</ul><p>Thus, my wrapper-based workaround:</p>
+
+<ol class="task-list">
+<li>
+<p>Compile <em>reattach-to-user-namespace</em> from this repository.<br>
+Make it available in your PATH (or use the absolute pathname in
+the next step).</p>
+
+<pre><code>make reattach-to-user-namespace &amp;&amp;
+cp reattach-to-user-namespace ~/bin
+</code></pre>
+
+<p>Alternatively, you can install it with <a href="http://www.macports.org"><em>MacPorts</em></a> or
+<a href="http://brew.sh"><em>Homebrew</em></a>:</p>
+
+<pre><code>port install tmux-pasteboard
+
+brew install reattach-to-user-namespace
+</code></pre>
+</li>
+<li>
+<p>Configure <em>tmux</em> to use this wrapper program to start the shell
+for each new window.</p>
+
+<p>In <code>.tmux.conf</code>:</p>
+
+<pre><code>set-option -g default-command "reattach-to-user-namespace -l zsh"
+</code></pre>
+
+<p>See the file <code>Usage.md</code> for other configuration and usage
+techniques (conditional use for cross-platform configurations,
+fine-grained usage, etc.)</p>
+</li>
+<li>
+<p>Restart your <em>tmux</em> server (or start a new one, or just
+reconfigure your existing one).</p>
+
+<p>To kill your existing <em>tmux</em> server (and everything running
+“inside” it!):</p>
+
+<pre><code>tmux kill-server
+</code></pre>
+</li>
+<li><p>Enjoy being able to use <em>pbpaste</em>, <em>pbcopy</em>, etc. in new shell
+windows.</p></li>
+</ol><h1>
+<a name="user-content-purpose-of-these-programs" class="anchor" href="#purpose-of-these-programs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Purpose of These Programs</h1>
+
+<p>The programs in this repository were created to diagnose and enable
+reliable access to the Mac OS X pasteboard for programs run under
+<a href="http://tmux.sourceforge.net/"><em>tmux</em></a> and unmodified versions of <a href="http://www.gnu.org/software/screen/"><em>screen</em></a>.</p>
+
+<p>See the “Beyond Pasteboard Access” section of the <code>Usage.md</code> file
+for other programs that benefit from the wrapper.</p>
+
+<h1>
+<a name="user-content-mac-os-x-pasteboard-access-under-tmux-and-screen" class="anchor" href="#mac-os-x-pasteboard-access-under-tmux-and-screen" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mac OS X Pasteboard Access Under <em>tmux</em> And <em>screen</em>
+</h1>
+
+<h2>
+<a name="user-content-the-problem" class="anchor" href="#the-problem" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Problem</h2>
+
+<p>The most commonly reported broken behavior is that the <a href="http://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man1/pbcopy.1.html"><em>pbcopy</em> and
+<em>pbpaste</em></a> command-line programs that come with Mac OS X fail to
+function properly when run under <em>tmux</em> and (sometimes) under
+“unpatched” <em>screen</em>.</p>
+
+<p>Apple has patched their builds of <em>screen</em> (included with Mac OS X)
+to fix the problem; the <a href="https://trac.macports.org/browser/trunk/dports/sysutils/screen/Portfile"><em>screen</em> “port”</a> in the <a href="http://www.macports.org/">MacPorts</a>
+system has <a href="https://trac.macports.org/browser/trunk/dports/sysutils/screen/files/patch-screen.c">adopted</a> Apple’s <em>screen</em> patches.</p>
+
+<p>Their <em>screen</em> patch allows (for example) the user to create
+a <em>screen</em> session under a normal GUI login session and access the
+pasteboard (inside the <em>screen</em> session) anytime that user is logged
+into the GUI. Programs that are run in a session of “unpatched” <em>screen</em> will
+only encounter the problem when the <em>screen</em> session outlives its
+parent Mac OS X login session (e.g. a normal GUI login or an SSH
+login).</p>
+
+<p>Third-party programs (run under <em>tmux</em> or unpatched <em>screen</em>) are
+also affected (e.g. non-GUI builds of <a href="http://www.vim.org/">Vim</a> <a href="http://vimhelp.appspot.com/version7.txt.html#added-7.3">7.3</a> can access
+the pasteboard when compiled with the <code>+clipboard</code> feature).</p>
+
+<h2>
+<a name="user-content-why-pasteboard-breaks" class="anchor" href="#why-pasteboard-breaks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Pasteboard Breaks</h2>
+
+<h3>
+<a name="user-content-access-to-the-mac-os-x-pasteboard-service" class="anchor" href="#access-to-the-mac-os-x-pasteboard-service" aria-hidden="true"><span class="octicon octicon-link"></span></a>Access to the Mac OS X Pasteboard Service</h3>
+
+<p>The pasteboard service in Mac OS X is registered in a "bootstrap
+namespace" (see Apple’s <a href="http://developer.apple.com/library/mac/#technotes/tn2083/_index.html">TN2083</a>). The namespaces exist in
+a hierarchy: “higher” namespaces include access to “lower”
+namespaces. A process in a lower namespace can not access higher
+namespaces. So, all process can access the lowest, “root” bootstrap
+namespace, but only processes in a higher namespace can access that
+namespace. Processes created as a part of a Mac OS X login session
+are automatically included in the user’s “per-user” bootstrap
+namespace. The pasteboard service is only available to processes in
+the per-user bootstrap namespace.</p>
+
+<h3>
+<a name="user-content-interaction-with-tmux" class="anchor" href="#interaction-with-tmux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interaction with <em>tmux</em>
+</h3>
+
+<p><em>tmux</em> uses the <em>daemon(3)</em> library function when starting its
+server process. In Mac OS X 10.5, Apple changed <em>daemon(3)</em> to move
+the resulting process from its original bootstrap namespace to the
+root bootstrap namespace. This means that the <em>tmux</em> server, and its
+children, will automatically and uncontrollably lose access to what
+would have been their original bootstrap namespace (i.e. the one
+that has access to the pasteboard service).</p>
+
+<h3>
+<a name="user-content-interaction-with-unpatched-screen" class="anchor" href="#interaction-with-unpatched-screen" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interaction with Unpatched <em>screen</em>
+</h3>
+
+<p>The situation with <em>screen</em> is a bit different since it does not use
+<em>daemon(3)</em>. Unpatched <em>screen</em>, and its children, only lose access
+to the per-user bootstrap namespace when its parent login session
+exits.</p>
+
+<h2>
+<a name="user-content-solution-space" class="anchor" href="#solution-space" aria-hidden="true"><span class="octicon octicon-link"></span></a>Solution Space</h2>
+
+<p>Apple (and MacPorts) have already handled <em>screen</em>. Apple prevents
+<em>screen</em> from losing access to the per-user bootstrap namespace by
+“migrating to [the] background session” (<a href="http://www.opensource.apple.com/source/screen/screen-12/patches/screen.c.diff">in 10.5</a> using
+<em>_vprocmgr_move_subset_to_user</em>) or “detach[ing] from console”
+(<a href="http://www.opensource.apple.com/source/screen/screen-19/screen/screen.c">in 10.6</a> using <em>_vprocmgr_detach_from_console</em>). For the
+purposes of <em>screen</em>, both of these let the <em>screen</em> process access
+the per-user bootstrap namespace even after the processes initial
+Mac OS X login session has ended.</p>
+
+<h3>
+<a name="user-content-patch-tmux" class="anchor" href="#patch-tmux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Patch <em>tmux</em>?</h3>
+
+<p>Ideally, we could port Apple’s patch to <em>tmux</em>. Practically, there
+are problems with a direct port.</p>
+
+<p>The undocumented, private function used in Apple’s 10.6 patch,
+<em>_vprocmgr_detach_from_console</em>, is not effective if called before
+<em>daemon(3)</em> (since it forcibly moves the process to the root
+bootstrap namespace); if called after <em>daemon(3)</em>, it just returns
+an error.</p>
+
+<p>The undocumented, private function used in Apple’s 10.5 patch,
+<em>_vprocmgr_move_subset_to_user</em>, is also available in 10.6 (though
+an extra parameter has been added to it in 10.6). Again, there is no
+point in calling it before <em>daemon(3)</em>, but it is effective if
+called after <em>daemon(3)</em>.</p>
+
+<p>The functionality of <em>_vprocmgr_move_subset_to_user</em> seems to be
+a sort of superset of that of <em>_vprocmgr_detach_from_console</em> in
+that both move to the <code>"Background"</code> session, but the former does
+some extra work that can attach to a user namespace even if the
+process has been previously moved out of it.</p>
+
+<p>So, another approach that works is to call either the private
+function after invoking a custom <em>daemon</em> that does not forcibly
+move its resulting process to the root bootstrap namespace (<em>tmux</em>
+even already has one).</p>
+
+<p>The fact that the signature of <em>_vprocmgr_move_subset_to_user</em>
+changed between 10.5 and 10.6 is a strong indication that Apple sees
+these functions as part of a private API that is liable to change or
+become available in any (major?) release. It seems inappropriate to
+ask upstream <em>tmux</em> to incorporate calls to functions such as these.
+It might be appropriate for MacPorts to apply a patch to its port
+though.</p>
+
+<h3>
+<a name="user-content-use-a-reattaching-wrapper-program" class="anchor" href="#use-a-reattaching-wrapper-program" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use a “Reattaching” Wrapper Program</h3>
+
+<p>While it would be nice to have the <em>tmux</em> server itself reattached
+to the per-user bootstrap namespace, it is probably enough to
+selectively reattach just some of its children. A small wrapper
+could do the work of reattaching to the appropriate namespace and
+then execing some other program that will (eventually) need
+access to the per-user namespace.</p>
+
+<p>Such a wrapper could be used to run <em>pbcopy</em>, <em>pbpaste</em>, <em>vim</em>, et
+cetera. This would require the user to remember to use the wrapper
+(or write scripts/shell-functions/aliases to always do it; or notice
+it fail then re-run it under the wrapper).</p>
+
+<p>A more automated solution that probably covers most of the problem
+scenarios for most users would be to set <em>tmux</em>’s <code>default-command</code>
+option so that new windows start shells via the wrapper by default.
+The major area this would not cover would be commands given directly
+to <code>new-session</code> and <code>new-window</code> (there are some other commands
+that start new children, but those are the major ones).</p>
+
+<h1>
+<a name="user-content-some-new-programs-for-your-consideration" class="anchor" href="#some-new-programs-for-your-consideration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Some New Programs For Your Consideration</h1>
+
+<h2>
+<a name="user-content-the-wrapper-program" class="anchor" href="#the-wrapper-program" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Wrapper Program</h2>
+
+<p>The <em>reattach-to-user-namespace</em> program implements the “wrapper”
+solution described above.</p>
+
+<pre><code>    reattach-to-user-namespace program args...
+</code></pre>
+
+<p>Its <code>-l</code> option causes it to rewrite the execed program’s <code>argv[0]</code> to
+start with a dash (<code>-</code>). Most shells take this as a signal that they should
+start as “login” shells.</p>
+
+<pre><code>    exec reattach-to-user-namespace -l "$SHELL"
+</code></pre>
+
+<p>In <code>.tmux.conf</code>:</p>
+
+<pre><code>    set-option -g default-command "reattach-to-user-namespace -l zsh"
+</code></pre>
+
+<h2>
+<a name="user-content-the-diagnostic-program" class="anchor" href="#the-diagnostic-program" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Diagnostic Program</h2>
+
+<p>The <em>test</em> program was created to easily examine the effects and
+interactions of some of the “functions of interest” (primarily
+<em>daemon(3)</em>, and the private “vproc” functions).</p>
+
+<p>Its arguments are interpreted as instructions to call various
+functions and/or display some result.</p>
+
+<p>Examples:</p>
+
+<p>Emulate calling <em>pbpaste</em> under plain <em>tmux</em>:</p>
+
+<pre><code>    ./test daemon=sys system=pbpaste
+</code></pre>
+
+<p>Emulate a <em>tmux</em> patch that would automatically reattach to the user
+namespace (also equivalent to using the wrapper program under an
+unpatched <em>tmux</em>):</p>
+
+<pre><code>    ./test daemon=sys move-to-user=10.6 system=pbpaste
+</code></pre>
+
+<p>Emulate a <em>tmux</em> patch that uses compat/daemon.c and “detaches from
+the console”:</p>
+
+<pre><code>    ./test daemon=ours deatch system=pbpaste
+</code></pre>
+
+<p>Demonstrate revocation of access to the per-user bootstrap namespace
+when the Mac OS X login session ends:</p>
+
+<pre><code>    # while logged into the GUI
+
+    # login session ends before pbpaste happens: failure
+    cp /dev/null /tmp/f &amp;&amp;
+    ssh localhost `pwd`/test \
+      daemon=ours \
+      msg=sleeping... sleep=1 msg='done\ sleeping' \
+      system=pbpaste 2\&gt; /tmp/f &amp;&amp;
+    { cat /tmp/f; tail -f /tmp/f; }
+
+    # pbpaste happens before login session ends: success
+    cp /dev/null /tmp/f &amp;&amp;
+    ssh localhost `pwd`/test \
+      daemon=ours \
+      msg=sleeping... msg='done\ sleeping' \
+      system=pbpaste 2\&gt; /tmp/f \; sleep 1 &amp;&amp;
+    { cat /tmp/f; tail -f /tmp/f; }
+</code></pre>
+
+<p>Test workarounds to prevent the above end-of-login revocation:</p>
+
+<pre><code>    # while logged into the GUI
+
+    # emulate tmux patched to move to the user namespace
+    # or, equivalently, unpatched *tmux* and wrapper
+    cp /dev/null /tmp/f &amp;&amp;
+    ssh localhost `pwd`/test \
+      daemon=sys \
+      move-to-user=10.6 \
+      msg=sleeping... sleep=1 msg='done\ sleeping' \
+      system=pbpaste 2\&gt; /tmp/f &amp;&amp;
+    { cat /tmp/f; tail -f /tmp/f; }
+
+    # emuate tmux patched to use compat/daemon + detach
+    cp /dev/null /tmp/f &amp;&amp;
+    ssh localhost `pwd`/test \
+      daemon=ours \
+      detach \
+      msg=sleeping... sleep=1 msg='done\ sleeping' \
+      system=pbpaste 2\&gt; /tmp/f &amp;&amp;
+    { cat /tmp/f; tail -f /tmp/f; }
+</code></pre></article></div>

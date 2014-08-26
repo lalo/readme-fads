@@ -1,0 +1,356 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-dapper---a-simple-object-mapper-for-net" class="anchor" href="#dapper---a-simple-object-mapper-for-net" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dapper - a simple object mapper for .Net</h1>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p>Dapper is a <a href="https://github.com/SamSaffron/dapper-dot-net/blob/master/Dapper%20NET40/SqlMapper.cs">single file</a> you can drop in to your project that will extend your IDbConnection interface.</p>
+
+<p>It provides 3 helpers:</p>
+
+<h2>
+<a name="user-content-execute-a-query-and-map-the-results-to-a-strongly-typed-list" class="anchor" href="#execute-a-query-and-map-the-results-to-a-strongly-typed-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execute a query and map the results to a strongly typed List</h2>
+
+<p>Note: all extension methods assume the connection is already open, they will fail if the connection is closed.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">static</span> <span class="n">IEnumerable</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">Query</span><span class="p">&lt;</span><span class="n">T</span><span class="p">&gt;(</span><span class="k">this</span> <span class="n">IDbConnection</span> <span class="n">cnn</span><span class="p">,</span> <span class="kt">string</span> <span class="n">sql</span><span class="p">,</span> <span class="kt">object</span> <span class="n">param</span> <span class="p">=</span> <span class="k">null</span><span class="p">,</span> <span class="n">SqlTransaction</span> <span class="n">transaction</span> <span class="p">=</span> <span class="k">null</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">buffered</span> <span class="p">=</span> <span class="k">true</span><span class="p">)</span>
+</pre></div>
+
+<p>Example usage:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">class</span> <span class="nc">Dog</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">Age</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="n">Guid</span> <span class="n">Id</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Name</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">float?</span> <span class="n">Weight</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">IgnoredProperty</span> <span class="p">{</span> <span class="k">get</span> <span class="p">{</span> <span class="k">return</span> <span class="m">1</span><span class="p">;</span> <span class="p">}</span> <span class="p">}</span>
+<span class="p">}</span>            
+
+<span class="kt">var</span> <span class="n">guid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+<span class="kt">var</span> <span class="n">dog</span> <span class="p">=</span> <span class="n">connection</span><span class="p">.</span><span class="n">Query</span><span class="p">&lt;</span><span class="n">Dog</span><span class="p">&gt;(</span><span class="s">"select Age = @Age, Id = @Id"</span><span class="p">,</span> <span class="k">new</span> <span class="p">{</span> <span class="n">Age</span> <span class="p">=</span> <span class="p">(</span><span class="kt">int?</span><span class="p">)</span><span class="k">null</span><span class="p">,</span> <span class="n">Id</span> <span class="p">=</span> <span class="n">guid</span> <span class="p">});</span>
+
+<span class="n">dog</span><span class="p">.</span><span class="n">Count</span><span class="p">()</span>
+    <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">1</span><span class="p">);</span>
+
+<span class="n">dog</span><span class="p">.</span><span class="n">First</span><span class="p">().</span><span class="n">Age</span>
+    <span class="p">.</span><span class="n">IsNull</span><span class="p">();</span>
+
+<span class="n">dog</span><span class="p">.</span><span class="n">First</span><span class="p">().</span><span class="n">Id</span>
+    <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="n">guid</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-execute-a-query-and-map-it-to-a-list-of-dynamic-objects" class="anchor" href="#execute-a-query-and-map-it-to-a-list-of-dynamic-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execute a query and map it to a list of dynamic objects</h2>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">static</span> <span class="n">IEnumerable</span><span class="p">&lt;</span><span class="kt">dynamic</span><span class="p">&gt;</span> <span class="n">Query</span> <span class="p">(</span><span class="k">this</span> <span class="n">IDbConnection</span> <span class="n">cnn</span><span class="p">,</span> <span class="kt">string</span> <span class="n">sql</span><span class="p">,</span> <span class="kt">object</span> <span class="n">param</span> <span class="p">=</span> <span class="k">null</span><span class="p">,</span> <span class="n">SqlTransaction</span> <span class="n">transaction</span> <span class="p">=</span> <span class="k">null</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">buffered</span> <span class="p">=</span> <span class="k">true</span><span class="p">)</span>
+</pre></div>
+
+<p>This method will execute SQL and return a dynamic list.</p>
+
+<p>Example usage:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">rows</span> <span class="p">=</span> <span class="n">connection</span><span class="p">.</span><span class="n">Query</span><span class="p">(</span><span class="s">"select 1 A, 2 B union all select 3, 4"</span><span class="p">);</span>
+
+<span class="p">((</span><span class="kt">int</span><span class="p">)</span><span class="n">rows</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="n">A</span><span class="p">)</span>
+   <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">1</span><span class="p">);</span>
+
+<span class="p">((</span><span class="kt">int</span><span class="p">)</span><span class="n">rows</span><span class="p">[</span><span class="m">0</span><span class="p">].</span><span class="n">B</span><span class="p">)</span>
+   <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">2</span><span class="p">);</span>
+
+<span class="p">((</span><span class="kt">int</span><span class="p">)</span><span class="n">rows</span><span class="p">[</span><span class="m">1</span><span class="p">].</span><span class="n">A</span><span class="p">)</span>
+   <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">3</span><span class="p">);</span>
+
+<span class="p">((</span><span class="kt">int</span><span class="p">)</span><span class="n">rows</span><span class="p">[</span><span class="m">1</span><span class="p">].</span><span class="n">B</span><span class="p">)</span>
+    <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">4</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-execute-a-command-that-returns-no-results" class="anchor" href="#execute-a-command-that-returns-no-results" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execute a Command that returns no results</h2>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">static</span> <span class="kt">int</span> <span class="nf">Execute</span><span class="p">(</span><span class="k">this</span> <span class="n">IDbConnection</span> <span class="n">cnn</span><span class="p">,</span> <span class="kt">string</span> <span class="n">sql</span><span class="p">,</span> <span class="kt">object</span> <span class="n">param</span> <span class="p">=</span> <span class="k">null</span><span class="p">,</span> <span class="n">SqlTransaction</span> <span class="n">transaction</span> <span class="p">=</span> <span class="k">null</span><span class="p">)</span>
+</pre></div>
+
+<p>Example usage:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">connection</span><span class="p">.</span><span class="n">Execute</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">  set nocount on </span>
+<span class="s">  create table #t(i int) </span>
+<span class="s">  set nocount off </span>
+<span class="s">  insert #t </span>
+<span class="s">  select @a a union all select @b </span>
+<span class="s">  set nocount on </span>
+<span class="s">  drop table #t"</span><span class="p">,</span> <span class="k">new</span> <span class="p">{</span><span class="n">a</span><span class="p">=</span><span class="m">1</span><span class="p">,</span> <span class="n">b</span><span class="p">=</span><span class="m">2</span> <span class="p">})</span>
+   <span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">2</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-execute-a-command-multiple-times" class="anchor" href="#execute-a-command-multiple-times" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execute a Command multiple times</h2>
+
+<p>The same signature also allows you to conveniently and efficiently execute a command multiple times (for example to bulk-load data)</p>
+
+<p>Example usage:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">connection</span><span class="p">.</span><span class="n">Execute</span><span class="p">(</span><span class="s">@"insert MyTable(colA, colB) values (@a, @b)"</span><span class="p">,</span>
+    <span class="k">new</span><span class="p">[]</span> <span class="p">{</span> <span class="k">new</span> <span class="p">{</span> <span class="n">a</span><span class="p">=</span><span class="m">1</span><span class="p">,</span> <span class="n">b</span><span class="p">=</span><span class="m">1</span> <span class="p">},</span> <span class="k">new</span> <span class="p">{</span> <span class="n">a</span><span class="p">=</span><span class="m">2</span><span class="p">,</span> <span class="n">b</span><span class="p">=</span><span class="m">2</span> <span class="p">},</span> <span class="k">new</span> <span class="p">{</span> <span class="n">a</span><span class="p">=</span><span class="m">3</span><span class="p">,</span> <span class="n">b</span><span class="p">=</span><span class="m">3</span> <span class="p">}</span> <span class="p">}</span>
+  <span class="p">).</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">3</span><span class="p">);</span> <span class="c1">// 3 rows inserted: "1,1", "2,2" and "3,3"</span>
+</pre></div>
+
+<p>This works for any parameter that implements IEnumerable for some T.</p>
+
+<h2>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h2>
+
+<p>A key feature of Dapper is performance. The following metrics show how long it takes to execute 500 SELECT statements against a DB and map the data returned to objects.</p>
+
+<p>The performance tests are broken in to 3 lists:</p>
+
+<ul class="task-list">
+<li>POCO serialization for frameworks that support pulling static typed objects from the DB. Using raw SQL.</li>
+<li>Dynamic serialization for frameworks that support returning dynamic lists of objects.</li>
+<li>Typical framework usage. Often typical framework usage differs from the optimal usage performance wise. Often it will not involve writing SQL.</li>
+</ul><h3>
+<a name="user-content-performance-of-select-mapping-over-500-iterations---poco-serialization" class="anchor" href="#performance-of-select-mapping-over-500-iterations---poco-serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance of SELECT mapping over 500 iterations - POCO serialization</h3>
+
+<table>
+<tr>
+<th>Method</th>
+        <th>Duration</th>       
+        <th>Remarks</th>
+    </tr>
+<tr>
+<td>Hand coded (using a <code>SqlDataReader</code>)</td>
+        <td>47ms</td>
+        <td rowspan="9"><a href="http://www.toptensoftware.com/Articles/94/PetaPoco-More-Speed">Can be faster</a></td>
+    </tr>
+<tr>
+<td>Dapper <code>ExecuteMapperQuery</code>
+</td>
+        <td>49ms</td>
+    </tr>
+<tr>
+<td>
+<a href="https://github.com/ServiceStack/ServiceStack.OrmLite">ServiceStack.OrmLite</a> (QueryById)</td>
+        <td>50ms</td>
+    </tr>
+<tr>
+<td><a href="http://www.toptensoftware.com/petapoco/">PetaPoco</a></td>
+        <td>52ms</td>
+    </tr>
+<tr>
+<td>BLToolkit</td>
+        <td>80ms</td>
+    </tr>
+<tr>
+<td>SubSonic CodingHorror</td>
+        <td>107ms</td>
+    </tr>
+<tr>
+<td>NHibernate SQL</td>
+        <td>104ms</td>
+    </tr>
+<tr>
+<td>Linq 2 SQL <code>ExecuteQuery</code>
+</td>
+        <td>181ms</td>
+    </tr>
+<tr>
+<td>Entity framework <code>ExecuteStoreQuery</code>
+</td>
+        <td>631ms</td>
+    </tr>
+</table><h3>
+<a name="user-content-performance-of-select-mapping-over-500-iterations---dynamic-serialization" class="anchor" href="#performance-of-select-mapping-over-500-iterations---dynamic-serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance of SELECT mapping over 500 iterations - dynamic serialization</h3>
+
+<table>
+<tr>
+<th>Method</th>
+        <th>Duration</th>       
+        <th>Remarks</th>
+    </tr>
+<tr>
+<td>Dapper <code>ExecuteMapperQuery</code> (dynamic)</td>
+        <td>48ms</td>
+        <td rowspan="3"> </td>
+    </tr>
+<tr>
+<td><a href="http://blog.wekeroad.com/helpy-stuff/and-i-shall-call-it-massive">Massive</a></td>
+        <td>52ms</td>
+    </tr>
+<tr>
+<td><a href="https://github.com/markrendle/Simple.Data">Simple.Data</a></td>
+        <td>95ms</td>
+    </tr>
+</table><h3>
+<a name="user-content-performance-of-select-mapping-over-500-iterations---typical-usage" class="anchor" href="#performance-of-select-mapping-over-500-iterations---typical-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance of SELECT mapping over 500 iterations - typical usage</h3>
+
+<table>
+<tr>
+<th>Method</th>
+        <th>Duration</th>       
+        <th>Remarks</th>
+    </tr>
+<tr>
+<td>Linq 2 SQL CompiledQuery</td>
+        <td>81ms</td>
+        <td>Not super typical involves complex code</td>
+    </tr>
+<tr>
+<td>NHibernate HQL</td>
+        <td>118ms</td>
+        <td> </td>
+    </tr>
+<tr>
+<td>Linq 2 SQL</td>
+        <td>559ms</td>
+        <td> </td>
+    </tr>
+<tr>
+<td>Entity framework</td>
+        <td>859ms</td>
+        <td> </td>
+    </tr>
+<tr>
+<td>SubSonic ActiveRecord.SingleOrDefault</td>
+        <td>3619ms</td>
+        <td> </td>
+    </tr>
+</table><p>Performance benchmarks are available <a href="https://github.com/SamSaffron/dapper-dot-net/blob/master/Tests/PerformanceTests.cs">here</a></p>
+
+<p>Feel free to submit patches that include other ORMs - when running benchmarks, be sure to compile in Release and not attach a debugger (ctrl F5)</p>
+
+<h2>
+<a name="user-content-parameterized-queries" class="anchor" href="#parameterized-queries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parameterized queries</h2>
+
+<p>Parameters are passed in as anonymous classes. This allow you to name your parameters easily and gives you the ability to simply cut-and-paste SQL snippets and run them in Query analyzer.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">new</span> <span class="p">{</span><span class="n">A</span> <span class="p">=</span> <span class="m">1</span><span class="p">,</span> <span class="n">B</span> <span class="p">=</span> <span class="s">"b"</span><span class="p">}</span> <span class="c1">// A will be mapped to the param @A, B to the param @B </span>
+</pre></div>
+
+<h2>
+<a name="user-content-list-support" class="anchor" href="#list-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>List Support</h2>
+
+<p>Dapper allow you to pass in IEnumerable and will automatically parameterize your query.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">connection</span><span class="p">.</span><span class="n">Query</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(</span><span class="s">"select * from (select 1 as Id union all select 2 union all select 3) as X where Id in @Ids"</span><span class="p">,</span> <span class="k">new</span> <span class="p">{</span> <span class="n">Ids</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">int</span><span class="p">[]</span> <span class="p">{</span> <span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">3</span> <span class="p">});</span>
+</pre></div>
+
+<p>Will be translated to:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">select</span> <span class="p">*</span> <span class="k">from</span> <span class="p">(</span><span class="k">select</span> <span class="m">1</span> <span class="k">as</span> <span class="n">Id</span> <span class="n">union</span> <span class="n">all</span> <span class="k">select</span> <span class="m">2</span> <span class="n">union</span> <span class="n">all</span> <span class="k">select</span> <span class="m">3</span><span class="p">)</span> <span class="k">as</span> <span class="n">X</span> <span class="k">where</span> <span class="n">Id</span> <span class="k">in</span> <span class="p">(</span><span class="n">@Ids1</span><span class="p">,</span> <span class="n">@Ids2</span><span class="p">,</span> <span class="n">@Ids3</span><span class="p">)</span><span class="s">" // @Ids1 = 1 , @Ids2 = 2 , @Ids2 = 3</span>
+</pre></div>
+
+<h2>
+<a name="user-content-buffered-vs-unbuffered-readers" class="anchor" href="#buffered-vs-unbuffered-readers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Buffered vs Unbuffered readers</h2>
+
+<p>Dapper's default behavior is to execute your sql and buffer the entire reader on return. This is ideal in most cases as it minimizes shared locks in the db and cuts down on db network time.</p>
+
+<p>However when executing huge queries you may need to minimize memory footprint and only load objects as needed. To do so pass, buffered: false into the Query method.</p>
+
+<h2>
+<a name="user-content-multi-mapping" class="anchor" href="#multi-mapping" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi Mapping</h2>
+
+<p>Dapper allows you to map a single row to multiple objects. This is a key feature if you want to avoid extraneous querying and eager load associations.</p>
+
+<p>Example:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">sql</span> <span class="p">=</span> 
+<span class="s">@"select * from #Posts p </span>
+<span class="s">left join #Users u on u.Id = p.OwnerId </span>
+<span class="s">Order by p.Id"</span><span class="p">;</span>
+
+<span class="kt">var</span> <span class="n">data</span> <span class="p">=</span> <span class="n">connection</span><span class="p">.</span><span class="n">Query</span><span class="p">&lt;</span><span class="n">Post</span><span class="p">,</span> <span class="n">User</span><span class="p">,</span> <span class="n">Post</span><span class="p">&gt;(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">post</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span> <span class="n">post</span><span class="p">.</span><span class="n">Owner</span> <span class="p">=</span> <span class="n">user</span><span class="p">;</span> <span class="k">return</span> <span class="n">post</span><span class="p">;});</span>
+<span class="kt">var</span> <span class="n">post</span> <span class="p">=</span> <span class="n">data</span><span class="p">.</span><span class="n">First</span><span class="p">();</span>
+
+<span class="n">post</span><span class="p">.</span><span class="n">Content</span><span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="s">"Sams Post1"</span><span class="p">);</span>
+<span class="n">post</span><span class="p">.</span><span class="n">Id</span><span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">1</span><span class="p">);</span>
+<span class="n">post</span><span class="p">.</span><span class="n">Owner</span><span class="p">.</span><span class="n">Name</span><span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="s">"Sam"</span><span class="p">);</span>
+<span class="n">post</span><span class="p">.</span><span class="n">Owner</span><span class="p">.</span><span class="n">Id</span><span class="p">.</span><span class="n">IsEqualTo</span><span class="p">(</span><span class="m">99</span><span class="p">);</span>
+</pre></div>
+
+<p><strong>important note</strong> Dapper assumes your Id columns are named "Id" or "id", if your primary key is different or you would like to split the wide row at point other than "Id", use the optional 'splitOn' parameter.</p>
+
+<h2>
+<a name="user-content-multiple-results" class="anchor" href="#multiple-results" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multiple Results</h2>
+
+<p>Dapper allows you to process multiple result grids in a single query.</p>
+
+<p>Example:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">sql</span> <span class="p">=</span> 
+<span class="s">@"</span>
+<span class="s">select * from Customers where CustomerId = @id</span>
+<span class="s">select * from Orders where CustomerId = @id</span>
+<span class="s">select * from Returns where CustomerId = @id"</span><span class="p">;</span>
+
+<span class="k">using</span> <span class="p">(</span><span class="kt">var</span> <span class="n">multi</span> <span class="p">=</span> <span class="n">connection</span><span class="p">.</span><span class="n">QueryMultiple</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="k">new</span> <span class="p">{</span><span class="n">id</span><span class="p">=</span><span class="n">selectedId</span><span class="p">}))</span>
+<span class="p">{</span>
+   <span class="kt">var</span> <span class="n">customer</span> <span class="p">=</span> <span class="n">multi</span><span class="p">.</span><span class="n">Read</span><span class="p">&lt;</span><span class="n">Customer</span><span class="p">&gt;().</span><span class="n">Single</span><span class="p">();</span>
+   <span class="kt">var</span> <span class="n">orders</span> <span class="p">=</span> <span class="n">multi</span><span class="p">.</span><span class="n">Read</span><span class="p">&lt;</span><span class="n">Order</span><span class="p">&gt;().</span><span class="n">ToList</span><span class="p">();</span>
+   <span class="kt">var</span> <span class="n">returns</span> <span class="p">=</span> <span class="n">multi</span><span class="p">.</span><span class="n">Read</span><span class="p">&lt;</span><span class="n">Return</span><span class="p">&gt;().</span><span class="n">ToList</span><span class="p">();</span>
+   <span class="p">...</span>
+<span class="p">}</span> 
+</pre></div>
+
+<h2>
+<a name="user-content-stored-procedures" class="anchor" href="#stored-procedures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stored Procedures</h2>
+
+<p>Dapper supports fully stored procs:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">user</span> <span class="p">=</span> <span class="n">cnn</span><span class="p">.</span><span class="n">Query</span><span class="p">&lt;</span><span class="n">User</span><span class="p">&gt;(</span><span class="s">"spGetUser"</span><span class="p">,</span> <span class="k">new</span> <span class="p">{</span><span class="n">Id</span> <span class="p">=</span> <span class="m">1</span><span class="p">},</span> 
+        <span class="n">commandType</span><span class="p">:</span> <span class="n">CommandType</span><span class="p">.</span><span class="n">StoredProcedure</span><span class="p">).</span><span class="n">First</span><span class="p">();}}}</span>
+</pre></div>
+
+<p>If you want something more fancy, you can do:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">p</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DynamicParameters</span><span class="p">();</span>
+<span class="n">p</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">"@a"</span><span class="p">,</span> <span class="m">11</span><span class="p">);</span>
+<span class="n">p</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">"@b"</span><span class="p">,</span> <span class="n">dbType</span><span class="p">:</span> <span class="n">DbType</span><span class="p">.</span><span class="n">Int32</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">ParameterDirection</span><span class="p">.</span><span class="n">Output</span><span class="p">);</span>
+<span class="n">p</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">"@c"</span><span class="p">,</span> <span class="n">dbType</span><span class="p">:</span> <span class="n">DbType</span><span class="p">.</span><span class="n">Int32</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">ParameterDirection</span><span class="p">.</span><span class="n">ReturnValue</span><span class="p">);</span>
+
+<span class="n">cnn</span><span class="p">.</span><span class="n">Execute</span><span class="p">(</span><span class="s">"spMagicProc"</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">commandType</span><span class="p">:</span> <span class="n">commandType</span><span class="p">.</span><span class="n">StoredProcedure</span><span class="p">);</span> 
+
+<span class="kt">int</span> <span class="n">b</span> <span class="p">=</span> <span class="n">p</span><span class="p">.</span><span class="n">Get</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(</span><span class="s">"@b"</span><span class="p">);</span>
+<span class="kt">int</span> <span class="n">c</span> <span class="p">=</span> <span class="n">p</span><span class="p">.</span><span class="n">Get</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(</span><span class="s">"@c"</span><span class="p">);</span> 
+</pre></div>
+
+<h2>
+<a name="user-content-ansi-strings-and-varchar" class="anchor" href="#ansi-strings-and-varchar" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ansi Strings and varchar</h2>
+
+<p>Dapper supports varchar params, if you are executing a where clause on a varchar column using a param be sure to pass it in this way:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">Query</span><span class="p">&lt;</span><span class="n">Thing</span><span class="p">&gt;(</span><span class="s">"select * from Thing where Name = @Name"</span><span class="p">,</span> <span class="k">new</span> <span class="p">{</span><span class="n">Name</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DbString</span> <span class="p">{</span> <span class="n">Value</span> <span class="p">=</span> <span class="s">"abcde"</span><span class="p">,</span> <span class="n">IsFixedLength</span> <span class="p">=</span> <span class="k">true</span><span class="p">,</span> <span class="n">Length</span> <span class="p">=</span> <span class="m">10</span><span class="p">,</span> <span class="n">IsAnsi</span> <span class="p">=</span> <span class="k">true</span> <span class="p">});</span>
+</pre></div>
+
+<p>On Sql Server it is crucial to use the unicode when querying unicode and ansi when querying non unicode.</p>
+
+<h2>
+<a name="user-content-limitations-and-caveats" class="anchor" href="#limitations-and-caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations and caveats</h2>
+
+<p>Dapper caches information about every query it runs, this allow it to materialize objects quickly and process parameters quickly. The current implementation caches this information in a ConcurrentDictionary object. The objects it stores are never flushed. If you are generating SQL strings on the fly without using parameters it is possible you will hit memory issues. We may convert the dictionaries to an LRU Cache.</p>
+
+<p>Dapper's simplicity means that many feature that ORMs ship with are stripped out, there is no identity map, there are no helpers for update / select and so on.</p>
+
+<p>Dapper does not manage your connection's lifecycle, it assumes the connection it gets is open AND has no existing datareaders enumerating (unless MARS is enabled)</p>
+
+<h2>
+<a name="user-content-will-dapper-work-with-my-db-provider" class="anchor" href="#will-dapper-work-with-my-db-provider" aria-hidden="true"><span class="octicon octicon-link"></span></a>Will dapper work with my db provider?</h2>
+
+<p>Dapper has no DB specific implementation details, it works across all .net ado providers including sqlite, sqlce, firebird, oracle, MySQL and SQL Server</p>
+
+<h2>
+<a name="user-content-do-you-have-a-comprehensive-list-of-examples" class="anchor" href="#do-you-have-a-comprehensive-list-of-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Do you have a comprehensive list of examples?</h2>
+
+<p>Dapper has a comprehensive test suite in the <a href="https://github.com/SamSaffron/dapper-dot-net/blob/master/Tests/Tests.cs">test project</a></p>
+
+<h2>
+<a name="user-content-who-is-using-this" class="anchor" href="#who-is-using-this" aria-hidden="true"><span class="octicon octicon-link"></span></a>Who is using this?</h2>
+
+<p>Dapper is in production use at:</p>
+
+<p><a href="http://stackoverflow.com/">Stack Overflow</a>, <a href="http://www.jitbit.com/helpdesk-software/">helpdesk</a></p>
+
+<p>(if you would like to be listed here let me know)</p></article></div>

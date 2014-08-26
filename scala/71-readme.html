@@ -1,0 +1,552 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-play2x-module-for-authentication-and-authorization-" class="anchor" href="#play2x-module-for-authentication-and-authorization-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Play2.x module for Authentication and Authorization <a href="http://travis-ci.org/t2v/play2-auth"><img src="https://camo.githubusercontent.com/9630b9e4c2e9086154d495983fe0c1ab3b930cb0/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f7432762f706c6179322d617574682e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/t2v/play2-auth.png" style="max-width:100%;"></a>
+</h1>
+
+<p>This module offers Authentication and Authorization features to Play2.x applications</p>
+
+<h2>
+<a name="user-content-target" class="anchor" href="#target" aria-hidden="true"><span class="octicon octicon-link"></span></a>Target</h2>
+
+<p>This module targets the <strong>Scala</strong> version of <strong>Play2.x</strong>.</p>
+
+<p>For the Java version of Play2.x, there is an authorization module called <a href="https://github.com/schaloner/deadbolt-2">Deadbolt 2</a>.</p>
+
+<h2>
+<a name="user-content-motivation" class="anchor" href="#motivation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Motivation</h2>
+
+<h3>
+<a name="user-content-play2xs-existing-security-trait" class="anchor" href="#play2xs-existing-security-trait" aria-hidden="true"><span class="octicon octicon-link"></span></a>Play2.x's Existing Security trait</h3>
+
+<p>The existing <code>Security</code> trait in Play2.x API does not define an identifier that identifies a user.</p>
+
+<p>If you use an Email or a userID as an identier, 
+users can not invalidate their session if the session cookie is intercepted.</p>
+
+<p>This module creates a unique SessionID using a secure random number generator.
+Even if the sessionId cookie is intercepted, users can invalidate the session by logging in again. 
+Your application can expire sessions after a set time limit.</p>
+
+<h3>
+<a name="user-content-flexiblity" class="anchor" href="#flexiblity" aria-hidden="true"><span class="octicon octicon-link"></span></a>Flexiblity</h3>
+
+<p>Since the <code>Security</code> trait in Play2.x API returns <code>Action</code>, 
+complicated action methods wind up deeply nested.</p>
+
+<p>Play2x-Auth provides an interface that returns an <a href="http://www.scala-lang.org/api/current/scala/util/Either.html"><code>Either[PlainResult, User]</code></a>
+making writing complicated action methods easier.   <a href="http://www.scala-lang.org/api/current/scala/util/Either.html"><code>Either</code></a> is a wrapper similar to <code>Option</code></p>
+
+<h2>
+<a name="user-content-previous-version" class="anchor" href="#previous-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Previous Version</h2>
+
+<p>for Play2.2.x, Please see <a href="https://github.com/t2v/play2-auth/blob/release0.11.0/README.md">previous version 0.11.0 README</a></p>
+
+<p>for Play2.1.x, Please see <a href="https://github.com/t2v/play2-auth/tree/release0.10.1">previous version 0.10.1 README</a></p>
+
+<p>for Play2.0.x, Please see <a href="https://github.com/t2v/play2-auth/tree/release0.7">previous version 0.7 README</a></p>
+
+<h2>
+<a name="user-content-attention" class="anchor" href="#attention" aria-hidden="true"><span class="octicon octicon-link"></span></a>Attention</h2>
+
+<p><strong>Since Play2.3's <code>SimpleResult</code> is renamed to <code>Result</code>, The play2.auth trait signatures are changed at version 0.12.0</strong></p>
+
+<p><strong>Since Play2.2's <code>Result</code> is deprecated, The play2.auth trait signatures are changed at version 0.11.0</strong></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Add dependency declarations into your <code>Build.scala</code> or <code>build.sbt</code> file:</p>
+
+<ul class="task-list">
+<li>
+<p><strong>for Play2.3.x</strong></p>
+
+<pre><code>"jp.t2v" %% "play2-auth"      % "0.12.0",
+"jp.t2v" %% "play2-auth-test" % "0.12.0" % "test"
+</code></pre>
+</li>
+</ul><p>For example your <code>Build.scala</code> might look like this:</p>
+
+<div class="highlight highlight-scala"><pre>  <span class="k">val</span> <span class="n">appDependencies</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span>
+    <span class="s">"jp.t2v"</span> <span class="o">%%</span> <span class="s">"play2-auth"</span>      <span class="o">%</span> <span class="s">"0.12.0"</span><span class="o">,</span>
+    <span class="s">"jp.t2v"</span> <span class="o">%%</span> <span class="s">"play2-auth-test"</span> <span class="o">%</span> <span class="s">"0.12.0"</span> <span class="o">%</span> <span class="s">"test"</span>
+  <span class="o">)</span>
+</pre></div>
+
+<p>You don't need to create a <code>play.plugins</code> file.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<ol class="task-list">
+<li>
+<p>First create a trait that extends <code>jp.t2v.lab.play2.auth.AuthConfig</code> in <code>app/controllers</code>.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Example</span>
+<span class="k">trait</span> <span class="nc">AuthConfigImpl</span> <span class="k">extends</span> <span class="nc">AuthConfig</span> <span class="o">{</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * A type that is used to identify a user.</span>
+<span class="cm">   * `String`, `Int`, `Long` and so on.</span>
+<span class="cm">   */</span>
+  <span class="k">type</span> <span class="kt">Id</span> <span class="o">=</span> <span class="nc">String</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * A type that represents a user in your application.</span>
+<span class="cm">   * `User`, `Account` and so on.</span>
+<span class="cm">   */</span>
+  <span class="k">type</span> <span class="kt">User</span> <span class="o">=</span> <span class="nc">Account</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * A type that is defined by every action for authorization.</span>
+<span class="cm">   * This sample uses the following trait:</span>
+<span class="cm">   *</span>
+<span class="cm">   * sealed trait Permission</span>
+<span class="cm">   * case object Administrator extends Permission</span>
+<span class="cm">   * case object NormalUser extends Permission</span>
+<span class="cm">   */</span>
+  <span class="k">type</span> <span class="kt">Authority</span> <span class="o">=</span> <span class="nc">Permission</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * A `ClassTag` is used to retrieve an id from the Cache API.</span>
+<span class="cm">   * Use something like this:</span>
+<span class="cm">   */</span>
+  <span class="k">val</span> <span class="n">idTag</span><span class="k">:</span> <span class="kt">ClassTag</span><span class="o">[</span><span class="kt">Id</span><span class="o">]</span> <span class="k">=</span> <span class="n">classTag</span><span class="o">[</span><span class="kt">Id</span><span class="o">]</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * The session timeout in seconds</span>
+<span class="cm">   */</span>
+  <span class="k">val</span> <span class="n">sessionTimeoutInSeconds</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">3600</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * A function that returns a `User` object from an `Id`.</span>
+<span class="cm">   * You can alter the procedure to suit your application.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">resolveUser</span><span class="o">(</span><span class="n">id</span><span class="k">:</span> <span class="kt">Id</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">User</span><span class="o">]]</span> <span class="k">=</span> <span class="nc">Account</span><span class="o">.</span><span class="n">findById</span><span class="o">(</span><span class="n">id</span><span class="o">)</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Where to redirect the user after a successful login.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">loginSucceeded</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span>
+    <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">Redirect</span><span class="o">(</span><span class="n">routes</span><span class="o">.</span><span class="nc">Message</span><span class="o">.</span><span class="n">main</span><span class="o">))</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Where to redirect the user after logging out</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">logoutSucceeded</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span>
+    <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">Redirect</span><span class="o">(</span><span class="n">routes</span><span class="o">.</span><span class="nc">Application</span><span class="o">.</span><span class="n">login</span><span class="o">))</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * If the user is not logged in and tries to access a protected resource then redirct them as follows:</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">authenticationFailed</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span>
+    <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">Redirect</span><span class="o">(</span><span class="n">routes</span><span class="o">.</span><span class="nc">Application</span><span class="o">.</span><span class="n">login</span><span class="o">))</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * If authorization failed (usually incorrect password) redirect the user as follows:</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">authorizationFailed</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span> 
+    <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">Forbidden</span><span class="o">(</span><span class="s">"no permission"</span><span class="o">))</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * A function that determines what `Authority` a user has.</span>
+<span class="cm">   * You should alter this procedure to suit your application.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">authorize</span><span class="o">(</span><span class="n">user</span><span class="k">:</span> <span class="kt">User</span><span class="o">,</span> <span class="n">authority</span><span class="k">:</span> <span class="kt">Authority</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span> <span class="o">{</span>
+    <span class="o">(</span><span class="n">user</span><span class="o">.</span><span class="n">permission</span><span class="o">,</span> <span class="n">authority</span><span class="o">)</span> <span class="k">match</span> <span class="o">{</span>
+      <span class="k">case</span> <span class="o">(</span><span class="nc">Administrator</span><span class="o">,</span> <span class="k">_</span><span class="o">)</span>       <span class="k">=&gt;</span> <span class="kc">true</span>
+      <span class="k">case</span> <span class="o">(</span><span class="nc">NormalUser</span><span class="o">,</span> <span class="nc">NormalUser</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="kc">true</span>
+      <span class="k">case</span> <span class="k">_</span>                        <span class="k">=&gt;</span> <span class="kc">false</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Whether use the secure option or not use it in the cookie.</span>
+<span class="cm">   * However default is false, I strongly recommend using true in a production.</span>
+<span class="cm">   */</span>
+  <span class="k">override</span> <span class="k">lazy</span> <span class="k">val</span> <span class="n">cookieSecureOption</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="n">play</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="nc">Play</span><span class="o">.</span><span class="n">isProd</span><span class="o">(</span><span class="n">play</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="nc">Play</span><span class="o">.</span><span class="n">current</span><span class="o">)</span>
+
+<span class="o">}</span>
+</pre></div>
+</li>
+<li>
+<p>Next create a <code>Controller</code> that defines both login and logout actions.
+This <code>Controller</code> mixes in the <code>jp.t2v.lab.play2.auth.LoginLogout</code> trait and
+the trait that you created in first step.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Application</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">LoginLogout</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="cm">/** Your application's login form.  Alter it to fit your application */</span>
+  <span class="k">val</span> <span class="n">loginForm</span> <span class="k">=</span> <span class="nc">Form</span> <span class="o">{</span>
+    <span class="n">mapping</span><span class="o">(</span><span class="s">"email"</span> <span class="o">-&gt;</span> <span class="n">email</span><span class="o">,</span> <span class="s">"password"</span> <span class="o">-&gt;</span> <span class="n">text</span><span class="o">)(</span><span class="nc">Account</span><span class="o">.</span><span class="n">authenticate</span><span class="o">)(</span><span class="k">_</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">u</span> <span class="k">=&gt;</span> <span class="o">(</span><span class="n">u</span><span class="o">.</span><span class="n">email</span><span class="o">,</span> <span class="s">""</span><span class="o">)))</span>
+      <span class="o">.</span><span class="n">verifying</span><span class="o">(</span><span class="s">"Invalid email or password"</span><span class="o">,</span> <span class="n">result</span> <span class="k">=&gt;</span> <span class="n">result</span><span class="o">.</span><span class="n">isDefined</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="cm">/** Alter the login page action to suit your application. */</span>
+  <span class="k">def</span> <span class="n">login</span> <span class="k">=</span> <span class="nc">Action</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">login</span><span class="o">(</span><span class="n">loginForm</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Return the `gotoLogoutSucceeded` method's result in the logout action.</span>
+<span class="cm">   *</span>
+<span class="cm">   * Since the `gotoLogoutSucceeded` returns `Future[Result]`,</span>
+<span class="cm">   * you can add a procedure like the following.</span>
+<span class="cm">   *</span>
+<span class="cm">   *   gotoLogoutSucceeded.map(_.flashing(</span>
+<span class="cm">   *     "success" -&gt; "You've been logged out"</span>
+<span class="cm">   *   ))</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">logout</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="c1">// do something...</span>
+    <span class="n">gotoLogoutSucceeded</span>
+  <span class="o">}</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Return the `gotoLoginSucceeded` method's result in the login action.</span>
+<span class="cm">   *</span>
+<span class="cm">   * Since the `gotoLoginSucceeded` returns `Future[Result]`,</span>
+<span class="cm">   * you can add a procedure like the `gotoLogoutSucceeded`.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">authenticate</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="n">loginForm</span><span class="o">.</span><span class="n">bindFromRequest</span><span class="o">.</span><span class="n">fold</span><span class="o">(</span>
+      <span class="n">formWithErrors</span> <span class="k">=&gt;</span> <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">BadRequest</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">login</span><span class="o">(</span><span class="n">formWithErrors</span><span class="o">))),</span>
+      <span class="n">user</span> <span class="k">=&gt;</span> <span class="n">gotoLoginSucceeded</span><span class="o">(</span><span class="n">user</span><span class="o">.</span><span class="n">get</span><span class="o">.</span><span class="n">id</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+</li>
+<li>
+<p>Lastly, mix <code>jp.t2v.lab.play2.auth.AuthElement</code> trait and the trait that was created in the first step
+into your Controllers:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Message</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">AuthElement</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="c1">// The `StackAction` method</span>
+  <span class="c1">//    takes `(AuthorityKey, Authority)` as the first argument and</span>
+  <span class="c1">//    a function signature `RequestWithAttributes[AnyContent] =&gt; Result` as the second argument and</span>
+  <span class="c1">//    returns an `Action`</span>
+
+  <span class="c1">// thw `loggedIn` method</span>
+  <span class="c1">//     returns current logged in user</span>
+
+  <span class="k">def</span> <span class="n">main</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="nc">NormalUser</span><span class="o">)</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">user</span> <span class="k">=</span> <span class="n">loggedIn</span>
+    <span class="k">val</span> <span class="n">title</span> <span class="k">=</span> <span class="s">"message main"</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">main</span><span class="o">(</span><span class="n">title</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">list</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="nc">NormalUser</span><span class="o">)</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">user</span> <span class="k">=</span> <span class="n">loggedIn</span>
+    <span class="k">val</span> <span class="n">title</span> <span class="k">=</span> <span class="s">"all messages"</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">list</span><span class="o">(</span><span class="n">title</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">detail</span><span class="o">(</span><span class="n">id</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="nc">NormalUser</span><span class="o">)</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">user</span> <span class="k">=</span> <span class="n">loggedIn</span>
+    <span class="k">val</span> <span class="n">title</span> <span class="k">=</span> <span class="s">"messages detail "</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">detail</span><span class="o">(</span><span class="n">title</span> <span class="o">+</span> <span class="n">id</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="c1">// Only Administrator can execute this action.</span>
+  <span class="k">def</span> <span class="n">write</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="nc">Administrator</span><span class="o">)</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">user</span> <span class="k">=</span> <span class="n">loggedIn</span>
+    <span class="k">val</span> <span class="n">title</span> <span class="k">=</span> <span class="s">"write message"</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">write</span><span class="o">(</span><span class="n">title</span><span class="o">))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+</li>
+</ol><h2>
+<a name="user-content-test" class="anchor" href="#test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test</h2>
+
+<p>play2.auth provides test module at version 0.8</p>
+
+<p>You can use <code>FakeRequest</code> with logged-in status.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">test</span>
+
+<span class="k">import</span> <span class="nn">org.specs2.mutable._</span>
+
+<span class="k">import</span> <span class="nn">play.api.test._</span>
+<span class="k">import</span> <span class="nn">play.api.test.Helpers._</span>
+<span class="k">import</span> <span class="nn">controllers.</span><span class="o">{</span><span class="nc">AuthConfigImpl</span><span class="o">,</span> <span class="nc">Messages</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">jp.t2v.lab.play2.auth.test.Helpers._</span>
+
+<span class="k">class</span> <span class="nc">ApplicationSpec</span> <span class="k">extends</span> <span class="nc">Specification</span> <span class="o">{</span>
+
+  <span class="k">object</span> <span class="nc">config</span> <span class="k">extends</span> <span class="nc">AuthConfigImpl</span>
+
+  <span class="s">"Messages"</span> <span class="n">should</span> <span class="o">{</span>
+    <span class="s">"return list when user is authorized"</span> <span class="n">in</span> <span class="k">new</span> <span class="nc">WithApplication</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">res</span> <span class="k">=</span> <span class="nc">Messages</span><span class="o">.</span><span class="n">list</span><span class="o">(</span><span class="nc">FakeRequest</span><span class="o">().</span><span class="n">withLoggedIn</span><span class="o">(</span><span class="n">config</span><span class="o">)(</span><span class="mi">1</span><span class="o">))</span>
+      <span class="n">contentType</span><span class="o">(</span><span class="n">res</span><span class="o">)</span> <span class="n">must</span> <span class="n">equalTo</span><span class="o">(</span><span class="s">"text/html"</span><span class="o">)</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<ol class="task-list">
+<li>Import <code>jp.t2v.lab.play2.auth.test.Helpers._</code>
+</li>
+<li>
+<p>Define instance what is mixed-in <code>AuthConfigImpl</code></p>
+
+<pre><code>object config extends AuthConfigImpl
+</code></pre>
+</li>
+<li>
+<p>Call <code>withLoggedIn</code> method on <code>FakeRequest</code></p>
+
+<ul class="task-list">
+<li>first argument: <code>AuthConfigImpl</code> instance.</li>
+<li>second argument: user ID of the user who is logged-in at this request</li>
+</ul>
+</li>
+</ol><p>It makes enable to test controllers with play2.auth</p>
+
+<h2>
+<a name="user-content-advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced usage</h2>
+
+<h3>
+<a name="user-content-changing-the-authorization-depending-on-the-request-parameters" class="anchor" href="#changing-the-authorization-depending-on-the-request-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changing the authorization depending on the request parameters.</h3>
+
+<p>For example, a Social networking application has a function to edit messages.</p>
+
+<p>A user must be able to edit their own messages but not other people's messages.</p>
+
+<p>To achieve this you could define <code>Authority</code> as a <code>Function</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">AuthConfigImpl</span> <span class="k">extends</span> <span class="nc">AuthConfig</span> <span class="o">{</span>
+
+  <span class="c1">// Other setup is omitted. </span>
+
+  <span class="k">type</span> <span class="kt">Authority</span> <span class="o">=</span> <span class="nc">User</span> <span class="k">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span>
+
+  <span class="k">def</span> <span class="n">authorize</span><span class="o">(</span><span class="n">user</span><span class="k">:</span> <span class="kt">User</span><span class="o">,</span> <span class="n">authority</span><span class="k">:</span> <span class="kt">Authority</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="n">authority</span><span class="o">(</span><span class="n">user</span><span class="o">)</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Application</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">AuthElement</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="k">private</span> <span class="k">def</span> <span class="n">sameAuthor</span><span class="o">(</span><span class="n">messageId</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)(</span><span class="n">account</span><span class="k">:</span> <span class="kt">Account</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span>
+    <span class="nc">Message</span><span class="o">.</span><span class="n">getAutherAsync</span><span class="o">(</span><span class="n">messageId</span><span class="o">).</span><span class="n">map</span><span class="o">(</span><span class="k">_</span> <span class="o">==</span> <span class="n">account</span><span class="o">)</span>
+
+  <span class="k">def</span> <span class="n">edit</span><span class="o">(</span><span class="n">messageId</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="n">sameAuthor</span><span class="o">(</span><span class="n">messageId</span><span class="o">))</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">user</span> <span class="k">=</span> <span class="n">loggedIn</span>
+    <span class="k">val</span> <span class="n">target</span> <span class="k">=</span> <span class="nc">Message</span><span class="o">.</span><span class="n">findById</span><span class="o">(</span><span class="n">messageId</span><span class="o">)</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">edit</span><span class="o">(</span><span class="n">messageForm</span><span class="o">.</span><span class="n">fill</span><span class="o">(</span><span class="n">target</span><span class="o">)))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-returning-to-the-originally-requested-page-after-login" class="anchor" href="#returning-to-the-originally-requested-page-after-login" aria-hidden="true"><span class="octicon octicon-link"></span></a>Returning to the originally requested page after login</h3>
+
+<p>When an unauthenticated user requests access to page requiring authentication, 
+you first redirect the user to the login page, then, after the user successfully logs in, you redirect the user to the page they originally requested.</p>
+
+<p>To achieve this change <code>authenticationFailed</code> and <code>loginSucceeded</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">AuthConfigImpl</span> <span class="k">extends</span> <span class="nc">AuthConfig</span> <span class="o">{</span>
+
+  <span class="c1">// Other settings are omitted.</span>
+
+  <span class="k">def</span> <span class="n">authenticationFailed</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span>
+    <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">Redirect</span><span class="o">(</span><span class="n">routes</span><span class="o">.</span><span class="nc">Application</span><span class="o">.</span><span class="n">login</span><span class="o">).</span><span class="n">withSession</span><span class="o">(</span><span class="s">"access_uri"</span> <span class="o">-&gt;</span> <span class="n">request</span><span class="o">.</span><span class="n">uri</span><span class="o">))</span>
+
+  <span class="k">def</span> <span class="n">loginSucceeded</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">uri</span> <span class="k">=</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"access_uri"</span><span class="o">).</span><span class="n">getOrElse</span><span class="o">(</span><span class="n">routes</span><span class="o">.</span><span class="nc">Message</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">toString</span><span class="o">)</span>
+    <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">Redirect</span><span class="o">(</span><span class="n">uri</span><span class="o">).</span><span class="n">withSession</span><span class="o">(</span><span class="n">request</span><span class="o">.</span><span class="n">session</span> <span class="o">-</span> <span class="s">"access_uri"</span><span class="o">))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-changing-the-display-depending-on-whether-the-user-is-logged-in" class="anchor" href="#changing-the-display-depending-on-whether-the-user-is-logged-in" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changing the display depending on whether the user is logged in</h3>
+
+<p>If you want to display the application's index differently to non-logged-in users
+and logged-in users, you can use <code>OptionalAuthElement</code> insted of <code>AuthElement</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Application</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">OptionalAuthElement</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="c1">// maybeUser is an instance of `Option[User]`.</span>
+  <span class="c1">// `OptionalAuthElement` dont need `AuthorityKey`</span>
+  <span class="k">def</span> <span class="n">index</span> <span class="k">=</span> <span class="nc">StackAction</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">maybeUser</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">User</span><span class="o">]</span> <span class="k">=</span> <span class="n">loggedIn</span>
+    <span class="k">val</span> <span class="n">user</span><span class="k">:</span> <span class="kt">User</span> <span class="o">=</span> <span class="n">maybeUser</span><span class="o">.</span><span class="n">getOrElse</span><span class="o">(</span><span class="nc">GuestUser</span><span class="o">)</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">index</span><span class="o">(</span><span class="n">user</span><span class="o">))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-for-action-that-doesnt-require-authorization" class="anchor" href="#for-action-that-doesnt-require-authorization" aria-hidden="true"><span class="octicon octicon-link"></span></a>For action that doesn't require authorization</h3>
+
+<p>you can <code>AuthenticationElement</code> insted of <code>AuthElement</code> for authentication without authorization.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Application</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">AuthenticationElement</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="k">def</span> <span class="n">index</span> <span class="k">=</span> <span class="nc">StackAction</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">user</span><span class="k">:</span> <span class="kt">User</span> <span class="o">=</span> <span class="n">loggedIn</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">index</span><span class="o">(</span><span class="n">user</span><span class="o">))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-return-401-when-a-request-is-sent-by-ajax" class="anchor" href="#return-401-when-a-request-is-sent-by-ajax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Return 401 when a request is sent by Ajax</h3>
+
+<p>Normally, you want to return a login page redirection at a authentication failed.
+Although, when the request is sent by Ajax you want to instead return 401, Unauthorized.</p>
+
+<p>You can do it as follows.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">authenticationFailed</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestHeader</span><span class="o">)(</span><span class="k">implicit</span> <span class="n">ctx</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span> <span class="o">{</span>
+  <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"X-Requested-With"</span><span class="o">)</span> <span class="k">match</span> <span class="o">{</span>
+    <span class="k">case</span> <span class="nc">Some</span><span class="o">(</span><span class="s">"XMLHttpRequest"</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="nc">Unauthorized</span><span class="o">(</span><span class="s">"Authentication failed"</span><span class="o">)</span>
+    <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span> <span class="nc">Redirect</span><span class="o">(</span><span class="n">routes</span><span class="o">.</span><span class="nc">Application</span><span class="o">.</span><span class="n">login</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-action-composition" class="anchor" href="#action-composition" aria-hidden="true"><span class="octicon octicon-link"></span></a>Action composition</h3>
+
+<p>play2.auth use <a href="https://github.com/t2v/stackable-controller">stackable-controller</a></p>
+
+<p>Suppose you want to validate a token at every action in order to defeat a [Cross Site Request Forgery](<a href="https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)">https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)</a> attack.</p>
+
+<p>Since it is impractical to perform the validation in all actions, you would define a trait like this:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">jp.t2v.lab.play2.stackc.</span><span class="o">{</span><span class="nc">RequestWithAttributes</span><span class="o">,</span> <span class="nc">StackableController</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.Future</span>
+<span class="k">import</span> <span class="nn">play.api.mvc.</span><span class="o">{</span><span class="nc">Result</span><span class="o">,</span> <span class="nc">Request</span><span class="o">,</span> <span class="nc">Controller</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">play.api.data._</span>
+<span class="k">import</span> <span class="nn">play.api.data.Forms._</span>
+
+<span class="k">trait</span> <span class="nc">TokenValidateElement</span> <span class="k">extends</span> <span class="nc">StackableController</span> <span class="o">{</span>
+    <span class="n">self</span><span class="k">:</span> <span class="kt">Controller</span> <span class="o">=&gt;</span>
+
+  <span class="k">private</span> <span class="k">val</span> <span class="n">tokenForm</span> <span class="k">=</span> <span class="nc">Form</span><span class="o">(</span><span class="s">"token"</span> <span class="o">-&gt;</span> <span class="n">text</span><span class="o">)</span>
+
+  <span class="k">private</span> <span class="k">def</span> <span class="n">validateToken</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">Request</span><span class="o">[</span><span class="k">_</span><span class="o">])</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="o">(</span><span class="k">for</span> <span class="o">{</span>
+    <span class="n">tokenInForm</span> <span class="k">&lt;-</span> <span class="n">tokenForm</span><span class="o">.</span><span class="n">bindFromRequest</span><span class="o">()(</span><span class="n">request</span><span class="o">).</span><span class="n">value</span>
+    <span class="n">tokenInSession</span> <span class="k">&lt;-</span> <span class="n">request</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"token"</span><span class="o">)</span>
+  <span class="o">}</span> <span class="k">yield</span> <span class="n">tokenInForm</span> <span class="o">==</span> <span class="n">tokenInSession</span><span class="o">).</span><span class="n">getOrElse</span><span class="o">(</span><span class="kc">false</span><span class="o">)</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="n">proceed</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">request</span><span class="k">:</span> <span class="kt">RequestWithAttributes</span><span class="o">[</span><span class="kt">A</span><span class="o">])(</span><span class="n">f</span><span class="k">:</span> <span class="kt">RequestWithAttributes</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">])</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">validateToken</span><span class="o">(</span><span class="n">request</span><span class="o">))</span> <span class="k">super</span><span class="o">.</span><span class="n">proceed</span><span class="o">(</span><span class="n">request</span><span class="o">)(</span><span class="n">f</span><span class="o">)</span>
+    <span class="k">else</span> <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">BadRequest</span><span class="o">)</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<p>You can use <code>TokenValidateElement</code> trait with <code>AuthElement</code> trait.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Application</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">TokenValidateElement</span> <span class="k">with</span> <span class="nc">AuthElement</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="k">def</span> <span class="n">page1</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="nc">NormalUser</span><span class="o">)</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="c1">// do something</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">page1</span><span class="o">(</span><span class="s">"result"</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">page2</span> <span class="k">=</span> <span class="nc">StackAction</span><span class="o">(</span><span class="nc">AuthorityKey</span> <span class="o">-&gt;</span> <span class="nc">NormalUser</span><span class="o">)</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="c1">// do something</span>
+    <span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">page2</span><span class="o">(</span><span class="s">"result"</span><span class="o">))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-asynchronous-support" class="anchor" href="#asynchronous-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous Support</h3>
+
+<p>There are asynchronous libraries ( for example: <a href="http://reactivemongo.org/">ReactiveMongo</a>, <a href="https://github.com/seratch/scalikejdbc-async">ScalikeJDBC-Async</a>, and so on ).</p>
+
+<p>You should use <code>Future[Result]</code> instead of <code>AsyncResult</code> from Play2.2. </p>
+
+<p>You can use <code>AsyncStack</code> instead of <code>StackAction</code> for Future[Result]</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">HogeController</span> <span class="k">extends</span> <span class="nc">AuthElement</span> <span class="k">with</span> <span class="nc">AuthConfigImpl</span> <span class="o">{</span>
+
+  <span class="k">def</span> <span class="n">hoge</span> <span class="k">=</span> <span class="nc">AsyncStack</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">req</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">messages</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Seq</span><span class="o">[</span><span class="kt">Message</span><span class="o">]]</span> <span class="k">=</span> <span class="nc">AsyncDB</span><span class="o">.</span><span class="n">withPool</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">s</span> <span class="k">=&gt;</span> <span class="nc">Message</span><span class="o">.</span><span class="n">findAll</span> <span class="o">}</span>
+    <span class="n">messages</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="nc">Ok</span><span class="o">(</span><span class="n">html</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">messages</span><span class="o">(</span><span class="k">_</span><span class="o">)))</span>
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-stateless-vs-stateful-implementation" class="anchor" href="#stateless-vs-stateful-implementation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stateless vs Stateful implementation.</h3>
+
+<p>Play2x-Auth follows the Play framework's stateless policy.
+However, Play2x-Auth's default implementation is stateful, 
+because the stateless implementation has the following security risk:</p>
+
+<p>If user logs-in to your application in a internet-cafe, then returns home neglecting to logout.
+If the user logs in again at home they will <em>not</em> invalidate the session.</p>
+
+<p>Nevertheless, you want to use a fully stateless implementation then just override the <code>idContainer</code> method of <code>AuthConfig</code> like this:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">AuthConfigImpl</span> <span class="k">extends</span> <span class="nc">AuthConfig</span> <span class="o">{</span>
+
+  <span class="c1">// Other settings omitted.</span>
+
+  <span class="k">override</span> <span class="k">lazy</span> <span class="k">val</span> <span class="n">idContainer</span><span class="k">:</span> <span class="kt">IdContainer</span><span class="o">[</span><span class="kt">Id</span><span class="o">]</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">CookieIdContainer</span><span class="o">[</span><span class="kt">Id</span><span class="o">]</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<p>You could also store the session data in a Relational Database by overriding the id container.</p>
+
+<p>Note: <code>CookieIdContainer</code> doesn't support session timeout.</p>
+
+<h2>
+<a name="user-content-running-the-sample-application" class="anchor" href="#running-the-sample-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running The Sample Application</h2>
+
+<ol class="task-list">
+<li><code>git clone https://github.com/t2v/play2-auth.git</code></li>
+<li><code>cd play2-auth</code></li>
+<li><code>sbt "project sample" run</code></li>
+<li>
+<p>access to <code>http://localhost:9000/</code> on your browser.</p>
+
+<ol class="task-list">
+<li>click <code>Apply this script now!</code>
+</li>
+<li>
+<p>login</p>
+
+<p>defined accounts</p>
+
+<pre><code>Email             | Password | Permission
+alice@example.com | secret   | Administrator
+bob@example.com   | secret   | NormalUser
+chris@example.com | secret   | NormalUser
+</code></pre>
+</li>
+</ol>
+</li>
+</ol><h2>
+<a name="user-content-attention----distributed-servers" class="anchor" href="#attention----distributed-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Attention -- Distributed Servers</h2>
+
+<p><a href="http://ehcache.org">Ehcache</a>, the default cache implementation used by Play2.x, does not work on distributed application servers.</p>
+
+<p>If you have distributed servers, use the <a href="https://github.com/mumoshu/play2-memcached">Memcached Plugin</a> or something similar.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>This library is released under the Apache Software License, version 2, 
+which should be included with the source in a file named <code>LICENSE</code>.</p></article></div>

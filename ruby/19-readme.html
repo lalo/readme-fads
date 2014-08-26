@@ -1,0 +1,863 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-carrierwave" class="anchor" href="#carrierwave" aria-hidden="true"><span class="octicon octicon-link"></span></a>CarrierWave</h1>
+
+<p>This gem provides a simple and extremely flexible way to upload files from Ruby applications.
+It works well with Rack based web applications, such as Ruby on Rails.</p>
+
+<p><a href="http://travis-ci.org/carrierwaveuploader/carrierwave"><img src="https://camo.githubusercontent.com/14d75f2d16e991aefe9f6f6a12fd85a72081a40e/68747470733a2f2f7472617669732d63692e6f72672f636172726965727761766575706c6f616465722f63617272696572776176652e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/carrierwaveuploader/carrierwave.svg?branch=master" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/carrierwaveuploader/carrierwave"><img src="https://camo.githubusercontent.com/a75ceaefc084d37c42901317515219eec1e6f61a/687474703a2f2f696d672e736869656c64732e696f2f636f6465636c696d6174652f6769746875622f636172726965727761766575706c6f616465722f63617272696572776176652e737667" alt="Code Climate" data-canonical-src="http://img.shields.io/codeclimate/github/carrierwaveuploader/carrierwave.svg" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-information" class="anchor" href="#information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Information</h2>
+
+<ul class="task-list">
+<li>RDoc documentation <a href="http://rubydoc.info/gems/carrierwave/frames">available on RubyDoc.info</a>
+</li>
+<li>Source code <a href="http://github.com/carrierwaveuploader/carrierwave">available on GitHub</a>
+</li>
+<li>More information, known limitations, and how-tos <a href="https://github.com/carrierwaveuploader/carrierwave/wiki">available on the wiki</a>
+</li>
+</ul><h2>
+<a name="user-content-getting-help" class="anchor" href="#getting-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Help</h2>
+
+<ul class="task-list">
+<li>Please ask the <a href="http://groups.google.com/group/carrierwave">Google Group</a> for help if you have any questions.</li>
+<li>Please report bugs on the <a href="http://github.com/carrierwaveuploader/carrierwave/issues">issue tracker</a> but read the "getting help" section in the wiki first.</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Install the latest stable release:</p>
+
+<pre><code>[sudo] gem install carrierwave
+</code></pre>
+
+<p>In Rails, add it to your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'carrierwave'</span>
+</pre></div>
+
+<p>Finally, restart the server to apply the changes.</p>
+
+<p>Note that CarrierWave is not compatible with Rails 2 as of version 0.5. If you want to use
+Rails 2, please use the 0.4-stable branch on GitHub.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>Start off by generating an uploader:</p>
+
+<pre><code>rails generate uploader Avatar
+</code></pre>
+
+<p>this should give you a file in:</p>
+
+<pre><code>app/uploaders/avatar_uploader.rb
+</code></pre>
+
+<p>Check out this file for some hints on how you can customize your uploader. It
+should look something like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">storage</span> <span class="ss">:file</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can use your uploader class to store and retrieve files like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">uploader</span> <span class="o">=</span> <span class="no">AvatarUploader</span><span class="o">.</span><span class="n">new</span>
+
+<span class="n">uploader</span><span class="o">.</span><span class="n">store!</span><span class="p">(</span><span class="n">my_file</span><span class="p">)</span>
+
+<span class="n">uploader</span><span class="o">.</span><span class="n">retrieve_from_store!</span><span class="p">(</span><span class="s1">'my_file.png'</span><span class="p">)</span>
+</pre></div>
+
+<p>CarrierWave gives you a <code>store</code> for permanent storage, and a <code>cache</code> for
+temporary storage. You can use different stores, including filesystem
+and cloud storage.</p>
+
+<p>Most of the time you are going to want to use CarrierWave together with an ORM.
+It is quite simple to mount uploaders on columns in your model, so you can
+simply assign files and get going:</p>
+
+<h3>
+<a name="user-content-activerecord" class="anchor" href="#activerecord" aria-hidden="true"><span class="octicon octicon-link"></span></a>ActiveRecord</h3>
+
+<p>Make sure you are loading CarrierWave after loading your ORM, otherwise you'll
+need to require the relevant extension manually, e.g.:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'carrierwave/orm/activerecord'</span>
+</pre></div>
+
+<p>Add a string column to the model you want to mount the uploader by creating
+a migration:</p>
+
+<pre><code>rails g migration add_avatar_to_users avatar:string
+rake db:migrate
+</code></pre>
+
+<p>Open your model file and mount the uploader:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">mount_uploader</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="no">AvatarUploader</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Now you can cache files by assigning them to the attribute, they will
+automatically be stored when the record is saved.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">u</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span>
+<span class="n">u</span><span class="o">.</span><span class="n">avatar</span> <span class="o">=</span> <span class="n">params</span><span class="o">[</span><span class="ss">:file</span><span class="o">]</span>
+<span class="n">u</span><span class="o">.</span><span class="n">avatar</span> <span class="o">=</span> <span class="no">File</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">'somewhere'</span><span class="p">)</span>
+<span class="n">u</span><span class="o">.</span><span class="n">save!</span>
+<span class="n">u</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">url</span> <span class="c1"># =&gt; '/url/to/file.png'</span>
+<span class="n">u</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">current_path</span> <span class="c1"># =&gt; 'path/to/file.png'</span>
+<span class="n">u</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">identifier</span> <span class="c1"># =&gt; 'file.png'</span>
+</pre></div>
+
+<h3>
+<a name="user-content-datamapper-mongoid-sequel" class="anchor" href="#datamapper-mongoid-sequel" aria-hidden="true"><span class="octicon octicon-link"></span></a>DataMapper, Mongoid, Sequel</h3>
+
+<p>Other ORM support has been extracted into separate gems:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/carrierwaveuploader/carrierwave-datamapper">carrierwave-datamapper</a></li>
+<li><a href="https://github.com/carrierwaveuploader/carrierwave-mongoid">carrierwave-mongoid</a></li>
+<li><a href="https://github.com/jnicklas/carrierwave-sequel">carrierwave-sequel</a></li>
+</ul><p>There are more extensions listed in <a href="https://github.com/carrierwaveuploader/carrierwave/wiki">the wiki</a></p>
+
+<h2>
+<a name="user-content-changing-the-storage-directory" class="anchor" href="#changing-the-storage-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changing the storage directory</h2>
+
+<p>In order to change where uploaded files are put, just override the <code>store_dir</code>
+method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">store_dir</span>
+    <span class="s1">'public/my/upload/directory'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This works for the file storage as well as Amazon S3 and Rackspace Cloud Files.
+Define <code>store_dir</code> as <code>nil</code> if you'd like to store files at the root level.</p>
+
+<p>If you store files outside the project root folder, you may want to define <code>cache_dir</code> in the same way:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">cache_dir</span>
+    <span class="s1">'/tmp/projectname-cache'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-securing-uploads" class="anchor" href="#securing-uploads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Securing uploads</h2>
+
+<p>Certain file might be dangerous if uploaded to the wrong location, such as php
+files or other script files. CarrierWave allows you to specify a white-list of
+allowed extensions.</p>
+
+<p>If you're mounting the uploader, uploading a file with the wrong extension will
+make the record invalid instead. Otherwise, an error is raised.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">extension_white_list</span>
+    <span class="sx">%w(jpg jpeg gif png)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-filenames-and-unicode-chars" class="anchor" href="#filenames-and-unicode-chars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Filenames and unicode chars</h3>
+
+<p>Another security issue you should care for is the file names (see
+<a href="http://guides.rubyonrails.org/security.html#file-uploads">Ruby On Rails Security Guide</a>).
+By default, CarrierWave provides only English letters, arabic numerals and '-+_.' symbols as
+white-listed characters in the file name. If you want to support local scripts (Cyrillic letters, letters with diacritics and so on), you
+have to override <code>sanitize_regexp</code> method. It should return regular expression which would match
+all <em>non</em>-allowed symbols.</p>
+
+<p>With Ruby 2.0 and higher you can simply write (as it has <a href="https://github.com/k-takata/Onigmo">Onigmo</a>
+built-in):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">::</span><span class="no">SanitizedFile</span><span class="o">.</span><span class="n">sanitize_regexp</span> <span class="o">=</span> <span class="sr">/[^[:word:]\.\-\+]/</span>
+</pre></div>
+
+<p>With Ruby 1.8 you have to manually specify all character ranges. For example, for files which may
+contain Russian letters:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">::</span><span class="no">SanitizedFile</span><span class="o">.</span><span class="n">sanitize_regexp</span> <span class="o">=</span> <span class="sr">/[^a-zA-Zа-яА-ЯёЁ0-9\.\-\+_]/u</span>
+</pre></div>
+
+<p>Also make sure that allowing non-latin characters won't cause a compatibility issue with a third-party
+plugins or client-side software.</p>
+
+<h2>
+<a name="user-content-setting-the-content-type" class="anchor" href="#setting-the-content-type" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting the content type</h2>
+
+<p>As of v0.10.0, the <code>mime-types</code> gem is a runtime dependency and the content type is set automatically.
+You no longer need to do this manually.</p>
+
+<h2>
+<a name="user-content-adding-versions" class="anchor" href="#adding-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding versions</h2>
+
+<p>Often you'll want to add different versions of the same file. The classic example is image thumbnails. There is built in support for this*:</p>
+
+<p>*Note: You must have Imagemagick and MiniMagick installed to do image resizing. MiniMagick is a Ruby interface for Imagemagick which is a C program. This is why MiniMagick fails on 'bundle install' without Imagemagick installed.</p>
+
+<p>Some documentation refers to RMagick instead of MiniMagick but MiniMagick is recommended.</p>
+
+<p>To install Imagemagick on OSX with homebrew type the following:</p>
+
+<pre><code>$ brew install imagemagick
+</code></pre>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">MiniMagick</span>
+
+  <span class="n">process</span> <span class="ss">:resize_to_fit</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">800</span><span class="p">,</span> <span class="mi">800</span><span class="o">]</span>
+
+  <span class="n">version</span> <span class="ss">:thumb</span> <span class="k">do</span>
+    <span class="n">process</span> <span class="ss">:resize_to_fill</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">200</span><span class="p">,</span><span class="mi">200</span><span class="o">]</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p>When this uploader is used, an uploaded image would be scaled to be no larger
+than 800 by 800 pixels. A version called thumb is then created, which is scaled
+and cropped to exactly 200 by 200 pixels. The uploader could be used like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">uploader</span> <span class="o">=</span> <span class="no">AvatarUploader</span><span class="o">.</span><span class="n">new</span>
+<span class="n">uploader</span><span class="o">.</span><span class="n">store!</span><span class="p">(</span><span class="n">my_file</span><span class="p">)</span>                              <span class="c1"># size: 1024x768</span>
+
+<span class="n">uploader</span><span class="o">.</span><span class="n">url</span> <span class="c1"># =&gt; '/url/to/my_file.png'               # size: 800x600</span>
+<span class="n">uploader</span><span class="o">.</span><span class="n">thumb</span><span class="o">.</span><span class="n">url</span> <span class="c1"># =&gt; '/url/to/thumb_my_file.png'   # size: 200x200</span>
+</pre></div>
+
+<p>One important thing to remember is that process is called <em>before</em> versions are
+created. This can cut down on processing cost.</p>
+
+<p>It is possible to nest versions within versions:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+
+  <span class="n">version</span> <span class="ss">:animal</span> <span class="k">do</span>
+    <span class="n">version</span> <span class="ss">:human</span>
+    <span class="n">version</span> <span class="ss">:monkey</span>
+    <span class="n">version</span> <span class="ss">:llama</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-conditional-versions" class="anchor" href="#conditional-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conditional versions</h3>
+
+<p>Occasionally you want to restrict the creation of versions on certain
+properties within the model or based on the picture itself.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+
+  <span class="n">version</span> <span class="ss">:human</span><span class="p">,</span> <span class="ss">:if</span> <span class="o">=&gt;</span> <span class="ss">:is_human?</span>
+  <span class="n">version</span> <span class="ss">:monkey</span><span class="p">,</span> <span class="ss">:if</span> <span class="o">=&gt;</span> <span class="ss">:is_monkey?</span>
+  <span class="n">version</span> <span class="ss">:banner</span><span class="p">,</span> <span class="ss">:if</span> <span class="o">=&gt;</span> <span class="ss">:is_landscape?</span>
+
+<span class="kp">protected</span>
+
+  <span class="k">def</span> <span class="nf">is_human?</span> <span class="n">picture</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">can_program?</span><span class="p">(</span><span class="ss">:ruby</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">is_monkey?</span> <span class="n">picture</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">favorite_food</span> <span class="o">==</span> <span class="s1">'banana'</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">is_landscape?</span> <span class="n">picture</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="no">MiniMagick</span><span class="o">::</span><span class="no">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">picture</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">image</span><span class="o">[</span><span class="ss">:width</span><span class="o">]</span> <span class="o">&gt;</span> <span class="n">image</span><span class="o">[</span><span class="ss">:height</span><span class="o">]</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p>The <code>model</code> variable points to the instance object the uploader is attached to.</p>
+
+<h3>
+<a name="user-content-create-versions-from-existing-versions" class="anchor" href="#create-versions-from-existing-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create versions from existing versions</h3>
+
+<p>For performance reasons, it is often useful to create versions from existing ones
+instead of using the original file. If your uploader generates several versions
+where the next is smaller than the last, it will take less time to generate from
+a smaller, already processed image.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+
+  <span class="n">version</span> <span class="ss">:thumb</span> <span class="k">do</span>
+    <span class="n">process</span> <span class="ss">resize_to_fill</span><span class="p">:</span> <span class="o">[</span><span class="mi">280</span><span class="p">,</span> <span class="mi">280</span><span class="o">]</span>
+  <span class="k">end</span>
+
+  <span class="n">version</span> <span class="ss">:small_thumb</span><span class="p">,</span> <span class="ss">:from_version</span> <span class="o">=&gt;</span> <span class="ss">:thumb</span> <span class="k">do</span>
+    <span class="n">process</span> <span class="ss">resize_to_fill</span><span class="p">:</span> <span class="o">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="o">]</span>
+  <span class="k">end</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<p>The option <code>:from_version</code> uses the file cached in the <code>:thumb</code> version instead
+of the original version, potentially resulting in faster processing.</p>
+
+<h2>
+<a name="user-content-making-uploads-work-across-form-redisplays" class="anchor" href="#making-uploads-work-across-form-redisplays" aria-hidden="true"><span class="octicon octicon-link"></span></a>Making uploads work across form redisplays</h2>
+
+<p>Often you'll notice that uploaded files disappear when a validation fails.
+CarrierWave has a feature that makes it easy to remember the uploaded file even
+in that case. Suppose your <code>user</code> model has an uploader mounted on <code>avatar</code>
+file, just add a hidden field called <code>avatar_cache</code> (don't forget to add it to
+the attr_accessible list as necessary). In Rails, this would look like this:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="n">form_for</span> <span class="vi">@user</span><span class="p">,</span> <span class="ss">:html</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:multipart</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">}</span> <span class="k">do</span> <span class="o">|</span><span class="n">f</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;p&gt;</span>
+<span class="x">    &lt;label&gt;My Avatar&lt;/label&gt;</span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">file_field</span> <span class="ss">:avatar</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">hidden_field</span> <span class="ss">:avatar_cache</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;/p&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<p>It might be a good idea to show the user that a file has been uploaded, in the
+case of images, a small thumbnail would be a good indicator:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="n">form_for</span> <span class="vi">@user</span><span class="p">,</span> <span class="ss">:html</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:multipart</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">}</span> <span class="k">do</span> <span class="o">|</span><span class="n">f</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;p&gt;</span>
+<span class="x">    &lt;label&gt;My Avatar&lt;/label&gt;</span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">image_tag</span><span class="p">(</span><span class="vi">@user</span><span class="o">.</span><span class="n">avatar_url</span><span class="p">)</span> <span class="k">if</span> <span class="vi">@user</span><span class="o">.</span><span class="n">avatar?</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">file_field</span> <span class="ss">:avatar</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">hidden_field</span> <span class="ss">:avatar_cache</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;/p&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<h2>
+<a name="user-content-removing-uploaded-files" class="anchor" href="#removing-uploaded-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Removing uploaded files</h2>
+
+<p>If you want to remove a previously uploaded file on a mounted uploader, you can
+easily add a checkbox to the form which will remove the file when checked.</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="n">form_for</span> <span class="vi">@user</span><span class="p">,</span> <span class="ss">:html</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:multipart</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">}</span> <span class="k">do</span> <span class="o">|</span><span class="n">f</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;p&gt;</span>
+<span class="x">    &lt;label&gt;My Avatar&lt;/label&gt;</span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">image_tag</span><span class="p">(</span><span class="vi">@user</span><span class="o">.</span><span class="n">avatar_url</span><span class="p">)</span> <span class="k">if</span> <span class="vi">@user</span><span class="o">.</span><span class="n">avatar?</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">file_field</span> <span class="ss">:avatar</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;/p&gt;</span>
+
+<span class="x">  &lt;p&gt;</span>
+<span class="x">    &lt;label&gt;</span>
+<span class="x">      </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">check_box</span> <span class="ss">:remove_avatar</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">      Remove avatar</span>
+<span class="x">    &lt;/label&gt;</span>
+<span class="x">  &lt;/p&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<p>If you want to remove the file manually, you can call <code>remove_avatar!</code>, then save the object.</p>
+
+<div class="highlight highlight-erb"><pre><span class="x">@user.remove_avatar!</span>
+<span class="x">@user.save</span>
+<span class="x">#=&gt; true</span>
+</pre></div>
+
+<h2>
+<a name="user-content-uploading-files-from-a-remote-location" class="anchor" href="#uploading-files-from-a-remote-location" aria-hidden="true"><span class="octicon octicon-link"></span></a>Uploading files from a remote location</h2>
+
+<p>Your users may find it convenient to upload a file from a location on the Internet
+via a URL. CarrierWave makes this simple, just add the appropriate attribute to your
+form and you're good to go:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="n">form_for</span> <span class="vi">@user</span><span class="p">,</span> <span class="ss">:html</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:multipart</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">}</span> <span class="k">do</span> <span class="o">|</span><span class="n">f</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;p&gt;</span>
+<span class="x">    &lt;label&gt;My Avatar URL:&lt;/label&gt;</span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">image_tag</span><span class="p">(</span><span class="vi">@user</span><span class="o">.</span><span class="n">avatar_url</span><span class="p">)</span> <span class="k">if</span> <span class="vi">@user</span><span class="o">.</span><span class="n">avatar?</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">    </span><span class="cp">&lt;%=</span> <span class="n">f</span><span class="o">.</span><span class="n">text_field</span> <span class="ss">:remote_avatar_url</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;/p&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<p>If you're using ActiveRecord, CarrierWave will indicate invalid URLs and download
+failures automatically with attribute validation errors. If you aren't, or you
+disable CarrierWave's <code>validate_download</code> option, you'll need to handle those
+errors yourself.</p>
+
+<h2>
+<a name="user-content-providing-a-default-url" class="anchor" href="#providing-a-default-url" aria-hidden="true"><span class="octicon octicon-link"></span></a>Providing a default URL</h2>
+
+<p>In many cases, especially when working with images, it might be a good idea to
+provide a default url, a fallback in case no file has been uploaded. You can do
+this easily by overriding the <code>default_url</code> method in your uploader:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">default_url</span>
+    <span class="s2">"/images/fallback/"</span> <span class="o">+</span> <span class="o">[</span><span class="n">version_name</span><span class="p">,</span> <span class="s2">"default.png"</span><span class="o">].</span><span class="n">compact</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'_'</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Or if you are using the Rails asset pipeline:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">default_url</span>
+    <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">asset_path</span><span class="p">(</span><span class="s2">"fallback/"</span> <span class="o">+</span> <span class="o">[</span><span class="n">version_name</span><span class="p">,</span> <span class="s2">"default.png"</span><span class="o">].</span><span class="n">compact</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'_'</span><span class="p">))</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-recreating-versions" class="anchor" href="#recreating-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Recreating versions</h2>
+
+<p>You might come to a situation where you want to retroactively change a version
+or add a new one. You can use the <code>recreate_versions!</code> method to recreate the
+versions from the base file. This uses a naive approach which will re-upload and
+process the specified version or all versions, if none is passed as an argument.</p>
+
+<p>When you are generating random unique filenames you have to call <code>save!</code> on
+the model after using <code>recreate_versions!</code>. This is necessary because
+<code>recreate_versions!</code> doesn't save the new filename to the database. Calling
+<code>save!</code> yourself will prevent that the database and file system are running
+out of sync.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">instance</span> <span class="o">=</span> <span class="no">MyUploader</span><span class="o">.</span><span class="n">new</span>
+<span class="n">instance</span><span class="o">.</span><span class="n">recreate_versions!</span><span class="p">(</span><span class="ss">:thumb</span><span class="p">,</span> <span class="ss">:large</span><span class="p">)</span>
+</pre></div>
+
+<p>Or on a mounted uploader:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">User</span><span class="o">.</span><span class="n">find_each</span> <span class="k">do</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+  <span class="n">user</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">recreate_versions!</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Note: <code>recreate_versions!</code> will throw an exception on records without an image. To avoid this, scope the records to those with images or check if an image exists within the block. If you're using ActiveRecord, recreating versions for a user avatar might look like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">User</span><span class="o">.</span><span class="n">find_each</span> <span class="k">do</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+  <span class="n">user</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">recreate_versions!</span> <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">avatar?</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-configuring-carrierwave" class="anchor" href="#configuring-carrierwave" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring CarrierWave</h2>
+
+<p>CarrierWave has a broad range of configuration options, which you can configure,
+both globally and on a per-uploader basis:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">permissions</span> <span class="o">=</span> <span class="mo">0666</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">directory_permissions</span> <span class="o">=</span> <span class="mo">0777</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">storage</span> <span class="o">=</span> <span class="ss">:file</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Or alternatively:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">permissions</span> <span class="mo">0777</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you're using Rails, create an initializer for this:</p>
+
+<pre><code>config/initializers/carrierwave.rb
+</code></pre>
+
+<h2>
+<a name="user-content-testing-with-carrierwave" class="anchor" href="#testing-with-carrierwave" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing with CarrierWave</h2>
+
+<p>It's a good idea to test your uploaders in isolation. In order to speed up your
+tests, it's recommended to switch off processing in your tests, and to use the
+file storage. In Rails you could do that by adding an initializer with:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">if</span> <span class="no">Rails</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">test?</span> <span class="ow">or</span> <span class="no">Rails</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">cucumber?</span>
+  <span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">storage</span> <span class="o">=</span> <span class="ss">:file</span>
+    <span class="n">config</span><span class="o">.</span><span class="n">enable_processing</span> <span class="o">=</span> <span class="kp">false</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Remember, if you have already set <code>storage :something</code> in your uploader, the <code>storage</code>
+setting from this initializer will be ignored.</p>
+
+<p>If you need to test your processing, you should test it in isolation, and enable
+processing only for those tests that need it.</p>
+
+<p>CarrierWave comes with some RSpec matchers which you may find useful:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'carrierwave/test/matchers'</span>
+
+<span class="n">describe</span> <span class="no">MyUploader</span> <span class="k">do</span>
+  <span class="kp">include</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Test</span><span class="o">::</span><span class="no">Matchers</span>
+
+  <span class="n">before</span> <span class="k">do</span>
+    <span class="no">MyUploader</span><span class="o">.</span><span class="n">enable_processing</span> <span class="o">=</span> <span class="kp">true</span>
+    <span class="vi">@uploader</span> <span class="o">=</span> <span class="no">MyUploader</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="vi">@user</span><span class="p">,</span> <span class="ss">:avatar</span><span class="p">)</span>
+    <span class="vi">@uploader</span><span class="o">.</span><span class="n">store!</span><span class="p">(</span><span class="no">File</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+  <span class="k">end</span>
+
+  <span class="n">after</span> <span class="k">do</span>
+    <span class="no">MyUploader</span><span class="o">.</span><span class="n">enable_processing</span> <span class="o">=</span> <span class="kp">false</span>
+    <span class="vi">@uploader</span><span class="o">.</span><span class="n">remove!</span>
+  <span class="k">end</span>
+
+  <span class="n">context</span> <span class="s1">'the thumb version'</span> <span class="k">do</span>
+    <span class="n">it</span> <span class="s2">"should scale down a landscape image to be exactly 64 by 64 pixels"</span> <span class="k">do</span>
+      <span class="vi">@uploader</span><span class="o">.</span><span class="n">thumb</span><span class="o">.</span><span class="n">should</span> <span class="n">have_dimensions</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="n">context</span> <span class="s1">'the small version'</span> <span class="k">do</span>
+    <span class="n">it</span> <span class="s2">"should scale down a landscape image to fit within 200 by 200 pixels"</span> <span class="k">do</span>
+      <span class="vi">@uploader</span><span class="o">.</span><span class="n">small</span><span class="o">.</span><span class="n">should</span> <span class="n">be_no_larger_than</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="n">it</span> <span class="s2">"should make the image readable only to the owner and not executable"</span> <span class="k">do</span>
+    <span class="vi">@uploader</span><span class="o">.</span><span class="n">should</span> <span class="n">have_permissions</span><span class="p">(</span><span class="mo">0600</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Setting the enable_processing flag on an uploader will prevent any of the versions from processing as well.
+Processing can be enabled for a single version by setting the processing flag on the version like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@uploader</span><span class="o">.</span><span class="n">thumb</span><span class="o">.</span><span class="n">enable_processing</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<h2>
+<a name="user-content-using-amazon-s3" class="anchor" href="#using-amazon-s3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Amazon S3</h2>
+
+<p><a href="http://github.com/fog/fog">Fog</a> is used to support Amazon S3. Ensure you have it in your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"fog"</span><span class="p">,</span> <span class="s2">"~&gt; 1.3.1"</span>
+</pre></div>
+
+<p>You'll need to provide your fog_credentials and a fog_directory (also known as a bucket) in an initializer.
+For the sake of performance it is assumed that the directory already exists, so please create it if need be.
+You can also pass in additional options, as documented fully in lib/carrierwave/storage/fog.rb. Here's a full example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_credentials</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="ss">:provider</span>               <span class="o">=&gt;</span> <span class="s1">'AWS'</span><span class="p">,</span>                        <span class="c1"># required</span>
+    <span class="ss">:aws_access_key_id</span>      <span class="o">=&gt;</span> <span class="s1">'xxx'</span><span class="p">,</span>                        <span class="c1"># required</span>
+    <span class="ss">:aws_secret_access_key</span>  <span class="o">=&gt;</span> <span class="s1">'yyy'</span><span class="p">,</span>                        <span class="c1"># required</span>
+    <span class="ss">:region</span>                 <span class="o">=&gt;</span> <span class="s1">'eu-west-1'</span><span class="p">,</span>                  <span class="c1"># optional, defaults to 'us-east-1'</span>
+    <span class="ss">:host</span>                   <span class="o">=&gt;</span> <span class="s1">'s3.example.com'</span><span class="p">,</span>             <span class="c1"># optional, defaults to nil</span>
+    <span class="ss">:endpoint</span>               <span class="o">=&gt;</span> <span class="s1">'https://s3.example.com:8080'</span> <span class="c1"># optional, defaults to nil</span>
+  <span class="p">}</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_directory</span>  <span class="o">=</span> <span class="s1">'name_of_directory'</span>                     <span class="c1"># required</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_public</span>     <span class="o">=</span> <span class="kp">false</span>                                   <span class="c1"># optional, defaults to true</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_attributes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Cache-Control'</span><span class="o">=&gt;</span><span class="s1">'max-age=315576000'</span><span class="p">}</span>  <span class="c1"># optional, defaults to {}</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>In your uploader, set the storage to :fog</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">storage</span> <span class="ss">:fog</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>That's it! You can still use the <code>CarrierWave::Uploader#url</code> method to return the url to the file on Amazon S3.</p>
+
+<h2>
+<a name="user-content-using-rackspace-cloud-files" class="anchor" href="#using-rackspace-cloud-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Rackspace Cloud Files</h2>
+
+<p><a href="http://github.com/fog/fog">Fog</a> is used to support Rackspace Cloud Files. Ensure you have it in your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"fog"</span>
+</pre></div>
+
+<p>You'll need to configure a directory (also known as a container), username and API key in the initializer.
+For the sake of performance it is assumed that the directory already exists, so please create it if need be.</p>
+
+<p>Using a US-based account:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_credentials</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="ss">:provider</span>           <span class="o">=&gt;</span> <span class="s1">'Rackspace'</span><span class="p">,</span>
+    <span class="ss">:rackspace_username</span> <span class="o">=&gt;</span> <span class="s1">'xxxxxx'</span><span class="p">,</span>
+    <span class="ss">:rackspace_api_key</span>  <span class="o">=&gt;</span> <span class="s1">'yyyyyy'</span><span class="p">,</span>
+    <span class="ss">:rackspace_region</span>   <span class="o">=&gt;</span> <span class="ss">:ord</span>                <span class="c1"># optional, defaults to :dfw</span>
+  <span class="p">}</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_directory</span> <span class="o">=</span> <span class="s1">'name_of_directory'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Using a UK-based account:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_credentials</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="ss">:provider</span>           <span class="o">=&gt;</span> <span class="s1">'Rackspace'</span><span class="p">,</span>
+    <span class="ss">:rackspace_username</span> <span class="o">=&gt;</span> <span class="s1">'xxxxxx'</span><span class="p">,</span>
+    <span class="ss">:rackspace_api_key</span>  <span class="o">=&gt;</span> <span class="s1">'yyyyyy'</span><span class="p">,</span>
+    <span class="ss">:rackspace_auth_url</span>  <span class="o">=&gt;</span> <span class="no">Fog</span><span class="o">::</span><span class="no">Rackspace</span><span class="o">::</span><span class="no">UK_AUTH_ENDPOINT</span><span class="p">,</span>
+    <span class="ss">:rackspace_region</span>   <span class="o">=&gt;</span> <span class="ss">:lon</span>
+  <span class="p">}</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_directory</span> <span class="o">=</span> <span class="s1">'name_of_directory'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can optionally include your CDN host name in the configuration.
+This is <em>highly</em> recommended, as without it every request requires a lookup
+of this information.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">asset_host</span> <span class="o">=</span> <span class="s2">"http://c000000.cdn.rackspacecloud.com"</span>
+</pre></div>
+
+<p>In your uploader, set the storage to :fog</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">storage</span> <span class="ss">:fog</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>That's it! You can still use the <code>CarrierWave::Uploader#url</code> method to return
+the url to the file on Rackspace Cloud Files.</p>
+
+<h2>
+<a name="user-content-using-google-storage-for-developers" class="anchor" href="#using-google-storage-for-developers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Google Storage for Developers</h2>
+
+<p><a href="http://github.com/fog/fog">Fog</a> is used to support Google Storage for Developers. Ensure you have it in your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"fog"</span>
+</pre></div>
+
+<p>You'll need to configure a directory (also known as a bucket), access key id and secret access key in the initializer.
+For the sake of performance it is assumed that the directory already exists, so please create it if need be.</p>
+
+<p>Sign up <a href="http://gs-signup-redirect.appspot.com/">here</a> and get your credentials <a href="https://storage.cloud.google.com/m">here</a>
+under the section “Interoperable Access”.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_credentials</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="ss">:provider</span>                         <span class="o">=&gt;</span> <span class="s1">'Google'</span><span class="p">,</span>
+    <span class="ss">:google_storage_access_key_id</span>     <span class="o">=&gt;</span> <span class="s1">'xxxxxx'</span><span class="p">,</span>
+    <span class="ss">:google_storage_secret_access_key</span> <span class="o">=&gt;</span> <span class="s1">'yyyyyy'</span>
+  <span class="p">}</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">fog_directory</span> <span class="o">=</span> <span class="s1">'name_of_directory'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>In your uploader, set the storage to :fog</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">storage</span> <span class="ss">:fog</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>That's it! You can still use the <code>CarrierWave::Uploader#url</code> method to return
+the url to the file on Google.</p>
+
+<h2>
+<a name="user-content-optimized-loading-of-fog" class="anchor" href="#optimized-loading-of-fog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optimized Loading of Fog</h2>
+
+<p>Since Carrierwave doesn't know which parts of Fog you intend to use, it will just load the entire library. If you prefer to load fewer classes into your application, you need to load those parts of Fog yourself <em>before</em> loading Carrierwave:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"fog"</span><span class="p">,</span> <span class="s2">"~&gt; 1.20"</span><span class="p">,</span> <span class="nb">require</span><span class="p">:</span> <span class="s2">"fog/aws/storage"</span>
+<span class="n">gem</span> <span class="s2">"carrierwave"</span>
+</pre></div>
+
+<p>And in e.g. your uploader or an initializer:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'fog/aws/storage'</span>
+<span class="nb">require</span> <span class="s1">'carrierwave'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-dynamic-asset-host" class="anchor" href="#dynamic-asset-host" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Asset Host</h2>
+
+<p>The <code>asset_host</code> config property can be assigned a proc (or anything that responds to <code>call</code>) for generating the host dynamically. The proc-compliant object gets an instance of the current <code>CarrierWave::Storage::Fog::File</code> or <code>CarrierWave::SanitizedFile</code> as its only argument.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">CarrierWave</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">asset_host</span> <span class="o">=</span> <span class="nb">proc</span> <span class="k">do</span> <span class="o">|</span><span class="n">file</span><span class="o">|</span>
+    <span class="n">identifier</span> <span class="o">=</span> <span class="c1"># some logic</span>
+    <span class="s2">"http://</span><span class="si">#{</span><span class="n">identifier</span><span class="si">}</span><span class="s2">.cdn.rackspacecloud.com"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-using-rmagick" class="anchor" href="#using-rmagick" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using RMagick</h2>
+
+<p>If you're uploading images, you'll probably want to manipulate them in some way,
+you might want to create thumbnail images for example. CarrierWave comes with a
+small library to make manipulating images with RMagick easier, you'll need to
+include it in your Uploader:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">RMagick</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The RMagick module gives you a few methods, like
+<code>CarrierWave::RMagick#resize_to_fill</code> which manipulate the image file in some
+way. You can set a <code>process</code> callback, which will call that method any time a
+file is uploaded.
+There is a demonstration of convert here.
+Convert will only work if the file has the same file extension, thus the use of the filename method.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">RMagick</span>
+
+  <span class="n">process</span> <span class="ss">:resize_to_fill</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="o">]</span>
+  <span class="n">process</span> <span class="ss">:convert</span> <span class="o">=&gt;</span> <span class="s1">'png'</span>
+
+  <span class="k">def</span> <span class="nf">filename</span>
+    <span class="k">super</span><span class="o">.</span><span class="n">chomp</span><span class="p">(</span><span class="no">File</span><span class="o">.</span><span class="n">extname</span><span class="p">(</span><span class="k">super</span><span class="p">))</span> <span class="o">+</span> <span class="s1">'.png'</span> <span class="k">if</span> <span class="n">original_filename</span><span class="o">.</span><span class="n">present?</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Check out the manipulate! method, which makes it easy for you to write your own
+manipulation methods.</p>
+
+<h2>
+<a name="user-content-using-minimagick" class="anchor" href="#using-minimagick" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using MiniMagick</h2>
+
+<p>MiniMagick is similar to RMagick but performs all the operations using the 'mogrify'
+command which is part of the standard ImageMagick kit. This allows you to have the power
+of ImageMagick without having to worry about installing all the RMagick libraries.</p>
+
+<p>See the MiniMagick site for more details:</p>
+
+<p><a href="https://github.com/minimagick/minimagick">https://github.com/minimagick/minimagick</a></p>
+
+<p>And the ImageMagick command line options for more for whats on offer:</p>
+
+<p><a href="http://www.imagemagick.org/script/command-line-options.php">http://www.imagemagick.org/script/command-line-options.php</a></p>
+
+<p>Currently, the MiniMagick carrierwave processor provides exactly the same methods as
+for the RMagick processor.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">MiniMagick</span>
+
+  <span class="n">process</span> <span class="ss">:resize_to_fill</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-migrating-from-paperclip" class="anchor" href="#migrating-from-paperclip" aria-hidden="true"><span class="octicon octicon-link"></span></a>Migrating from Paperclip</h2>
+
+<p>If you are using Paperclip, you can use the provided compatibility module:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AvatarUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Compatibility</span><span class="o">::</span><span class="no">Paperclip</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>See the documentation for <code>CarrierWave::Compatibility::Paperclip</code> for more
+details.</p>
+
+<p>Be sure to use mount_on to specify the correct column:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">mount_uploader</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="no">AvatarUploader</span><span class="p">,</span> <span class="ss">:mount_on</span> <span class="o">=&gt;</span> <span class="ss">:avatar_file_name</span>
+</pre></div>
+
+<p>Unfortunately attachment_fu differs too much in philosophy for there to be a
+sensible compatibility mode. Patches for migrating from other solutions will be
+happily accepted.</p>
+
+<h2>
+<a name="user-content-i18n" class="anchor" href="#i18n" aria-hidden="true"><span class="octicon octicon-link"></span></a>i18n</h2>
+
+<p>The Active Record validations use the Rails i18n framework. Add these keys to
+your translations file:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">errors</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">messages</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">carrierwave_processing_error</span><span class="p-Indicator">:</span> <span class="s">"Cannot</span><span class="nv"> </span><span class="s">resize</span><span class="nv"> </span><span class="s">image."</span>
+    <span class="l-Scalar-Plain">carrierwave_integrity_error</span><span class="p-Indicator">:</span> <span class="s">"Not</span><span class="nv"> </span><span class="s">an</span><span class="nv"> </span><span class="s">image."</span>
+    <span class="l-Scalar-Plain">carrierwave_download_error</span><span class="p-Indicator">:</span> <span class="s">"Couldn't</span><span class="nv"> </span><span class="s">download</span><span class="nv"> </span><span class="s">image."</span>
+    <span class="l-Scalar-Plain">extension_white_list_error</span><span class="p-Indicator">:</span> <span class="s">"You</span><span class="nv"> </span><span class="s">are</span><span class="nv"> </span><span class="s">not</span><span class="nv"> </span><span class="s">allowed</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">upload</span><span class="nv"> </span><span class="s">%{extension}</span><span class="nv"> </span><span class="s">files,</span><span class="nv"> </span><span class="s">allowed</span><span class="nv"> </span><span class="s">types:</span><span class="nv"> </span><span class="s">%{allowed_types}"</span>
+    <span class="l-Scalar-Plain">extension_black_list_error</span><span class="p-Indicator">:</span> <span class="s">"You</span><span class="nv"> </span><span class="s">are</span><span class="nv"> </span><span class="s">not</span><span class="nv"> </span><span class="s">allowed</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">upload</span><span class="nv"> </span><span class="s">%{extension}</span><span class="nv"> </span><span class="s">files,</span><span class="nv"> </span><span class="s">prohibited</span><span class="nv"> </span><span class="s">types:</span><span class="nv"> </span><span class="s">%{prohibited_types}"</span>
+</pre></div>
+
+<h2>
+<a name="user-content-large-files" class="anchor" href="#large-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Large files</h2>
+
+<p>By default, CarrierWave copies an uploaded file twice, first copying the file into the cache, then
+copying the file into the store.  For large files, this can be prohibitively time consuming.</p>
+
+<p>You may change this behavior by overriding either or both of the <code>move_to_cache</code> and
+<code>move_to_store</code> methods:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MyUploader</span> <span class="o">&lt;</span> <span class="no">CarrierWave</span><span class="o">::</span><span class="no">Uploader</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">move_to_cache</span>
+    <span class="kp">true</span>
+  <span class="k">end</span>
+  <span class="k">def</span> <span class="nf">move_to_store</span>
+    <span class="kp">true</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>When the <code>move_to_cache</code> and/or <code>move_to_store</code> methods return true, files will be moved (instead of copied) to the cache and store respectively.</p>
+
+<p>This has only been tested with the local filesystem store.</p>
+
+<h2>
+<a name="user-content-skipping-activerecord-callbacks" class="anchor" href="#skipping-activerecord-callbacks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Skipping ActiveRecord callbacks</h2>
+
+<p>By default, mounting an uploader into an ActiveRecord model will add a few
+callbacks. For example, this code:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span>
+  <span class="n">mount_uploader</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="no">AvatarUploader</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Will add these callbacks:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">after_save</span> <span class="ss">:store_avatar!</span>
+<span class="n">before_save</span> <span class="ss">:write_avatar_identifier</span>
+<span class="n">after_commit</span> <span class="ss">:remove_avatar!</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:destroy</span>
+<span class="n">before_update</span> <span class="ss">:store_previous_model_for_avatar</span>
+<span class="n">after_save</span> <span class="ss">:remove_previously_stored_avatar</span>
+</pre></div>
+
+<p>If you want to skip any of these callbacks (eg. you want to keep the existing
+avatar, even after uploading a new one), you can use ActiveRecord’s
+<code>skip_callback</code> method.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span>
+  <span class="n">mount_uploader</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="no">AvatarUploader</span>
+  <span class="n">skip_callback</span> <span class="ss">:save</span><span class="p">,</span> <span class="ss">:after</span><span class="p">,</span> <span class="ss">:remove_previously_stored_avatar</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-contributing-to-carrierwave" class="anchor" href="#contributing-to-carrierwave" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing to CarrierWave</h2>
+
+<p>See <a href="https://github.com/carrierwaveuploader/carrierwave/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2008-2014 Jonas Nicklas</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

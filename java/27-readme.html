@@ -1,0 +1,92 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-presto" class="anchor" href="#presto" aria-hidden="true"><span class="octicon octicon-link"></span></a>Presto</h1>
+
+<p>Presto is a distributed SQL query engine for big data.</p>
+
+<p>See the <a href="http://prestodb.io/docs/current/">User Manual</a> for deployment instructions and end user documentation.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>Mac OS X or Linux</li>
+<li>Java 7, 64-bit</li>
+<li>Maven 3.1.1+ (for building)</li>
+<li>Python 2.4+ (for running with the launcher script)</li>
+</ul><h2>
+<a name="user-content-building-presto" class="anchor" href="#building-presto" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Presto</h2>
+
+<p>Presto is a standard Maven project. Simply run the following command from the project root directory:</p>
+
+<pre><code>mvn clean install
+</code></pre>
+
+<p>On the first build, Maven will download all the dependencies from the internet and cache them in the local repository (<code>~/.m2/repository</code>), which can take a considerable amount of time. Subsequent builds will be faster.</p>
+
+<p>Presto has a comprehensive set of unit tests that can take several minutes to run. You can disable the tests when building:</p>
+
+<pre><code>mvn clean install -DskipTests
+</code></pre>
+
+<h2>
+<a name="user-content-running-presto-in-your-ide" class="anchor" href="#running-presto-in-your-ide" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Presto in your IDE</h2>
+
+<h3>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h3>
+
+<p>After building Presto for the first time, you can load the project into your IDE and run the server. We recommend using <a href="http://www.jetbrains.com/idea/">IntelliJ IDEA</a>. Because Presto is a standard Maven project, you can import it into your IDE using the root <code>pom.xml</code> file. In IntelliJ, choose Open Project from the Quick Start box or choose Open from the File menu and select the root <code>pom.xml</code> file.</p>
+
+<p>After opening the project in IntelliJ, double check that the Java SDK is properly configured properly for the project:</p>
+
+<ul class="task-list">
+<li>Open the File menu and select Project Structure</li>
+<li>In the SDKs section, ensure that a 1.7 JDK is selected (create one if none exist)</li>
+<li>In the Project section, ensure the Project language level is set to 7.0 as Presto makes use of several Java 7 language features</li>
+</ul><p>Presto comes with sample configuration that should work out-of-the-box for development. Use the following options to create a run configuration:</p>
+
+<ul class="task-list">
+<li>Main Class: <code>com.facebook.presto.server.PrestoServer</code>
+</li>
+<li>VM Options: <code>-ea -Xmx2G -Dconfig=etc/config.properties -Dlog.levels-file=etc/log.properties</code>
+</li>
+<li>Working directory: <code>$MODULE_DIR$</code>
+</li>
+<li>Use classpath of module: <code>presto-main</code>
+</li>
+</ul><p>The working directory should be the <code>presto-main</code> subdirectory. In IntelliJ, using <code>$MODULE_DIR$</code> accomplishes this automatically.</p>
+
+<p>Additionally, the Hive plugin must be configured with location of your Hive metastore Thrift service. Add the following to the list of VM options, replacing <code>localhost:9083</code> with the correct host and port (or use the below value if you do not have a Hive metastore):</p>
+
+<pre><code>-Dhive.metastore.uri=thrift://localhost:9083
+</code></pre>
+
+<h3>
+<a name="user-content-using-socks-for-hive-or-hdfs" class="anchor" href="#using-socks-for-hive-or-hdfs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using SOCKS for Hive or HDFS</h3>
+
+<p>If your Hive metastore or HDFS cluster is not directly accessible to your local machine, you can use SSH port forwarding to access it. Setup a dynamic SOCKS proxy with SSH listening on local port 1080:</p>
+
+<pre><code>ssh -v -N -D 1080 server
+</code></pre>
+
+<p>Then add the following to the list of VM options:</p>
+
+<pre><code>-Dhive.metastore.thrift.client.socks-proxy=localhost:1080
+</code></pre>
+
+<h3>
+<a name="user-content-running-the-cli" class="anchor" href="#running-the-cli" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running the CLI</h3>
+
+<p>Start the CLI to connect to the server and run SQL queries:</p>
+
+<pre><code>presto-cli/target/presto-cli-*-executable.jar
+</code></pre>
+
+<p>Run a query to see the nodes in the cluster:</p>
+
+<pre><code>SELECT * FROM sys.node;
+</code></pre>
+
+<p>In the sample configuration, the Hive connector is mounted in the <code>hive</code> catalog, so you can run the following queries to show the tables in the Hive database <code>default</code>:</p>
+
+<pre><code>SHOW TABLES FROM hive.default;
+</code></pre></article></div>

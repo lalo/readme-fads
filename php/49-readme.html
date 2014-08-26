@@ -1,0 +1,92 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-ratchet" class="anchor" href="#ratchet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ratchet</h1>
+
+<p><a href="http://travis-ci.org/ratchetphp/Ratchet"><img src="https://camo.githubusercontent.com/1be89a718b3a7b7d94d1c7d06b1b1b18a8d0cde7/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f726174636865747068702f526174636865742e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/ratchetphp/Ratchet.png?branch=master" style="max-width:100%;"></a>
+<a href="https://packagist.org/packages/cboden/ratchet"><img src="https://camo.githubusercontent.com/6ea72efe7d4b3ff2716b9230e34b2aa9a6e5a0a7/68747470733a2f2f706f7365722e707567782e6f72672f63626f64656e2f726174636865742f762f737461626c652e706e67" alt="Latest Stable Version" data-canonical-src="https://poser.pugx.org/cboden/ratchet/v/stable.png" style="max-width:100%;"></a></p>
+
+<p>A PHP 5.3 library for asynchronously serving WebSockets.
+Build up your application through simple interfaces and re-use your application without changing any of its code just by combining different components.</p>
+
+<h2>
+<a name="user-content-websocket-compliance" class="anchor" href="#websocket-compliance" aria-hidden="true"><span class="octicon octicon-link"></span></a>WebSocket Compliance</h2>
+
+<ul class="task-list">
+<li>Supports the RFC6455, HyBi-10+, and Hixie76 protocol versions (at the same time)</li>
+<li>Tested on Chrome 13+, Firefox 6+, Safari 5+, iOS 4.2+, IE 8+</li>
+<li>Ratchet <a href="http://socketo.me/reports/ab/">passes</a> the <a href="http://autobahn.ws/testsuite">Autobahn Testsuite</a> (non-binary messages)</li>
+</ul><h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>Shell access is required and root access is recommended.
+To avoid proxy/firewall blockage it's recommended WebSockets are requested on port 80 or 443 (SSL), which requires root access.
+In order to do this, along with your sync web stack, you can either use a reverse proxy or two separate machines.
+You can find more details in the <a href="http://socketo.me/docs/deploy#serverconfiguration">server conf docs</a>.</p>
+
+<p>PHP 5.3.9 (or higher) is required. If you have access, PHP 5.4 (or higher) is <em>highly</em> recommended for its performance improvements.</p>
+
+<h3>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h3>
+
+<p>User and API documentation is available on Ratchet's website: <a href="http://socketo.me">http://socketo.me</a></p>
+
+<p>See <a href="https://github.com/cboden/Ratchet-examples">https://github.com/cboden/Ratchet-examples</a> for some out-of-the-box working demos using Ratchet.</p>
+
+<p>Need help?  Have a question?  Want to provide feedback?  Write a message on the <a href="https://groups.google.com/forum/#!forum/ratchet-php">Google Groups Mailing List</a>.</p>
+
+<hr><h3>
+<a name="user-content-a-quick-example" class="anchor" href="#a-quick-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>A quick example</h3>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="k">use</span> <span class="nx">Ratchet\MessageComponentInterface</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Ratchet\ConnectionInterface</span><span class="p">;</span>
+
+    <span class="c1">// Make sure composer dependencies have been installed</span>
+    <span class="k">require</span> <span class="nx">__DIR__</span> <span class="o">.</span> <span class="s1">'/vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="sd">/**</span>
+<span class="sd"> * chat.php</span>
+<span class="sd"> * Send any incoming messages to all connected clients (except sender)</span>
+<span class="sd"> */</span>
+<span class="k">class</span> <span class="nc">MyChat</span> <span class="k">implements</span> <span class="nx">MessageComponentInterface</span> <span class="p">{</span>
+    <span class="k">protected</span> <span class="nv">$clients</span><span class="p">;</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">__construct</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">clients</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">\SplObjectStorage</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">onOpen</span><span class="p">(</span><span class="nx">ConnectionInterface</span> <span class="nv">$conn</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">clients</span><span class="o">-&gt;</span><span class="na">attach</span><span class="p">(</span><span class="nv">$conn</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">onMessage</span><span class="p">(</span><span class="nx">ConnectionInterface</span> <span class="nv">$from</span><span class="p">,</span> <span class="nv">$msg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">foreach</span> <span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">clients</span> <span class="k">as</span> <span class="nv">$client</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nv">$from</span> <span class="o">!=</span> <span class="nv">$client</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nv">$client</span><span class="o">-&gt;</span><span class="na">send</span><span class="p">(</span><span class="nv">$msg</span><span class="p">);</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">onClose</span><span class="p">(</span><span class="nx">ConnectionInterface</span> <span class="nv">$conn</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">clients</span><span class="o">-&gt;</span><span class="na">detach</span><span class="p">(</span><span class="nv">$conn</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">onError</span><span class="p">(</span><span class="nx">ConnectionInterface</span> <span class="nv">$conn</span><span class="p">,</span> <span class="nx">\Exception</span> <span class="nv">$e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$conn</span><span class="o">-&gt;</span><span class="na">close</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+    <span class="c1">// Run the server application through the WebSocket protocol on port 8080</span>
+    <span class="nv">$app</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Ratchet\App</span><span class="p">(</span><span class="s1">'localhost'</span><span class="p">,</span> <span class="mi">8080</span><span class="p">);</span>
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">route</span><span class="p">(</span><span class="s1">'/chat'</span><span class="p">,</span> <span class="k">new</span> <span class="nx">MyChat</span><span class="p">);</span>
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">route</span><span class="p">(</span><span class="s1">'/echo'</span><span class="p">,</span> <span class="k">new</span> <span class="nx">Ratchet\Server\EchoServer</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">'*'</span><span class="p">));</span>
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">run</span><span class="p">();</span>
+</pre></div>
+
+<pre><code>$ php chat.php
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre>    <span class="c1">// Then some JavaScript in the browser:</span>
+    <span class="kd">var</span> <span class="nx">conn</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WebSocket</span><span class="p">(</span><span class="s1">'ws://localhost:8080/echo'</span><span class="p">);</span>
+    <span class="nx">conn</span><span class="p">.</span><span class="nx">onmessage</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">data</span><span class="p">);</span> <span class="p">};</span>
+    <span class="nx">conn</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="s1">'Hello Me!'</span><span class="p">);</span>
+</pre></div></article></div>

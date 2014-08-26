@@ -1,0 +1,151 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-metascala" class="anchor" href="#metascala" aria-hidden="true"><span class="octicon octicon-link"></span></a>Metascala</h1>
+
+<p>Metascala is a tiny <a href="http://en.wikipedia.org/wiki/Metacircular">metacircular</a> <a href="http://en.wikipedia.org/wiki/Jvm">Java Virtual Machine (JVM)</a> written in the <a href="http://tinyurl.com/6etjds">Scala</a> programming language. Metascala is barely 3000 lines of Scala, and is complete enough that it is able to interpret itself metacircularly. Being written in Scala and compiled to <a href="http://en.wikipedia.org/wiki/Java_bytecode">Java bytecode</a>, the Metascala JVM requires a host JVM in order to run.</p>
+
+<p>The goal of Metascala is to create a platform to experiment with the JVM: a 3000 line JVM written in Scala is probably much more approachable than the 1,000,000 lines of C/C++ which make up <a href="http://openjdk.java.net/groups/hotspot/">HotSpot</a>, the standard implementation, and more amenable to implementing fun features like <a href="http://en.wikipedia.org/wiki/Continuation">continuations</a>, <a href="http://www.javalobby.org/java/forums/t105978.html">isolates</a> or <a href="https://blogs.oracle.com/jrose/entry/value_types_in_the_vm">value classes</a>. The 3000 lines of code gives you:</p>
+
+<ul class="task-list">
+<li>The bytecode interpreter, together with all the run-time data structures</li>
+<li>A <a href="http://en.wikipedia.org/wiki/Stack_machine">stack-machine</a> to <a href="http://en.wikipedia.org/wiki/Static_single_assignment_form">SSA</a> register-machine bytecode translator</li>
+<li>A custom <a href="https://en.wikipedia.org/wiki/Memory_management">heap</a>, complete with a stop-the-world, copying <a href="http://tinyurl.com/d77yltz">garbage collector</a>
+</li>
+<li>Implementations of parts of the <a href="http://en.wikipedia.org/wiki/Java_Native_Interface">JVM's native interface</a>
+</li>
+</ul><p>Although it is far from a complete implementation, Metascala already provides the ability to run untrusted bytecode securely (albeit slowly), since every operation which could potentially cause harm (including memory allocations and CPU usage) is virtualized and can be controlled. <a href="#ongoing-work">Ongoing work</a> includes tightening of the security guarantees, improving compatibility and increasing performance.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>Metascala requires <a href="http://www.scala-lang.org/downloads">Scala 2.10</a> and is built using <a href="http://www.scala-sbt.org/">SBT 12</a>. After checking out the repository, if you have SBT installed, all you need to do is run</p>
+
+<pre><code>sbt
+&gt; test-only metascala.features.*
+</code></pre>
+
+<p>Which will download the dependencies (currently just <a href="http://asm.ow2.org/">asm</a>), compile the code, and run the unit tests in the <a href="test/scala/features">test/scala/features</a> folder. Compiling Metascala could take a minute, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via Metascala is identical to the result of executing it directly via <a href="http://docs.oracle.com/javase/tutorial/reflect/">reflection</a>.</p>
+
+<p>Apart from the basic feature tests, metascala also includes basic tests for the <a href="src/test/scala/metascala/full/GCTests.scala">garbage collector</a>, <a href="src/test/scala/metascala/full/JavaLibTest.scala">Java</a> and <a href="src/test/scala/metascala/full/ScalaLib.scala">Scala</a> library functionality. Lastly, Metascala contains tests for <a href="src/test/scala/metascala/full/MetacircularTest.scala">Meta-interpretation</a>, which tests the ability for Metascala to interpret its own source code, which in turn interprets some simple programs (e.g. a square-root calculator). Meta-interpretation is extremely slow, and these tests take <strong>several minutes</strong> to run.</p>
+
+<h2>
+<a name="user-content-implementation" class="anchor" href="#implementation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Implementation</h2>
+
+<p>Metascala is a simple Scala application, and compiles to Java bytecode like any other Scala program. It is literally a program that loads in a class file, parses it into a data structure and then has a <code>while(true)</code> loop that interprets the bytecodes one by one, updating the internal state of the VM following the <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/">JVM Spec</a> and spitting out an answer at the end.</p>
+
+<p>In fact, each Metascala JVM is a single Java object, containing in itself all state relevant to its own computation. Instantiating one and invoking methods using it is simple:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">x</span> <span class="k">=</span> <span class="k">new</span> <span class="n">metascala</span><span class="o">.</span><span class="nc">VM</span><span class="o">()</span>
+<span class="n">x</span><span class="o">.</span><span class="n">invoke</span><span class="o">(</span><span class="s">"metascala.features.arrays.ArrayStuff"</span><span class="o">,</span> <span class="s">"bubbleSort"</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span><span class="nc">Array</span><span class="o">(</span><span class="mi">6</span><span class="o">,</span> <span class="mi">5</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">7</span><span class="o">,</span> <span class="mi">3</span><span class="o">,</span> <span class="mi">4</span><span class="o">,</span> <span class="mi">9</span><span class="o">,</span> <span class="mi">1</span><span class="o">,</span> <span class="mi">8</span><span class="o">)))</span>
+<span class="c1">// Array(1, 2, 3, 4, 5, 6, 7, 8, 9)</span>
+</pre></div>
+
+<p>Arguments passed into the <code>invoke()</code> method are converted from their real representation into virtual versions (the <code>vrt.*</code> classes) to be handled within the Metascala VM. The return value is similarly converted from a virtual value back to a real value before being given to the caller of <code>invoke()</code>.</p>
+
+<p>The main packages of interest in Metascala are:</p>
+
+<h3>
+<a name="user-content-metascalaimm" class="anchor" href="#metascalaimm" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="src/main/scala/metascala/imm">metascala/imm</a>
+</h3>
+
+<p>An immutable model of the data structures that make up a Java .class file. These are an almost direct conversion of the data structures provided by the <a href="http://www.geekyarticles.com/2011/10/manipulating-java-class-files-with-asm_13.html">ASM Tree API</a>, converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of Metascala.</p>
+
+<h3>
+<a name="user-content-metascalaopcodes" class="anchor" href="#metascalaopcodes" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="src/main/scala/metascala/opcodes">metascala/opcodes</a>
+</h3>
+
+<p>This contains the logic related to <a href="src/main/scala/metascala/opcodes/Conversion.scala">parsing and compiling</a> the Java bytecode instructions from the default hybrid stack/register format into an <a href="src/main/scala/metascala/opcodes/Insn.scala">SSA bytecode</a>, simplifying it in the process. Currently Metascala does not perform any real optimizations on the bytecode apart from linking up class/method names with the relevant classes and methods, but the <a href="http://en.wikipedia.org/wiki/Static_single_assignment_form">SSA</a> format should make it easier to perform these operations in the future.</p>
+
+<h3>
+<a name="user-content-metascalart" class="anchor" href="#metascalart" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="src/main/scala/metascala/rt">metascala/rt</a>
+</h3>
+
+<p>Runtime data-structures that make up the JVM: <a href="src/main/scala/metascala/rt/Thread.scala">threads</a>, <a href="src/main/scala/metascala/rt/Cls.scala">classes</a>, <a href="src/main/scala/metascala/rt/Method.scala">methods</a>, <a href="src/main/scala/metascala/rt/Obj.scala">objects and arrays</a>. These classes also contain the mutable state associated with these constructs (e.g. static class fields) or Metascala-specific optimizations (e.g. pre-computed <a href="http://en.wikipedia.org/wiki/Virtual_method_table">vtables</a>).</p>
+
+<h3>
+<a name="user-content-metascalanatives" class="anchor" href="#metascalanatives" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="src/main/scala/metascala/natives">metascala/natives</a>
+</h3>
+
+<p>Trapped methods, or <a href="src/main/scala/metascala/Bindings.scala">Bindings</a>, which when called within the Metascala VM result in some interaction with the Host VM. There is a <a href="src/main/scala/metascala/Default.scala">default</a> implementation of bindings, but it can easily be swapped out for a custom version of Bindings e.g. to redirect filesystem access, or mock out <code>currentTimeMillis()</code> with a custom time. All interaction between the code inside the VM and the external world takes place through these Bindings.</p>
+
+<hr><p>Many concepts have classes in several of these packages representing them. For example, the abstract idea of a Java "Class" is modelled by:</p>
+
+<ul class="task-list">
+<li>
+<code>imm.Cls</code>: the immutable, VM-independent representation of a class parsed from a class file</li>
+<li>
+<code>imm.Type.Cls</code>: a Type representing a Class signature. This contains the qualified name of the class (e.g. <code>"java.lang.String"</code>), which may or may not exist, and is also immutable</li>
+<li>
+<code>rt.Cls</code>: the runtime representation of a class, with its mutable state (static fields) and VM-specific optimizations (e.g. vtables)</li>
+</ul><p>These types are always referred to by their qualified names in the source code (i.e. <code>imm.Cls</code> rather than simply <code>Cls</code>) in order to avoid confusion between them or name collisions.</p>
+
+<h2>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h2>
+
+<p>Metascala implements a subset of the <a href="http://docs.oracle.com/javase/specs/jvms/se7/html/">Java Virtual Machine Specification</a>. The implementation has been mostly focused on the features that Metascala needs to run. However, Metascala does not require (and hence does not implement) several things such as:</p>
+
+<ul class="task-list">
+<li><strong>Multiple Threads</strong></li>
+<li><strong>Custom ClassLoaders</strong></li>
+<li><strong>Enforcement of Access-Control modifiers</strong></li>
+</ul><p>Apart from the language specification, there is a large amount of functionality in the JVM which is from  <em>native</em> methods. These are required for the JVM to interact with the outside world in any way, and again Metascala only implements those which were necessary to interpret itself, leaving out a lot of other basic things such as </p>
+
+<ul class="task-list">
+<li><strong>Filesystem Access</strong></li>
+<li><strong>Network Access</strong></li>
+<li>
+<strong>System.out.println</strong> (<code>scala.Predef.println</code> works though!)</li>
+</ul><p>Nonetheless, Metascala is compatible enough to interpret itself: a moderately sized Scala program which makes heavy use of the standard library, some basic reflection, and some external Java libraries (Basically only <a href="http://asm.ow2.org/">ASM</a> right now).</p>
+
+<p>MetaScala has been tested on Windows 7 using the Sun JVM (Java 7), and Ubuntu 12.04 using OpenJDK 7.</p>
+
+<h2>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h2>
+
+<p>The performance of Metascala is absolutely abysmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), but not much more. This is partly because it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.</p>
+
+<p>This can easily be improved a great deal in the future: micro-bottlenecks (e.g. for-comprehensions) can be optimized, and the SSA bytecode is amenable to analysis and optimization. Nonetheless, my focus so far has been on completeness and compliance; performance optimizations will have to wait.</p>
+
+<h2>
+<a name="user-content-security" class="anchor" href="#security" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h2>
+
+<p>Part of Metascala's goal is to allow the developer to safely run arbitrary untrusted bytecode. Metascala's approach to security is completely separate from the JVM's existing security model. In short: everything is virtualized, and everything is controlled. Because it reads and interprets each and every bytecode one by one, code executed with the Metascala VM cannot:</p>
+
+<ul class="task-list">
+<li>
+<strong>Loop forever</strong>: Metascala can simply stop the interpretation after a certain amount of bytecodes have been utilized.</li>
+<li>
+<strong>Allocate unbounded memory</strong>: code run with a Metascala VM runs on its own heap (basically one big byte array), with its own garbage collector. No matter how many allocations it makes, it cannot allocate more memory than the Metascala VM's heap has available.</li>
+<li>
+<strong>Perform unsafe actions</strong>: by default, all methods or instructions interpreted by the Metascala VM only affect the Metascala VM's internal state, and nothing else. Any attempts to influence the outside world (e.g. by printing debug statements, or loading data from files) has to happen through an explicitly created Bindings object. This single-point-of-entry makes it easy to confidently and completely lock down the untrusted code.</li>
+</ul><p>There are still some weaknesses in Metascala's security model: time spent garbage collecting isn't accounted for, neither is memory not directly allocated but required by the VM's auxiliary data structures (e.g. classes). These provide an attacker means to consume more resources than they should be allowed to, and solving this is part of the ongoing work.</p>
+
+<h2>
+<a name="user-content-ongoing-work" class="anchor" href="#ongoing-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ongoing Work</h2>
+
+<p>Immediate work includes:</p>
+
+<ul class="task-list">
+<li>Fleshing out the completeness of the Java implementation: multiple Threads, ClassLoaders, Filesystem access, enough to run some standard Java benchmarks and applications like <a href="https://developer.mozilla.org/en/docs/Rhino">Rhino Javascript</a> or the <a href="https://github.com/scala/scala">Scala Compiler</a>.</li>
+<li>Moving more of the VM's runtime functionality data-structures inside of the Metascala VM, rather than outside. For example, making the garbage collector run inside the VM, or having the class-related data structures inside the VM's heap, would allow better control of the VMs resource usage since they would count toward any bytecode/memory limits imposed on the VM.</li>
+<li>Optimizing performance using macros. e.g. replacing for-loops with <a href="https://github.com/non/spire#syntax">macro-based for-loops</a>, or using macros to pre-compile the <a href="src/main/scala/metascala/natives/Bindings.scala">Bindings</a> table so the work does not need to be done at run-time. Reducing the start-up cost and run-time overhead would help make Metascala a lightweight container for untrusted code.</li>
+</ul><p>Feel free to contact me (below) or open an issue/send a pull request if you're interested and want to help out. Contributions are welcome!</p>
+
+<h2>
+<a name="user-content-fun-facts" class="anchor" href="#fun-facts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fun Facts</h2>
+
+<ul class="task-list">
+<li>At only 3000 lines of source code, Metascala is probably one of the smallest JVMs ever.</li>
+<li>At 60 seconds to compile, it's probably also one of the slowest to compile, compiling at only 50 lines per second.</li>
+<li>Metascala isn't a metacircular Java/Scala interpreter, because it is currently unable to interpret the Java/Scala compilers.</li>
+<li>The number of native method bindings to the JVM is huge, and unlike the virtual machine specification, completely undocumented, although it is necessary to run basically anything. The only way to find out what natives are missing is to run stuff and see it crash when it encounters a missing native method.</li>
+<li>The 90kb of source code gets compiled into 1800kb of binaries, an increase of 20x. Compiled Scala results in a lot of class files.</li>
+</ul><h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<p>Copyright (c) 2013, Li Haoyi (haoyi.sg at gmail.com)</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

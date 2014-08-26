@@ -1,0 +1,494 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>DevStack is a set of scripts and utilities to quickly deploy an OpenStack cloud.</p>
+
+<h1>
+<a name="user-content-goals" class="anchor" href="#goals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Goals</h1>
+
+<ul class="task-list">
+<li>To quickly build dev OpenStack environments in a clean Ubuntu or Fedora
+environment</li>
+<li>To describe working configurations of OpenStack (which code branches
+work together?  what do config files look like for those branches?)</li>
+<li>To make it easier for developers to dive into OpenStack so that they can
+productively contribute without having to understand every part of the
+system at once</li>
+<li>To make it easy to prototype cross-project features</li>
+<li>To provide an environment for the OpenStack CI testing on every commit
+to the projects</li>
+</ul><p>Read more at <a href="http://devstack.org">http://devstack.org</a>.</p>
+
+<p>IMPORTANT: Be sure to carefully read <code>stack.sh</code> and any other scripts you
+execute before you run them, as they install software and will alter your
+networking configuration.  We strongly recommend that you run <code>stack.sh</code>
+in a clean and disposable vm when you are first getting started.</p>
+
+<h1>
+<a name="user-content-versions" class="anchor" href="#versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Versions</h1>
+
+<p>The DevStack master branch generally points to trunk versions of OpenStack
+components.  For older, stable versions, look for branches named
+stable/[release] in the DevStack repo.  For example, you can do the
+following to create a grizzly OpenStack cloud:</p>
+
+<pre><code>git checkout stable/grizzly
+./stack.sh
+</code></pre>
+
+<p>You can also pick specific OpenStack project releases by setting the appropriate
+<code>*_BRANCH</code> variables in the <code>localrc</code> section of <code>local.conf</code> (look in
+<code>stackrc</code> for the default set).  Usually just before a release there will be
+milestone-proposed branches that need to be tested::</p>
+
+<pre><code>GLANCE_REPO=git://git.openstack.org/openstack/glance.git
+GLANCE_BRANCH=milestone-proposed
+</code></pre>
+
+<h1>
+<a name="user-content-start-a-dev-cloud" class="anchor" href="#start-a-dev-cloud" aria-hidden="true"><span class="octicon octicon-link"></span></a>Start A Dev Cloud</h1>
+
+<p>Installing in a dedicated disposable VM is safer than installing on your
+dev machine!  Plus you can pick one of the supported Linux distros for
+your VM.  To start a dev cloud run the following NOT AS ROOT (see
+<strong>DevStack Execution Environment</strong> below for more on user accounts):</p>
+
+<pre><code>./stack.sh
+</code></pre>
+
+<p>When the script finishes executing, you should be able to access OpenStack
+endpoints, like so:</p>
+
+<ul class="task-list">
+<li>Horizon: http://myhost/</li>
+<li>Keystone: http://myhost:5000/v2.0/</li>
+</ul><p>We also provide an environment file that you can use to interact with your
+cloud via CLI:</p>
+
+<pre><code># source openrc file to load your environment with OpenStack CLI creds
+. openrc
+# list instances
+nova list
+</code></pre>
+
+<p>If the EC2 API is your cup-o-tea, you can create credentials and use euca2ools:</p>
+
+<pre><code># source eucarc to generate EC2 credentials and set up the environment
+. eucarc
+# list instances using ec2 api
+euca-describe-instances
+</code></pre>
+
+<h1>
+<a name="user-content-devstack-execution-environment" class="anchor" href="#devstack-execution-environment" aria-hidden="true"><span class="octicon octicon-link"></span></a>DevStack Execution Environment</h1>
+
+<p>DevStack runs rampant over the system it runs on, installing things and
+uninstalling other things.  Running this on a system you care about is a recipe
+for disappointment, or worse.  Alas, we're all in the virtualization business
+here, so run it in a VM.  And take advantage of the snapshot capabilities
+of your hypervisor of choice to reduce testing cycle times.  You might even save
+enough time to write one more feature before the next feature freeze...</p>
+
+<p><code>stack.sh</code> needs to have root access for a lot of tasks, but uses <code>sudo</code>
+for all of those tasks.  However, it needs to be not-root for most of its
+work and for all of the OpenStack services.  <code>stack.sh</code> specifically
+does not run if started as root.</p>
+
+<p>This is a recent change (Oct 2013) from the previous behaviour of
+automatically creating a <code>stack</code> user.  Automatically creating
+user accounts is not the right response to running as root, so
+that bit is now an explicit step using <code>tools/create-stack-user.sh</code>.
+Run that (as root!) or just check it out to see what DevStack's
+expectations are for the account it runs under.  Many people simply
+use their usual login (the default 'ubuntu' login on a UEC image
+for example).</p>
+
+<h1>
+<a name="user-content-customizing" class="anchor" href="#customizing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Customizing</h1>
+
+<p>You can override environment variables used in <code>stack.sh</code> by creating file
+name <code>local.conf</code> with a <code>localrc</code> section as shown below.  It is likely
+that you will need to do this to tweak your networking configuration should
+you need to access your cloud from a different host.</p>
+
+<pre><code>[[local|localrc]]
+VARIABLE=value
+</code></pre>
+
+<p>See the <strong>Local Configuration</strong> section below for more details.</p>
+
+<h1>
+<a name="user-content-database-backend" class="anchor" href="#database-backend" aria-hidden="true"><span class="octicon octicon-link"></span></a>Database Backend</h1>
+
+<p>Multiple database backends are available. The available databases are defined
+in the lib/databases directory.
+<code>mysql</code> is the default database, choose a different one by putting the
+following in the <code>localrc</code> section:</p>
+
+<pre><code>disable_service mysql
+enable_service postgresql
+</code></pre>
+
+<p><code>mysql</code> is the default database.</p>
+
+<h1>
+<a name="user-content-rpc-backend" class="anchor" href="#rpc-backend" aria-hidden="true"><span class="octicon octicon-link"></span></a>RPC Backend</h1>
+
+<p>Multiple RPC backends are available. Currently, this
+includes RabbitMQ (default), Qpid, and ZeroMQ. Your backend of
+choice may be selected via the <code>localrc</code> section.</p>
+
+<p>Note that selecting more than one RPC backend will result in a failure.</p>
+
+<p>Example (ZeroMQ):</p>
+
+<pre><code>ENABLED_SERVICES="$ENABLED_SERVICES,-rabbit,-qpid,zeromq"
+</code></pre>
+
+<p>Example (Qpid):</p>
+
+<pre><code>ENABLED_SERVICES="$ENABLED_SERVICES,-rabbit,-zeromq,qpid"
+</code></pre>
+
+<h1>
+<a name="user-content-apache-frontend" class="anchor" href="#apache-frontend" aria-hidden="true"><span class="octicon octicon-link"></span></a>Apache Frontend</h1>
+
+<p>Apache web server can be enabled for wsgi services that support being deployed
+under HTTPD + mod_wsgi. By default, services that recommend running under
+HTTPD + mod_wsgi are deployed under Apache. To use an alternative deployment
+strategy (e.g. eventlet) for services that support an alternative to HTTPD +
+mod_wsgi set <code>ENABLE_HTTPD_MOD_WSGI_SERVICES</code> to <code>False</code> in your
+<code>local.conf</code>.</p>
+
+<p>Each service that can be run under HTTPD + mod_wsgi also has an override
+toggle available that can be set in your <code>local.conf</code>.</p>
+
+<p>Keystone is run under HTTPD + mod_wsgi by default.</p>
+
+<p>Example (Keystone):</p>
+
+<pre><code>KEYSTONE_USE_MOD_WSGI="True"
+</code></pre>
+
+<p>Example (Swift):</p>
+
+<pre><code>SWIFT_USE_MOD_WSGI="True"
+</code></pre>
+
+<h1>
+<a name="user-content-swift" class="anchor" href="#swift" aria-hidden="true"><span class="octicon octicon-link"></span></a>Swift</h1>
+
+<p>Swift is disabled by default.  When enabled, it is configured with
+only one replica to avoid being IO/memory intensive on a small
+vm. When running with only one replica the account, container and
+object services will run directly in screen. The others services like
+replicator, updaters or auditor runs in background.</p>
+
+<p>If you would like to enable Swift you can add this to your <code>localrc</code> section:</p>
+
+<pre><code>enable_service s-proxy s-object s-container s-account
+</code></pre>
+
+<p>If you want a minimal Swift install with only Swift and Keystone you
+can have this instead in your <code>localrc</code> section:</p>
+
+<pre><code>disable_all_services
+enable_service key mysql s-proxy s-object s-container s-account
+</code></pre>
+
+<p>If you only want to do some testing of a real normal swift cluster
+with multiple replicas you can do so by customizing the variable
+<code>SWIFT_REPLICAS</code> in your <code>localrc</code> section (usually to 3).</p>
+
+<h1>
+<a name="user-content-swift-s3" class="anchor" href="#swift-s3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Swift S3</h1>
+
+<p>If you are enabling <code>swift3</code> in <code>ENABLED_SERVICES</code> DevStack will
+install the swift3 middleware emulation. Swift will be configured to
+act as a S3 endpoint for Keystone so effectively replacing the
+<code>nova-objectstore</code>.</p>
+
+<p>Only Swift proxy server is launched in the screen session all other
+services are started in background and managed by <code>swift-init</code> tool.</p>
+
+<h1>
+<a name="user-content-neutron" class="anchor" href="#neutron" aria-hidden="true"><span class="octicon octicon-link"></span></a>Neutron</h1>
+
+<p>Basic Setup</p>
+
+<p>In order to enable Neutron a single node setup, you'll need the
+following settings in your <code>local.conf</code>:</p>
+
+<pre><code>disable_service n-net
+enable_service q-svc
+enable_service q-agt
+enable_service q-dhcp
+enable_service q-l3
+enable_service q-meta
+enable_service q-metering
+# Optional, to enable tempest configuration as part of DevStack
+enable_service tempest
+</code></pre>
+
+<p>Then run <code>stack.sh</code> as normal.</p>
+
+<p>DevStack supports setting specific Neutron configuration flags to the
+service, Open vSwitch plugin and LinuxBridge plugin configuration files.
+To make use of this feature, the settings can be added to <code>local.conf</code>.
+The old <code>Q_XXX_EXTRA_XXX_OPTS</code> variables are deprecated and will be removed
+in the near future.  The <code>local.conf</code> headers for the replacements are:</p>
+
+<ul class="task-list">
+<li>
+<p><code>Q_SRV_EXTRA_OPTS</code>:</p>
+
+<p>[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[linuxbridge]   # or [ovs]</p>
+</li>
+<li>
+<p><code>Q_AGENT_EXTRA_AGENT_OPTS</code>:</p>
+
+<p>[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[agent]</p>
+</li>
+<li>
+<p><code>Q_AGENT_EXTRA_SRV_OPTS</code>:</p>
+
+<p>[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[linuxbridge]   # or [ovs]</p>
+</li>
+<li>
+<p><code>Q_SRV_EXTRA_DEFAULT_OPTS</code>:</p>
+
+<p>[[post-config|$NEUTRON_CONF]]
+[DEFAULT]</p>
+</li>
+</ul><p>Example extra config in <code>local.conf</code>:</p>
+
+<pre><code>[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[agent]
+tunnel_type=vxlan
+vxlan_udp_port=8472
+
+[[post-config|$NEUTRON_CONF]]
+[DEFAULT]
+tenant_network_type=vxlan
+</code></pre>
+
+<p>DevStack also supports configuring the Neutron ML2 plugin. The ML2 plugin
+can run with the OVS, LinuxBridge, or Hyper-V agents on compute hosts. This
+is a simple way to configure the ml2 plugin:</p>
+
+<pre><code># VLAN configuration
+Q_PLUGIN=ml2
+ENABLE_TENANT_VLANS=True
+
+# GRE tunnel configuration
+Q_PLUGIN=ml2
+ENABLE_TENANT_TUNNELS=True
+
+# VXLAN tunnel configuration
+Q_PLUGIN=ml2
+Q_ML2_TENANT_NETWORK_TYPE=vxlan
+</code></pre>
+
+<p>The above will default in DevStack to using the OVS on each compute host.
+To change this, set the <code>Q_AGENT</code> variable to the agent you want to run
+(e.g. linuxbridge).</p>
+
+<pre><code>Variable Name                    Notes
+----------------------------------------------------------------------------
+Q_AGENT                          This specifies which agent to run with the
+                                 ML2 Plugin (either `openvswitch` or `linuxbridge`).
+Q_ML2_PLUGIN_MECHANISM_DRIVERS   The ML2 MechanismDrivers to load. The default
+                                 is none. Note, ML2 will work with the OVS
+                                 and LinuxBridge agents by default.
+Q_ML2_PLUGIN_TYPE_DRIVERS        The ML2 TypeDrivers to load. Defaults to
+                                 all available TypeDrivers.
+Q_ML2_PLUGIN_GRE_TYPE_OPTIONS    GRE TypeDriver options. Defaults to none.
+Q_ML2_PLUGIN_VXLAN_TYPE_OPTIONS  VXLAN TypeDriver options. Defaults to none.
+Q_ML2_PLUGIN_VLAN_TYPE_OPTIONS   VLAN TypeDriver options. Defaults to none.
+</code></pre>
+
+<h1>
+<a name="user-content-heat" class="anchor" href="#heat" aria-hidden="true"><span class="octicon octicon-link"></span></a>Heat</h1>
+
+<p>Heat is enabled by default (see <code>stackrc</code> file). To disable it explicitly
+you'll need the following settings in your <code>localrc</code> section:</p>
+
+<pre><code>disable_service heat h-api h-api-cfn h-api-cw h-eng
+</code></pre>
+
+<p>Heat can also run in standalone mode, and be configured to orchestrate
+on an external OpenStack cloud. To launch only Heat in standalone mode
+you'll need the following settings in your <code>localrc</code> section:</p>
+
+<pre><code>disable_all_services
+enable_service rabbit mysql heat h-api h-api-cfn h-api-cw h-eng
+HEAT_STANDALONE=True
+KEYSTONE_SERVICE_HOST=...
+KEYSTONE_AUTH_HOST=...
+</code></pre>
+
+<h1>
+<a name="user-content-tempest" class="anchor" href="#tempest" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tempest</h1>
+
+<p>If tempest has been successfully configured, a basic set of smoke
+tests can be run as follows:</p>
+
+<pre><code>$ cd /opt/stack/tempest
+$ nosetests tempest/scenario/test_network_basic_ops.py
+</code></pre>
+
+<h1>
+<a name="user-content-devstack-on-xenserver" class="anchor" href="#devstack-on-xenserver" aria-hidden="true"><span class="octicon octicon-link"></span></a>DevStack on Xenserver</h1>
+
+<p>If you would like to use Xenserver as the hypervisor, please refer
+to the instructions in <code>./tools/xen/README.md</code>.</p>
+
+<h1>
+<a name="user-content-additional-projects" class="anchor" href="#additional-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Projects</h1>
+
+<p>DevStack has a hook mechanism to call out to a dispatch script at specific
+points in the execution of <code>stack.sh</code>, <code>unstack.sh</code> and <code>clean.sh</code>.  This
+allows upper-layer projects, especially those that the lower layer projects
+have no dependency on, to be added to DevStack without modifying the core
+scripts.  Tempest is built this way as an example of how to structure the
+dispatch script, see <code>extras.d/80-tempest.sh</code>.  See <code>extras.d/README.md</code>
+for more information.</p>
+
+<h1>
+<a name="user-content-multi-node-setup" class="anchor" href="#multi-node-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-Node Setup</h1>
+
+<p>A more interesting setup involves running multiple compute nodes, with Neutron
+networks connecting VMs on different compute nodes.
+You should run at least one "controller node", which should have a <code>stackrc</code>
+that includes at least:</p>
+
+<pre><code>disable_service n-net
+enable_service q-svc
+enable_service q-agt
+enable_service q-dhcp
+enable_service q-l3
+enable_service q-meta
+enable_service neutron
+</code></pre>
+
+<p>You likely want to change your <code>localrc</code> section to run a scheduler that
+will balance VMs across hosts:</p>
+
+<pre><code>SCHEDULER=nova.scheduler.simple.SimpleScheduler
+</code></pre>
+
+<p>You can then run many compute nodes, each of which should have a <code>stackrc</code>
+which includes the following, with the IP address of the above controller node:</p>
+
+<pre><code>ENABLED_SERVICES=n-cpu,rabbit,g-api,neutron,q-agt
+SERVICE_HOST=[IP of controller node]
+MYSQL_HOST=$SERVICE_HOST
+RABBIT_HOST=$SERVICE_HOST
+Q_HOST=$SERVICE_HOST
+MATCHMAKER_REDIS_HOST=$SERVICE_HOST
+</code></pre>
+
+<h1>
+<a name="user-content-multi-region-setup" class="anchor" href="#multi-region-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-Region Setup</h1>
+
+<p>We want to setup two devstack (RegionOne and RegionTwo) with shared keystone
+(same users and services) and horizon.
+Keystone and Horizon will be located in RegionOne.
+Full spec is available at:
+<a href="https://wiki.openstack.org/wiki/Heat/Blueprints/Multi_Region_Support_for_Heat">https://wiki.openstack.org/wiki/Heat/Blueprints/Multi_Region_Support_for_Heat</a>.</p>
+
+<p>In RegionOne:</p>
+
+<pre><code>REGION_NAME=RegionOne
+</code></pre>
+
+<p>In RegionTwo:</p>
+
+<pre><code>disable_service horizon
+KEYSTONE_SERVICE_HOST=&lt;KEYSTONE_IP_ADDRESS_FROM_REGION_ONE&gt;
+KEYSTONE_AUTH_HOST=&lt;KEYSTONE_IP_ADDRESS_FROM_REGION_ONE&gt;
+REGION_NAME=RegionTwo
+</code></pre>
+
+<h1>
+<a name="user-content-cells" class="anchor" href="#cells" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cells</h1>
+
+<p>Cells is a new scaling option with a full spec at:
+<a href="http://wiki.openstack.org/blueprint-nova-compute-cells">http://wiki.openstack.org/blueprint-nova-compute-cells</a>.</p>
+
+<p>To setup a cells environment add the following to your <code>localrc</code> section:</p>
+
+<pre><code>enable_service n-cell
+</code></pre>
+
+<p>Be aware that there are some features currently missing in cells, one notable
+one being security groups.  The exercises have been patched to disable
+functionality not supported by cells.</p>
+
+<h1>
+<a name="user-content-local-configuration" class="anchor" href="#local-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Local Configuration</h1>
+
+<p>Historically DevStack has used <code>localrc</code> to contain all local configuration
+and customizations. More and more of the configuration variables available for
+DevStack are passed-through to the individual project configuration files.
+The old mechanism for this required specific code for each file and did not
+scale well.  This is handled now by a master local configuration file.</p>
+
+<h1>
+<a name="user-content-localconf" class="anchor" href="#localconf" aria-hidden="true"><span class="octicon octicon-link"></span></a>local.conf</h1>
+
+<p>The new config file <code>local.conf</code> is an extended-INI format that introduces
+a new meta-section header that provides some additional information such
+as a phase name and destination config filename:</p>
+
+<pre><code>[[ &lt;phase&gt; | &lt;config-file-name&gt; ]]
+</code></pre>
+
+<p>where <code>&lt;phase&gt;</code> is one of a set of phase names defined by <code>stack.sh</code>
+and <code>&lt;config-file-name&gt;</code> is the configuration filename.  The filename is
+eval'ed in the <code>stack.sh</code> context so all environment variables are
+available and may be used.  Using the project config file variables in
+the header is strongly suggested (see the <code>NOVA_CONF</code> example below).
+If the path of the config file does not exist it is skipped.</p>
+
+<p>The defined phases are:</p>
+
+<ul class="task-list">
+<li>
+<strong>local</strong> - extracts <code>localrc</code> from <code>local.conf</code> before <code>stackrc</code> is sourced</li>
+<li>
+<strong>post-config</strong> - runs after the layer 2 services are configured
+                and before they are started</li>
+<li>
+<strong>extra</strong> - runs after services are started and before any files
+          in <code>extra.d</code> are executed</li>
+<li>
+<strong>post-extra</strong> - runs after files in <code>extra.d</code> are executed</li>
+</ul><p>The file is processed strictly in sequence; meta-sections may be specified more
+than once but if any settings are duplicated the last to appear in the file
+will be used.</p>
+
+<pre><code>[[post-config|$NOVA_CONF]]
+[DEFAULT]
+use_syslog = True
+
+[osapi_v3]
+enabled = False
+</code></pre>
+
+<p>A specific meta-section <code>local|localrc</code> is used to provide a default
+<code>localrc</code> file (actually <code>.localrc.auto</code>).  This allows all custom
+settings for DevStack to be contained in a single file.  If <code>localrc</code>
+exists it will be used instead to preserve backward-compatibility.</p>
+
+<pre><code>[[local|localrc]]
+FIXED_RANGE=10.254.1.0/24
+ADMIN_PASSWORD=speciale
+LOGFILE=$DEST/logs/stack.sh.log
+</code></pre>
+
+<p>Note that <code>Q_PLUGIN_CONF_FILE</code> is unique in that it is assumed to <em>NOT</em>
+start with a <code>/</code> (slash) character.  A slash will need to be added:</p>
+
+<pre><code>[[post-config|/$Q_PLUGIN_CONF_FILE]]
+</code></pre></article></div>

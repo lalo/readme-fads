@@ -1,0 +1,235 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-massive-is-a-single-file-database-lover-its-better-than-chocolate-no-really" class="anchor" href="#massive-is-a-single-file-database-lover-its-better-than-chocolate-no-really" aria-hidden="true"><span class="octicon octicon-link"></span></a>Massive is a Single File Database Lover. It's Better Than Chocolate. No Really.</h1>
+
+<p>I'm sharing this with the world because we need another way to access data - don't you think? Truthfully - I wanted to see if I could flex the C# 4 stuff and
+run up data access with a single file. I used to have this down to 350 lines, but you also needed to reference WebMatrix.Data. Now you don't - this is ready to roll 
+and weighs in at a lovely 524 lines of code. Most of which is comments.</p>
+
+<h2>
+<a name="user-content-how-to-install-it" class="anchor" href="#how-to-install-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Install It?</h2>
+
+<p>Drop the code file into your app and change it as you wish. </p>
+
+<h2>
+<a name="user-content-how-do-you-use-it" class="anchor" href="#how-do-you-use-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>How Do You Use It?</h2>
+
+<p>Massive is a "wrapper" for your DB tables and uses System.Dynamic extensively. If you try to use this with C# 3.5 or below, it will explode and you will be sad. Me too honestly - I like how this doesn't require any DLLs other than what's in the GAC. Yippee.</p>
+
+<ul class="task-list">
+<li>Get a Database. Northwind will work nicely. Add a connection to your database in your web.config (or app.config). Don't forget the providerName! If you don't know what that is - just add providerName = 'System.Data.SqlClient' right after the whole connectionString stuff.</li>
+<li>Create a class that wraps a table. You can call it whatever you like, but if you want to be cool just name it the same as your table.</li>
+<li>Query away and have fun</li>
+</ul><h2>
+<a name="user-content-code-please" class="anchor" href="#code-please" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code Please</h2>
+
+<p>Let's say we have a table named "Products". You create a class like this:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">class</span> <span class="nc">Products</span><span class="p">:</span><span class="n">DynamicModel</span> <span class="p">{</span>
+    <span class="c1">//you don't have to specify the connection - Massive will use the first one it finds in your config</span>
+    <span class="k">public</span> <span class="nf">Products</span><span class="p">():</span><span class="k">base</span><span class="p">(</span><span class="s">"northwind"</span><span class="p">,</span> <span class="s">"products"</span><span class="p">,</span><span class="s">"productid"</span><span class="p">)</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>You could also just instantiate it inline, as needed:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">tbl</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DynamicModel</span><span class="p">(</span><span class="s">"northwind"</span><span class="p">,</span> <span class="n">tableName</span><span class="p">:</span><span class="s">"Products"</span><span class="p">,</span> <span class="n">primaryKeyField</span><span class="p">:</span><span class="s">"ProductID"</span><span class="p">);</span>
+</pre></div>
+
+<p>Or ignore the object hierarchy altogether:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">Massive</span><span class="p">.</span><span class="n">DB</span><span class="p">.</span><span class="n">Current</span><span class="p">.</span><span class="n">Query</span><span class="p">(...);</span>
+</pre></div>
+
+<p>Now you can query thus:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span>
+<span class="c1">//grab all the products</span>
+<span class="kt">var</span> <span class="n">products</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">All</span><span class="p">();</span>
+<span class="c1">//just grab from category 4. This uses named parameters</span>
+<span class="kt">var</span> <span class="n">productsFour</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">All</span><span class="p">(</span><span class="n">columns</span><span class="p">:</span> <span class="s">"ProductName as Name"</span><span class="p">,</span> <span class="k">where</span><span class="p">:</span> <span class="s">"WHERE categoryID=@0"</span><span class="p">,</span><span class="n">args</span><span class="p">:</span> <span class="m">4</span><span class="p">);</span>
+</pre></div>
+
+<p>That works, but Massive is "dynamic" - which means that it can figure a lot of things out on the fly. That query above can be rewritten like this:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">dynamic</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span> <span class="c1">//"dynamic" is important here - don't use "var"!</span>
+<span class="kt">var</span> <span class="n">productsFour</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Find</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">4</span><span class="p">,</span><span class="n">columns</span><span class="p">:</span><span class="s">"ProductName"</span><span class="p">);</span>
+</pre></div>
+
+<p>The "Find" method doesn't exist, but since Massive is dynamic it will try to infer what you mean by using DynamicObject's TryInvokeMember. See the source for more details. There's more on the dynamic query stuff down below.</p>
+
+<p>You can also run ad-hoc queries as needed:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">tbl</span><span class="p">.</span><span class="n">Query</span><span class="p">(</span><span class="s">"SELECT * FROM Categories"</span><span class="p">);</span>
+</pre></div>
+
+<p>This will pull categories and enumerate the results - streaming them as opposed to bulk-fetching them (thanks to Jeroen Haegebaert for the code). If you need to run a Fetch - you can:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">tbl</span><span class="p">.</span><span class="n">Fetch</span><span class="p">(</span><span class="s">"SELECT * FROM Categories"</span><span class="p">);</span>
+</pre></div>
+
+<p>If you want to have a paged result set - you can:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">tbl</span><span class="p">.</span><span class="n">Paged</span><span class="p">(</span><span class="k">where</span><span class="p">:</span> <span class="s">"UnitPrice &gt; 20"</span><span class="p">,</span> <span class="n">currentPage</span><span class="p">:</span><span class="m">2</span><span class="p">,</span> <span class="n">pageSize</span><span class="p">:</span> <span class="m">20</span><span class="p">);</span>
+</pre></div>
+
+<p>In this example, ALL of the arguments are optional and default to reasonable values. CurrentPage defaults to 1, pageSize defaults to 20, where defaults to nothing.</p>
+
+<p>What you get back is <code>IEnumerable&lt;ExpandoObject&gt;</code> - meaning that it's malleable and exciting. It will take the shape of whatever you return in your query, and it will have properties and so on. You can assign events to it, you can create delegates on the fly. You can give it chocolate, and it will kiss you.</p>
+
+<p>That's pretty much it. One thing I really like is the groovy DSL that Massive uses - it looks just like SQL. If you want, you can use this DSL to query the database:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span>
+<span class="kt">var</span> <span class="n">productsThatILike</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Query</span><span class="p">(</span><span class="s">"SELECT ProductName, CategoryName FROM Products INNER JOIN Categories ON Categories.CategoryID = Products.CategoryID WHERE CategoryID = @0"</span><span class="p">,</span><span class="m">5</span><span class="p">);</span>
+<span class="c1">//get down!</span>
+</pre></div>
+
+<p>Some of you might look at that and think it looks suspiciously like inline SQL. It <em>does</em> look sort of like it doesn't it! But I think it reads a bit better than Linq to SQL - it's a bit closer to the mark if you will. </p>
+
+<h2>
+<a name="user-content-inserts-and-updates" class="anchor" href="#inserts-and-updates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inserts and Updates</h2>
+
+<p>Massive is built on top of dynamics - so if you send an object to a table, it will get parsed into a query. If that object has a property on it that matches the primary key, Massive will think you want to update something. Unless you tell it specifically to update it.</p>
+
+<p>You can send just about anything into the MassiveTransmoQueryfier and it will magically get turned into SQL:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span>
+<span class="kt">var</span> <span class="n">poopy</span> <span class="p">=</span> <span class="k">new</span> <span class="p">{</span><span class="n">ProductName</span> <span class="p">=</span> <span class="s">"Chicken Fingers"</span><span class="p">};</span>
+<span class="c1">//update Product with ProductID = 12 to have a ProductName of "Chicken Fingers"</span>
+<span class="n">table</span><span class="p">.</span><span class="n">Update</span><span class="p">(</span><span class="n">poopy</span><span class="p">,</span> <span class="m">12</span><span class="p">);</span>
+</pre></div>
+
+<p>This also works if you have a form on your web page with the name "ProductName" - then you submit it:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span>
+<span class="c1">//update Product with ProductID = 12 to have a ProductName of whatever was submitted via the form</span>
+<span class="n">table</span><span class="p">.</span><span class="n">Update</span><span class="p">(</span><span class="n">poopy</span><span class="p">,</span> <span class="n">Request</span><span class="p">.</span><span class="n">Form</span><span class="p">);</span>
+</pre></div>
+
+<p>Insert works the same way:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="c1">//pretend we have a class like Products but it's called Categories</span>
+<span class="kt">var</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Categories</span><span class="p">();</span>
+<span class="c1">//do it up - the new ID will be returned from the query</span>
+<span class="kt">var</span> <span class="n">newID</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Insert</span><span class="p">(</span><span class="k">new</span> <span class="p">{</span><span class="n">CategoryName</span> <span class="p">=</span> <span class="s">"Buck Fify Stuff"</span><span class="p">,</span> <span class="n">Description</span> <span class="p">=</span> <span class="s">"Things I like"</span><span class="p">});</span>
+</pre></div>
+
+<p>Yippee Skippy! Now we get to the fun part - and one of the reasons I had to spend 150 more lines of code on something you probably won't care about. What happens when we send a whole bunch of goodies to the database at once!</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span>
+<span class="c1">//OH NO YOU DIDN't just pass in an integer inline without a parameter! </span>
+<span class="c1">//I think I might have... yes</span>
+<span class="kt">var</span> <span class="n">drinks</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">All</span><span class="p">(</span><span class="s">"WHERE CategoryID = 8"</span><span class="p">);</span>
+<span class="c1">//what we get back here is an IEnumerable &lt; ExpandoObject &gt; - we can go to town</span>
+<span class="k">foreach</span><span class="p">(</span><span class="kt">var</span> <span class="n">item</span> <span class="k">in</span> <span class="n">drinks</span><span class="p">.</span><span class="n">ToArray</span><span class="p">()){</span>
+    <span class="c1">//turn them into Haack Snacks</span>
+    <span class="n">item</span><span class="p">.</span><span class="n">CategoryID</span> <span class="p">=</span> <span class="m">12</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="c1">//Let's update these in bulk, in a transaction shall we?</span>
+<span class="n">table</span><span class="p">.</span><span class="n">Save</span><span class="p">(</span><span class="n">drinks</span><span class="p">.</span><span class="n">ToArray</span><span class="p">());</span>
+</pre></div>
+
+<h2>
+<a name="user-content-named-argument-query-syntax" class="anchor" href="#named-argument-query-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Named Argument Query Syntax</h2>
+
+<p>I recently added the ability to run more friendly queries using Named Arguments and C#4's Method-on-the-fly syntax. Originally this was trying to be like ActiveRecord, but I figured "C# is NOT Ruby, and Named Arguments can be a lot more clear". In addition, Mark Rendle's Simple.Data is already doing this so ... why duplicate things?</p>
+
+<p>If your needs are more complicated - I would suggest just passing in your own SQL with Query().</p>
+
+<div class="highlight highlight-csharp"><pre><span class="c1">//important - must be dynamic</span>
+<span class="kt">dynamic</span> <span class="n">table</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Products</span><span class="p">();</span>
+
+<span class="kt">var</span> <span class="n">drinks</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">FindBy</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">8</span><span class="p">);</span>
+<span class="c1">//what we get back here is an IEnumerable &lt; ExpandoObject &gt; - we can go to town</span>
+<span class="k">foreach</span><span class="p">(</span><span class="kt">var</span> <span class="n">item</span> <span class="k">in</span> <span class="n">drinks</span><span class="p">){</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">ProductName</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="c1">//returns the first item in the DB for category 8</span>
+<span class="kt">var</span> <span class="n">first</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">First</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">8</span><span class="p">);</span>
+
+<span class="c1">//you dig it - the last as sorted by PK</span>
+<span class="kt">var</span> <span class="n">last</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Last</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">8</span><span class="p">);</span>
+
+<span class="c1">//you can order by whatever you like</span>
+<span class="kt">var</span> <span class="n">firstButReallyLast</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">First</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">8</span><span class="p">,</span><span class="n">OrderBy</span><span class="p">:</span><span class="s">"PK DESC"</span><span class="p">);</span>
+
+<span class="c1">//only want one column?</span>
+<span class="kt">var</span> <span class="n">price</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">First</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">8</span><span class="p">,</span><span class="n">Columns</span><span class="p">:</span><span class="s">"UnitPrice"</span><span class="p">).</span><span class="n">UnitPrice</span><span class="p">;</span>
+
+<span class="c1">//Multiple Criteria?</span>
+<span class="kt">var</span> <span class="n">items</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Find</span><span class="p">(</span><span class="n">CategoryID</span><span class="p">:</span><span class="m">5</span><span class="p">,</span> <span class="n">UnitPrice</span><span class="p">:</span><span class="m">100</span><span class="p">,</span> <span class="n">OrderBy</span><span class="p">:</span><span class="s">"UnitPrice DESC"</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-aggregates-with-named-arguments" class="anchor" href="#aggregates-with-named-arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Aggregates with Named Arguments</h2>
+
+<p>You can do the same thing as above for aggregates:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">sum</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Sum</span><span class="p">(</span><span class="n">columns</span><span class="p">:</span><span class="s">"Price"</span><span class="p">,</span> <span class="n">CategoryID</span><span class="p">:</span><span class="m">5</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">avg</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Avg</span><span class="p">(</span><span class="n">columns</span><span class="p">:</span><span class="s">"Price"</span><span class="p">,</span> <span class="n">CategoryID</span><span class="p">:</span><span class="m">3</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">min</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Min</span><span class="p">(</span><span class="n">columns</span><span class="p">:</span><span class="s">"ID"</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">max</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Max</span><span class="p">(</span><span class="n">columns</span><span class="p">:</span><span class="s">"CreatedOn"</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">count</span> <span class="p">=</span> <span class="n">table</span><span class="p">.</span><span class="n">Count</span><span class="p">();</span>
+</pre></div>
+
+<h2>
+<a name="user-content-metadata" class="anchor" href="#metadata" aria-hidden="true"><span class="octicon octicon-link"></span></a>Metadata</h2>
+
+<p>If you find that you need to know information about your table - to generate some lovely things like ... whatever - just ask for the Schema property. This will query INFORMATION_SCHEMA for you, and you can take a look at DATA_TYPE, DEFAULT_VALUE, etc for whatever system you're running on.</p>
+
+<p>In addition, if you want to generate an empty instance of a column - you can now ask for a "Prototype()" - which will return all the columns in your table with the defaults set for you (getdate(), raw values, newid(), etc).</p>
+
+<h2>
+<a name="user-content-factory-constructor" class="anchor" href="#factory-constructor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Factory Constructor</h2>
+
+<p>One thing that can be useful is to use Massive to just run a quick query. You can do that now by using "Open()" which is a static builder on DynamicModel:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">db</span> <span class="p">=</span> <span class="n">Massive</span><span class="p">.</span><span class="n">DynamicModel</span><span class="p">.</span><span class="n">Open</span><span class="p">(</span><span class="s">"myConnectionStringName"</span><span class="p">);</span>
+</pre></div>
+
+<p>You can execute whatever you like at that point.</p>
+
+<h2>
+<a name="user-content-validations" class="anchor" href="#validations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Validations</h2>
+
+<p>One thing that's always needed when working with data is the ability to stop execution if something isn't right. Massive now has Validations, which are built with the Rails approach in mind:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">class</span> <span class="nc">Productions</span><span class="p">:</span><span class="n">DynamicModel</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="nf">Productions</span><span class="p">():</span><span class="k">base</span><span class="p">(</span><span class="s">"MyConnectionString"</span><span class="p">,</span><span class="s">"Productions"</span><span class="p">,</span><span class="s">"ID"</span><span class="p">)</span> <span class="p">{}</span>
+    <span class="k">public</span> <span class="k">override</span> <span class="k">void</span> <span class="nf">Validate</span><span class="p">(</span><span class="kt">dynamic</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">ValidatesPresenceOf</span><span class="p">(</span><span class="s">"Title"</span><span class="p">);</span>
+        <span class="n">ValidatesNumericalityOf</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">Price</span><span class="p">);</span>
+        <span class="n">ValidateIsCurrency</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">Price</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">Price</span> <span class="p">&lt;=</span> <span class="m">0</span><span class="p">)</span>
+            <span class="n">Errors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">"Price can't be negative"</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The idea here is that <code>Validate()</code> is called prior to Insert/Update. If it fails, an Error collection is populated and an InvalidOperationException is thrown. That simple. With each of the validations above, a message can be passed in.</p>
+
+<h2>
+<a name="user-content-callbacks" class="anchor" href="#callbacks" aria-hidden="true"><span class="octicon octicon-link"></span></a>CallBacks</h2>
+
+<p>Need something to happen after Update/Insert/Delete? Need to halt before save? Massive has callbacks to let you do just that:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">public</span> <span class="k">class</span> <span class="nc">Customers</span><span class="p">:</span><span class="n">DynamicModel</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="nf">Customers</span><span class="p">():</span><span class="k">base</span><span class="p">(</span><span class="s">"MyConnectionString"</span><span class="p">,</span><span class="s">"Customers"</span><span class="p">,</span><span class="s">"ID"</span><span class="p">)</span> <span class="p">{}</span>
+
+    <span class="c1">//Add the person to Highrise CRM when they're added to the system...</span>
+    <span class="k">public</span> <span class="k">override</span> <span class="k">void</span> <span class="nf">Inserted</span><span class="p">(</span><span class="kt">dynamic</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">//send them to Highrise</span>
+        <span class="kt">var</span> <span class="n">svc</span> <span class="p">=</span> <span class="k">new</span> <span class="n">HighRiseApi</span><span class="p">();</span>
+        <span class="n">svc</span><span class="p">.</span><span class="n">AddPerson</span><span class="p">(...);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The callbacks you can use are:</p>
+
+<ul class="task-list">
+<li>Inserted</li>
+<li>Updated</li>
+<li>Deleted</li>
+<li>BeforeDelete</li>
+<li>BeforeSave</li>
+</ul></article></div>

@@ -1,0 +1,308 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-railsapi" class="anchor" href="#railsapi" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rails::API</h1>
+
+<p><a href="http://travis-ci.org/rails-api/rails-api"><img src="https://camo.githubusercontent.com/89be384cc0c5fa934ea2a4fdb4985f4c41bd36f4/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f7261696c732d6170692f7261696c732d6170692e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/rails-api/rails-api.png?branch=master" style="max-width:100%;"></a></p>
+
+<p><strong>Rails::API</strong> is a subset of a normal Rails application, created for applications that don't require all functionality that a complete Rails application provides. It is a bit more lightweight, and consequently a bit faster than a normal Rails application. The main example for its usage is in API applications only, where you usually don't need the entire Rails middleware stack nor template generation.</p>
+
+<h2>
+<a name="user-content-using-rails-for-api-only-apps" class="anchor" href="#using-rails-for-api-only-apps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Rails for API-only Apps</h2>
+
+<p>This is a quick walk-through to help you get up and running with <strong>Rails::API</strong> to create API-only Apps, covering:</p>
+
+<ul class="task-list">
+<li>What <strong>Rails::API</strong> provides for API-only applications</li>
+<li>How to decide which middlewares you will want to include</li>
+<li>How to decide which modules to use in your controller</li>
+</ul><h3>
+<a name="user-content-what-is-an-api-app" class="anchor" href="#what-is-an-api-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is an API app?</h3>
+
+<p>Traditionally, when people said that they used Rails as an "API", they meant providing a programmatically accessible API alongside their web application.
+For example, GitHub provides <a href="http://developer.github.com">an API</a> that you can use from your own custom clients.</p>
+
+<p>With the advent of client-side frameworks, more developers are using Rails to build a backend that is shared between their web application and other native applications.</p>
+
+<p>For example, Twitter uses its <a href="https://dev.twitter.com">public API</a> in its web application, which is built as a static site that consumes JSON resources.</p>
+
+<p>Instead of using Rails to generate dynamic HTML that will communicate with the server through forms and links, many developers are treating their web application as just another client, consuming a simple JSON API.</p>
+
+<p>This guide covers building a Rails application that serves JSON resources to an API client <em>or</em> client-side framework.</p>
+
+<h3>
+<a name="user-content-why-use-rails-for-json-apis" class="anchor" href="#why-use-rails-for-json-apis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why use Rails for JSON APIs?</h3>
+
+<p>The first question a lot of people have when thinking about building a JSON API using Rails is: "isn't using Rails to spit out some JSON overkill? Shouldn't I just use something like Sinatra?"</p>
+
+<p>For very simple APIs, this may be true. However, even in very HTML-heavy applications, most of an application's logic is actually outside of the view layer.</p>
+
+<p>The reason most people use Rails is that it provides a set of defaults that allows us to get up and running quickly without having to make a lot of trivial decisions.</p>
+
+<p>Let's take a look at some of the things that Rails provides out of the box that are still applicable to API applications.</p>
+
+<h4>
+<a name="user-content-handled-at-the-middleware-layer" class="anchor" href="#handled-at-the-middleware-layer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handled at the middleware layer:</h4>
+
+<ul class="task-list">
+<li>Reloading: Rails applications support transparent reloading. This works even if your application gets big and restarting the server for every request becomes non-viable.</li>
+<li>Development Mode: Rails application come with smart defaults for development, making development pleasant without compromising production-time performance.</li>
+<li>Test Mode: Ditto test mode.</li>
+<li>Logging: Rails applications log every request, with a level of verbosity appropriate for the current mode. Rails logs in development include information about the request environment, database queries, and basic performance information.</li>
+<li>Security: Rails detects and thwarts <a href="http://en.wikipedia.org/wiki/IP_address_spoofing">IP spoofing attacks</a> and handles cryptographic signatures in a <a href="http://en.wikipedia.org/wiki/Timing_attack">timing attack</a> aware way. Don't know what an IP spoofing attack or a timing attack is? Exactly.</li>
+<li>Parameter Parsing: Want to specify your parameters as JSON instead of as a URL-encoded String? No problem. Rails will decode the JSON for you and make it available in <em>params</em>. Want to use nested URL-encoded params? That works too.</li>
+<li>Conditional GETs: Rails handles conditional <em>GET</em>, (<em>ETag</em> and <em>Last-Modified</em>), processing request headers and returning the correct response headers and status code. All you need to do is use the <a href="http://api.rubyonrails.org/classes/ActionController/ConditionalGet.html#method-i-stale-3F"><em>stale?</em></a> check in your controller, and Rails will handle all of the HTTP details for you.</li>
+<li>Caching: If you use <em>dirty?</em> with public cache control, Rails will automatically cache your responses. You can easily configure the cache store.</li>
+<li>HEAD requests: Rails will transparently convert <em>HEAD</em> requests into <em>GET</em> requests, and return just the headers on the way out. This makes <em>HEAD</em> work reliably in all Rails APIs.</li>
+</ul><p>While you could obviously build these up in terms of existing Rack middlewares, I think this list demonstrates that the default Rails middleware stack provides a lot of value, even if you're "just generating JSON".</p>
+
+<h4>
+<a name="user-content-handled-at-the-actionpack-layer" class="anchor" href="#handled-at-the-actionpack-layer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handled at the ActionPack layer:</h4>
+
+<ul class="task-list">
+<li>Resourceful Routing: If you're building a RESTful JSON API, you want to be using the Rails router. Clean and conventional mapping from HTTP to controllers means not having to spend time thinking about how to model your API in terms of HTTP.</li>
+<li>URL Generation: The flip side of routing is URL generation. A good API based on HTTP includes URLs (see <a href="http://developer.github.com/v3/gists/">the GitHub gist API</a> for an example).</li>
+<li>Header and Redirection Responses: <code>head :no_content</code> and <code>redirect_to user_url(current_user)</code> come in handy. Sure, you could manually add the response headers, but why?</li>
+<li>Basic, Digest and Token Authentication: Rails comes with out-of-the-box support for three kinds of HTTP authentication.</li>
+<li>Instrumentation: Rails 3.0 added an instrumentation API that will trigger registered handlers for a variety of events, such as action processing, sending a file or data, redirection, and database queries. The payload of each event comes with relevant information (for the action processing event, the payload includes the controller, action, params, request format, request method and the request's full path).</li>
+<li>Generators: This may be passé for advanced Rails users, but it can be nice to generate a resource and get your model, controller, test stubs, and routes created for you in a single command.</li>
+<li>Plugins: Many third-party libraries come with support for Rails that reduces or eliminates the cost of setting up and gluing together the library and the web framework. This includes things like overriding default generators, adding rake tasks, and honoring Rails choices (like the logger and cache backend).</li>
+</ul><p>Of course, the Rails boot process also glues together all registered components. For example, the Rails boot process is what uses your <em>config/database.yml</em> file when configuring ActiveRecord.</p>
+
+<p><strong>The short version is</strong>: you may not have thought about which parts of Rails are still applicable even if you remove the view layer, but the answer turns out to be "most of it".</p>
+
+<h3>
+<a name="user-content-the-basic-configuration" class="anchor" href="#the-basic-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Basic Configuration</h3>
+
+<p>If you're building a Rails application that will be an API server first and foremost, you can start with a more limited subset of Rails and add in features as needed.</p>
+
+<p><strong>NOTE</strong>: rails-api only supports Ruby 1.9.3 and above.</p>
+
+<h4>
+<a name="user-content-for-new-apps" class="anchor" href="#for-new-apps" aria-hidden="true"><span class="octicon octicon-link"></span></a>For new apps</h4>
+
+<p>Install the gem if you haven't already:</p>
+
+<pre><code>gem install rails-api
+</code></pre>
+
+<p>Then generate a new <strong>Rails::API</strong> app:</p>
+
+<pre><code>rails-api new my_api
+</code></pre>
+
+<p>This will do two main things for you:</p>
+
+<ul class="task-list">
+<li>Make <em>ApplicationController</em> inherit from <em>ActionController::API</em> instead of <em>ActionController::Base</em>. As with middleware, this will leave out any <em>ActionController</em> modules that provide functionality primarily used by browser applications.</li>
+<li>Configure the generators to skip generating views, helpers and assets when you generate a new resource.</li>
+</ul><p>Rails includes all of the sub-frameworks (ActiveRecord, ActionMailer, etc) by default. Some API projects won't need them all, so at the top of config/application.rb, you can replace <code>require 'rails/all'</code> with specific sub-frameworks:</p>
+
+<pre><code># config/application.rb
+# require "active_record/railtie"
+require "action_controller/railtie"
+require "action_mailer/railtie"
+# require "sprockets/railtie"
+require "rails/test_unit/railtie"
+</code></pre>
+
+<p>This can also be achieved with flags when creating a new <strong>Rails::API</strong> app:</p>
+
+<pre><code>rails-api new my_api --skip-active-record --skip-sprockets
+</code></pre>
+
+<p>Note: There are references to ActionMailer and ActiveRecord in the various
+  config/environment files. If you decide to exclude any of these from your project
+  its best to comment these out in case you need them later.</p>
+
+<pre><code># comment out this in config/environments/development.rb
+config.active_record.migration_error = :page_load
+config.action_mailer.raise_delivery_errors = false
+
+# comment out this in config/environments/test.rb
+config.action_mailer.delivery_method = :test
+</code></pre>
+
+<h4>
+<a name="user-content-for-already-existing-apps" class="anchor" href="#for-already-existing-apps" aria-hidden="true"><span class="octicon octicon-link"></span></a>For already existing apps</h4>
+
+<p>If you want to take an existing app and make it a <strong>Rails::API</strong> app, you'll have to do some quick setup manually.</p>
+
+<p>Add the gem to your <em>Gemfile</em>:</p>
+
+<pre><code>gem 'rails-api'
+</code></pre>
+
+<p>And run <code>bundle</code> to install the gem.</p>
+
+<p>Change <em>app/controllers/application_controller.rb</em>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># instead of</span>
+<span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+<span class="k">end</span>
+
+<span class="c1"># do</span>
+<span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">API</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>And comment out the <code>protect_from_forgery</code> call if you are using it.</p>
+
+<p>If you want to use the Rails default middleware stack (avoid the reduction that rails-api does), you can just add config.api_only = false to config/application.rb file.</p>
+
+<h3>
+<a name="user-content-serialization" class="anchor" href="#serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serialization</h3>
+
+<p>We suggest using <a href="https://github.com/rails-api/active_model_serializers">ActiveModel::Serializers</a> to serialize your ActiveModel/ActiveRecord objects into the desired response format (e.g. JSON).</p>
+
+<h3>
+<a name="user-content-choosing-middlewares" class="anchor" href="#choosing-middlewares" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing Middlewares</h3>
+
+<p>An API application comes with the following middlewares by default.</p>
+
+<ul class="task-list">
+<li>
+<em>ActionDispatch::DebugExceptions</em>: Log exceptions.</li>
+<li>
+<em>ActionDispatch::Head</em>: Dispatch <em>HEAD</em> requests as <em>GET</em> requests, and return only the status code and headers.</li>
+<li>
+<em>ActionDispatch::ParamsParser</em>: Parse XML, YAML and JSON parameters when the request's <em>Content-Type</em> is one of those.</li>
+<li>
+<em>ActionDispatch::Reloader</em>: In development mode, support code reloading.</li>
+<li>
+<em>ActionDispatch::RemoteIp</em>: Protect against IP spoofing attacks.</li>
+<li>
+<em>ActionDispatch::RequestId</em>: Makes a unique request id available, sending the id to the client via the X-Request-Id header. The unique request id can be used to trace a request end-to-end and would typically end up being part of log files from multiple pieces of the stack.</li>
+<li>
+<em>ActionDispatch::ShowExceptions</em>: Rescue exceptions and re-dispatch them to an exception handling application.</li>
+<li>
+<em>Rack::Cache</em>: Caches responses with public <em>Cache-Control</em> headers using HTTP caching semantics.</li>
+<li>
+<em>Rack::ConditionalGet</em>: Supports the <code>stale?</code> feature in Rails controllers.</li>
+<li>
+<em>Rack::ETag</em>: Automatically set an <em>ETag</em> on all string responses. This means that if the same response is returned from a controller for the same URL, the server will return a <em>304 Not Modified</em>, even if no additional caching steps are taken. This is primarily a client-side optimization; it reduces bandwidth costs but not server processing time.</li>
+<li>
+<em>Rack::Lock</em>: If your application is not marked as threadsafe (<code>config.threadsafe!</code>), this middleware will add a mutex around your requests.</li>
+<li>
+<em>Rack::Runtime</em>: Adds a header to the response listing the total runtime of the request.</li>
+<li>
+<em>Rack::Sendfile</em>: Uses a front-end server's file serving support from your Rails application.</li>
+<li>
+<em>Rails::Rack::Logger</em>: Log the request started and flush all loggers after it.</li>
+</ul><p>Other plugins, including <em>ActiveRecord</em>, may add additional middlewares. In general, these middlewares are agnostic to the type of app you are building, and make sense in an API-only Rails application.</p>
+
+<p>You can get a list of all middlewares in your application via:</p>
+
+<pre><code>rake middleware
+</code></pre>
+
+<h4>
+<a name="user-content-other-middlewares" class="anchor" href="#other-middlewares" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other Middlewares</h4>
+
+<p>Rails ships with a number of other middlewares that you might want to use in an API app, especially if one of your API clients is the browser:</p>
+
+<ul class="task-list">
+<li>
+<em>Rack::MethodOverride</em>: Allows the use of the <em>_method</em> hack to route POST requests to other verbs.</li>
+<li>
+<em>ActionDispatch::Cookies</em>: Supports the <em>cookie</em> method in <em>ActionController</em>, including support for signed and encrypted cookies.</li>
+<li>
+<em>ActionDispatch::Flash</em>: Supports the <em>flash</em> mechanism in <em>ActionController</em>.</li>
+<li>
+<em>ActionDispatch::BestStandards</em>: Tells Internet Explorer to use the most standards-compliant available renderer. In production mode, if ChromeFrame is available, use ChromeFrame.</li>
+<li>Session Management: If a <em>config.session_store</em> is supplied and <em>config.api_only = false</em>, this middleware makes the session available as the <em>session</em> method in <em>ActionController</em>.</li>
+</ul><p>Any of these middlewares can be added via:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">middleware</span><span class="o">.</span><span class="n">use</span> <span class="no">Rack</span><span class="o">::</span><span class="no">MethodOverride</span>
+</pre></div>
+
+<h4>
+<a name="user-content-removing-middlewares" class="anchor" href="#removing-middlewares" aria-hidden="true"><span class="octicon octicon-link"></span></a>Removing Middlewares</h4>
+
+<p>If you don't want to use a middleware that is included by default in the API middleware set, you can remove it using <em>config.middleware.delete</em>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">middleware</span><span class="o">.</span><span class="n">delete</span> <span class="o">::</span><span class="no">Rack</span><span class="o">::</span><span class="no">Sendfile</span>
+</pre></div>
+
+<p>Keep in mind that removing these features may remove support for certain features in <em>ActionController</em>.</p>
+
+<h3>
+<a name="user-content-choosing-controller-modules" class="anchor" href="#choosing-controller-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing Controller Modules</h3>
+
+<p>An API application (using <em>ActionController::API</em>) comes with the following controller modules by default:</p>
+
+<ul class="task-list">
+<li>
+<em>ActionController::UrlFor</em>: Makes <em>url_for</em> and friends available</li>
+<li>
+<em>ActionController::Redirecting</em>: Support for <em>redirect_to</em>
+</li>
+<li>
+<em>ActionController::Rendering</em>: Basic support for rendering</li>
+<li>
+<em>ActionController::Renderers::All</em>: Support for <em>render :json</em> and friends</li>
+<li>
+<em>ActionController::ConditionalGet</em>: Support for <em>stale?</em>
+</li>
+<li>
+<em>ActionController::ForceSSL</em>: Support for <em>force_ssl</em>
+</li>
+<li>
+<em>ActionController::RackDelegation</em>: Support for the <em>request</em> and <em>response</em> methods returning <em>ActionDispatch::Request</em> and <em>ActionDispatch::Response</em> objects.</li>
+<li>
+<em>ActionController::DataStreaming</em>: Support for <em>send_file</em> and <em>send_data</em>
+</li>
+<li>
+<em>AbstractController::Callbacks</em>: Support for <em>before_filter</em> and friends</li>
+<li>
+<em>ActionController::Instrumentation</em>: Support for the instrumentation hooks defined by <em>ActionController</em> (see <a href="https://github.com/rails/rails/blob/master/actionpack/lib/action_controller/metal/instrumentation.rb">the source</a> for more).</li>
+<li>
+<em>ActionController::Rescue</em>: Support for <em>rescue_from</em>.</li>
+</ul><p>Other plugins may add additional modules. You can get a list of all modules included into <em>ActionController::API</em> in the rails console:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">ActionController</span><span class="o">::</span><span class="no">API</span><span class="o">.</span><span class="n">ancestors</span> <span class="o">-</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Metal</span><span class="o">.</span><span class="n">ancestors</span>
+</pre></div>
+
+<h4>
+<a name="user-content-adding-other-modules" class="anchor" href="#adding-other-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding Other Modules</h4>
+
+<p>All Action Controller modules know about their dependent modules, so you can feel free to include any modules into your controllers, and all dependencies will be included and set up as well.</p>
+
+<p>Some common modules you might want to add:</p>
+
+<ul class="task-list">
+<li>
+<em>AbstractController::Translation</em>: Support for the <em>l</em> and <em>t</em> localization and translation methods. These delegate to <em>I18n.translate</em> and <em>I18n.localize</em>.</li>
+<li>
+<em>ActionController::HttpAuthentication::Basic::ControllerMethods</em> (or <em>Digest</em> or <em>Token</em>): Support for basic, digest or token HTTP authentication.</li>
+<li>
+<em>ActionView::Layouts</em>: Support for layouts when rendering.</li>
+<li>
+<em>ActionController::MimeResponds</em> (and <em>ActionController::ImplicitRender</em> for Rails 4): Support for content negotiation (<em>respond_to</em>, <em>respond_with</em>).</li>
+<li>
+<em>ActionController::Cookies</em>: Support for <em>cookies</em>, which includes support for signed and encrypted cookies. This requires the cookie middleware.</li>
+</ul><p>The best place to add a module is in your <em>ApplicationController</em>. You can also add modules to individual controllers.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<ol class="task-list">
+<li>Fork it</li>
+<li>Create your feature branch (<code>git checkout -b my-new-feature</code>)</li>
+<li>Commit your changes (<code>git commit -am 'Added some feature'</code>)</li>
+<li>Push to the branch (<code>git push origin my-new-feature</code>)</li>
+<li>Create new Pull Request</li>
+</ol><h2>
+<a name="user-content-maintainers" class="anchor" href="#maintainers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maintainers</h2>
+
+<ul class="task-list">
+<li>Santiago Pastorino (<a href="https://github.com/spastorino">https://github.com/spastorino</a>)</li>
+<li>Carlos Antonio da Silva (<a href="https://github.com/carlosantoniodasilva">https://github.com/carlosantoniodasilva</a>)</li>
+<li>Steve Klabnik (<a href="https://github.com/steveklabnik">https://github.com/steveklabnik</a>)</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>MIT License.</p>
+
+<h2>
+<a name="user-content-mailing-list" class="anchor" href="#mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mailing List</h2>
+
+<p><a href="https://groups.google.com/forum/?fromgroups#!forum/rails-api-core">https://groups.google.com/forum/?fromgroups#!forum/rails-api-core</a></p></article></div>

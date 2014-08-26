@@ -1,0 +1,164 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-tesseract-ocr-ios-23" class="anchor" href="#tesseract-ocr-ios-23" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tesseract OCR iOS 2.3</h1>
+
+<p><strong>Tesseract OCR iOS is a Framework for iOS5+.</strong></p>
+
+<p>It helps you to use OCR in iOS projects, writing Objective-C. Easy and fast.</p>
+
+<p><br></p>
+
+<h1>
+<a name="user-content-template-framework-project" class="anchor" href="#template-framework-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Template Framework Project</h1>
+
+<p>You can use the "<strong>Template Framework Project</strong>". It's a starting point for use the Tesseract Framework. It's iOS7 and arm64 ready!</p>
+
+<p>Into the tessdata folder (linked like a referenced folder into the project), there are the .traineddata language files.</p>
+
+<p>Alternatively you can create a <strong>New Project</strong> like explained below.</p>
+
+<h1>
+<a name="user-content-new-framework-project" class="anchor" href="#new-framework-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>New Framework Project</h1>
+
+<p>Install with <a href="http://cocoapods.org"><strong>CocoaPods</strong></a> by adding the following to your Podfile:</p>
+
+<p>
+</p><pre><code>pod 'TesseractOCRiOS', '~&gt; 2.3'</code></pre>
+
+
+<p><strong>Or</strong> copy the framework "TesseractOCR.framework" (you can drag&amp;drop it) from the <strong>Products</strong> folder in this repo, to your XCode Project under the frameworks folder.</p>
+
+<p>If you are masochist :) you can generate your TesseractOCR.framework building the <strong>TesseractOCRAggregate</strong> target. </p>
+
+<p><br>
+Now...</p>
+
+<ul class="task-list">
+<li><p>If you are using <strong>iOS7</strong> or greater, link <code>libstdc++.6.0.9.dylib</code> library (Your target =&gt; General =&gt; Linked Frameworks and Libraries =&gt; + =&gt; libstdc++.6.0.9)</p></li>
+<li><p>Go to your project, click on the project and in the Build Settings tab add <code>-lstdc++</code> to all the "Other Linker Flags" keys.</p></li>
+<li><p>Go to your project settings, and ensure that C++ Standard Library =&gt; Compiler Default. (thanks to <a href="https://github.com/trein">https://github.com/trein</a>)</p></li>
+<li><p>Copy and import the <code>tessdata</code> folder from the Template Framework Project under the root of your project. It contains the "tessdata" files. You can add more tessdata files copyng them here.</p></li>
+</ul><p>WARNING: Check the "Create folder references for any added folders" option and the correct target into the "Add to Targets" section.</p>
+
+<ul class="task-list">
+<li><p>Link the <code>CoreImage.framework</code></p></li>
+<li><p>Import the header in your classes writing <code>#import &lt;TesseractOCR/TesseractOCR.h&gt;</code></p></li>
+</ul><p>Now you can use Tesseract class like explained into the "How to use" section:</p>
+
+<p><br></p>
+
+<h1>
+<a name="user-content-how-to-use" class="anchor" href="#how-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use</h1>
+
+<p><strong>MyViewController.h</strong></p>
+
+<pre><code>#import &lt;TesseractOCR/TesseractOCR.h&gt;</code>
+<code>@interface MyViewController : UIViewController &lt;TesseractDelegate&gt;</code>
+<code>@end</code></pre>
+  
+
+<p><br><strong>MyViewController.m</strong></p>
+
+<pre><code>
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    // language are used for recognition. Ex: eng. Tesseract will search for a eng.traineddata file in the dataPath directory; eng+ita will search for a eng.traineddata and ita.traineddata.
+    
+    //Like in the Template Framework Project:
+    // Assumed that .traineddata files are in your "tessdata" folder and the folder is in the root of the project.
+    // Assumed, that you added a folder references "tessdata" into your xCode project tree, with the ‘Create folder references for any added folders’ options set up in the «Add files to project» dialog.
+    // Assumed that any .traineddata files is in the tessdata folder, like in the Template Framework Project
+
+    //Create your tesseract using the initWithLanguage method:
+    // Tesseract* tesseract = [[Tesseract alloc] initWithLanguage:@"<strong>eng+ita</strong>"];
+    
+    // set up the delegate to recieve tesseract's callback
+    // self should respond to TesseractDelegate and implement shouldCancelImageRecognitionForTesseract: method
+    // to have an ability to recieve callback and interrupt Tesseract before it finishes
+    
+    Tesseract* tesseract = [[Tesseract alloc] initWithLanguage:@"eng+ita"];
+    tesseract.delegate = self;
+    
+    [tesseract setVariableValue:@"0123456789" forKey:@"tessedit_char_whitelist"]; //limit search
+    [tesseract setImage:[[UIImage imageNamed:@"image_sample.jpg"] blackAndWhite]]; //image to check
+    [tesseract setRect:CGRectMake(20, 20, 100, 100)]; //optional: set the rectangle to recognize text in the image
+    [tesseract recognize];
+    
+    NSLog(@"%@", [tesseract recognizedText]);
+
+    tesseract = nil; //deallocate and free all memory
+}
+
+
+- (BOOL)shouldCancelImageRecognitionForTesseract:(Tesseract*)tesseract
+{
+    NSLog(@"progress: %d", tesseract.progress);
+    return NO;  // return YES, if you need to interrupt tesseract before it finishes
+}
+</code></pre>
+
+<p>Set Tesseract variable key to value. See <a href="http://www.sk-spell.sk.cx/tesseract-ocr-en-variables">http://www.sk-spell.sk.cx/tesseract-ocr-en-variables</a> for a complete (but not up-to-date) list.</p>
+
+<p>For instance, use tessedit_char_whitelist to restrict characters to a specific set.</p>
+
+<p><br></p>
+
+<h1>
+<a name="user-content-updates-in-this-version-" class="anchor" href="#updates-in-this-version-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Updates in this version </h1>
+
+<ul class="task-list">
+<li><p>New implementation based off the API examples for tesseract-ocr  href="<a href="https://code.google.com/p/tesseract-ocr/wiki/APIExample#Result_iterator_example">https://code.google.com/p/tesseract-ocr/wiki/APIExample#Result_iterator_example</a></p></li>
+<li><p>2.3</p></li>
+<li><p>Bug fixing.</p></li>
+<li><p>CoreImage filters: use <code>[img blackAndWhite];</code> to convert the UIImage to recognize into a RecognizeImageType</p></li>
+<li><p>Rect: use <code>[tesseract setRect:CGRectMake(20, 20, 100, 100)]</code> to define the rect where the text must be recognized</p></li>
+<li><p>2.23 There is no need to draw an image for tesseract.
+Instead it's possible just to get raw data from the input image.
+Such way is better, cause in the case of the grayscale input image, there is no need to draw it in RGB color space, increasing memory consumptions significantly.</p></li>
+<li><p>2.22 CocoaPods</p></li>
+<li><p>2.21 tesserackCallbackFunction: leak solved on iDevice. </p></li>
+<li><p>The 2.2 is like 2.1... but shouldCancelImageRecognitionForTesseract works again! Thank you to Timo Formella! </p></li>
+<li><p>Template project updated. Now with camera support.</p></li>
+<li><p>New release 2.1</p></li>
+<li><p>Fixed memory leaks. Moved all freeing memory job to dealloc. Thanks to frank4565.</p></li>
+<li><p>Clear method is deprecated. Set tesseract = nil; to free all memory.</p></li>
+<li><p>Free the utf8Text according to the comment in Tesseract that “The recognized text is returned as a char* which is coded as UTF8 and must be freed with the delete [] operator.”.</p></li>
+<li><p>Template Framework Project updated.</p></li>
+<li><p>New release 2.0 with 64 bit support.</p></li>
+<li><p>The - (id)initWithDataPath:(NSString *)dataPath language:(NSString *)language method is now deprecated. </p></li>
+<li><p>Bug fixing!</p></li>
+<li><p>Removed tessdata folder from the framework project.</p></li>
+<li><p>The tessdata folder (follow the Template Framework Project) is now linked with the "folder references" option into the Template Project. <strong>REQUIRED!!!</strong></p></li>
+<li><p>Added delegate TesseractDelegate</p></li>
+<li><p>arm64 support. Thanks to Cyril</p></li>
+<li><p>Now you can compile yours libraries. Follow the README_howto_compile_libaries.md inside. Thanks to Simon Strangbaard</p></li>
+<li><p>Framework updated</p></li>
+<li><p>Bugs fixed. Thanks to Simon Strangbaard</p></li>
+<li><p>iOS7 libstdc++ issue solved (using libstdc++.6.0.9). </p></li>
+<li><p><strong>Template Framework Project added.</strong> It's the start point for use the Tesseract Framework. It's <strong>iOS7</strong> ready!</p></li>
+<li><p>11 october 2013, tesseract is up to date with last <a href="https://github.com/ldiqual/tesseract-ios">https://github.com/ldiqual/tesseract-ios</a> version available.</p></li>
+<li>
+<p>Clear method updated:</p>
+<pre><code>[tesseract clear]; //call Clear() end End() functions</code></pre>
+</li>
+<li><p>XCode 5 ready!</p></li>
+<li><p>Framework builded with the new Xcode 5.</p></li>
+</ul><p><br></p>
+
+<h1>
+<a name="user-content-dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h1>
+
+<p>Tesseract OCR iOS use UIKit, Foundation and CoreFoundation. They are already included in standard iOS Projects.</p>
+
+<h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>Tesseract OCR iOS and TesseractOCR.framework are under MIT License.</p>
+
+<p>Tesseract, powered by Google <a href="http://code.google.com/p/tesseract-ocr/">http://code.google.com/p/tesseract-ocr/</a>, is under Apache License.</p>
+
+<h1>
+<a name="user-content-author-infos" class="anchor" href="#author-infos" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author Infos</h1>
+
+<p>Daniele Galiotto - iOS Freelance Developer - <strong><a href="http://www.g8production.com">www.g8production.com</a></strong></p></article></div>

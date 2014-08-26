@@ -1,0 +1,213 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-async-http-client" class="anchor" href="#async-http-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>Async Http Client</h2>
+
+<p>Getting started <a href="http://sonatype.github.com/async-http-client/">HTML</a> <a href="http://is.gd/kexrN">PDF</a>
+                With <a href="http://jfarcand.wordpress.com/2011/12/21/writing-websocket-clients-using-asynchttpclient/">WebSockets</a></p>
+
+<p>Async Http Client library purpose is to allow Java applications to easily execute HTTP requests and asynchronously process the HTTP responses. The library also supports the WebSocket Protocol. The Async HTTP Client library is simple to use. First, in order to add it to your Maven project, simply add this dependency:</p>
+
+<div class="highlight highlight-xml"><pre><span class="nt">&lt;dependency&gt;</span>
+  <span class="nt">&lt;groupId&gt;</span>com.ning<span class="nt">&lt;/groupId&gt;</span>
+  <span class="nt">&lt;artifactId&gt;</span>async-http-client<span class="nt">&lt;/artifactId&gt;</span>
+  <span class="nt">&lt;version&gt;</span>1.8.13<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</pre></div>
+
+<p>You can also download the artifact</p>
+
+<p><a href="http://search.maven.org">Maven Search</a></p>
+
+<p>Then in your code you can simply do <a href="http://asynchttpclient.github.io/async-http-client/apidocs/reference/packages.html">Javadoc</a></p>
+
+<div class="highlight highlight-java"><pre><span class="kn">import</span> <span class="nn">com.ning.http.client.*</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.util.concurrent.Future</span><span class="o">;</span>
+
+<span class="n">AsyncHttpClient</span> <span class="n">asyncHttpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AsyncHttpClient</span><span class="o">();</span>
+<span class="n">Future</span><span class="o">&lt;</span><span class="n">Response</span><span class="o">&gt;</span> <span class="n">f</span> <span class="o">=</span> <span class="n">asyncHttpClient</span><span class="o">.</span><span class="na">prepareGet</span><span class="o">(</span><span class="s">"http://www.ning.com/"</span><span class="o">).</span><span class="na">execute</span><span class="o">();</span>
+<span class="n">Response</span> <span class="n">r</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</pre></div>
+
+<p>Note that in this case all the content must be read fully in memory, even if you used <code>getResponseBodyAsStream()</code> method on returned <code>Response</code> object.</p>
+
+<p>You can also accomplish asynchronous (non-blocking) operation without using a Future if you want to receive and process the response in your handler:</p>
+
+<div class="highlight highlight-java"><pre><span class="kn">import</span> <span class="nn">com.ning.http.client.*</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.util.concurrent.Future</span><span class="o">;</span>
+
+<span class="n">AsyncHttpClient</span> <span class="n">asyncHttpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AsyncHttpClient</span><span class="o">();</span>
+<span class="n">asyncHttpClient</span><span class="o">.</span><span class="na">prepareGet</span><span class="o">(</span><span class="s">"http://www.ning.com/"</span><span class="o">).</span><span class="na">execute</span><span class="o">(</span><span class="k">new</span> <span class="n">AsyncCompletionHandler</span><span class="o">&lt;</span><span class="n">Response</span><span class="o">&gt;(){</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Response</span> <span class="nf">onCompleted</span><span class="o">(</span><span class="n">Response</span> <span class="n">response</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span><span class="o">{</span>
+        <span class="c1">// Do something with the Response</span>
+        <span class="c1">// ...</span>
+        <span class="k">return</span> <span class="n">response</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onThrowable</span><span class="o">(</span><span class="n">Throwable</span> <span class="n">t</span><span class="o">){</span>
+        <span class="c1">// Something wrong happened.</span>
+    <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<p>(this will also fully read <code>Response</code> in memory before calling <code>onCompleted</code>)</p>
+
+<p>You can also mix Future with AsyncHandler to only retrieve part of the asynchronous response</p>
+
+<div class="highlight highlight-java"><pre><span class="kn">import</span> <span class="nn">com.ning.http.client.*</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.util.concurrent.Future</span><span class="o">;</span>
+
+<span class="n">AsyncHttpClient</span> <span class="n">asyncHttpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AsyncHttpClient</span><span class="o">();</span>
+<span class="n">Future</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">f</span> <span class="o">=</span> <span class="n">asyncHttpClient</span><span class="o">.</span><span class="na">prepareGet</span><span class="o">(</span><span class="s">"http://www.ning.com/"</span><span class="o">).</span><span class="na">execute</span><span class="o">(</span>
+   <span class="k">new</span> <span class="n">AsyncCompletionHandler</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;(){</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Integer</span> <span class="nf">onCompleted</span><span class="o">(</span><span class="n">Response</span> <span class="n">response</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span><span class="o">{</span>
+        <span class="c1">// Do something with the Response</span>
+        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="na">getStatusCode</span><span class="o">();</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onThrowable</span><span class="o">(</span><span class="n">Throwable</span> <span class="n">t</span><span class="o">){</span>
+        <span class="c1">// Something wrong happened.</span>
+    <span class="o">}</span>
+<span class="o">});</span>
+
+<span class="kt">int</span> <span class="n">statusCode</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</pre></div>
+
+<p>which is something you want to do for large responses: this way you can process content as soon as it becomes available, piece by piece, without having to buffer it all in memory.</p>
+
+<p>You have full control on the Response life cycle, so you can decide at any moment to stop processing what the server is sending back:</p>
+
+<div class="highlight highlight-java"><pre><span class="kn">import</span> <span class="nn">com.ning.http.client.*</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.util.concurrent.Future</span><span class="o">;</span>
+
+<span class="n">AsyncHttpClient</span> <span class="n">c</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AsyncHttpClient</span><span class="o">();</span>
+<span class="n">Future</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">f</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="na">prepareGet</span><span class="o">(</span><span class="s">"http://www.ning.com/"</span><span class="o">).</span><span class="na">execute</span><span class="o">(</span><span class="k">new</span> <span class="n">AsyncHandler</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;()</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="n">ByteArrayOutputStream</span> <span class="n">bytes</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">ByteArrayOutputStream</span><span class="o">();</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">STATE</span> <span class="nf">onStatusReceived</span><span class="o">(</span><span class="n">HttpResponseStatus</span> <span class="n">status</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">statusCode</span> <span class="o">=</span> <span class="n">status</span><span class="o">.</span><span class="na">getStatusCode</span><span class="o">();</span>
+        <span class="c1">// The Status have been read</span>
+        <span class="c1">// If you don't want to read the headers,body or stop processing the response</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">statusCode</span> <span class="o">&gt;=</span> <span class="mi">500</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">STATE</span><span class="o">.</span><span class="na">ABORT</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">STATE</span> <span class="nf">onHeadersReceived</span><span class="o">(</span><span class="n">HttpResponseHeaders</span> <span class="n">h</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+        <span class="n">Headers</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="na">getHeaders</span><span class="o">();</span>
+         <span class="c1">// The headers have been read</span>
+         <span class="c1">// If you don't want to read the body, or stop processing the response</span>
+         <span class="k">return</span> <span class="n">STATE</span><span class="o">.</span><span class="na">ABORT</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">STATE</span> <span class="nf">onBodyPartReceived</span><span class="o">(</span><span class="n">HttpResponseBodyPart</span> <span class="n">bodyPart</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+         <span class="n">bytes</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">bodyPart</span><span class="o">.</span><span class="na">getBodyPartBytes</span><span class="o">());</span>
+         <span class="k">return</span> <span class="n">STATE</span><span class="o">.</span><span class="na">CONTINUE</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">String</span> <span class="nf">onCompleted</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+         <span class="c1">// Will be invoked once the response has been fully read or a ResponseComplete exception</span>
+         <span class="c1">// has been thrown.</span>
+         <span class="c1">// NOTE: should probably use Content-Encoding from headers</span>
+         <span class="k">return</span> <span class="n">bytes</span><span class="o">.</span><span class="na">toString</span><span class="o">(</span><span class="s">"UTF-8"</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onThrowable</span><span class="o">(</span><span class="n">Throwable</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
+    <span class="o">}</span>
+<span class="o">});</span>
+
+<span class="n">String</span> <span class="n">bodyResponse</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+</pre></div>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Finally, you can also configure the AsyncHttpClient via its AsyncHttpClientConfig object:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">AsyncHttpClientConfig</span> <span class="n">cf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">AsyncHttpClientConfig</span><span class="o">.</span><span class="na">Builder</span><span class="o">()</span>
+    <span class="n">S</span><span class="o">.</span><span class="na">setProxyServer</span><span class="o">(</span><span class="k">new</span> <span class="nf">ProxyServer</span><span class="o">(</span><span class="s">"127.0.0.1"</span><span class="o">,</span> <span class="mi">38080</span><span class="o">)).</span><span class="na">build</span><span class="o">();</span>
+<span class="n">AsyncHttpClient</span> <span class="n">c</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AsyncHttpClient</span><span class="o">(</span><span class="n">cf</span><span class="o">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-websocket" class="anchor" href="#websocket" aria-hidden="true"><span class="octicon octicon-link"></span></a>WebSocket</h2>
+
+<p>Async Http Client also support WebSocket by simply doing:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">WebSocket</span> <span class="n">websocket</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="na">prepareGet</span><span class="o">(</span><span class="n">getTargetUrl</span><span class="o">())</span>
+      <span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="k">new</span> <span class="n">WebSocketUpgradeHandler</span><span class="o">.</span><span class="na">Builder</span><span class="o">().</span><span class="na">addWebSocketListener</span><span class="o">(</span>
+          <span class="k">new</span> <span class="nf">WebSocketTextListener</span><span class="o">()</span> <span class="o">{</span>
+
+          <span class="nd">@Override</span>
+          <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onMessage</span><span class="o">(</span><span class="n">String</span> <span class="n">message</span><span class="o">)</span> <span class="o">{</span>
+          <span class="o">}</span>
+
+          <span class="nd">@Override</span>
+          <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onOpen</span><span class="o">(</span><span class="n">WebSocket</span> <span class="n">websocket</span><span class="o">)</span> <span class="o">{</span>
+              <span class="n">websocket</span><span class="o">.</span><span class="na">sendTextMessage</span><span class="o">(</span><span class="s">"..."</span><span class="o">).</span><span class="na">sendBinaryMessage</span><span class="o">(</span><span class="s">"..."</span><span class="o">);</span>
+          <span class="o">}</span>
+
+          <span class="nd">@Override</span>
+          <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onClose</span><span class="o">(.</span><span class="na">WebSocket</span> <span class="n">websocket</span><span class="o">)</span> <span class="o">{</span>
+              <span class="n">latch</span><span class="o">.</span><span class="na">countDown</span><span class="o">();</span>
+          <span class="o">}</span>
+
+          <span class="nd">@Override</span>
+          <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onError</span><span class="o">(</span><span class="n">Throwable</span> <span class="n">t</span><span class="o">)</span> <span class="o">{</span>
+          <span class="o">}</span>
+      <span class="o">}).</span><span class="na">build</span><span class="o">()).</span><span class="na">get</span><span class="o">();</span>
+</pre></div>
+
+<p>The library uses Java non blocking I/O for supporting asynchronous operations. The default asynchronous provider is build on top of <a href="http://www.jboss.org/netty">Netty</a>, but the library exposes a configurable provider SPI which allows to easily plug in other frameworks like <a href="http://grizzly.java.net">Grizzly</a></p>
+
+<div class="highlight highlight-java"><pre><span class="n">AsyncHttpClientConfig</span> <span class="n">config</span> <span class="o">=</span> <span class="k">new</span> <span class="n">AsyncHttpClientConfig</span><span class="o">.</span><span class="na">Builder</span><span class="o">().</span><span class="na">build</span><span class="o">();</span>
+<span class="n">AsyncHttpClient</span> <span class="n">client</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AsyncHttpClient</span><span class="o">(</span><span class="k">new</span> <span class="nf">GrizzlyAsyncHttpProvider</span><span class="o">(</span><span class="n">config</span><span class="o">),</span> <span class="n">config</span><span class="o">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-user-group" class="anchor" href="#user-group" aria-hidden="true"><span class="octicon octicon-link"></span></a>User Group</h2>
+
+<p>Keep up to date on the library development by joining the Asynchronous HTTP Client discussion group</p>
+
+<p><a href="http://groups.google.com/group/asynchttpclient">Google Group</a></p>
+
+<p>or follow us on <a href="http://twitter.com/jfarcand">Twitter</a></p>
+
+<p><a href="http://githalytics.com/AsyncHttpClient/async-http-client"><img src="https://camo.githubusercontent.com/111ffb3dd0b67d56a662e059a1d024803a00c4ba/68747470733a2f2f637275656c2d6361726c6f74612e7061676f6461626f782e636f6d2f3634333336373930363362323335313539396336636134346130383234366132" alt="githalytics.com alpha" title="githalytics.com" data-canonical-src="https://cruel-carlota.pagodabox.com/6433679063b2351599c6ca44a08246a2" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Of course, Pull Requests are welcome.</p>
+
+<p>Here a the few rules we'd like you to respect if you do so:</p>
+
+<ul class="task-list">
+<li>Only edit the code related to the suggested change, so DON'T automatically format the classes you've edited.</li>
+<li>Respect the formatting rules:
+
+<ul class="task-list">
+<li>Ident with 4 spaces</li>
+<li>Use a 140 chars line max length</li>
+<li>Don't use * imports</li>
+<li>Stick to the org, com, javax, java imports order</li>
+</ul>
+</li>
+<li>Your PR can contain multiple commits when submitting, but once it's been reviewed, we'll ask you to squash them into a single one</li>
+<li>Regarding licensing:
+
+<ul class="task-list">
+<li>You must be the original author of the code you suggest.</li>
+<li>If not, you have to prove that the original code was published under Apache License 2 and properly mention original copyrights.</li>
+</ul>
+</li>
+</ul></article></div>

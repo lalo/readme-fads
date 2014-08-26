@@ -1,0 +1,517 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://travis-ci.org/earldouglas/xsbt-web-plugin"><img src="https://camo.githubusercontent.com/34e31bef4e246f390b55eb784b3e246d71f40344/68747470733a2f2f7472617669732d63692e6f72672f6561726c646f75676c61732f787362742d7765622d706c7567696e2e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/earldouglas/xsbt-web-plugin.png?branch=master" style="max-width:100%;"></a></p>
+
+<p><strong>Note: this is the readme for the upcoming 1.0 release.  For the (stable) 0.9 
+release, see the <a href="https://github.com/earldouglas/xsbt-web-plugin/tree/0.9">0.9 branch</a>.</strong></p>
+
+<h2>
+<a name="user-content-about" class="anchor" href="#about" aria-hidden="true"><span class="octicon octicon-link"></span></a>About</h2>
+
+<p>xsbt-web-plugin is an extension to <a href="http://www.scala-sbt.org/">sbt</a> for building enterprise Web applications based on the <a href="http://en.wikipedia.org/wiki/Java_Servlet">Java J2EE Servlet specification</a>.</p>
+
+<p>xsbt-web-plugin supports both Scala and Java, and is best suited for projects that:</p>
+
+<ul class="task-list">
+<li>Deploy to common cloud platforms (e.g. <a href="https://developers.google.com/appengine/">Google App Engine</a>, <a href="https://www.heroku.com/">Heroku</a>, <a href="https://console.aws.amazon.com/elasticbeanstalk/home">Elastic Beanstalk</a>, <a href="http://jelastic.com/">Jelastic</a>)</li>
+<li>Deploy to production J2EE environments (e.g. Tomcat, Jetty, GlassFish, WebSphere)</li>
+<li>Incorporate J2EE libraries (e.g. <a href="http://en.wikipedia.org/wiki/JavaServer_Pages">JSP</a>, <a href="http://en.wikipedia.org/wiki/JavaServer_Faces">JSF</a>, <a href="http://en.wikipedia.org/wiki/Ejb">EJB</a>)</li>
+<li>Utilize J2EE technologies (e.g. <a href="http://docs.oracle.com/javaee/6/api/javax/servlet/Servlet.html"><code>Servlet</code></a>s, <a href="http://docs.oracle.com/javaee/6/api/javax/servlet/Filter.html"><code>Filter</code></a>s, <a href="http://en.wikipedia.org/wiki/Java_Naming_and_Directory_Interface">JNDI</a>)</li>
+<li>Have a specific need to be packaged as a <a href="https://en.wikipedia.org/wiki/WAR_%28Sun_file_format%29"><em>.war</em> file</a>
+</li>
+</ul><h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>sbt 0.13.x</li>
+<li>Scala 2.10.x</li>
+</ul><h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>The quickest way to get started is to clone the <a href="https://github.com/earldouglas/xwp-template">xwp-template</a> 
+project, which sets up the necessary directories, files, and configuration for a 
+basic xsbt-web-plugin project.</p>
+
+<p>There are many examples in the form of tests in <a href="https://github.com/earldouglas/xsbt-web-plugin/tree/master/src/sbt-test">src/sbt-test</a>.</p>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<p>xsbt-web-plugin consists of three modules: a <em>webapp</em> plugin, a <em>war</em> plugin, 
+and a <em>container</em> plugin.</p>
+
+<p>The <em>webapp</em> plugin is responsible for preparing a Servlet-based Web application 
+as a directory, containing compiled project code, project resources, and a 
+special <em>webapp</em> directory (which includes the <em>web.xml</em> configuration file, 
+static HTML files, etc.).</p>
+
+<p>The <em>war</em> plugin builds on the <em>webapp</em> plugin, adding a way to package the Web 
+application directory as a <em>.war</em> file that can be published as an artifact, and 
+deployed to a Servlet container.</p>
+
+<p>The <em>container</em> plugin also builds on the <em>webapp</em> plugin, adding a way to 
+launch a servlet container in a forked JVM to host the project as a Web 
+application.</p>
+
+<p>Put together, these compose xsb-web-plugin, and provide complete support for 
+developing Servlet-based Web applications in Scala (and Java).</p>
+
+<h2>
+<a name="user-content-quick-reference" class="anchor" href="#quick-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick reference</h2>
+
+<p>First, add xsbt-web-plugin:</p>
+
+<p><em>project/plugins.sbt</em>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">addSbtPlugin</span><span class="o">(</span><span class="s">"com.earldouglas"</span> <span class="o">%</span> <span class="s">"xsbt-web-plugin"</span> <span class="o">%</span> <span class="s">"1.0.0-M6"</span><span class="o">)</span>
+</pre></div>
+
+<p>Then choose either Jetty or Tomcat with default setings:</p>
+
+<p><em>build.sbt</em>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">jetty</span><span class="o">()</span>
+</pre></div>
+
+<p><em>build.sbt</em>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">tomcat</span><span class="o">()</span>
+</pre></div>
+
+<p>Start (or restart) the container with <code>container:start</code>:</p>
+
+<p><em>sbt console:</em></p>
+
+<pre><code>&gt; container:start
+</code></pre>
+
+<p>Stop the container with <code>container:stop</code>:</p>
+
+<p><em>sbt console:</em></p>
+
+<pre><code>&gt; container:stop
+</code></pre>
+
+<p>Build a <em>.war</em> file with <code>package</code>:</p>
+
+<p><em>sbt console:</em></p>
+
+<pre><code>&gt; package
+</code></pre>
+
+<h2>
+<a name="user-content-configuration-and-usage" class="anchor" href="#configuration-and-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration and usage</h2>
+
+<h3>
+<a name="user-content-triggered-relaunch" class="anchor" href="#triggered-relaunch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Triggered (re)launch</h3>
+
+<p><em>sbt console:</em></p>
+
+<pre><code>&gt; ~container:start
+</code></pre>
+
+<p>This starts the container, then monitors the sources, resources, and webapp 
+directories for changes, which triggers a container restart.</p>
+
+<h3>
+<a name="user-content-configure-jetty-to-run-on-port-9090" class="anchor" href="#configure-jetty-to-run-on-port-9090" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure Jetty to run on port 9090</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">jetty</span><span class="o">(</span><span class="n">port</span> <span class="k">=</span> <span class="mi">9090</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-configure-tomcat-to-run-on-port-9090" class="anchor" href="#configure-tomcat-to-run-on-port-9090" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure Tomcat to run on port 9090</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">tomcat</span><span class="o">(</span><span class="n">port</span> <span class="k">=</span> <span class="mi">9090</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-configure-jetty-with-jettyxml" class="anchor" href="#configure-jetty-with-jettyxml" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure Jetty with jetty.xml</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">jetty</span><span class="o">(</span><span class="n">config</span> <span class="k">=</span> <span class="s">"etc/jetty.xml"</span><span class="o">)</span>
+</pre></div>
+
+<p>The <code>config</code> path can be either absolute or relative to the project directory.</p>
+
+<h3>
+<a name="user-content-depend-on-libraries-in-a-multi-project-build" class="anchor" href="#depend-on-libraries-in-a-multi-project-build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Depend on libraries in a multi-project build</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="k">lazy</span> <span class="k">val</span> <span class="n">root</span> <span class="k">=</span> <span class="o">(</span><span class="n">project</span> <span class="n">in</span> <span class="n">file</span><span class="o">(</span><span class="s">"."</span><span class="o">))</span> <span class="n">aggregate</span><span class="o">(</span><span class="n">mylib1</span><span class="o">,</span> <span class="n">mylib2</span><span class="o">,</span> <span class="n">mywebapp</span><span class="o">)</span>
+
+<span class="k">lazy</span> <span class="k">val</span> <span class="n">mylib1</span> <span class="k">=</span> <span class="n">project</span>
+
+<span class="k">lazy</span> <span class="k">val</span> <span class="n">mylib2</span> <span class="k">=</span> <span class="n">project</span>
+
+<span class="k">lazy</span> <span class="k">val</span> <span class="n">mywebapp</span> <span class="k">=</span> <span class="n">project</span> <span class="n">dependsOn</span> <span class="o">(</span><span class="n">mylib1</span><span class="o">,</span> <span class="n">mylib2</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-add-an-additional-source-directory" class="anchor" href="#add-an-additional-source-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a>Add an additional source directory</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// add &lt;project&gt;/src/main/extra as an additional source directory</span>
+<span class="n">unmanagedSourceDirectories</span> <span class="n">in</span> <span class="nc">Compile</span> <span class="o">&lt;+=</span> <span class="o">(</span><span class="n">sourceDirectory</span> <span class="n">in</span> <span class="nc">Compile</span><span class="o">)(</span><span class="k">_</span> <span class="o">/</span> <span class="s">"extra"</span><span class="o">)</span>
+</pre></div>
+
+<p>Scala files in the extra source directory are compiled, and bundled in the 
+project artifact <em>.jar</em> file.</p>
+
+<h3>
+<a name="user-content-add-an-additional-resource-directory" class="anchor" href="#add-an-additional-resource-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a>Add an additional resource directory</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// add &lt;project&gt;/src/main/extra as an additional resource directory</span>
+<span class="n">unmanagedResourceDirectories</span> <span class="n">in</span> <span class="nc">Compile</span> <span class="o">&lt;+=</span> <span class="o">(</span><span class="n">sourceDirectory</span> <span class="n">in</span> <span class="nc">Compile</span><span class="o">)(</span><span class="k">_</span> <span class="o">/</span> <span class="s">"extra"</span><span class="o">)</span>
+</pre></div>
+
+<p>Files in the extra resource directory are not compiled, and are bundled directly 
+in the project artifact <em>.jar</em> file.</p>
+
+<h3>
+<a name="user-content-change-the-default-web-application-resources-directory" class="anchor" href="#change-the-default-web-application-resources-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a>Change the default Web application resources directory</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// set &lt;project&gt;/src/main/WebContent as the webapp resources directory</span>
+<span class="n">webappSrc</span> <span class="n">in</span> <span class="n">webapp</span> <span class="o">&lt;&lt;=</span> <span class="o">(</span><span class="n">sourceDirectory</span> <span class="n">in</span> <span class="nc">Compile</span><span class="o">)</span> <span class="n">map</span>  <span class="o">{</span> <span class="k">_</span> <span class="o">/</span> <span class="s">"WebContent"</span> <span class="o">}</span>
+</pre></div>
+
+<p>The Web application resources directory is where static Web content (including 
+<em>.html</em>, <em>.css</em>, and <em>.js</em> files, the <em>web.xml</em> container configuration file, 
+etc.  By default, this is kept in <em>/src/main/webapp</em>.</p>
+
+<h3>
+<a name="user-content-change-the-default-web-application-destination-directory" class="anchor" href="#change-the-default-web-application-destination-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a>Change the default Web application destination directory</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// set &lt;project&gt;/target/WebContent as the webapp destination directory</span>
+<span class="n">webappDest</span> <span class="n">in</span> <span class="n">webapp</span> <span class="o">&lt;&lt;=</span> <span class="n">target</span> <span class="n">map</span>  <span class="o">{</span> <span class="k">_</span> <span class="o">/</span> <span class="s">"WebContent"</span> <span class="o">}</span>
+</pre></div>
+
+<p>The Web application destination directory is where the static Web content, 
+compiled Scala classes, library <em>.jar</em> files, etc. are placed.  By default, 
+they go to <em>/target/webapp</em>.</p>
+
+<h3>
+<a name="user-content-modify-the-contents-of-the-prepared-web-application" class="anchor" href="#modify-the-contents-of-the-prepared-web-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modify the contents of the prepared Web application</h3>
+
+<p>After the <em>/target/webapp</em> directory is prepared, it can be modified 
+with an arbitrary <code>File =&gt; Unit</code> function.</p>
+
+<p>For example, here's how to minify JavaScript files using <a href="https://yui.github.io/yuicompressor/">YUI Compressor</a>:</p>
+
+<p><em>project/plugins.sbt</em>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.yahoo.platform.yui"</span> <span class="o">%</span> <span class="s">"yuicompressor"</span> <span class="o">%</span> <span class="s">"2.4.7"</span> <span class="n">intransitive</span><span class="o">()</span>
+</pre></div>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// minify the JavaScript file script.js to script-min.js</span>
+<span class="n">postProcess</span> <span class="n">in</span> <span class="n">webapp</span> <span class="o">:=</span> <span class="o">{</span>
+  <span class="n">webappDir</span> <span class="k">=&gt;</span>
+    <span class="k">import</span> <span class="nn">java.io.File</span>
+    <span class="k">import</span> <span class="nn">com.yahoo.platform.yui.compressor.YUICompressor</span>
+    <span class="k">val</span> <span class="n">src</span>  <span class="k">=</span> <span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="n">webappDir</span><span class="o">,</span> <span class="s">"script.js"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">dest</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="n">webappDir</span><span class="o">,</span> <span class="s">"script-min.js"</span><span class="o">)</span>
+    <span class="nc">YUICompressor</span><span class="o">.</span><span class="n">main</span><span class="o">(</span><span class="nc">Array</span><span class="o">(</span><span class="n">src</span><span class="o">.</span><span class="n">getPath</span><span class="o">,</span> <span class="s">"-o"</span><span class="o">,</span> <span class="n">dest</span><span class="o">.</span><span class="n">getPath</span><span class="o">))</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-use-web-infclasses-instead-of-web-inflib" class="anchor" href="#use-web-infclasses-instead-of-web-inflib" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use <em>WEB-INF/classes</em> instead of <em>WEB-INF/lib</em>
+</h3>
+
+<p>By default, project classes and resources are packaged in the default <em>.jar</em> 
+file artifact, which is copied to <em>WEB-INF/lib</em>.  This file can optionally be 
+ignored, and the project classes and resources copied directly to 
+<em>WEB-INF/classes</em>.</p>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">webInfClasses</span> <span class="n">in</span> <span class="n">webapp</span> <span class="o">:=</span> <span class="kc">true</span>
+</pre></div>
+
+<h3>
+<a name="user-content-prepare-the-web-application-for-execution-and-deployment" class="anchor" href="#prepare-the-web-application-for-execution-and-deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prepare the Web application for execution and deployment</h3>
+
+<p>For situations when the prepared <em>/target/webapp</em> directory is needed, 
+but the packaged <em>.war</em> file isn't.</p>
+
+<p><em>sbt console:</em></p>
+
+<pre><code>webapp:prepare
+</code></pre>
+
+<h3>
+<a name="user-content-use-a-cusom-webapp-runner" class="anchor" href="#use-a-cusom-webapp-runner" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use a cusom webapp runner</h3>
+
+<p>By default, either Jetty's <a href="http://wiki.eclipse.org/Jetty/Howto/Using_Jetty_Runner">jetty-runner</a> 
+or Tomcat's <a href="https://github.com/jsimone/webapp-runner">webapp-runner</a> will be 
+used to launch the container under <code>container:start</code>.</p>
+
+<p>To use a custom runner, use <code>runnerContainer</code> with <code>warSettings</code> and 
+<code>webappSettings</code>:</p>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">runnerContainer</span><span class="o">(</span>
+  <span class="n">libs</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span>
+      <span class="s">"org.eclipse.jetty"</span> <span class="o">%</span>  <span class="s">"jetty-webapp"</span> <span class="o">%</span> <span class="s">"9.1.0.v20131115"</span> <span class="o">%</span> <span class="s">"container"</span>
+    <span class="o">,</span> <span class="s">"org.eclipse.jetty"</span> <span class="o">%</span>  <span class="s">"jetty-plus"</span>   <span class="o">%</span> <span class="s">"9.1.0.v20131115"</span> <span class="o">%</span> <span class="s">"container"</span>
+    <span class="o">,</span> <span class="s">"test"</span>              <span class="o">%%</span> <span class="s">"runner"</span>       <span class="o">%</span> <span class="s">"0.1.0-SNAPSHOT"</span>  <span class="o">%</span> <span class="s">"container"</span>
+  <span class="o">),</span>
+  <span class="n">args</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span><span class="s">"runner.Run"</span><span class="o">,</span> <span class="s">"8080"</span><span class="o">)</span>
+<span class="o">)</span> <span class="o">++</span> <span class="n">warSettings</span> <span class="o">++</span> <span class="n">webappSettings</span>
+</pre></div>
+
+<p>Here, <code>libs</code> includes the <code>ModuleID</code>s of libraries needed to make our runner, 
+which is invoked by calling the main method of <code>runner.Run</code> with a single 
+argument to specify the server port.</p>
+
+<h3>
+<a name="user-content-attach-a-java-agent" class="anchor" href="#attach-a-java-agent" aria-hidden="true"><span class="octicon octicon-link"></span></a>Attach a Java agent</h3>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">javaOptions</span> <span class="o">+=</span> <span class="s">"-agentpath:/path/to/libyjpagent.jnilib"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-add-manifest-attributes" class="anchor" href="#add-manifest-attributes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Add manifest attributes</h3>
+
+<p>By default, the <em>.war</em> file includes the same manifest attributes as the
+project's artifact:</p>
+
+<ul class="task-list">
+<li>Implementation-Vendor</li>
+<li>Implementation-Title</li>
+<li>Implementation-Version</li>
+<li>Implementation-Vendor-Id</li>
+<li>Specification-Vendor</li>
+<li>Specification-Title</li>
+<li>Specification-Version</li>
+</ul><p>These can be changed in both artifacts:</p>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">packageOptions</span> <span class="n">in</span> <span class="o">(</span><span class="nc">Compile</span><span class="o">,</span> <span class="n">packageBin</span><span class="o">)</span> <span class="o">+=</span>
+    <span class="nc">Package</span><span class="o">.</span><span class="nc">ManifestAttributes</span><span class="o">(</span> <span class="n">java</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">jar</span><span class="o">.</span><span class="nc">Attributes</span><span class="o">.</span><span class="nc">Name</span><span class="o">.</span><span class="nc">SEALED</span> <span class="o">-&gt;</span> <span class="s">"true"</span> <span class="o">)</span>
+</pre></div>
+
+<p>Or in just the <em>.war</em> file:</p>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">packageOptions</span> <span class="n">in</span> <span class="n">packageWar</span> <span class="o">+=</span>
+  <span class="nc">Package</span><span class="o">.</span><span class="nc">ManifestAttributes</span><span class="o">(</span> <span class="n">java</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">jar</span><span class="o">.</span><span class="nc">Attributes</span><span class="o">.</span><span class="nc">Name</span><span class="o">.</span><span class="nc">SEALED</span> <span class="o">-&gt;</span> <span class="s">"true"</span> <span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-set-forked-jvm-options" class="anchor" href="#set-forked-jvm-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Set forked JVM options</h3>
+
+<p>To specify options to be provided to the forked JVM, set <code>javaOptions</code> in the <code>container</code> task:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">javaOptions</span> <span class="n">in</span> <span class="n">container</span> <span class="o">+=</span> <span class="s">"-Xmx8g"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-configure-forking" class="anchor" href="#configure-forking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure forking</h3>
+
+<p>Forking in sbt can be configured through a <a href="http://www.scala-sbt.org/0.13.5/api/index.html#sbt.ForkOptions"><code>ForkOptions</code></a> instance, by passing it as the <code>options</code> argument to the <code>jetty()</code> or <code>tomcat()</code> function:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">jetty</span><span class="o">(</span><span class="n">options</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">ForkOptions</span><span class="o">(</span><span class="n">runJVMOptions</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span><span class="s">"-Xmx8g"</span><span class="o">)))</span>
+</pre></div>
+
+<p>The <code>ForkOptions</code> constructor takes the following arguments:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">new</span> <span class="nc">ForkOptions</span><span class="o">(</span>
+    <span class="n">javaHome</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">File</span><span class="o">]</span> <span class="k">=</span> <span class="n">scala</span><span class="o">.</span><span class="nc">None</span>
+  <span class="o">,</span> <span class="n">outputStrategy</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">OutputStrategy</span><span class="o">]</span> <span class="k">=</span> <span class="n">scala</span><span class="o">.</span><span class="nc">None</span>
+  <span class="o">,</span> <span class="n">bootJars</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">File</span><span class="o">]</span> <span class="k">=</span> <span class="n">immutable</span><span class="o">.</span><span class="k">this</span><span class="o">.</span><span class="nc">Nil</span>
+  <span class="o">,</span> <span class="n">workingDirectory</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">File</span><span class="o">]</span> <span class="k">=</span> <span class="n">scala</span><span class="o">.</span><span class="nc">None</span>
+  <span class="o">,</span> <span class="n">runJVMOptions</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="n">immutable</span><span class="o">.</span><span class="k">this</span><span class="o">.</span><span class="nc">Nil</span>
+  <span class="o">,</span> <span class="n">connectInput</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="kc">false</span>
+  <span class="o">,</span> <span class="n">envVars</span><span class="k">:</span> <span class="kt">Map</span><span class="o">[</span><span class="kt">String</span>, <span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="o">...</span>
+<span class="o">)</span> 
+</pre></div>
+
+<h2>
+<a name="user-content-starting-from-scratch" class="anchor" href="#starting-from-scratch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Starting from scratch</h2>
+
+<p>Create a new empty project:</p>
+
+<pre><code>mkdir myproject
+cd myproject
+</code></pre>
+
+<p>Set up the project structure:</p>
+
+<pre><code>mkdir project
+mkdir -p src/main/scala
+mkdir -p src/main/webapp/WEB-INF
+</code></pre>
+
+<p>Configure sbt:</p>
+
+<p><em>project/build.properties:</em></p>
+
+<pre><code>sbt.version=0.13.5
+</code></pre>
+
+<p><em>project/plugins.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">addSbtPlugin</span><span class="o">(</span><span class="s">"com.earldouglas"</span> <span class="o">%</span> <span class="s">"xsbt-web-plugin"</span> <span class="o">%</span> <span class="s">"1.0.0-M6"</span><span class="o">)</span>
+</pre></div>
+
+<p><em>build.sbt:</em></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">name</span> <span class="o">:=</span> <span class="s">"myproject"</span>
+
+<span class="n">organization</span> <span class="o">:=</span> <span class="s">"myorganization"</span>
+
+<span class="n">version</span> <span class="o">:=</span> <span class="s">"0.1.0-SNAPSHOT"</span>
+
+<span class="n">scalaVersion</span> <span class="o">:=</span> <span class="s">"2.10.4"</span>
+
+<span class="n">jetty</span><span class="o">()</span>
+
+<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"javax.servlet"</span> <span class="o">%</span> <span class="s">"javax.servlet-api"</span> <span class="o">%</span> <span class="s">"3.0.1"</span> <span class="o">%</span> <span class="s">"provided"</span>
+</pre></div>
+
+<p>Add a servlet:</p>
+
+<p><em>src/main/scala/servlets.scala</em>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">servlets</span>
+
+<span class="k">import</span> <span class="nn">scala.xml.NodeSeq</span>
+<span class="k">import</span> <span class="nn">scala.xml.PrettyPrinter</span>
+<span class="k">import</span> <span class="nn">javax.servlet.http.HttpServlet</span>
+<span class="k">import</span> <span class="nn">javax.servlet.http.HttpServletRequest</span>
+<span class="k">import</span> <span class="nn">javax.servlet.http.HttpServletResponse</span>
+
+<span class="k">class</span> <span class="nc">MyServlet</span> <span class="k">extends</span> <span class="nc">HttpServlet</span> <span class="o">{</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="n">doGet</span><span class="o">(</span><span class="n">request</span><span class="k">:</span> <span class="kt">HttpServletRequest</span><span class="o">,</span> <span class="n">response</span><span class="k">:</span> <span class="kt">HttpServletResponse</span><span class="o">)</span> <span class="o">{</span>
+
+    <span class="n">response</span><span class="o">.</span><span class="n">setContentType</span><span class="o">(</span><span class="s">"text/html"</span><span class="o">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">setCharacterEncoding</span><span class="o">(</span><span class="s">"UTF-8"</span><span class="o">)</span>
+
+    <span class="k">val</span> <span class="n">responseBody</span><span class="k">:</span> <span class="kt">NodeSeq</span> <span class="o">=</span>
+      <span class="o">&lt;</span><span class="n">html</span><span class="o">&gt;</span>
+        <span class="o">&lt;</span><span class="n">body</span><span class="o">&gt;</span>
+          <span class="o">&lt;</span><span class="n">h1</span><span class="o">&gt;</span><span class="nc">Hello</span><span class="o">,</span> <span class="n">world</span><span class="o">!&lt;/</span><span class="n">h1</span><span class="o">&gt;</span>
+        <span class="o">&lt;/</span><span class="n">body</span><span class="o">&gt;</span>
+      <span class="o">&lt;/</span><span class="n">html</span><span class="o">&gt;</span>
+
+    <span class="k">val</span> <span class="n">printer</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">PrettyPrinter</span><span class="o">(</span><span class="mi">80</span><span class="o">,</span> <span class="mi">2</span><span class="o">)</span>
+
+    <span class="n">response</span><span class="o">.</span><span class="n">getWriter</span><span class="o">.</span><span class="n">write</span><span class="o">(</span><span class="n">printer</span><span class="o">.</span><span class="n">formatNodes</span><span class="o">(</span><span class="n">responseBody</span><span class="o">))</span>
+
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<p><em>src/main/webapp/WEB-INF/web.xml</em>:</p>
+
+<div class="highlight highlight-xml"><pre><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;web-app</span> <span class="na">xmlns=</span><span class="s">"http://java.sun.com/xml/ns/javaee"</span>
+          <span class="na">xmlns:xsi=</span><span class="s">"http://www.w3.org/2001/XMLSchema-instance"</span>
+          <span class="na">xsi:schemaLocation=</span><span class="s">"http://java.sun.com/xml/ns/javaee </span>
+<span class="s">          http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"</span>
+          <span class="na">version=</span><span class="s">"3.0"</span><span class="nt">&gt;</span>
+
+  <span class="nt">&lt;servlet&gt;</span>
+    <span class="nt">&lt;servlet-name&gt;</span>my servlet<span class="nt">&lt;/servlet-name&gt;</span>
+    <span class="nt">&lt;servlet-class&gt;</span>servlets.MyServlet<span class="nt">&lt;/servlet-class&gt;</span>
+  <span class="nt">&lt;/servlet&gt;</span>
+
+  <span class="nt">&lt;servlet-mapping&gt;</span>
+    <span class="nt">&lt;servlet-name&gt;</span>my servlet<span class="nt">&lt;/servlet-name&gt;</span>
+    <span class="nt">&lt;url-pattern&gt;</span>/*<span class="nt">&lt;/url-pattern&gt;</span>
+  <span class="nt">&lt;/servlet-mapping&gt;</span>
+
+<span class="nt">&lt;/web-app&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-tips-and-tricks" class="anchor" href="#tips-and-tricks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tips and tricks</h2>
+
+<p>To disable publishing of the <em>.war</em> file, add the setting:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">packagedArtifacts</span> <span class="o">&lt;&lt;=</span> <span class="n">packagedArtifacts</span> <span class="n">map</span> <span class="o">{</span> <span class="n">as</span> <span class="k">=&gt;</span> <span class="n">as</span><span class="o">.</span><span class="n">filter</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">_1</span><span class="o">.</span><span class="n">`type`</span> <span class="o">!=</span> <span class="s">"war"</span><span class="o">)</span> <span class="o">}</span>
+</pre></div>
+
+<p>Note that <code>package</code> can still be used to create the <em>.war</em> file under the project <em>target/</em> directory.</p>
+
+<p>To disable publishing of the project's <em>.jar</em> file, add the setting:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">publishArtifact</span> <span class="n">in</span> <span class="o">(</span><span class="nc">Compile</span><span class="o">,</span> <span class="n">packageBin</span><span class="o">)</span> <span class="o">:=</span> <span class="kc">false</span>
+</pre></div>
+
+<h2>
+<a name="user-content-deployment" class="anchor" href="#deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment</h2>
+
+<h3>
+<a name="user-content-tomcat" class="anchor" href="#tomcat" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tomcat</h3>
+
+<p>On Ubuntu, install both <em>tomcat7</em> and <em>tomcat7-admin</em>:</p>
+
+<div class="highlight highlight-bash"><pre>sudo apt-get install tomcat7 tomcat7-admin
+</pre></div>
+
+<p>Create a Tomcat user with the role <strong>manager-script</strong> in <em>/etc/tomcat7/tomcat-users.xml</em>:</p>
+
+<div class="highlight highlight-xml"><pre><span class="nt">&lt;user</span> <span class="na">username=</span><span class="s">"manager"</span> <span class="na">password=</span><span class="s">"secret"</span> <span class="na">roles=</span><span class="s">"manager-script"</span> <span class="nt">/&gt;</span>
+</pre></div>
+
+<p>Restart tomcat:</p>
+
+<div class="highlight highlight-bash"><pre>sudo service tomcat7 restart
+</pre></div>
+
+<p>Now a WAR file can be deployed using the Manager <em>deploy</em> command:</p>
+
+<pre><code>curl --upload-file myapp.war "http://manager:secret@myhost:8080/manager/text/deploy?path=/myapp&amp;update=true"
+</code></pre>
+
+<p>The application will be available at <em>myhost:8080/myapp</em>.</p>
+
+<p>Learn more about Manager commands <a href="http://tomcat.apache.org/tomcat-7.0-doc/manager-howto.html">here</a>.</p>
+
+<h3>
+<a name="user-content-heroku" class="anchor" href="#heroku" aria-hidden="true"><span class="octicon octicon-link"></span></a>Heroku</h3>
+
+<ol class="task-list">
+<li><p>Install the <a href="https://toolbelt.heroku.com/">Heroku Toolbelt</a></p></li>
+<li><p>Install the <code>heroku-deploy</code> command line plugin:</p></li>
+</ol><div class="highlight highlight-bash"><pre>heroku plugins:install https://github.com/heroku/heroku-deploy
+</pre></div>
+
+<ol class="task-list">
+<li>Create a WAR file:</li>
+</ol><div class="highlight highlight-bash"><pre>sbt package
+</pre></div>
+
+<p>4 Deploy the WAR file:</p>
+
+<div class="highlight highlight-bash"><pre>heroku deploy:war --war &lt;path_to_war_file&gt; --app &lt;app_name&gt;
+</pre></div>
+
+<p>See <a href="https://devcenter.heroku.com/articles/war-deployment">devcenter.heroku.com</a> for more information.</p>
+
+<h3>
+<a name="user-content-google-app-engine" class="anchor" href="#google-app-engine" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google App Engine</h3>
+
+<p>See <a href="https://developers.google.com/appengine/docs/java/tools/uploadinganapp">developers.google.com</a> for more information.</p></article></div>

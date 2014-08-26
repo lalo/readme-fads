@@ -1,0 +1,306 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-bats-bash-automated-testing-system" class="anchor" href="#bats-bash-automated-testing-system" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bats: Bash Automated Testing System</h1>
+
+<p>Bats is a <a href="http://testanything.org">TAP</a>-compliant testing framework
+for Bash. It provides a simple way to verify that the UNIX programs
+you write behave as expected.</p>
+
+<p>A Bats test file is a Bash script with special syntax for defining
+test cases. Under the hood, each test case is just a function with a
+description.</p>
+
+<div class="highlight highlight-bash"><pre><span class="c">#!/usr/bin/env bats</span>
+
+@test <span class="s2">"addition using bc"</span> <span class="o">{</span>
+  <span class="nv">result</span><span class="o">=</span><span class="s2">"$(echo 2+2 | bc)"</span>
+  <span class="o">[</span> <span class="s2">"$result"</span> -eq <span class="m">4</span> <span class="o">]</span>
+<span class="o">}</span>
+
+@test <span class="s2">"addition using dc"</span> <span class="o">{</span>
+  <span class="nv">result</span><span class="o">=</span><span class="s2">"$(echo 2 2+p | dc)"</span>
+  <span class="o">[</span> <span class="s2">"$result"</span> -eq <span class="m">4</span> <span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Bats is most useful when testing software written in Bash, but you can
+use it to test any UNIX program.</p>
+
+<p>Test cases consist of standard shell commands. Bats makes use of
+Bash's <code>errexit</code> (<code>set -e</code>) option when running test cases. If every
+command in the test case exits with a <code>0</code> status code (success), the
+test passes. In this way, each line is an assertion of truth.</p>
+
+<h2>
+<a name="user-content-running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running tests</h2>
+
+<p>To run your tests, invoke the <code>bats</code> interpreter with a path to a test
+file. The file's test cases are run sequentially and in isolation. If
+all the test cases pass, <code>bats</code> exits with a <code>0</code> status code. If there
+are any failures, <code>bats</code> exits with a <code>1</code> status code.</p>
+
+<p>When you run Bats from a terminal, you'll see output as each test is
+performed, with a check-mark next to the test's name if it passes or
+an "X" if it fails.</p>
+
+<pre><code>$ bats addition.bats
+ ✓ addition using bc
+ ✓ addition using dc
+
+2 tests, 0 failures
+</code></pre>
+
+<p>If Bats is not connected to a terminal—in other words, if you
+run it from a continuous integration system, or redirect its output to
+a file—the results are displayed in human-readable, machine-parsable
+<a href="http://testanything.org">TAP format</a>.</p>
+
+<p>You can force TAP output from a terminal by invoking Bats with the
+<code>--tap</code> option.</p>
+
+<pre><code>$ bats --tap addition.bats
+1..2
+ok 1 addition using bc
+ok 2 addition using dc
+</code></pre>
+
+<h3>
+<a name="user-content-test-suites" class="anchor" href="#test-suites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test suites</h3>
+
+<p>You can invoke the <code>bats</code> interpreter with multiple test file
+arguments, or with a path to a directory containing multiple <code>.bats</code>
+files. Bats will run each test file individually and aggregate the
+results. If any test case fails, <code>bats</code> exits with a <code>1</code> status code.</p>
+
+<h2>
+<a name="user-content-writing-tests" class="anchor" href="#writing-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing tests</h2>
+
+<p>Each Bats test file is evaluated <em>n+1</em> times, where <em>n</em> is the number of
+test cases in the file. The first run counts the number of test cases,
+then iterates over the test cases and executes each one in its own
+process.</p>
+
+<p>For more details about how Bats evaluates test files, see 
+<a href="https://github.com/sstephenson/bats/wiki/Bats-Evaluation-Process">Bats Evaluation Process</a>
+on the wiki.</p>
+
+<h3>
+<a name="user-content-run-test-other-commands" class="anchor" href="#run-test-other-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>run</code>: Test other commands</h3>
+
+<p>Many Bats tests need to run a command and then make assertions about
+its exit status and output. Bats includes a <code>run</code> helper that invokes
+its arguments as a command, saves the exit status and output into
+special global variables, and then returns with a <code>0</code> status code so
+you can continue to make assertions in your test case.</p>
+
+<p>For example, let's say you're testing that the <code>foo</code> command, when
+passed a nonexistent filename, exits with a <code>1</code> status code and prints
+an error message.</p>
+
+<div class="highlight highlight-bash"><pre>@test <span class="s2">"invoking foo with a nonexistent file prints an error"</span> <span class="o">{</span>
+  run foo nonexistent_filename
+  <span class="o">[</span> <span class="s2">"$status"</span> -eq <span class="m">1</span> <span class="o">]</span>
+  <span class="o">[</span> <span class="s2">"$output"</span> <span class="o">=</span> <span class="s2">"foo: no such file 'nonexistent_filename'"</span> <span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>The <code>$status</code> variable contains the status code of the command, and
+the <code>$output</code> variable contains the combined contents of the command's
+standard output and standard error streams.</p>
+
+<p>A third special variable, the <code>$lines</code> array, is available for easily
+accessing individual lines of output. For example, if you want to test
+that invoking <code>foo</code> without any arguments prints usage information on
+the first line:</p>
+
+<div class="highlight highlight-bash"><pre>@test <span class="s2">"invoking foo without arguments prints usage"</span> <span class="o">{</span>
+  run foo
+  <span class="o">[</span> <span class="s2">"$status"</span> -eq <span class="m">1</span> <span class="o">]</span>
+  <span class="o">[</span> <span class="s2">"${lines[0]}"</span> <span class="o">=</span> <span class="s2">"usage: foo &lt;filename&gt;"</span> <span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-load-share-common-code" class="anchor" href="#load-share-common-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>load</code>: Share common code</h3>
+
+<p>You may want to share common code across multiple test files. Bats
+includes a convenient <code>load</code> command for sourcing a Bash source file
+relative to the location of the current test file. For example, if you
+have a Bats test in <code>test/foo.bats</code>, the command</p>
+
+<div class="highlight highlight-bash"><pre>load test_helper
+</pre></div>
+
+<p>will source the script <code>test/test_helper.bash</code> in your test file. This
+can be useful for sharing functions to set up your environment or load
+fixtures.</p>
+
+<h3>
+<a name="user-content-skip-easily-skip-tests" class="anchor" href="#skip-easily-skip-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>skip</code>: Easily skip tests</h3>
+
+<p>Tests can be skipped by using the <code>skip</code> command at the point in a
+test you wish to skip.</p>
+
+<div class="highlight highlight-bash"><pre>@test <span class="s2">"A test I don't want to execute for now"</span> <span class="o">{</span>
+  skip
+  run foo
+  <span class="o">[</span> <span class="s2">"$status"</span> -eq <span class="m">0</span> <span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Optionally, you may include a reason for skipping:</p>
+
+<div class="highlight highlight-bash"><pre>@test <span class="s2">"A test I don't want to execute for now"</span> <span class="o">{</span>
+  skip <span class="s2">"This command will return zero soon, but not now"</span>
+  run foo
+  <span class="o">[</span> <span class="s2">"$status"</span> -eq <span class="m">0</span> <span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Or you can skip conditionally:</p>
+
+<div class="highlight highlight-bash"><pre>@test <span class="s2">"A test which should run"</span> <span class="o">{</span>
+  <span class="k">if</span> <span class="o">[</span> foo !<span class="o">=</span> bar <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+    skip <span class="s2">"foo isn't bar"</span>
+  <span class="k">fi</span>
+
+  run foo
+  <span class="o">[</span> <span class="s2">"$status"</span> -eq <span class="m">0</span> <span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-setup-and-teardown-pre--and-post-test-hooks" class="anchor" href="#setup-and-teardown-pre--and-post-test-hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>setup</code> and <code>teardown</code>: Pre- and post-test hooks</h3>
+
+<p>You can define special <code>setup</code> and <code>teardown</code> functions, which run
+before and after each test case, respectively. Use these to load
+fixtures, set up your environment, and clean up when you're done.</p>
+
+<h3>
+<a name="user-content-code-outside-of-test-cases" class="anchor" href="#code-outside-of-test-cases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code outside of test cases</h3>
+
+<p>You can include code in your test file outside of <code>@test</code> functions.
+For example, this may be useful if you want to check for dependencies
+and fail immediately if they're not present. However, any output that
+you print in code outside of <code>@test</code>, <code>setup</code> or <code>teardown</code> functions
+must be redirected to <code>stderr</code> (<code>&gt;&amp;2</code>). Otherwise, the output may
+cause Bats to fail by polluting the TAP stream on <code>stdout</code>.</p>
+
+<h3>
+<a name="user-content-special-variables" class="anchor" href="#special-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Special variables</h3>
+
+<p>There are several global variables you can use to introspect on Bats
+tests:</p>
+
+<ul class="task-list">
+<li>
+<code>$BATS_TEST_FILENAME</code> is the fully expanded path to the Bats test
+file.</li>
+<li>
+<code>$BATS_TEST_DIRNAME</code> is the directory in which the Bats test file is
+located.</li>
+<li>
+<code>$BATS_TEST_NAMES</code> is an array of function names for each test case.</li>
+<li>
+<code>$BATS_TEST_NAME</code> is the name of the function containing the current
+test case.</li>
+<li>
+<code>$BATS_TEST_DESCRIPTION</code> is the description of the current test
+case.</li>
+<li>
+<code>$BATS_TEST_NUMBER</code> is the (1-based) index of the current test case
+in the test file.</li>
+<li>
+<code>$BATS_TMPDIR</code> is the location to a directory that may be used to
+store temporary files.</li>
+</ul><h2>
+<a name="user-content-installing-bats-from-source" class="anchor" href="#installing-bats-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing Bats from source</h2>
+
+<p>Check out a copy of the Bats repository. Then, either add the Bats
+<code>bin</code> directory to your <code>$PATH</code>, or run the provided <code>install.sh</code>
+command with the location to the prefix in which you want to install
+Bats. For example, to install Bats into <code>/usr/local</code>,</p>
+
+<pre><code>$ git clone https://github.com/sstephenson/bats.git
+$ cd bats
+$ ./install.sh /usr/local
+</code></pre>
+
+<p>Note that you may need to run <code>install.sh</code> with <code>sudo</code> if you do not
+have permission to write to the installation prefix.</p>
+
+<h2>
+<a name="user-content-support" class="anchor" href="#support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support</h2>
+
+<p>The Bats source code repository is <a href="https://github.com/sstephenson/bats">hosted on
+GitHub</a>. There you can file bugs
+on the issue tracker or submit tested pull requests for review.</p>
+
+<p>For real-world examples from open-source projects using Bats, see
+<a href="https://github.com/sstephenson/bats/wiki/Projects-Using-Bats">Projects Using Bats</a>
+on the wiki.</p>
+
+<p>To learn how to set up your editor for Bats syntax highlighting, see
+<a href="https://github.com/sstephenson/bats/wiki/Syntax-Highlighting">Syntax Highlighting</a>
+on the wiki.</p>
+
+<h2>
+<a name="user-content-version-history" class="anchor" href="#version-history" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version history</h2>
+
+<p><em>0.4.0</em> (August 13, 2014)</p>
+
+<ul class="task-list">
+<li>Improved the display of failing test cases. Bats now shows the
+source code of failing test lines, along with full stack traces
+including function names, filenames, and line numbers.</li>
+<li>Improved the display of the pretty-printed test summary line to
+include the number of skipped tests, if any.</li>
+<li>Improved the speed of the preprocessor, dramatically shortening test
+and suite startup times.</li>
+<li>Added support for absolute pathnames to the <code>load</code> helper.</li>
+<li>Added support for single-line <code>@test</code> definitions.</li>
+<li>Added bats(1) and bats(7) manual pages.</li>
+<li>Modified the <code>bats</code> command to default to TAP output when the <code>$CI</code>
+variable is set, to better support environments such as Travis CI.</li>
+</ul><p><em>0.3.1</em> (October 28, 2013)</p>
+
+<ul class="task-list">
+<li>Fixed an incompatibility with the pretty formatter in certain
+environments such as tmux.</li>
+<li>Fixed a bug where the pretty formatter would crash if the first line
+of a test file's output was invalid TAP.</li>
+</ul><p><em>0.3.0</em> (October 21, 2013)</p>
+
+<ul class="task-list">
+<li>Improved formatting for tests run from a terminal. Failing tests
+are now colored in red, and the total number of failing tests is
+displayed at the end of the test run. When Bats is not connected to
+a terminal (e.g. in CI runs), or when invoked with the <code>--tap</code> flag,
+output is displayed in standard TAP format.</li>
+<li>Added the ability to skip tests using the <code>skip</code> command.</li>
+<li>Added a message to failing test case output indicating the file and
+line number of the statement that caused the test to fail.</li>
+<li>Added "ad-hoc" test suite support. You can now invoke <code>bats</code> with
+multiple filename or directory arguments to run all the specified
+tests in aggregate.</li>
+<li>Added support for test files with Windows line endings.</li>
+<li>Fixed regular expression warnings from certain versions of Bash.</li>
+<li>Fixed a bug running tests containing lines that begin with <code>-e</code>.</li>
+</ul><p><em>0.2.0</em> (November 16, 2012)</p>
+
+<ul class="task-list">
+<li>Added test suite support. The <code>bats</code> command accepts a directory
+name containing multiple test files to be run in aggregate.</li>
+<li>Added the ability to count the number of test cases in a file or
+suite by passing the <code>-c</code> flag to <code>bats</code>.</li>
+<li>Preprocessed sources are cached between test case runs in the same
+file for better performance.</li>
+</ul><p><em>0.1.0</em> (December 30, 2011)</p>
+
+<ul class="task-list">
+<li>Initial public release.</li>
+</ul><hr><p>© 2014 Sam Stephenson. Bats is released under an MIT-style license;
+see <code>LICENSE</code> for details.</p></article></div>

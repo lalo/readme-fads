@@ -1,0 +1,335 @@
+<div class="announce instapaper_body mdown" data-path="README.mdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-monolog---logging-for-php-53-" class="anchor" href="#monolog---logging-for-php-53-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Monolog - Logging for PHP 5.3+ <a href="http://travis-ci.org/Seldaek/monolog"><img src="https://camo.githubusercontent.com/811c2baa299e13eb7b05c7d26db0a54d7b8845ba/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f53656c6461656b2f6d6f6e6f6c6f672e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/Seldaek/monolog.png" style="max-width:100%;"></a>
+</h1>
+
+<p><a href="https://packagist.org/packages/monolog/monolog"><img src="https://camo.githubusercontent.com/fd4bae6abf1f337781f728e2791cc4728c96d050/68747470733a2f2f706f7365722e707567782e6f72672f6d6f6e6f6c6f672f6d6f6e6f6c6f672f646f776e6c6f6164732e706e67" alt="Total Downloads" data-canonical-src="https://poser.pugx.org/monolog/monolog/downloads.png" style="max-width:100%;"></a>
+<a href="https://packagist.org/packages/monolog/monolog"><img src="https://camo.githubusercontent.com/82135c8cebecd07673aafda5057572e0d9a7098e/68747470733a2f2f706f7365722e707567782e6f72672f6d6f6e6f6c6f672f6d6f6e6f6c6f672f762f737461626c652e706e67" alt="Latest Stable Version" data-canonical-src="https://poser.pugx.org/monolog/monolog/v/stable.png" style="max-width:100%;"></a>
+<a href="https://www.versioneye.com/php/monolog:monolog/references"><img src="https://camo.githubusercontent.com/38d3769a1b030ddf0fd39b6858485f9d4848b3ab/68747470733a2f2f7777772e76657273696f6e6579652e636f6d2f7068702f6d6f6e6f6c6f673a6d6f6e6f6c6f672f7265666572656e63655f62616467652e737667" alt="Reference Status" data-canonical-src="https://www.versioneye.com/php/monolog:monolog/reference_badge.svg" style="max-width:100%;"></a></p>
+
+<p>Monolog sends your logs to files, sockets, inboxes, databases and various
+web services. See the complete list of handlers below. Special handlers
+allow you to build advanced logging strategies.</p>
+
+<p>This library implements the <a href="https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md">PSR-3</a>
+interface that you can type-hint against in your own libraries to keep
+a maximum of interoperability. You can also use it in your applications to
+make sure you can always use another compatible logger at a later time.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="k">use</span> <span class="nx">Monolog\Logger</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Monolog\Handler\StreamHandler</span><span class="p">;</span>
+
+<span class="c1">// create a log channel</span>
+<span class="nv">$log</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Logger</span><span class="p">(</span><span class="s1">'name'</span><span class="p">);</span>
+<span class="nv">$log</span><span class="o">-&gt;</span><span class="na">pushHandler</span><span class="p">(</span><span class="k">new</span> <span class="nx">StreamHandler</span><span class="p">(</span><span class="s1">'path/to/your.log'</span><span class="p">,</span> <span class="nx">Logger</span><span class="o">::</span><span class="na">WARNING</span><span class="p">));</span>
+
+<span class="c1">// add records to the log</span>
+<span class="nv">$log</span><span class="o">-&gt;</span><span class="na">addWarning</span><span class="p">(</span><span class="s1">'Foo'</span><span class="p">);</span>
+<span class="nv">$log</span><span class="o">-&gt;</span><span class="na">addError</span><span class="p">(</span><span class="s1">'Bar'</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-core-concepts" class="anchor" href="#core-concepts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Core Concepts</h2>
+
+<p>Every <code>Logger</code> instance has a channel (name) and a stack of handlers. Whenever
+you add a record to the logger, it traverses the handler stack. Each handler
+decides whether it handled fully the record, and if so, the propagation of the
+record ends there.</p>
+
+<p>This allows for flexible logging setups, for example having a <code>StreamHandler</code> at
+the bottom of the stack that will log anything to disk, and on top of that add
+a <code>MailHandler</code> that will send emails only when an error message is logged.
+Handlers also have a <code>$bubble</code> property which defines whether they block the
+record or not if they handled it. In this example, setting the <code>MailHandler</code>'s
+<code>$bubble</code> argument to false means that records handled by the <code>MailHandler</code> will
+not propagate to the <code>StreamHandler</code> anymore.</p>
+
+<p>You can create many <code>Logger</code>s, each defining a channel (e.g.: db, request,
+router, ..) and each of them combining various handlers, which can be shared
+or not. The channel is reflected in the logs and allows you to easily see or
+filter records.</p>
+
+<p>Each Handler also has a Formatter, a default one with settings that make sense
+will be created if you don't set one. The formatters normalize and format
+incoming records so that they can be used by the handlers to output useful
+information.</p>
+
+<p>Custom severity levels are not available. Only the eight
+<a href="http://tools.ietf.org/html/rfc5424">RFC 5424</a> levels (debug, info, notice,
+warning, error, critical, alert, emergency) are present for basic filtering
+purposes, but for sorting and other use cases that would require
+flexibility, you should add Processors to the Logger that can add extra
+information (tags, user ip, ..) to the records before they are handled.</p>
+
+<h2>
+<a name="user-content-log-levels" class="anchor" href="#log-levels" aria-hidden="true"><span class="octicon octicon-link"></span></a>Log Levels</h2>
+
+<p>Monolog supports the logging levels described by <a href="http://tools.ietf.org/html/rfc5424">RFC 5424</a>.</p>
+
+<ul>
+<li><p><strong>DEBUG</strong> (100): Detailed debug information.</p></li>
+<li><p><strong>INFO</strong> (200): Interesting events. Examples: User logs in, SQL logs.</p></li>
+<li><p><strong>NOTICE</strong> (250): Normal but significant events.</p></li>
+<li><p><strong>WARNING</strong> (300): Exceptional occurrences that are not errors. Examples:
+Use of deprecated APIs, poor use of an API, undesirable things that are not
+necessarily wrong.</p></li>
+<li><p><strong>ERROR</strong> (400): Runtime errors that do not require immediate action but
+should typically be logged and monitored.</p></li>
+<li><p><strong>CRITICAL</strong> (500): Critical conditions. Example: Application component
+unavailable, unexpected exception.</p></li>
+<li><p><strong>ALERT</strong> (550): Action must be taken immediately. Example: Entire website
+down, database unavailable, etc. This should trigger the SMS alerts and wake
+you up.</p></li>
+<li><p><strong>EMERGENCY</strong> (600): Emergency: system is unusable.</p></li>
+</ul><h1>
+<a name="user-content-docs" class="anchor" href="#docs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Docs</h1>
+
+<p><strong>See the <code>doc</code> directory for more detailed documentation.
+The following is only a list of all parts that come with Monolog.</strong></p>
+
+<h2>
+<a name="user-content-handlers" class="anchor" href="#handlers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handlers</h2>
+
+<h3>
+<a name="user-content-log-to-files-and-syslog" class="anchor" href="#log-to-files-and-syslog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Log to files and syslog</h3>
+
+<ul>
+<li>
+<em>StreamHandler</em>: Logs records into any PHP stream, use this for log files.</li>
+<li>
+<em>RotatingFileHandler</em>: Logs records to a file and creates one logfile per day.
+It will also delete files older than <code>$maxFiles</code>. You should use
+<a href="http://linuxcommand.org/man_pages/logrotate8.html">logrotate</a> for high profile
+setups though, this is just meant as a quick and dirty solution.</li>
+<li>
+<em>SyslogHandler</em>: Logs records to the syslog.</li>
+<li>
+<em>ErrorLogHandler</em>: Logs records to PHP's
+<a href="http://docs.php.net/manual/en/function.error-log.php"><code>error_log()</code></a> function.</li>
+</ul><h3>
+<a name="user-content-send-alerts-and-emails" class="anchor" href="#send-alerts-and-emails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Send alerts and emails</h3>
+
+<ul>
+<li>
+<em>NativeMailerHandler</em>: Sends emails using PHP's
+<a href="http://php.net/manual/en/function.mail.php"><code>mail()</code></a> function.</li>
+<li>
+<em>SwiftMailerHandler</em>: Sends emails using a <a href="http://swiftmailer.org/"><code>Swift_Mailer</code></a> instance.</li>
+<li>
+<em>PushoverHandler</em>: Sends mobile notifications via the <a href="https://www.pushover.net/">Pushover</a> API.</li>
+<li>
+<em>HipChatHandler</em>: Logs records to a <a href="http://hipchat.com">HipChat</a> chat room using its API.</li>
+<li>
+<em>FlowdockHandler</em>: Logs records to a <a href="https://www.flowdock.com/">Flowdock</a> account.</li>
+<li>
+<em>SlackHandler</em>: Logs records to a <a href="https://www.slack.com/">Slack</a> account.</li>
+</ul><h3>
+<a name="user-content-log-specific-servers-and-networked-logging" class="anchor" href="#log-specific-servers-and-networked-logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Log specific servers and networked logging</h3>
+
+<ul>
+<li>
+<em>SocketHandler</em>: Logs records to <a href="http://php.net/fsockopen">sockets</a>, use this
+for UNIX and TCP sockets. See an <a href="https://github.com/Seldaek/monolog/blob/master/doc/sockets.md">example</a>.</li>
+<li>
+<em>AmqpHandler</em>: Logs records to an <a href="http://www.amqp.org/">amqp</a> compatible
+server. Requires the <a href="http://pecl.php.net/package/amqp">php-amqp</a> extension (1.0+).</li>
+<li>
+<em>GelfHandler</em>: Logs records to a <a href="http://www.graylog2.org">Graylog2</a> server.</li>
+<li>
+<em>CubeHandler</em>: Logs records to a <a href="http://square.github.com/cube/">Cube</a> server.</li>
+<li>
+<em>RavenHandler</em>: Logs records to a <a href="http://getsentry.com/">Sentry</a> server using
+<a href="https://packagist.org/packages/raven/raven">raven</a>.</li>
+<li>
+<em>ZendMonitorHandler</em>: Logs records to the Zend Monitor present in Zend Server.</li>
+<li>
+<em>NewRelicHandler</em>: Logs records to a <a href="http://newrelic.com/">NewRelic</a> application.</li>
+<li>
+<em>LogglyHandler</em>: Logs records to a <a href="http://www.loggly.com/">Loggly</a> account.</li>
+<li>
+<em>RollbarHandler</em>: Logs records to a <a href="https://rollbar.com/">Rollbar</a> account.</li>
+<li>
+<em>SyslogUdpHandler</em>: Logs records to a remote <a href="http://www.rsyslog.com/">Syslogd</a> server.</li>
+<li>
+<em>LogEntriesHandler</em>: Logs records to a <a href="http://logentries.com/">LogEntries</a> account.</li>
+</ul><h3>
+<a name="user-content-logging-in-development" class="anchor" href="#logging-in-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging in development</h3>
+
+<ul>
+<li>
+<em>FirePHPHandler</em>: Handler for <a href="http://www.firephp.org/">FirePHP</a>, providing
+inline <code>console</code> messages within <a href="http://getfirebug.com/">FireBug</a>.</li>
+<li>
+<em>ChromePHPHandler</em>: Handler for <a href="http://www.chromephp.com/">ChromePHP</a>, providing
+inline <code>console</code> messages within Chrome.</li>
+<li>
+<em>BrowserConsoleHandler</em>: Handler to send logs to browser's Javascript <code>console</code> with
+no browser extension required. Most browsers supporting <code>console</code> API are supported.</li>
+</ul><h3>
+<a name="user-content-log-to-databases" class="anchor" href="#log-to-databases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Log to databases</h3>
+
+<ul>
+<li>
+<em>RedisHandler</em>: Logs records to a <a href="http://redis.io">redis</a> server.</li>
+<li>
+<em>MongoDBHandler</em>: Handler to write records in MongoDB via a
+<a href="http://pecl.php.net/package/mongo">Mongo</a> extension connection.</li>
+<li>
+<em>CouchDBHandler</em>: Logs records to a CouchDB server.</li>
+<li>
+<em>DoctrineCouchDBHandler</em>: Logs records to a CouchDB server via the Doctrine CouchDB ODM.</li>
+<li>
+<em>ElasticSearchHandler</em>: Logs records to an Elastic Search server.</li>
+<li>
+<em>DynamoDbHandler</em>: Logs records to a DynamoDB table with the <a href="https://github.com/aws/aws-sdk-php">AWS SDK</a>.</li>
+</ul><h3>
+<a name="user-content-wrappers--special-handlers" class="anchor" href="#wrappers--special-handlers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wrappers / Special Handlers</h3>
+
+<ul>
+<li>
+<em>FingersCrossedHandler</em>: A very interesting wrapper. It takes a logger as
+parameter and will accumulate log records of all levels until a record
+exceeds the defined severity level. At which point it delivers all records,
+including those of lower severity, to the handler it wraps. This means that
+until an error actually happens you will not see anything in your logs, but
+when it happens you will have the full information, including debug and info
+records. This provides you with all the information you need, but only when
+you need it.</li>
+<li>
+<em>NullHandler</em>: Any record it can handle will be thrown away. This can be used
+to put on top of an existing handler stack to disable it temporarily.</li>
+<li>
+<em>BufferHandler</em>: This handler will buffer all the log records it receives
+until <code>close()</code> is called at which point it will call <code>handleBatch()</code> on the
+handler it wraps with all the log messages at once. This is very useful to
+send an email with all records at once for example instead of having one mail
+for every log record.</li>
+<li>
+<em>GroupHandler</em>: This handler groups other handlers. Every record received is
+sent to all the handlers it is configured with.</li>
+<li>
+<em>FilterHandler</em>: This handler only lets records of the given levels through
+to the wrapped handler.</li>
+<li>
+<em>TestHandler</em>: Used for testing, it records everything that is sent to it and
+has accessors to read out the information.</li>
+</ul><h2>
+<a name="user-content-formatters" class="anchor" href="#formatters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Formatters</h2>
+
+<ul>
+<li>
+<em>LineFormatter</em>: Formats a log record into a one-line string.</li>
+<li>
+<em>HtmlFormatter</em>: Used to format log records into a human readable html table, mainly suitable for emails.</li>
+<li>
+<em>NormalizerFormatter</em>: Normalizes objects/resources down to strings so a record can easily be serialized/encoded.</li>
+<li>
+<em>ScalarFormatter</em>: Used to format log records into an associative array of scalar values.</li>
+<li>
+<em>JsonFormatter</em>: Encodes a log record into json.</li>
+<li>
+<em>WildfireFormatter</em>: Used to format log records into the Wildfire/FirePHP protocol, only useful for the FirePHPHandler.</li>
+<li>
+<em>ChromePHPFormatter</em>: Used to format log records into the ChromePHP format, only useful for the ChromePHPHandler.</li>
+<li>
+<em>GelfMessageFormatter</em>: Used to format log records into Gelf message instances, only useful for the GelfHandler.</li>
+<li>
+<em>LogstashFormatter</em>: Used to format log records into <a href="http://logstash.net/">logstash</a> event json, useful for any handler listed under inputs <a href="http://logstash.net/docs/1.1.5/">here</a>.</li>
+<li>
+<em>ElasticaFormatter</em>: Used to format log records into an Elastica\Document object, only useful for the ElasticSearchHandler.</li>
+<li>
+<em>LogglyFormatter</em>: Used to format log records into Loggly messages, only useful for the LogglyHandler.</li>
+<li>
+<em>FlowdockFormatter</em>: Used to format log records into Flowdock messages, only useful for the FlowdockHandler.</li>
+</ul><h2>
+<a name="user-content-processors" class="anchor" href="#processors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Processors</h2>
+
+<ul>
+<li>
+<em>IntrospectionProcessor</em>: Adds the line/file/class/method from which the log call originated.</li>
+<li>
+<em>WebProcessor</em>: Adds the current request URI, request method and client IP to a log record.</li>
+<li>
+<em>MemoryUsageProcessor</em>: Adds the current memory usage to a log record.</li>
+<li>
+<em>MemoryPeakUsageProcessor</em>: Adds the peak memory usage to a log record.</li>
+<li>
+<em>ProcessIdProcessor</em>: Adds the process id to a log record.</li>
+<li>
+<em>UidProcessor</em>: Adds a unique identifier to a log record.</li>
+<li>
+<em>GitProcessor</em>: Adds the current git branch and commit to a log record.</li>
+<li>
+<em>TagProcessor</em>: Adds an array of predefined tags to a log record.</li>
+</ul><h2>
+<a name="user-content-utilities" class="anchor" href="#utilities" aria-hidden="true"><span class="octicon octicon-link"></span></a>Utilities</h2>
+
+<ul>
+<li>
+<em>Registry</em>: The <code>Monolog\Registry</code> class lets you configure global loggers that you
+can then statically access from anywhere. It is not really a best practice but can
+help in some older codebases or for ease of use.</li>
+<li>
+<em>ErrorHandler</em>: The <code>Monolog\ErrorHandler</code> class allows you to easily register
+a Logger instance as an exception handler, error handler or fatal error handler.</li>
+<li>
+<em>ErrorLevelActivationStrategy</em>: Activates a FingersCrossedHandler when a certain log
+level is reached.</li>
+<li>
+<em>ChannelLevelActivationStrategy</em>: Activates a FingersCrossedHandler when a certain
+log level is reached, depending on which channel received the log record.</li>
+</ul><h1>
+<a name="user-content-about" class="anchor" href="#about" aria-hidden="true"><span class="octicon octicon-link"></span></a>About</h1>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul>
+<li>Monolog works with PHP 5.3 or above, and is also tested to work with HHVM.</li>
+</ul><h2>
+<a name="user-content-submitting-bugs-and-feature-requests" class="anchor" href="#submitting-bugs-and-feature-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Submitting bugs and feature requests</h2>
+
+<p>Bugs and feature request are tracked on <a href="https://github.com/Seldaek/monolog/issues">GitHub</a></p>
+
+<h2>
+<a name="user-content-frameworks-integration" class="anchor" href="#frameworks-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Frameworks Integration</h2>
+
+<ul>
+<li>Frameworks and libraries using <a href="https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md">PSR-3</a>
+can be used very easily with Monolog since it implements the interface.</li>
+<li>
+<a href="http://symfony.com">Symfony2</a> comes out of the box with Monolog.</li>
+<li>
+<a href="http://silex.sensiolabs.org/">Silex</a> comes out of the box with Monolog.</li>
+<li>
+<a href="http://laravel.com/">Laravel 4</a> comes out of the box with Monolog.</li>
+<li>
+<a href="http://www.ppi.io/">PPI</a> comes out of the box with Monolog.</li>
+<li>
+<a href="http://cakephp.org/">CakePHP</a> is usable with Monolog via the <a href="https://github.com/jadb/cakephp-monolog">cakephp-monolog</a> plugin.</li>
+<li>
+<a href="http://www.slimframework.com/">Slim</a> is usable with Monolog via the <a href="https://github.com/Flynsarmy/Slim-Monolog">Slim-Monolog</a> log writer.</li>
+<li>
+<a href="http://xoops.org/">XOOPS 2.6</a> comes out of the box with Monolog.</li>
+<li>
+<a href="https://github.com/auraphp/Aura.Web_Project">Aura.Web_Project</a> comes out of the box with Monolog.</li>
+</ul><h2>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h2>
+
+<p>Jordi Boggiano - <a href="mailto:j.boggiano@seld.be">j.boggiano@seld.be</a> - <a href="http://twitter.com/seldaek">http://twitter.com/seldaek</a><br>
+See also the list of <a href="https://github.com/Seldaek/monolog/contributors">contributors</a> which participated in this project.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Monolog is licensed under the MIT License - see the <code>LICENSE</code> file for details</p>
+
+<h2>
+<a name="user-content-acknowledgements" class="anchor" href="#acknowledgements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Acknowledgements</h2>
+
+<p>This library is heavily inspired by Python's <a href="http://packages.python.org/Logbook/">Logbook</a>
+library, although most concepts have been adjusted to fit to the PHP world.</p></article></div>

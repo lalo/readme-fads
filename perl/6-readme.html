@@ -1,0 +1,174 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-a-virtual-machine-for-ruby-on-rails-core-development" class="anchor" href="#a-virtual-machine-for-ruby-on-rails-core-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Virtual Machine for Ruby on Rails Core Development</h1>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>This project automates the setup of a development environment for working on Ruby on Rails itself. Use this virtual machine to work on a pull request with everything ready to hack and run the test suites.</p>
+
+<p><strong>Please note this virtual machine is not designed to be used for Rails application development.</strong></p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li><p><a href="https://www.virtualbox.org">VirtualBox</a> or <a href="http://www.vmware.com/products/fusion">VMWare Fusion</a> or <a href="http://www.parallels.com/products/desktop/">Parallels Desktop</a>(need Vagrant 1.5+, see <a href="http://parallels.github.io/vagrant-parallels/docs/installation/index.html">vagrant-parallels</a>)</p></li>
+<li><p><a href="http://vagrantup.com">Vagrant 1.1+</a> (not a Ruby gem)</p></li>
+</ul><h2>
+<a name="user-content-how-to-build-the-virtual-machine" class="anchor" href="#how-to-build-the-virtual-machine" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Build The Virtual Machine</h2>
+
+<p>Building the virtual machine is this easy:</p>
+
+<pre><code>host $ git clone https://github.com/rails/rails-dev-box.git
+host $ cd rails-dev-box
+host $ vagrant up
+</code></pre>
+
+<p>That's it.</p>
+
+<p>(If you want to use VMWare Fusion instead of VirtualBox, write <code>vagrant up --provider=vmware_fusion</code> instead of <code>vagrant up</code> when building the VM for the first time. After that, Vagrant will remember your provider choice, and you won't need to include the <code>provider</code> flag again.)</p>
+
+<p>(If you want to use Parallels Desktop instead of VirtualBox, you need Vagrant 1.5+, and write <code>vagrant up --provider=parallels</code> instead of <code>vagrant up</code> when building the VM for the first time. After that, Vagrant will remember your provider choice, and you won't need to include the <code>provider</code> flag again.)</p>
+
+<p>If the base box is not present that command fetches it first. The setup itself takes about 3 minutes in my MacBook Air. After the installation has finished, you can access the virtual machine with</p>
+
+<pre><code>host $ vagrant ssh
+Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.2.0-23-generic-pae i686)
+...
+vagrant@rails-dev-box:~$
+</code></pre>
+
+<p>Port 3000 in the host computer is forwarded to port 3000 in the virtual machine. Thus, applications running in the virtual machine can be accessed via localhost:3000 in the host computer.</p>
+
+<h2>
+<a name="user-content-whats-in-the-box" class="anchor" href="#whats-in-the-box" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's In The Box</h2>
+
+<ul class="task-list">
+<li><p>Git</p></li>
+<li><p>RVM</p></li>
+<li><p>Ruby 2.1.1 (binary RVM install)</p></li>
+<li><p>Bundler</p></li>
+<li><p>SQLite3, MySQL, and Postgres</p></li>
+<li><p>System dependencies for nokogiri, sqlite3, mysql, mysql2, and pg</p></li>
+<li><p>Databases and users needed to run the Active Record test suite</p></li>
+<li><p>Node.js for the asset pipeline</p></li>
+<li><p>Memcached</p></li>
+</ul><h2>
+<a name="user-content-recommended-workflow" class="anchor" href="#recommended-workflow" aria-hidden="true"><span class="octicon octicon-link"></span></a>Recommended Workflow</h2>
+
+<p>The recommended workflow is</p>
+
+<ul class="task-list">
+<li><p>edit in the host computer and</p></li>
+<li><p>test within the virtual machine.</p></li>
+</ul><p>Just clone your Rails fork into the rails-dev-box directory on the host computer:</p>
+
+<pre><code>host $ ls
+README.md   Vagrantfile puppet
+host $ git clone git@github.com:&lt;your username&gt;/rails.git
+</code></pre>
+
+<p>Vagrant mounts that directory as <em>/vagrant</em> within the virtual machine:</p>
+
+<pre><code>vagrant@rails-dev-box:~$ ls /vagrant
+puppet  rails  README.md  Vagrantfile
+</code></pre>
+
+<p>Install gem dependencies in there:</p>
+
+<pre><code>vagrant@rails-dev-box:~$ cd /vagrant/rails
+vagrant@rails-dev-box:/vagrant/rails$ bundle
+</code></pre>
+
+<p>We are ready to go to edit in the host, and test in the virtual machine.</p>
+
+<p>This workflow is convenient because in the host computer you normally have your editor of choice fine-tuned, Git configured, and SSH keys in place.</p>
+
+<h2>
+<a name="user-content-virtual-machine-management" class="anchor" href="#virtual-machine-management" aria-hidden="true"><span class="octicon octicon-link"></span></a>Virtual Machine Management</h2>
+
+<p>When done just log out with <code>^D</code> and suspend the virtual machine</p>
+
+<pre><code>host $ vagrant suspend
+</code></pre>
+
+<p>then, resume to hack again</p>
+
+<pre><code>host $ vagrant resume
+</code></pre>
+
+<p>Run</p>
+
+<pre><code>host $ vagrant halt
+</code></pre>
+
+<p>to shutdown the virtual machine, and</p>
+
+<pre><code>host $ vagrant up
+</code></pre>
+
+<p>to boot it again.</p>
+
+<p>You can find out the state of a virtual machine anytime by invoking</p>
+
+<pre><code>host $ vagrant status
+</code></pre>
+
+<p>Finally, to completely wipe the virtual machine from the disk <strong>destroying all its contents</strong>:</p>
+
+<pre><code>host $ vagrant destroy # DANGER: all is gone
+</code></pre>
+
+<p>Please check the <a href="http://docs.vagrantup.com/v2/">Vagrant documentation</a> for more information on Vagrant.</p>
+
+<h2>
+<a name="user-content-faster-rails-test-suites" class="anchor" href="#faster-rails-test-suites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Faster Rails test suites</h2>
+
+<p>The default mechanism for sharing folders is convenient and works out the box in
+all Vagrant versions, but there are a couple of alternatives that are more
+performant.</p>
+
+<h3>
+<a name="user-content-rsync" class="anchor" href="#rsync" aria-hidden="true"><span class="octicon octicon-link"></span></a>rsync</h3>
+
+<p>Vagrant 1.5 implements a <a href="https://www.vagrantup.com/blog/feature-preview-vagrant-1-5-rsync.html">sharing mechanism based on rsync</a>
+that dramatically improves read/write because files are actually stored in the
+guest. Just throw</p>
+
+<pre><code>config.vm.synced_folder '.', '/vagrant', type: 'rsync'
+</code></pre>
+
+<p>to the <em>Vagrantfile</em> and either rsync manually with</p>
+
+<pre><code>vagrant rsync
+</code></pre>
+
+<p>or run</p>
+
+<pre><code>vagrant rsync-auto
+</code></pre>
+
+<p>for automatic syncs. See the post linked above for details.</p>
+
+<h3>
+<a name="user-content-nfs" class="anchor" href="#nfs" aria-hidden="true"><span class="octicon octicon-link"></span></a>NFS</h3>
+
+<p>If you're using Mac OS X or Linux you can increase the speed of Rails test suites with Vagrant's NFS synced folders.</p>
+
+<p>With a NFS server installed (already installed on Mac OS X), add the following to the Vagrantfile:</p>
+
+<pre><code>config.vm.synced_folder '.', '/vagrant', type: 'nfs'
+config.vm.network 'private_network', ip: '192.168.50.4' # ensure this is available
+</code></pre>
+
+<p>Then</p>
+
+<pre><code>host $ vagrant up
+</code></pre>
+
+<p>Please check the Vagrant documentation on <a href="http://docs.vagrantup.com/v2/synced-folders/nfs.html">NFS synced folders</a> for more information.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Released under the MIT License, Copyright (c) 2012–<i>ω</i> Xavier Noria.</p></article></div>

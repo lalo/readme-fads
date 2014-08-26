@@ -1,0 +1,324 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-elasticmq" class="anchor" href="#elasticmq" aria-hidden="true"><span class="octicon octicon-link"></span></a>ElasticMQ</h1>
+
+<h2>
+<a name="user-content-tldr" class="anchor" href="#tldr" aria-hidden="true"><span class="octicon octicon-link"></span></a>tl;dr</h2>
+
+<ul class="task-list">
+<li>message queue system</li>
+<li>runs stand-alone (<a href="https://s3-eu-west-1.amazonaws.com/softwaremill-public/elasticmq-server-0.8.2.jar">download</a>) or embedded</li>
+<li>
+<a href="http://aws.amazon.com/sqs/">Amazon SQS</a>-compatible interface</li>
+<li>fully asynchronous implementation, no blocking calls</li>
+</ul><h2>
+<a name="user-content-summary" class="anchor" href="#summary" aria-hidden="true"><span class="octicon octicon-link"></span></a>Summary</h2>
+
+<p>ElasticMQ is a message queue system, offering an actor-based Scala and an <a href="http://aws.amazon.com/sqs/">SQS</a>-compatible
+REST (query) interface.</p>
+
+<p>ElasticMQ follows the semantics of SQS. Messages are received by polling the queue.
+When a message is received, it is blocked for a specified amount of time (the visibility timeout).
+If the message isn't deleted during that time, it will be again available for delivery.
+Moreover, queues and messages can be configured to always deliver messages with a delay.</p>
+
+<p>The focus in SQS (and ElasticMQ) is to make sure that the messages are delivered.
+It may happen, however, that a message is delivered twice (if, for example, a client dies after receiving a message and
+processing it, but before deleting). That's why clients of ElasticMQ (and Amazon SQS) should be idempotent.</p>
+
+<p>As ElasticMQ implements a subset of the <a href="http://aws.amazon.com/sqs/">SQS</a> query (REST) interface, it is a great SQS
+alternative both for testing purposes (ElasticMQ is easily embeddable) and for creating systems which work both within
+and outside of the Amazon infrastructure.</p>
+
+<p>The future will most probably bring even more exciting features :).</p>
+
+<h2>
+<a name="user-content-community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h2>
+
+<ul class="task-list">
+<li><a href="http://www.warski.org/blog/category/elasticmq/">Blog</a></li>
+<li>Forum (discussions, help): <a href="https://groups.google.com/forum/?fromgroups#!forum/elasticmq">Google group</a>.</li>
+</ul><h2>
+<a name="user-content-installation-stand-alone" class="anchor" href="#installation-stand-alone" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation: stand-alone</h2>
+
+<p>You can download the stand-alone distribution here:
+<a href="https://s3-eu-west-1.amazonaws.com/softwaremill-public/elasticmq-server-0.8.2.jar">https://s3/.../elasticmq-server-0.8.2.jar</a></p>
+
+<p>Java 6 or above is required for running the server.</p>
+
+<p>Simply run the jar and you should get a working server, which binds to <code>localhost:9324</code>:</p>
+
+<pre><code>java -jar elasticmq-server-0.8.2.jar
+</code></pre>
+
+<p>ElasticMQ uses <a href="https://github.com/typesafehub/config">Typesafe Config</a> for configuration. To specify custom
+configuration values, create a file (e.g. <code>custom.conf</code>), fill it in with the desired values, and pass it to the server:</p>
+
+<pre><code>java -Dconfig.file=custom.conf -jar elasticmq-server-0.8.2.jar
+</code></pre>
+
+<p>The config file may contain any configuration for Akka, Spray and ElasticMQ. Current ElasticMQ configuration values are:</p>
+
+<pre><code>include classpath("application.conf")
+
+// What is the outside visible address of this ElasticMQ node (used by rest-sqs)
+node-address {
+    protocol = http
+    host = localhost
+    port = 9324
+    context-path = ""
+}
+
+rest-sqs {
+    enabled = true
+    bind-port = 9324
+    bind-hostname = "0.0.0.0"
+    // Possible values: relaxed, strict
+    sqs-limits = relaxed
+}
+</code></pre>
+
+<p>By default the maximum SQS message wait time is 20 seconds, and the maximum duration of a request is set to 21 seconds.
+To change that (e.g. if you want longer message wait times), adjust the <code>spray.can.server.request-timeout</code> configuration
+property.</p>
+
+<p>You can also provide an alternative <a href="http://logback.qos.ch/">Logback</a> configuration file (the default is configured to
+log INFO logs and above to the console):</p>
+
+<pre><code>java -Dlogback.configurationFile=my_logback.xml -jar elasticmq-server-0.8.2.jar
+</code></pre>
+
+<h2>
+<a name="user-content-starting-an-embedded-elasticmq-server-with-an-sqs-interface" class="anchor" href="#starting-an-embedded-elasticmq-server-with-an-sqs-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Starting an embedded ElasticMQ server with an SQS interface</h2>
+
+<pre><code>val server = SQSRestServerBuilder.start()
+// ... use ...
+server.stopAndWait()
+</code></pre>
+
+<p>If you need to bind to a different host/port, there are configuration methods on the builder:</p>
+
+<pre><code>val server = SQSRestServerBuilder.withPort(9325).withInterface("localhost").start()
+// ... use ...
+server.stopAndWait()
+</code></pre>
+
+<p>You can also provide a custom <code>ActorSystem</code>; for details see the javadocs.</p>
+
+<p>Embedded ElasticMQ can be used from any JVM-based language (Java, Scala, etc.).</p>
+
+<h2>
+<a name="user-content-using-the-amazon-java-sdk-to-access-an-elasticmq-server" class="anchor" href="#using-the-amazon-java-sdk-to-access-an-elasticmq-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the Amazon Java SDK to access an ElasticMQ Server</h2>
+
+<p>To use <a href="http://aws.amazon.com/sdkforjava/">Amazon Java SDK</a> as an interface to an ElasticMQ server you just need
+to change the endpoint:</p>
+
+<pre><code>client = new AmazonSQSClient(new BasicAWSCredentials("x", "x"))
+client.setEndpoint("http://localhost:9324", "sqs", "")
+</code></pre>
+
+<p>The endpoint value should be the same address as the <code>NodeAddress</code> provided as an argument to
+<code>SQSRestServerBuilder</code> or in the configuration file.</p>
+
+<p>The <code>rest-sqs-testing-amazon-java-sdk</code> module contains some more usage examples.</p>
+
+<h2>
+<a name="user-content-elasticmq-dependencies-in-sbt" class="anchor" href="#elasticmq-dependencies-in-sbt" aria-hidden="true"><span class="octicon octicon-link"></span></a>ElasticMQ dependencies in SBT</h2>
+
+<pre><code>// Scala 2.11
+val elasticmqSqs        = "org.elasticmq" %% "elasticmq-rest-sqs"         % "0.8.2"
+
+// Scala 2.10
+val elasticmqSqs        = "org.elasticmq" %% "elasticmq-rest-sqs"         % "0.7.1"
+</code></pre>
+
+<p>If you don't want the SQS interface, but just use the actors directly, you can add a dependency only to the <code>core</code>
+module:</p>
+
+<pre><code>val elasticmqCore       = "org.elasticmq" %% "elasticmq-core"             % "0.8.2"
+</code></pre>
+
+<p>Repository:</p>
+
+<pre><code>resolvers += "SoftwareMill Releases" at "https://nexus.softwaremill.com/content/repositories/releases"
+</code></pre>
+
+<p>(ElasticMQ 0.8.2 cannot be deployed to Maven Central as its dependency - Spray - isn't deployed there yet.)</p>
+
+<p>If you want to use a snapshot version, you will need to add the <a href="https://oss.sonatype.org/content/repositories/snapshots/">https://oss.sonatype.org/content/repositories/snapshots/</a> repository to your configuration.</p>
+
+<h2>
+<a name="user-content-elasticmq-dependencies-in-maven" class="anchor" href="#elasticmq-dependencies-in-maven" aria-hidden="true"><span class="octicon octicon-link"></span></a>ElasticMQ dependencies in Maven</h2>
+
+<p>Dependencies:</p>
+
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.elasticmq&lt;/groupId&gt;
+    &lt;artifactId&gt;elasticmq-rest-sqs_2.11&lt;/artifactId&gt;
+    &lt;version&gt;0.8.2&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<p>Repository:</p>
+
+<pre><code>&lt;repository&gt;
+    &lt;id&gt;softwaremill-releases&lt;/id&gt;
+    &lt;url&gt;https://nexus.softwaremill.com/content/repositories/releases&lt;/url&gt;
+&lt;/repository&gt;
+</code></pre>
+
+<p>If you want to use a snapshot version, you will need to add the <a href="https://oss.sonatype.org/content/repositories/snapshots/">https://oss.sonatype.org/content/repositories/snapshots/</a> repository to your configuration.</p>
+
+<h2>
+<a name="user-content-replication-journaling-sql-backend" class="anchor" href="#replication-journaling-sql-backend" aria-hidden="true"><span class="octicon octicon-link"></span></a>Replication, journaling, SQL backend</h2>
+
+<p>Until version 0.7.0, ElasticMQ included optional replication, journaling and an SQL message storage. These modules
+have not yet been reimplemented using the new Akka core.</p>
+
+<h2>
+<a name="user-content-current-versions" class="anchor" href="#current-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Current versions</h2>
+
+<p><em>Stable</em>: 0.8.2</p>
+
+<p><em>Development</em>: 0.8.3-SNAPSHOT</p>
+
+<h2>
+<a name="user-content-logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h2>
+
+<p>ElasticMQ uses <a href="http://www.slf4j.org/">Slf4j</a> for logging. By default no logger backend is included as a dependency,
+however <a href="http://logback.qos.ch/">Logback</a> is recommended.</p>
+
+<h2>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h2>
+
+<p>Tests done on a 2012 MBP, 2.6GHz, 16GB RAM, no replication. Throughput is in messages per second (messages are
+small).</p>
+
+<p>Directly accessing the client:</p>
+
+<pre><code>Running test for [in-memory], iterations: 10, msgs in iteration: 100000, thread count: 1.
+Overall in-memory throughput: 21326.054040
+
+Running test for [in-memory], iterations: 10, msgs in iteration: 100000, thread count: 2.
+Overall in-memory throughput: 26292.956117
+
+Running test for [in-memory], iterations: 10, msgs in iteration: 100000, thread count: 10.
+Overall in-memory throughput: 25591.155697
+</code></pre>
+
+<p>Through the SQS REST interface:</p>
+
+<pre><code>Running test for [rest-sqs + in-memory], iterations: 10, msgs in iteration: 1000, thread count: 20.
+Overall rest-sqs + in-memory throughput: 2540.553587
+
+Running test for [rest-sqs + in-memory], iterations: 10, msgs in iteration: 1000, thread count: 40.
+Overall rest-sqs + in-memory throughput: 2600.002600
+</code></pre>
+
+<p>Note that both the client and the server were on the same machine.</p>
+
+<p>Test class: <code>org.elasticmq.performance.LocalPerformanceTest</code>.</p>
+
+<h2>
+<a name="user-content-technology" class="anchor" href="#technology" aria-hidden="true"><span class="octicon octicon-link"></span></a>Technology</h2>
+
+<ul class="task-list">
+<li>Core: <a href="http://scala-lang.org">Scala</a> and <a href="http://akka.io/">Akka</a>.</li>
+<li>Rest server: <a href="http://http://spray.io/">Spray</a>, a high-performance,
+asynchronous, REST/HTTP toolkit.</li>
+<li>Testing the SQS interface: <a href="http://aws.amazon.com/sdkforjava/">Amazon Java SDK</a>;
+see the <code>rest-sqs-testing-amazon-java-sdk</code> module for the testsuite.</li>
+</ul><h2>
+<a name="user-content-change-log" class="anchor" href="#change-log" aria-hidden="true"><span class="octicon octicon-link"></span></a>Change log</h2>
+
+<h4>
+<a name="user-content-version-082-6-jun-2014" class="anchor" href="#version-082-6-jun-2014" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.8.2 (6 Jun 2014)</h4>
+
+<ul class="task-list">
+<li>increasing the bind timeout</li>
+<li>initial support for <code>String</code>-valued message attributes (thx @hayesgm)</li>
+</ul><h4>
+<a name="user-content-version-081-29-may-2014" class="anchor" href="#version-081-29-may-2014" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.8.1 (29 May 2014)</h4>
+
+<ul class="task-list">
+<li>fixing Node.JS compatibility</li>
+<li>fixing a bug when calculating queue attributes</li>
+<li>updating to Scala 2.11.1, Akka 2.3.3</li>
+</ul><h4>
+<a name="user-content-version-080-29-april-2014" class="anchor" href="#version-080-29-april-2014" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.8.0 (29 April 2014)</h4>
+
+<ul class="task-list">
+<li>updating to Scala 2.11, Akka 2.3.2</li>
+<li>updating libraries to latest versions</li>
+</ul><h4>
+<a name="user-content-version-071-22-august-2013" class="anchor" href="#version-071-22-august-2013" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.7.1 (22 August 2013)</h4>
+
+<ul class="task-list">
+<li>bug fixes</li>
+</ul><h4>
+<a name="user-content-version-070-5-june-2013" class="anchor" href="#version-070-5-june-2013" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.7.0 (5 June 2013)</h4>
+
+<ul class="task-list">
+<li>reimplemented using Akka and Spray (actor-based, no blocking)</li>
+<li>long polling support</li>
+<li>bug fixes</li>
+</ul><h4>
+<a name="user-content-version-063-21-january-2013" class="anchor" href="#version-063-21-january-2013" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.6.3 (21 January 2013)</h4>
+
+<ul class="task-list">
+<li>Scala 2.10 support</li>
+<li>Changing the way the stand-alone server is configured</li>
+</ul><h4>
+<a name="user-content-version-062-13-december-2012" class="anchor" href="#version-062-13-december-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.6.2 (13 December 2012)</h4>
+
+<ul class="task-list">
+<li>bug fixes</li>
+<li>properly handling SQS receipt handles - message can be deleted only when passing the most recent receipt handle</li>
+</ul><h4>
+<a name="user-content-version-061-18-november-2012" class="anchor" href="#version-061-18-november-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.6.1 (18 November 2012)</h4>
+
+<ul class="task-list">
+<li>using Sonatype's OSS repositories for releases</li>
+<li>library upgrades</li>
+</ul><h4>
+<a name="user-content-version-06-19-october-2012" class="anchor" href="#version-06-19-october-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.6 (19 October 2012)</h4>
+
+<ul class="task-list">
+<li>batch operations in SQS (send, receive, delete, change visibility)</li>
+<li>changed <code>SQSRestServerFactory</code> to <code>SQSRestServerBuilder</code>
+</li>
+<li>"strict" and "relaxed" modes when creating an SQS server: the limits enforced by SQS are optionally checked, e.g. for
+batch operations (max 10 messages), maximum message size (64KB). Strict by default.</li>
+</ul><h4>
+<a name="user-content-version-05-26-may-2012" class="anchor" href="#version-05-26-may-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.5 (26 May 2012)</h4>
+
+<ul class="task-list">
+<li>stand-alone distribution (<a href="https://github.com/downloads/adamw/elasticmq/elasticmq-0.5.tar.gz">download</a>)</li>
+<li>file log for message storage (journal)</li>
+<li>factoring out <code>storage-database</code> module, to decrease the dependencies of the core modules</li>
+</ul><h4>
+<a name="user-content-version-04-27-mar-2012" class="anchor" href="#version-04-27-mar-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.4 (27 Mar 2012)</h4>
+
+<ul class="task-list">
+<li>replication</li>
+</ul><h4>
+<a name="user-content-version-03-6-feb-2012" class="anchor" href="#version-03-6-feb-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.3 (6 Feb 2012)</h4>
+
+<ul class="task-list">
+<li>in-memory storage</li>
+<li>new native API</li>
+<li>bug fixes</li>
+</ul><h4>
+<a name="user-content-version-02-12-jan-2012" class="anchor" href="#version-02-12-jan-2012" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.2 (12 Jan 2012)</h4>
+
+<ul class="task-list">
+<li>new SQS functions support</li>
+<li>testing with Amazon Java SDK</li>
+<li>bug fixes</li>
+</ul><h4>
+<a name="user-content-version-01-12-oct-2011" class="anchor" href="#version-01-12-oct-2011" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 0.1 (12 Oct 2011)</h4>
+
+<ul class="task-list">
+<li>initial release</li>
+<li>DB storage</li>
+<li>SQS interface support</li>
+</ul><p><a href="https://bitdeli.com/free" title="Bitdeli Badge"><img src="https://camo.githubusercontent.com/d781a5cb11ea8784f06915403ab19a432ba52420/68747470733a2f2f64327765637a68766c38323376302e636c6f756466726f6e742e6e65742f6164616d772f656c61737469636d712f7472656e642e706e67" alt="Bitdeli Badge" data-canonical-src="https://d2weczhvl823v0.cloudfront.net/adamw/elasticmq/trend.png" style="max-width:100%;"></a></p></article></div>

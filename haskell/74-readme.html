@@ -1,0 +1,666 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-yst---static-websites-from-yaml-and-string-templates" class="anchor" href="#yst---static-websites-from-yaml-and-string-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>yst</code> - static websites from YAML and string templates</h1>
+
+<p><code>yst</code> is a tool for generating a static website by filling <a href="http://www.stringtemplate.org/">string
+template</a>s with data taken from <a href="http://www.yaml.org/">YAML</a> or <a href="http://en.wikipedia.org/wiki/Comma-separated_values">CSV</a> text files or 
+<a href="http://www.sqlite.org/">SQLite3</a> file based databases. This approach
+combines the speed, security, and ease of deployment of a static
+website with the flexibility and maintainability of a dynamic site that
+separates presentation and data.</p>
+
+<h2>
+<a name="user-content-installing-yst" class="anchor" href="#installing-yst" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing yst</h2>
+
+<p><code>yst</code> is written in Haskell. The easiest way to install <code>yst</code> is by using
+Haskell's <a href="http://hackage.haskell.org/trac/hackage/wiki/CabalInstall">cabal install</a> tool. The best way to get this tool is to
+install the <a href="http://hackage.haskell.org/platform/">Haskell platform</a>, which includes a complete installation
+of the <a href="http://www.haskell.org/ghc/">GHC</a> compiler and the <code>cabal</code> executable.</p>
+
+<p>Once you have <code>cabal</code>, you can install yst with two commands:</p>
+
+<pre><code>cabal update
+cabal install yst
+</code></pre>
+
+<p>(Note that by default, <code>cabal</code> installs the <code>yst</code> executable into
+a special directory:  <code>~\.cabal\bin</code> on unix systems.  You will need
+to make sure that directory is in your system path.)</p>
+
+<p>If you get the error "yst-0.2.3 depends on template-haskell-2.4.0.0
+which failed to install," then try the following:</p>
+
+<pre><code>cabal install syb-with-class-0.6
+cabal install yst
+</code></pre>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>To get started with <code>yst</code>, use the command:</p>
+
+<pre><code>yst create mysite
+</code></pre>
+
+<p>This will create a directory <code>mysite</code> and populate it with the files
+needed for a sample site.  Change to this directory and run <code>yst</code> with
+no arguments to create the site:</p>
+
+<pre><code>cd mysite
+yst
+</code></pre>
+
+<p>The site will be created in the <code>site</code> directory.  Open up <code>site/index.html</code>
+to take a look.</p>
+
+<p>The configuration file <code>index.yaml</code> tells <code>yst</code> which pages to build,
+and from which templates and data files.  Let's take a look, so we can see
+what went into <code>index.html</code>. The file is a YAML list of YAML hashes
+(name/value pairs). The first item is</p>
+
+<pre><code>- url      : index.html
+  title    : Home
+  template : index.st
+  requires : event.st
+  data     :
+    recentevents : FROM events.yaml ORDER BY date DESC LIMIT 2
+</code></pre>
+
+<p>This says:  build the page <code>index.html</code> from the string template <code>index.st</code>
+(and subtemplate <code>event.st</code>) and data from <code>events.yaml</code>. Sort this data
+(a list of events) by date in descending order, and discard all but the
+first two items. Put the resulting data in the string template attribute
+<code>recentevents</code>. Give the page the title "Home."</p>
+
+<p>Now take a look at <code>events.yaml</code>, the data source. Again it is a YAML
+list of YAML hashes, each item in the list representing one event.
+The first is:</p>
+
+<pre><code>- date: 2009-06-28
+  speaker:  Sam Smith
+  title: Building a static website
+</code></pre>
+
+<p>Pretty self-explanatory!  Try adding a new event, then rebuild the
+site by typing <code>yst</code> and see how it looks.</p>
+
+<p>If you have problems, make sure <code>events.yaml</code> is a valid YAML file.
+Structure is shown through indentation, so make sure things line
+up right.  And occasionally you may need to use quotation marks
+around string values---for example, when a title contains a colon.</p>
+
+<p>There's one more ingredient in our recipe---the string templates.
+Take a look at <code>index.st</code>, the template from which <code>index.html</code>
+is built:</p>
+
+<pre><code># Welcome
+
+Here's our website. Have a look around.
+
+Our last two events:
+
+$recentevents:event()$
+
+For a complete list of events, see the [events](events.html) page.
+</code></pre>
+
+<p>The first thing to notice is that this is in <a href="http://daringfireball.com/markdown">markdown</a> format (or,
+to be precise, markdown with <a href="http://johnmacfarlane.net/pandoc/">pandoc</a> extensions).  So, for example,
+the first line is a level-one header, and there is a hyperlink
+to the events page on the last line.</p>
+
+<p>The second thing to notice is the bit between dollar signs.
+This is a placeholder for some formatted data.  The rendered
+template will include the list <code>recentevents</code> (remember, this
+was populated from <code>events.yaml</code> after some transformations---see
+above).  And each element of this list will be formatted by
+a subtemplate called <code>event.st</code>:</p>
+
+<pre><code>- $if(it.speaker)$$it.speaker; separator=" and "$, $endif$ *$it.title$*.
+</code></pre>
+
+<p>Let's break this down.  The whole line will print a bulleted list
+item. <code>it</code> here refers to the event that is being processed by the
+template. So the first part says: if this event has a <code>speaker</code> field,
+print the speaker, or, if the <code>speaker</code> field is a list, print all the
+speakers separated by the word "and", followed by a comma. And the
+second part says, print the contents of the <code>title</code> field, surrounding
+it with asterisks (which is the markdown way of making it <em>emphasized</em>).</p>
+
+<p>(See the <a href="http://www.stringtemplate.org/">string template</a> documentation for details of template syntax,
+and examples.) </p>
+
+<p>If you look at <code>index.html</code>, you'll see this rough structure, but in
+an HTML file, not a markdown file. <code>yst</code> converts the rendered markdown
+template to HTML (using pandoc), and inserts it into a "layout" file
+called <code>layout.html.st</code>.  If you look at this file, you'll see that it's
+an HTML file with blanks for <code>$contents$</code> and <code>$nav$</code>.  The <code>$contents$</code>
+blank gets filled by the rendered template, converted to HTML, and
+the <code>$nav$</code> blank gets filled by an HTML navigation menu (an unordered
+list with links).</p>
+
+<p>To summarize our example, then: <code>yst</code> sorts and filters the data in
+<code>events.yaml</code> according to our instructions; inserts this data into
+the <code>events.st</code> template, formatting each item using the <code>event.st</code>
+template; uses pandoc to convert the rendered template to HTML;
+constructs a navigation menu; and puts the contents and navigation
+menu in the layout template <code>layout.html.st</code>. The result is our page,
+<code>index.html</code>.</p>
+
+<h2>
+<a name="user-content-reference" class="anchor" href="#reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reference</h2>
+
+<h3>
+<a name="user-content-the-yst-command" class="anchor" href="#the-yst-command" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>yst</code> command</h3>
+
+<p>Synopsis:</p>
+
+<pre><code>yst                    # rebuilds site, using default config.yaml
+yst -f myconf.yaml     # rebuilds site, using myconf.yaml as config
+yst create newsite     # creates a starter (demo) site in newsite directory
+</code></pre>
+
+<p>When run without arguments, <code>yst</code> looks at <code>index.yaml</code> to determine
+the dependencies of each page, and rebuilds only the pages whose
+dependencies have changed since the last build.</p>
+
+<p>In order for this to work properly, you must be sure to list all
+subtemplates included recursively in the main page template using
+the <code>requires</code> field.  This field takes a single filename or a
+YAML list, which may be in either of two formats:</p>
+
+<pre><code>requires: [event.st, date.st]
+</code></pre>
+
+<p>or</p>
+
+<pre><code>requires:
+  - event.st
+  - date.st
+</code></pre>
+
+<p>If you don't list all the subtemplates needed to render a page
+under <code>requires</code>, <code>yst</code> will still work, but it might sometimes
+fail to rebuild a page when one of these subtemplates has been changed.</p>
+
+<h3>
+<a name="user-content-configyaml" class="anchor" href="#configyaml" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>config.yaml</code>
+</h3>
+
+<p>The configuration file specifies the following:</p>
+
+<ul class="task-list">
+<li>
+<code>indexfile</code>: the filename of the index file (default: <code>index.yaml</code>)</li>
+<li>
+<code>title</code>:  the title of the whole site</li>
+<li>
+<code>sourcedir</code>:  list of directories containing templates and page sources
+(default: <code>.</code>)</li>
+<li>
+<code>datadir</code>:  list of directories containing yaml data files (default: <code>.</code>)</li>
+<li>
+<code>filesdir</code>: list of directories containing static files (default: <code>files</code>)</li>
+<li>
+<code>layout</code>: the default layout template for the site, relative to
+<code>sourcedir</code> (default: <code>layout.html.st</code>)</li>
+</ul><p>The directories specified by <code>sourcedir</code> and <code>datadir</code> are searched in
+order to find source/template or data files, respectively.  This allows
+for a <code>../templates</code> directory to be shared among multiple sites, for
+example.  Static files are merged from the contents of all directories
+in <code>filesdir</code>. All of these accept a string as a singleton list.</p>
+
+<h3>
+<a name="user-content-indexyaml-and-submenus" class="anchor" href="#indexyaml-and-submenus" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>index.yaml</code> and submenus</h3>
+
+<p>The index file is a YAML list of pages. Each page may have the following
+fields:</p>
+
+<ul class="task-list">
+<li>
+<code>url</code>:   the relative URL of the page to be built</li>
+<li>
+<code>title</code>:   the title of the page</li>
+<li>
+<code>template</code>:   the main string template from which the page will be built</li>
+<li>
+<code>source</code>:   the markdown source from which the page will be built</li>
+<li>
+<code>requires</code>:   other files changes to which should trigger a page rebuild
+(primarily subtemplates of the main page template)</li>
+<li>
+<code>data</code>:   string template attributes, data sources, and transformations
+(see below)</li>
+<li>
+<code>layout</code>:   a layout template to use, if other than the site default</li>
+<li>
+<code>inmenu</code>:   if 'no', the page will not be included in the site navigation
+menu</li>
+</ul><p>Each page must have at least <code>url</code>, <code>title</code>, and either <code>template</code> or
+<code>source</code>. Values for <code>template</code>, <code>source</code>, and <code>layout</code> are relative to
+<code>sourcedir</code> specified in <code>config.yaml</code>.</p>
+
+<p>The pages may be organized into a tree-like hierarchy, which will be
+reflected in the site navigation menu.  It is easiest to see how this
+works by example:</p>
+
+<pre><code>- Rooms:
+  - url      : room101.html
+    title    : Room 101
+    source   : room101.txt
+
+  - url      : room203.html
+    title    : Room 203
+    source   : room203.txt
+</code></pre>
+
+<p>Here we have a subtree called "Rooms" with two pages under it.
+Subtrees can contain other subtrees.  Just be consistent about indentation.</p>
+
+<h3>
+<a name="user-content-the-data-field" class="anchor" href="#the-data-field" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>data</code> field</h3>
+
+<p>The <code>data</code> field in <code>index.yaml</code> can populate any number of
+stringtemplate attributes with data from YAML or CSV files or SQLite3
+databases.  The syntax is easiest to explain by example (note that the
+keywords do not have to be in ALL CAPS, although they may, and the
+query doesn't have to end with a semicolon, though it may):</p>
+
+<pre><code>data:
+    events:  from events.yaml order by date desc group by title then location
+    people:  from people.csv order by birthday then lastname where
+              birthstate = 'CA' limit 5
+    beststudents: from students.sqlite 
+              query "select * from students where grade &gt; 5"
+              order by name
+</code></pre>
+
+<p>First we have the name of the stringtemplate attribute to be populated
+(say, <code>events</code>).  Then, after the colon, we have the data source
+(<code>events.yaml</code>). If the data source is an SQLite3 database, it should be
+followed by a query that is a quoted string.</p>
+
+<p>The data source is followed by  one or more <em>transformations</em>, which will
+be applied in order.  Here are the possible transformations.  In
+what follows, brackets denote an optional component, <code>|</code> denotes
+alternatives, and <code>*</code> indicates that the component may be repeated
+several times:</p>
+
+<p><code>ORDER BY field [ASC|DESC] [THEN field [ASC|DESC]]*</code></p>
+
+<blockquote>
+<p>Sorts a list by comparing the value of <code>field</code>.  <code>ASC</code>
+(the default) means "ascending", and <code>DESC</code> means "descending".
+The keyword <code>THEN</code> is used to separate fields that will be
+compared in order.  So, if we are ordering by <code>birthday then lastname</code>,
+we will compare birthdays, and if these are equal, we will break
+the tie by comparing last names. </p>
+</blockquote>
+
+<p><code>GROUP BY field [THEN field]*</code></p>
+
+<blockquote>
+<p>Converts a list into a list of lists, where each sublist contains
+only items with the same value for <code>field</code>.  So, for example,
+<code>group by date</code> takes a list of events and produces a list of
+lists of items, where each sublist contains events occuring at
+a single date.  <code>GROUP BY date THEN venue</code> would produce a list
+of lists of lists, and so on.</p>
+</blockquote>
+
+<p><code>LIMIT n</code></p>
+
+<blockquote>
+<p>Removes all but the <em>n</em> top items from a list.  <em>n</em> must be a number.</p>
+</blockquote>
+
+<p><code>WHERE condition</code></p>
+
+<blockquote>
+<p>Selects only items that meet a condition.</p>
+
+<p>A <em>condition</em> in a <code>WHERE</code> statement is a Boolean combination (using
+<code>NOT</code>, <code>AND</code>, <code>OR</code>, and parentheses for disambiguation) of <em>basic
+conditions</em>.  A <em>basic condition</em> is either of the form <code>value op
+value</code>, where <code>value</code> may be either a fieldname or a constant, or of
+the form <code>HAS fieldname' where</code>fieldname' is a string constant.  Note
+that all constants must be enclosed in quotes.  <code>op</code> may be one of the
+following: <code>=</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&lt;</code> and 'contains'.</p>
+
+<p>The basic condition <code>arg1 contains arg2</code> succeeds if and only if
+<code>arg1</code> is a fieldname whose value is a list containing the value of
+<code>arg2</code>.</p>
+
+<p>The basic condition <code>HAS fieldname' succeeds if and only if the item
+has the fieldname as a field. For example,</code>HAS "data"'. </p>
+</blockquote>
+
+<p>Note that the order of transformations is significant.  You can get
+different results if you use <code>LIMIT</code> before or after <code>ORDER BY</code>,
+for example.</p>
+
+<p>If you want to specify an attribute's value directly, rather than
+reading it from a file, just omit the "FROM":</p>
+
+<pre><code>data:
+  deadline: 11/20/2009
+</code></pre>
+
+<p>Any YAML value can be given to an attribute in this way.</p>
+
+<h3>
+<a name="user-content-static-files" class="anchor" href="#static-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Static files</h3>
+
+<p>Any file or subdirectory in the <code>files</code> directory (or whatever is
+the value of <code>filesdir</code> in <code>config.yaml</code>) will be copied verbatim to
+the site.  So this is the place to put javascripts, css files, images,
+PDFs, and the like.</p>
+
+<h3>
+<a name="user-content-date-fields" class="anchor" href="#date-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Date fields</h3>
+
+<p><code>yst</code> will recognize date fields in data files automatically, if the
+dates are in one of the following formats:</p>
+
+<ul class="task-list">
+<li>the locale's standard date format</li>
+<li>MM/DD/YYYY (e.g. 04/28/1953)</li>
+<li>MM/DD/YY (e.g. 04/28/53)</li>
+<li>YYYY-MM-DD (e.g. 1953-04-28)</li>
+<li>DD MON YYYY (e.g. 28 Apr 1953)</li>
+</ul><p>Dates may be formatted in templates using a stringtemplate "format"
+directive. There's an example in the demo file <code>date.st</code>:</p>
+
+<pre><code>$it; format="%B %d, %Y"$
+</code></pre>
+
+<p>The following codes may be used in format strings (taken from
+Haskell's <code>Date.Time.Format</code> documentation):</p>
+
+<ul class="task-list">
+<li>
+<code>%D</code> :   same as <code>%m/%d/%y</code>
+</li>
+<li>
+<code>%F</code> :   same as <code>%Y-%m-%d</code>
+</li>
+<li>
+<code>%x</code> :   as dateFmt locale (e.g. <code>%m/%d/%y</code>)</li>
+<li>
+<code>%Y</code> :   year</li>
+<li>
+<code>%y</code> :   last two digits of year, 00 - 99</li>
+<li>
+<code>%C</code> :   century (being the first two digits of the year), 00 - 99</li>
+<li>
+<code>%B</code> :   month name, long form (fst from months locale), January - December</li>
+<li>
+<code>%b, %h</code> :   month name, short form (snd from months locale), Jan - Dec</li>
+<li>
+<code>%m</code> :   month of year, leading 0 as needed, 01 - 12</li>
+<li>
+<code>%d</code> :   day of month, leading 0 as needed, 01 - 31</li>
+<li>
+<code>%e</code> :   day of month, leading space as needed, 1 - 31</li>
+<li>
+<code>%j</code> :   day of year for Ordinal Date format, 001 - 366</li>
+<li>
+<code>%G</code> :   year for Week Date format</li>
+<li>
+<code>%g</code> :   last two digits of year for Week Date format, 00 - 99</li>
+<li>
+<code>%f</code> :   century (first two digits of year) for Week Date format, 00 - 99</li>
+<li>
+<code>%V</code> :   week for Week Date format, 01 - 53</li>
+<li>
+<code>%u</code> :   day for Week Date format, 1 - 7</li>
+<li>
+<code>%a</code> :   day of week, short form (snd from wDays locale), Sun - Sat</li>
+<li>
+<code>%A</code> :   day of week, long form (fst from wDays locale), Sunday - Saturday</li>
+<li>
+<code>%U</code> :   week number of year, where weeks start on Sunday (as sundayStartWeek), 00 - 53</li>
+<li>
+<code>%w</code> :   day of week number, 0 (= Sunday) - 6 (= Saturday)</li>
+<li>
+<code>%W</code> :   week number of year, where weeks start on Monday (as mondayStartWeek), 00 - 53</li>
+</ul><h3>
+<a name="user-content-lists-as-values" class="anchor" href="#lists-as-values" aria-hidden="true"><span class="octicon octicon-link"></span></a>Lists as values</h3>
+
+<p>In some cases, a field may have one or several values.  For example, an
+event might occur at a date or a date range, and an article may have one
+author or a list of authors.</p>
+
+<p>An elegant way to handle these cases is to let the field take either a
+scalar or a list value, and use stringtemplate's "separator" directive
+to format the result appropriately.  So, for example, in our <code>events.yaml</code>
+we have:</p>
+
+<pre><code>- date: 2009-06-28
+  speaker:  Sam Smith
+  title: Building a static website
+
+- date:  2009-04-15
+  speaker:
+    - Sam Smith
+    - '[Jim Jones](http://foo.bar/baz)'
+  title: Advantages of static websites
+
+- date:
+    - 2009-04-20
+    - 2009-04-22
+  title: Seminar on web security
+
+- date: 2009-04-15
+  speaker: Jim Jones
+  title:  XSS attacks for dummies
+</code></pre>
+
+<p>Note that the <code>date</code> field is sometimes a single date, sometimes a
+list (with start and end date of a range), and the <code>speaker</code> field is
+sometimes a single speaker, and sometimes a range.</p>
+
+<p>Here is how we handle the date in <code>eventgroup.st</code>:</p>
+
+<pre><code>**$first(it).date:date(); separator=" - "$**
+</code></pre>
+
+<p>Here <code>first(it).date</code> is the raw data, which may be a single date
+or a list.  <code>first(it).date:date()</code> is the result of formatting each
+date using the <code>date.st</code> template (discussed above).  And
+<code>first(it).date:date; separator=" - "</code> is the result of taking this
+list of formatted dates and concatenating them, separated by a hyphen.
+When there is just one date, we just get a date. When there are two,
+we get a date range.</p>
+
+<p>We can use the same trick in the case of <code>speaker</code>.  If <code>it</code> is
+an event record, then <code>it.speaker; separator=" and "</code> will be
+either a single speaker (if the value is not a list) or a list
+of speakers separated by "and" (if it is a list).</p>
+
+<p>In sorting lists with <code>order by</code>, <code>yst</code> compares two lists by
+comparing the first members, then (in case of a tie) the second
+members, and so on.  If one item is a list and the other a scalar,
+the scalar is compared to the first item of the list.  So, in
+the example above, <code>Seminar on web security</code> will be sorted
+an earlier than an event with date <code>2009-04-21</code>, and later than
+an event with date range <code>2009-04-20 - 2009-04-21</code>.</p>
+
+<h3>
+<a name="user-content-yaml-gotchas" class="anchor" href="#yaml-gotchas" aria-hidden="true"><span class="octicon octicon-link"></span></a>YAML gotchas</h3>
+
+<p>If you have a colon in a YAML value, be sure to enclose it in quotes,
+or you'll get an error.  So,</p>
+
+<pre><code>title:  "Cheever: A Life"
+</code></pre>
+
+<p>not</p>
+
+<pre><code>title:  Cheever: A Life
+</code></pre>
+
+<p>Or (especially if the string is long), use <code>&gt;</code> or <code>|</code> for a wrapped
+or unwrapped multiline string literal:</p>
+
+<pre><code>title: |
+  A very long string that
+  goes on and on.
+
+  You can even have blank lines,
+  but be sure to maintain indentation.
+</code></pre>
+
+<h3>
+<a name="user-content-using-csv-files-instead-of-yaml" class="anchor" href="#using-csv-files-instead-of-yaml" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using CSV files instead of YAML</h3>
+
+<p>If you like, you can use a CSV file instead of YAML for your data source.
+Just give it the extension <code>.csv</code>.  In <code>index.yaml</code>, you'd have:</p>
+
+<pre><code>data:
+  events: from events.csv order by date desc
+</code></pre>
+
+<p>This can be handy if you're using existing data, because spreadsheets
+and databases can easily be dumped to CSV. In the case of a SQL
+database, you can use a query like this to get the CSV:</p>
+
+<pre><code>SELECT * INTO OUTFILE 'result.csv'
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+FROM my_table;
+</code></pre>
+
+<p>(Thanks to
+<a href="http://www.terminally-incoherent.com/blog/2006/07/20/dump-mysql-table-into-csv-file/">http://www.terminally-incoherent.com/blog/2006/07/20/dump-mysql-table-into-csv-file/</a>.)</p>
+
+<h3>
+<a name="user-content-using-a-sqlite-database-as-data-source" class="anchor" href="#using-a-sqlite-database-as-data-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using a SQLite database as data source</h3>
+
+<p>You can also get the data directly from a database. Just give the file
+name from the database followed by a query quoted in "'s</p>
+
+<p>In this way you can do joins and other advanced operations on your
+data before handing them over to yst:</p>
+
+<pre><code>data:
+  meetings : FROM data.sqlite 
+             QUERY "select * from meetings 
+               left outer join persons
+               on meetings.speaker = persons.name"
+</code></pre>
+
+<h3>
+<a name="user-content-using-html-in-the-templates" class="anchor" href="#using-html-in-the-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using HTML in the templates</h3>
+
+<p>Markdown allows raw HTML to be used, so you can embed HTML in templates.
+Pandoc's extended markdown is different from standard markdown in that
+it parses text within HTML block elements as markdown.  So, for example,
+you can include a section in <code>&lt;div&gt;</code> tags, or use raw <code>&lt;ul&gt;</code> and <code>&lt;li&gt;</code>
+tags instead of markdown formatting.</p>
+
+<h3>
+<a name="user-content-layout-templates" class="anchor" href="#layout-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Layout templates</h3>
+
+<p>Layout files are also string templates, but they are not treated as
+markdown by default.  They should use a double extension to indicate
+the format.  So, for example, an HTML layout could be <code>standard.html.st</code>,
+and a LaTeX layout could be <code>printed.tex.st</code>.  <code>yst</code> will convert the
+page contents appropriately for the format of the layout template.
+Here are the supported formats and extensions:</p>
+
+<ul class="task-list">
+<li>HTML:   <code>.html.st</code>, <code>.xhtml.st</code>
+</li>
+<li>LaTeX:   <code>.tex.st</code>, <code>.latex.st</code>
+</li>
+<li>ConTeXt:   <code>.context.st</code>
+</li>
+<li>Groff man:   <code>.</code>1<code>.st</code>
+</li>
+<li>Rich text format:   <code>.rtf.st</code>
+</li>
+<li>Texinfo:   <code>.texi.st</code>
+</li>
+<li>DocBook:   <code>.db.st</code>
+</li>
+<li>OpenDocument XML:   <code>.fodt.st</code>
+</li>
+<li>Plain text (markdown):   <code>.txt.st</code>, <code>.markdown.st</code>
+</li>
+</ul><p>The demo site shows how you can use <code>yst</code> to produce a LaTeX document
+from the same data sources you use to produce HTML pages.</p>
+
+<p>The following stringtemplate attributes are defined when layouts
+are rendered:</p>
+
+<ul class="task-list">
+<li>
+<code>$contents$</code>:   the result of rendering the page and converting to the layout's format</li>
+<li>
+<code>$nav$</code>:   an HTML navigation menu created from <code>index.yaml</code>
+</li>
+<li>
+<code>$gendate$</code>:   the date the page was generated</li>
+<li>
+<code>$sitetitle$</code>:   the site title from <code>config.yaml</code>
+</li>
+<li>
+<code>$pagetitle$</code>:   the page title as defined in <code>index.yaml</code>
+</li>
+<li>
+<code>$root$</code>: the path to the website's root, relative to the page being
+rendered.  So, for example, if we are rendering <code>rooms/room503.html</code>,
+<code>$root$</code> will have the value <code>../</code>. Put <code>$root$</code> in front of relative URLs
+in your layout file, so that the links aren't broken on pages in
+subdirectories.</li>
+</ul><h3>
+<a name="user-content-previewing-a-site" class="anchor" href="#previewing-a-site" aria-hidden="true"><span class="octicon octicon-link"></span></a>Previewing a site</h3>
+
+<p>If you use only relative URLs in your site, you can preview it by
+opening any of the HTML files in site in your web browser. If you use
+absolute links, this won't work, but you can use Jinjing Wang's simple
+static web server <code>maid</code>:</p>
+
+<pre><code>cabal update
+cabal install maid
+</code></pre>
+
+<p>To use maid to preview your site, just change to the site directory and
+start <code>maid</code>:</p>
+
+<pre><code>cd site
+maid
+</code></pre>
+
+<p>The site will appear at <a href="http://localhost:3000">http://localhost:3000</a>.  If you want to serve it
+at another port, just pass the port number as an argument to <code>maid</code>:</p>
+
+<pre><code>maid 5999
+</code></pre>
+
+<h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<h3>
+<a name="user-content-source-code" class="anchor" href="#source-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source code</h3>
+
+<p>yst's source code lives on github at <a href="http://github.com/jgm/yst/tree/master">http://github.com/jgm/yst/tree/master</a>.
+You can clone the repository with</p>
+
+<p>git://github.com/jgm/yst.git</p>
+
+<p>To install the development code once you've checked it out, just do</p>
+
+<pre><code>cabal install
+</code></pre>
+
+<p>(But please stick to the released version if you don't like things to break
+unexpectedly!)</p>
+
+<h3>
+<a name="user-content-reporting-bugs" class="anchor" href="#reporting-bugs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporting bugs</h3>
+
+<p>If you find a bug, please report it using
+<a href="http://github.com/jgm/yst/issues">the issue tracker on yst's github page</a>.</p></article></div>

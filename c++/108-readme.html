@@ -1,0 +1,221 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-twister---p2p-microblogging" class="anchor" href="#twister---p2p-microblogging" aria-hidden="true"><span class="octicon octicon-link"></span></a>twister - p2p microblogging</h1>
+
+<p><a href="http://www.twister.net.co">http://www.twister.net.co</a></p>
+
+<p>Bitcoin Copyright (c) 2009-2013 Bitcoin Developers
+libtorrent Copyright (c) 2003 - 2007, Arvid Norberg
+twister Copyright (c) 2013 Miguel Freitas</p>
+
+<h2>
+<a name="user-content-what-is-twister" class="anchor" href="#what-is-twister" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is twister?</h2>
+
+<p>twister is an experimental peer-to-peer microblogging software.</p>
+
+<p>User registration and authentication is provided by a bitcoin-like network, so
+it is completely distributed (does not depend on any central authority).</p>
+
+<p>Post distribution uses kademlia DHT network and bittorrent-like swarms, both
+are provided by libtorrent.</p>
+
+<p>Both Bitcoin and libtorrent versions included here are highly patched and do
+not interoperate with existing networks (on purpose).</p>
+
+<h2>
+<a name="user-content-compiling" class="anchor" href="#compiling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compiling</h2>
+
+<p>Please follow the instructions for your platform:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/miguelfreitas/twister-core/blob/master/doc/build-unix.md">UNIX</a></li>
+<li><a href="https://github.com/miguelfreitas/twister-core/blob/master/doc/building-on-ubuntu-debian.md">Debian/Ubuntu</a></li>
+<li><a href="https://github.com/miguelfreitas/twister-core/blob/master/doc/build-osx.md">Mac OS X</a></li>
+<li><a href="https://github.com/miguelfreitas/twister-core/wiki/Compiling-for-Windows">Windows (untested)</a></li>
+</ul><blockquote>
+<p>According to our tests, at least 1GB of RAM is needed to compile Twister.</p>
+</blockquote>
+
+<p>Alternatively, you can run Twister on an isolated Linux container, using <a href="http://docker.io/">Docker</a>. First, <a href="https://docs.docker.com/installation/#installation">install Docker on your system</a>. Then run:</p>
+
+<pre><code># Leave out the "sudo -E" if you added yourself to the "docker" group
+sudo -E ./twister-on-docker run --remote
+</code></pre>
+
+<p>The above command downloads and runs a <a href="https://registry.hub.docker.com/u/miguelfreitas/twister">pre-built image</a> from the Docker index. You can also build and run your own container:</p>
+
+<pre><code>sudo -E ./twister-on-docker build
+sudo -E ./twister-on-docker run
+</code></pre>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Bitcoin is released under the terms of the MIT license. See <code>COPYING</code> for more
+information or see <a href="http://opensource.org/licenses/MIT">http://opensource.org/licenses/MIT</a>.</p>
+
+<p>libtorrent is released under the BSD-license.</p>
+
+<p>twister specific code is released under the MIT license or BSD, you choose.
+(it shouldn't matter anyway, except for the "non-endorsement clause").</p>
+
+<h2>
+<a name="user-content-development-process" class="anchor" href="#development-process" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development process</h2>
+
+<p>There is no development process defined yet.</p>
+
+<p>Developers of either bitcoin or libtorrent are welcomed and will be granted
+immediate write-access to the repository (a small retribution for
+bastardizing their codebases).</p>
+
+<h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>Some security checks are disabled (temporarily) allowing multiple clients per IP.
+Therefore it is possible to run multiple twisterd instances at the same machine:</p>
+
+<pre><code>$ twisterd -datadir=/tmp/twister1 -port=30001 -daemon -rpcuser=user -rpcpassword=pwd -rpcallowip=127.0.0.1 -rpcport=40001
+$ twisterd -datadir=/tmp/twister2 -port=30002 -daemon -rpcuser=user -rpcpassword=pwd -rpcallowip=127.0.0.1 -rpcport=40002
+$ twisterd -rpcuser=user -rpcpassword=pwd -rpcallowip=127.0.0.1 -rpcport=40001 addnode &lt;external-ip&gt;:30002 onetry
+</code></pre>
+
+<p>Note: some features (like block generation and dht put/get) do now work unless
+the network has at least two nodes, like these two instances in the example above.</p>
+
+<h2>
+<a name="user-content-wire-protocol" class="anchor" href="#wire-protocol" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wire protocol</h2>
+
+<p>Bitcoin and libtorrent protocol signatures have been changed on purpose to
+make twister network incompatible. This avoids the so called
+<a href="http://blog.notdot.net/2008/6/Nearly-all-DHT-implementations-vulnerable-to-merge-bug">"merge bug"</a>.</p>
+
+<ul class="task-list">
+<li>Bitcoin signature changed from "f9 be b4 d9" to "f0 da bb d2".</li>
+<li>Bitcoin port changed from 8333 to 28333.</li>
+<li>Torrent signature changed from "BitTorrent protocol" to "twister protocollll".</li>
+<li>Torrent/DHT query changed from "y" to "z"</li>
+<li>Torrent/DHT answer changed from "a" to "x"</li>
+</ul><h2>
+<a name="user-content-quick-json-command-examples" class="anchor" href="#quick-json-command-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick JSON command examples</h2>
+
+<p>In order to use JSON-RPC you must set user/password/port by either command
+line or configuration file. This is the same as in <a href="https://en.bitcoin.it/wiki/Running_Bitcoin">bitcoin</a>
+except that twister config file is <code>/home/user/.twister/twister.conf</code></p>
+
+<p>To create a new (local) user key:</p>
+
+<pre><code>./twisterd createwalletuser myname
+</code></pre>
+
+<p>This command returns the secret which can be used to recreate the key in a
+different computer (in order to access the account). The user should be
+encouraged to make a copy of this information, either by printing, snapshoting
+or even writing it down to a piece of paper.</p>
+
+<p>The newly created user only exists in the local database (wallet), so
+before the user is able to fully use the system (post messages), his public
+key must be propagated to the network:</p>
+
+<pre><code>./twisterd sendnewusertransaction myname
+</code></pre>
+
+<p>The above command may take a few seconds to run, depending on your CPU. This
+is normal.</p>
+
+<p>To create the first (1) public post:</p>
+
+<pre><code>./twisterd newpostmsg myname 1 "hello world"
+</code></pre>
+
+<p>To add some users to the following list:</p>
+
+<pre><code>./twisterd follow myname '["myname","myfriend"]'
+</code></pre>
+
+<p>To get the last 5 posts from the users we follow:</p>
+
+<pre><code>./twisterd getposts 5 '[{"username":"myname"},{"username":"myfriend"}]'
+</code></pre>
+
+<p>To send a new (private) direct message:</p>
+
+<pre><code>./twisterd newdirectmsg myname 2 myfriend "secret message"
+</code></pre>
+
+<p>Notes for <code>newdirectmsg</code>:</p>
+
+<ul class="task-list">
+<li><p>The post number (2) follows the same numbering as <code>newpostmsg</code>, make
+sure they don't clash.</p></li>
+<li><p>The recipient must be your follower.</p></li>
+</ul><p>To get the last 10 direct messages to/from remote user:</p>
+
+<pre><code>./twisterd getdirectmsgs myname 10 '[{"username":"myfriend"}]'
+</code></pre>
+
+<p>Notes for <code>getdirectmsgs</code>:</p>
+
+<ul class="task-list">
+<li><p>These direct message IDs (max_id, since_id etc) are not related to post
+numbers. The numbering is local and specific to this thread.</p></li>
+<li><p>This function will return messages which have been successfully decrypted
+upon receiving or that have been sent by this same computer. A different
+computer, sharing the same account, will see the same received, but not the
+same sent messages.</p></li>
+</ul><p>To setup your profile:</p>
+
+<pre><code>./twisterd dhtput myname profile s '{"fullname":"My Name","bio":"just another user","location":"nowhere","url":"twister.net.co"}' myname 1
+</code></pre>
+
+<p>Note: increase the revision number (the last parameter) whenever you want to
+update something using dhtput.</p>
+
+<p>To obtain the profile of another user:</p>
+
+<pre><code>./twisterd dhtget myfriend profile s
+</code></pre>
+
+<p>To obtain the full list of commands</p>
+
+<pre><code>./twisterd help
+</code></pre>
+
+<h2>
+<a name="user-content-running-the-web-interface" class="anchor" href="#running-the-web-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running the web interface</h2>
+
+<p>First you'll need to grab the latest version of the web UI code and put it
+in your twister data dir:</p>
+
+<pre><code>cd ~/.twister/
+git clone https://github.com/miguelfreitas/twister-html.git ./html
+</code></pre>
+
+<p>Next, run the twister daemon. The RPC username and password are currently
+hard coded as "user" and "pwd" in the web client so you'll need to specify
+them:</p>
+
+<pre><code>./twisterd -rpcuser=user -rpcpassword=pwd -rpcallowip=127.0.0.1
+</code></pre>
+
+<p>Visit <a href="http://user:pwd@localhost:28332">http://user:pwd@localhost:28332</a>
+in your web browser and you should see a page asking you to choose between the
+Desktop and Mobile interfaces.</p>
+
+<h2>
+<a name="user-content-different-themes" class="anchor" href="#different-themes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Different themes</h2>
+
+<p>If you prefer new modern look of twister with new untested things, you can try twister-calm theme
+But be careful, it is in beta stage.</p>
+
+<pre><code>cd ~/.twister/
+git clone https://github.com/iHedgehog/twister-calm.git ./html
+</code></pre>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a></p>
+
+<h2>
+<a name="user-content-license-1" class="anchor" href="#license-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>See <a href="COPYING">COPYING</a></p></article></div>

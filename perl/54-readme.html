@@ -1,0 +1,488 @@
+<div class="announce instapaper_body " data-path="README" id="readme"><div class="plain"><pre>NAME
+    imapsync - IMAP synchronisation, sync, copy or migration tool.
+    Synchronises mailboxes between two imap servers. Good at IMAP migration.
+    More than 52 different IMAP server softwares supported with success, few
+    failures.
+
+    $Revision: 1.592 $
+
+SYNOPSIS
+    To synchronize imap account "foo" on "imap.truc.org" to imap account
+    "bar" on "imap.trac.org" with foo password "secret1" and bar password
+    "secret2":
+
+      imapsync \
+       --host1 imap.truc.org --user1 foo --password1 secret1 \
+       --host2 imap.trac.org --user2 bar --password2 secret2
+
+INSTALL
+     imapsync works fine under any Unix OS with perl.
+     imapsync works fine under Windows (2000, XP, Vista, Seven) 
+     with Strawberry Perl (5.10, 5.12 or higher)
+     or as a standalone binary software imapsync.exe
+
+    imapsync can be available directly on the following distributions:
+    FreeBSD, Debian, Ubuntu, Gentoo, Fedora, NetBSD, Darwin, Mandriva and
+    OpenBSD.
+
+     Purchase latest imapsync at
+     <a href="http://imapsync.lamiral.info/">http://imapsync.lamiral.info/</a>
+
+     You'll receive a link to a compressed tarball called imapsync-x.xx.tgz
+     where x.xx is the version number. Untar the tarball where
+     you want (on Unix):
+
+     tar xzvf  imapsync-x.xx.tgz
+
+     Go into the directory imapsync-x.xx and read the INSTALL file.
+     The INSTALL file is also at 
+     <a href="http://imapsync.lamiral.info/INSTALL">http://imapsync.lamiral.info/INSTALL</a>
+
+     The freecode (was freshmeat) record is at 
+     <a href="http://freecode.com/projects/imapsync">http://freecode.com/projects/imapsync</a>
+
+USAGE
+     imapsync [options]
+
+    To get a description of each option just run imapsync like this:
+
+      imapsync --help
+      imapsync
+
+    The option list:
+
+      imapsync [--host1 server1]  [--port1 &lt;num&gt;]
+               [--user1 &lt;string&gt;] [--passfile1 &lt;string&gt;]
+               [--host2 server2]  [--port2 &lt;num&gt;]
+               [--user2 &lt;string&gt;] [--passfile2 &lt;string&gt;]
+               [--ssl1] [--ssl2]
+               [--tls1] [--tls2]
+               [--authmech1 &lt;string&gt;] [--authmech2 &lt;string&gt;]
+               [--proxyauth1] [--proxyauth2]
+               [--domain1] [--domain2] 
+               [--authmd51] [--authmd52]
+               [--folder &lt;string&gt; --folder &lt;string&gt; ...]
+               [--folderrec &lt;string&gt; --folderrec &lt;string&gt; ...]
+               [--include &lt;regex&gt;] [--exclude &lt;regex&gt;]
+               [--prefix2 &lt;string&gt;] [--prefix1 &lt;string&gt;] 
+               [--regextrans2 &lt;regex&gt; --regextrans2 &lt;regex&gt; ...]
+               [--sep1 &lt;char&gt;]
+               [--sep2 &lt;char&gt;]
+               [--justfolders] [--justfoldersizes] [--justconnect] [--justbanner]
+               [--syncinternaldates]
+               [--idatefromheader]
+               [--syncacls]
+               [--regexmess &lt;regex&gt;] [--regexmess &lt;regex&gt;]
+               [--maxsize &lt;int&gt;]
+               [--minsize &lt;int&gt;]
+               [--maxage &lt;int&gt;]
+               [--minage &lt;int&gt;]
+               [--search &lt;string&gt;]
+               [--search1 &lt;string&gt;]
+               [--search2 &lt;string&gt;]
+               [--skipheader &lt;regex&gt;]
+               [--useheader &lt;string&gt;] [--useheader &lt;string&gt;]
+               [--nouid1] [--nouid2] 
+               [--usecache]
+               [--skipsize] [--allowsizemismatch]
+               [--delete] [--delete2]
+               [--expunge] [--expunge1] [--expunge2] [--uidexpunge2]
+               [--delete2folders] [--delete2foldersonly] [--delete2foldersbutnot]
+               [--subscribed] [--subscribe] [--subscribe_all] 
+               [--nofoldersizes] [--nofoldersizesatend] 
+               [--dry]
+               [--debug] [--debugimap][--debugimap1][--debugimap2]
+               [--timeout &lt;int&gt;] 
+               [--split1] [--split2] 
+               [--reconnectretry1 &lt;int&gt;] [--reconnectretry2 &lt;int&gt;]
+               [--noreleasecheck]
+               [--releasecheck]
+               [--pidfile &lt;filepath&gt;]
+               [--tmpdir  &lt;dirpath&gt;]
+               [--version] [--help]
+               [--tests] [--tests_debug]
+
+DESCRIPTION
+    The command imapsync is a tool allowing incremental and recursive imap
+    transfer from one mailbox to another.
+
+    By default all folders are transferred, recursively, all possible flags
+    (\Seen \Answered \Flagged etc.) are synced too.
+
+    We sometimes need to transfer mailboxes from one imap server to another.
+    This is called migration.
+
+    imapsync is a good tool because it reduces the amount of data
+    transferred by not transferring a given message if it is already on both
+    sides. Same headers and the transfer is done only once. All flags are
+    preserved, unread will stay unread, read will stay read, deleted will
+    stay deleted. You can stop the transfer at any time and restart it
+    later, imapsync works well with bad connections.
+
+    You can decide to delete the messages from the source mailbox after a
+    successful transfer, it can be a good feature when migrating live
+    mailboxes since messages will be only on one side. In that case, use the
+    --delete option. Option --delete implies also option --expunge so all
+    messages marked deleted on host1 will be really deleted. (you can use
+    --noexpunge to avoid this but I don't see any good real world scenario
+    for the combinaison --delete --noexpunge).
+
+    You can also just synchronize a mailbox B from another mailbox A in case
+    you just want to keep a "live" copy of A in B. In that case --delete2
+    can be used, it deletes messages in host2 folder B that are not in host1
+    folder A.
+
+    imapsync is not adequate for maintaining two active imap accounts in
+    synchronization where the user plays independently on both sides. Use
+    offlineimap (written by John Goerzen) or mbsync (written by Michael R.
+    Elkins) for 2 ways synchronizations.
+
+OPTIONS
+    To get a description of each option just invoke:
+
+    imapsync --help
+
+HISTORY
+    I wrote imapsync because an enterprise (basystemes) paid me to install a
+    new imap server without losing huge old mailboxes located on a far away
+    remote imap server accessible by a low bandwidth link. The tool imapcp
+    (written in python) could not help me because I had to verify every
+    mailbox was well transferred and delete it after a good transfer.
+    imapsync started life as a copy_folder.pl patch. The tool copy_folder.pl
+    comes from the Mail-IMAPClient-2.1.3 perl module tarball source (in the
+    examples/ directory of the tarball).
+
+EXAMPLE
+    While working on imapsync parameters please run imapsync in dry mode (no
+    modification induced) with the --dry option. Nothing bad can be done
+    this way.
+
+    To synchronize the imap account "buddy" (with password "secret1") on
+    host "imap.src.fr" to the imap account "max" (with password "secret2")
+    on host "imap.dest.fr":
+
+     imapsync --host1 imap.src.fr  --user1 buddy --password1 secret1 \
+              --host2 imap.dest.fr --user2 max   --password2 secret2
+
+    Then you will have max's mailbox updated from buddy's mailbox.
+
+SECURITY
+    You can use --passfile1 instead of --password1 to give the password
+    since it is safer. With --password1 option any user on your host can see
+    the password by using the 'ps auxwwww' command. Using a variable (like
+    $PASSWORD1) is also dangerous because of the 'ps auxwwwwe' command. So,
+    saving the password in a well protected file (600 or rw-------) is the
+    best solution.
+
+    imasync is not totally protected against sniffers on the network since
+    passwords may be transferred in plain text if CRAM-MD5 is not supported
+    by your imap servers. Use --ssl1 (or --tls1) and --ssl2 (or --tls2) to
+    enable encryption on host1 and host2.
+
+    You may authenticate as one user (typically an admin user), but be
+    authorized as someone else, which means you don't need to know every
+    user's personal password. Specify --authuser1 "adminuser" to enable this
+    on host1. In this case, --authmech1 PLAIN will be used by default since
+    it is the only way to go for now. So don't use --authmech1 SOMETHING
+    with --authuser1 "adminuser", it will not work. Same behavior with the
+    --authuser2 option. Authenticate with an admin account must be supported
+    by your imap server to work with imapsync.
+
+    When working on Sun/iPlanet/Netscape IMAP servers you must use
+    --proxyauth1 to enable administrative user to masquerade as another
+    user. Can also be used on destination server with --proxyauth2
+
+    You can authenticate with OAUTH when transfering from Google Apps. The
+    consumer key will be the domain part of the --user, and the --password
+    will be used as the consumer secret. It does not work with Google Apps
+    free edition.
+
+EXIT STATUS
+    imapsync will exit with a 0 status (return code) if everything went
+    good. Otherwise, it exits with a non-zero status.
+
+    So if you have an unreliable internet connection, you can use this loop
+    in a Bourne shell:
+
+            while ! imapsync ...; do 
+                  echo imapsync not complete
+            done
+
+LICENSE
+    imapsync is free, open, public but not always gratis software cover by
+    the NOLIMIT Public License. See the LICENSE file included in the
+    distribution or just read this simple sentence as it is the licence
+    text: No limit to do anything with this work and this license.
+
+MAILING-LIST
+    The public mailing-list may be the best way to get free support.
+
+    To write on the mailing-list, the address is:
+    &lt;imapsync@linux-france.org&gt;
+
+    To subscribe, send any message (even empty) to:
+    &lt;imapsync-subscribe@listes.linux-france.org&gt; then just reply to the
+    confirmation message.
+
+    To unsubscribe, send a message to:
+    &lt;imapsync-unsubscribe@listes.linux-france.org&gt;
+
+    To contact the person in charge for the list:
+    &lt;imapsync-request@listes.linux-france.org&gt;
+
+    The list archives are available at:
+    <a href="http://www.linux-france.org/prj/imapsync_list/">http://www.linux-france.org/prj/imapsync_list/</a> So consider that the list
+    is public, anyone can see your post. Use a pseudonym or do not post to
+    this list if you want to stay private.
+
+    Thank you for your participation.
+
+AUTHOR
+    Gilles LAMIRAL &lt;gilles.lamiral@laposte.net&gt;
+
+    Feedback good or bad is very often welcome.
+
+    Gilles LAMIRAL earns his living by writing, installing, configuring and
+    teaching free, open and often gratis softwares. It used to be "always
+    gratis" but now it is "often" because imapsync is sold by its author, a
+    good way to stay maintening and supporting free open public softwares
+    (see the license) over decades.
+
+BUG REPORT GUIDELINES
+    Help me to help you: follow the following guidelines.
+
+    Report any bugs or feature requests to the public mailing-list or to the
+    author.
+
+    Before reporting bugs, read the FAQ, the README and the TODO files.
+    <a href="http://imapsync.lamiral.info/">http://imapsync.lamiral.info/</a>
+
+    Upgrade to last imapsync release, maybe the bug is already fixed.
+
+    Upgrade to last Mail-IMAPClient Perl module.
+    <a href="http://search.cpan.org/dist/Mail-IMAPClient/">http://search.cpan.org/dist/Mail-IMAPClient/</a> maybe the bug is already
+    fixed there.
+
+    Make a good title with word "imapsync" in it (my spam filter won't
+    filter it), Try to write an email title with more words than just
+    "imapsync" or "problem", a good title is made of keywords summary, but
+    not too long (one visible line).
+
+    Help us to help you: in your report, please include:
+
+     - imapsync version.
+
+     - output near the first failures, a few lines before is good to get the context
+       of the issue. First failures messages are often more significant than 
+       the last ones. 
+ 
+     - if the issue is always related to the same messages, include the output 
+       with --debug --debugimap, near the failure point. For example,
+       Isolate a buggy message or two in a folder 'BUG' and use 
+
+         imapsync ... --folder 'BUG' --debug --debugimap 
+
+     - imap server softwares on both sides and their version number.
+
+     - imapsync with all the options you use,  the full command line
+       you use (except the passwords of course). 
+
+     - IMAPClient.pm version.
+
+     - the run context. Do you run imapsync.exe, a unix binary 
+       or the perl script imapsync.
+
+     - operating system running imapsync.
+
+     - virtual software context (vmware, xen etc.)
+
+     - operating systems on both sides and the third side in case
+       you run imapsync on a foreign host from the both.
+
+    Most of those values can be found as a copy/paste at the begining of the
+    output, so a carbon copy of the output is a very easy and very good
+    debug report for me.
+
+    One time in your life, read the paper "How To Ask Questions The Smart
+    Way" <a href="http://www.catb.org/~esr/faqs/smart-questions.html">http://www.catb.org/~esr/faqs/smart-questions.html</a> and then forget
+    it.
+
+IMAP SERVERS
+    Failure stories reported in the past with the following 6 imap servers.
+    Maybe last imapsync release can run successfully with them. Don't
+    hesitate to have a try, It's been a long time since last failure
+    occured, I will help you and make efforts to switch them to the success
+    list, that's my job.
+
+     - MailEnable 1.54 (Proprietary) but MailEnable 4.23 is supported. 
+     - DBMail 0.9, 2.0.7 (GPL). But DBMail 1.2.1 is supported.
+       Patient and confident testers are welcome.
+     - Imail 7.04 (maybe).
+     - (2011) MDaemon 12.0.3 as host2 but MDaemon is supported as host1.
+       MDaemon is simply buggy with the APPEND IMAP command with 
+       any IMAP email client.
+     - Hotmail since hotmail.com does not provide IMAP access
+     - Outlook.com since outlook.com does not provide IMAP access
+
+    Success stories reported with the following 62 imap servers (software
+    names are in alphabetic order):
+
+     - 1und1 H mimap1 84498 [host1] H mibap4 95231 [host1]
+     - a1.net imap.a1.net IMAP4 Ready [host1]
+     - Apple Server 10.6 Snow Leopard [host1]
+     - Archiveopteryx 2.03, 2.04, 2.09, 2.10 [host2], 3.0.0 [host2]
+       (OSL 3.0) <a href="http://www.archiveopteryx.org/">http://www.archiveopteryx.org/</a>
+     - Atmail 6.x [host1]
+     - Axigen Mail Server Version 8.0.0
+     - BincImap 1.2.3 (GPL) (<a href="http://www.bincimap.org/">http://www.bincimap.org/</a>)
+     - CommuniGatePro server (Redhat 8.0) (Solaris), CommuniGate Pro 5.2.17[host2] (CentOS 5.4)
+     - Courier IMAP 1.5.1, 2.2.0, 2.1.1, 2.2.1, 3.0.8, 3.0.3, 4.1.1 (GPL) 
+       (<a href="http://www.courier-mta.org/">http://www.courier-mta.org/</a>)
+     - Critical Path (7.0.020)
+     - Cyrus IMAP 1.5, 1.6, 
+       2.1, 2.1.15, 2.1.16, 2.1.18 
+       2.2.1, 2.2.2-BETA, 2.2.3, 2.2.6, 2.2.10, 2.2.12, 2.2.13,
+       2.3-alpha (OSI Approved), 2.3.1, 2.3.7, 2.3.16
+       (<a href="http://asg.web.cmu.edu/cyrus/">http://asg.web.cmu.edu/cyrus/</a>)
+     - David Tobit V8 (proprietary Message system).
+     - Deerfield VisNetic MailServer 5.8.6 [host1] (<a href="http://www.deerfield.net/products/visnetic-mailserver/">http://www.deerfield.net/products/visnetic-mailserver/</a>) 
+     - DBMail 1.2.1, 2.0.4, 2.0.9, 2.2rc1 (GPL) (<a href="http://www.dbmail.org/">http://www.dbmail.org/</a>).
+       2.0.7 seems buggy.
+     - DBOX 2.41 System [host1] (<a href="http://www.dbox.handshake.de/">http://www.dbox.handshake.de/</a>).
+     - Deerfield VisNetic MailServer 5.8.6 [host1]
+     - dkimap4 [host1]
+     - Domino (Notes) 4.61 [host1], 6.5 [host1], 5.0.6, 5.0.7, 7.0.2, 6.0.2CF1, 
+       7.0.1 [host1], 8.0.1 [host1], 8.5.2 [host2], 8.5.3 [host1]
+     - Dovecot 0.99.10.4, 0.99.14, 0.99.14-8.fc4, 1.0-0.beta2.7, 
+       1.0.0 [dest/source] (LGPL) (<a href="http://www.dovecot.org/">http://www.dovecot.org/</a>)
+     - Eudora WorldMail v2
+     - FirtClass 9 [host1] Read the FAQ! (<a href="http://www.firstclass.com/">http://www.firstclass.com/</a>)
+     - FTGate (<a href="http://www.ftgate.com/">http://www.ftgate.com/</a>)
+     - Fusemail imap.fusemail.net:143 (<a href="https://www.fusemail.com/">https://www.fusemail.com/</a>).
+     - Gimap (Gmail imap)
+     - GMX IMAP4 StreamProxy.
+     - Groupwise IMAP (Novell) 6.x and 7.0. Buggy so see the FAQ.
+     - hMailServer 5.40-B1950 [host12], 5.3.3 [host2], 4.4.1 [host1] (see FAQ)
+     - IceWarp Server 10.4.5 [host1] (<a href="http://www.icewarp.com/">http://www.icewarp.com/</a>)
+     - iPlanet Messaging server 4.15, 5.1, 5.2
+     - IMail 7.15 (Ipswitch/Win2003), 8.12, 11.03 [host1]
+     - Kerio 7.2.0 Patch 1 [host12], Kerio 8 [host1]
+     - Mail2World IMAP4 Server 2.5 [host1] (<a href="http://www.mail2world.com/">http://www.mail2world.com/</a>)
+     - MailEnable 4.23 [host1] [host2], 4.26 [host1][host2], 5 [host1]
+     - MDaemon 7.0.1, 8.0.2, 8.1, 9.5.4 (Windows server 2003 R2 platform), 
+       9.6.5 [host1], 12 [host2], 12.0.3 [host1], 12.5.5 [host1],
+     - Mercury 4.1 (Windows server 2000 platform)
+     - Microsoft Exchange Server 5.5, 6.0.6249.0[host1], 6.0.6487.0[host1], 
+       6.5.7638.1 [host2], 6.5 [host1], Exchange 2007 SP1 (with Update Rollup 2), 
+       Exchange2007-EP-SP2,
+       Exchange 2010 RTM (Release to Manufacturing) [host2],
+       Exchange 2010 SP1 RU2[host2],
+     - Mirapoint, 4.1.9-GA [host1]
+     - Netscape Mail Server 3.6 (Wintel !)
+     - Netscape Messaging Server 4.15 Patch 7
+     - Office 365 [host1] [host2]
+     - OpenMail IMAP server B.07.00.k0 (Samsung Contact ?)
+     - OpenWave
+     - Oracle Beehive [host1]
+     - Parallels Plesk Panel 9.x [host2] 11.x [host2] (<a href="http://www.parallels.com/">http://www.parallels.com/</a>)
+     - Qualcomm Worldmail (NT)
+     - QQMail IMAP4Server [host1] [host2] <a href="https://en.mail.qq.com/">https://en.mail.qq.com/</a>
+     - RackSpace hoster secure.emailsrvr.com:993 <a href="http://www.rackspace.com/">http://www.rackspace.com/</a>
+     - Rockliffe Mailsite 5.3.11, 4.5.6
+     - Samsung Contact IMAP server 8.5.0
+     - Scalix v10.1, 10.0.1.3, 11.0.0.431, 11.4.6
+     - Sendmail Mail Store IMAP4rev1 (5.5.6/mstore-5-5-build-1874 [host1].
+     - SmarterMail, Smarter Mail 5.0 Enterprise, Smarter Mail 5.5 [host1], 
+       SmarterMail Professional 10.2 [host1], Smarter Mail 11.7 [host1][host2].
+     - Softalk Workgroup Mail 7.6.4 [host1].
+     - SunONE Messaging server 5.2, 6.0 (SUN JES - Java Enterprise System)
+     - Sun Java(tm) System Messaging Server 6.2-2.05,  6.2-7.05, 6.3
+     - Surgemail 3.6f5-5, 6.3d-72 [host2]
+     - UW-imap servers (imap-2000b) rijkkramer IMAP4rev1 2000.287
+       (RedHat uses UW like 2003.338rh), v12.264 Solaris 5.7 (OSI Approved) 
+       (<a href="http://www.washington.edu/imap/">http://www.washington.edu/imap/</a>)
+     - UW - QMail v2.1
+     - VMS, Imap part of TCP/IP suite of VMS 7.3.2
+     - Yahoo [host1]
+     - Zarafa 6,40,0,20653 [host1] (<a href="http://www.zarafa.com/">http://www.zarafa.com/</a>)
+     - Zarafa ZCP 7.1.4 IMAP Gateway [host2]
+     - Zimbra-IMAP 3.0.1 GA 160, 3.1.0 Build 279, 4.0.5, 4.5.2, 4.5.6, 
+       Zimbra 5.0.24_GA_3356.RHEL4 [host1], 5.5, 6.x
+
+    Please report to the author any success or bad story with imapsync and
+    do not forget to mention the IMAP server software names and version on
+    both sides. This will help future users. To help the author maintaining
+    this section report the two lines at the begining of the output if they
+    are useful to know the softwares. Example:
+
+     Host1 software:* OK louloutte Cyrus IMAP4 v1.5.19 server ready
+     Host2 software:* OK Courier-IMAP ready
+
+    You can use option --justconnect to get those lines. Example:
+
+      imapsync --host1 imap.troc.org --host2 imap.trac.org --justconnect
+
+HUGE MIGRATION
+    Pay special attention to options --subscribed --subscribe --delete
+    --delete2 --delete2folders --maxage --minage --maxsize --useuid
+    --usecache
+
+    If you have many mailboxes to migrate think about a little shell
+    program. Write a file called file.txt (for example) containing users and
+    passwords. The separator used in this example is ';'
+
+    The file.txt file contains:
+
+    user001_1;password001_1;user001_2;password001_2
+    user002_1;password002_1;user002_2;password002_2
+    user003_1;password003_1;user003_2;password003_2
+    user004_1;password004_1;user004_2;password004_2
+    user005_1;password005_1;user005_2;password005_2 ...
+
+    On Unix the shell program can be:
+
+     { while IFS=';' read  u1 p1 u2 p2; do 
+            imapsync --host1 imap.side1.org --user1 "$u1" --password1 "$p1" \
+                     --host2 imap.side2.org --user2 "$u2" --password2 "$p2" ...
+     done ; } &lt; file.txt
+
+    On Windows the batch program can be:
+
+      FOR /F "tokens=1,2,3,4 delims=; eol=#" %%G IN (file.txt) DO imapsync ^
+      --host1 imap.side1.org --user1 %%G --password1 %%H ^
+      --host2 imap.side2.org --user2 %%I --password2 %%J ...
+
+    The ... have to be replaced by nothing or any imapsync option. Welcome
+    in shell programming !
+
+    You will find already written scripts at
+    <a href="http://imapsync.lamiral.info/examples/">http://imapsync.lamiral.info/examples/</a>
+
+Hacking
+    Feel free to hack imapsync as the NOLIMIT license permits it.
+
+Links
+    Entries for imapsync: <a href="http://www.imap.org/products/showall.php">http://www.imap.org/products/showall.php</a>
+
+SIMILAR SOFTWARES
+      imap_tools    : <a href="http://www.athensfbc.com/imap_tools">http://www.athensfbc.com/imap_tools</a>
+      offlineimap   : <a href="https://github.com/nicolas33/offlineimap">https://github.com/nicolas33/offlineimap</a>
+      mbsync        : <a href="http://isync.sourceforge.net/">http://isync.sourceforge.net/</a>
+      mailsync      : <a href="http://mailsync.sourceforge.net/">http://mailsync.sourceforge.net/</a>
+      mailutil      : <a href="http://www.washington.edu/imap/">http://www.washington.edu/imap/</a>
+                      part of the UW IMAP tookit.
+      imaprepl      : <a href="http://www.bl0rg.net/software/">http://www.bl0rg.net/software/</a>
+                      <a href="http://freecode.com/projects/imap-repl/">http://freecode.com/projects/imap-repl/</a>
+      imapcopy      : <a href="http://home.arcor.de/armin.diehl/imapcopy/imapcopy.html">http://home.arcor.de/armin.diehl/imapcopy/imapcopy.html</a>
+      migrationtool : <a href="http://sourceforge.net/projects/migrationtool/">http://sourceforge.net/projects/migrationtool/</a>
+      imapmigrate   : <a href="http://sourceforge.net/projects/cyrus-utils/">http://sourceforge.net/projects/cyrus-utils/</a>
+      wonko_imapsync: <a href="http://wonko.com/article/554">http://wonko.com/article/554</a>
+                      see also file W/tools/wonko_ruby_imapsync
+      exchange-away : <a href="http://exchange-away.sourceforge.net/">http://exchange-away.sourceforge.net/</a>
+      pop2imap      : <a href="http://www.linux-france.org/prj/pop2imap/">http://www.linux-france.org/prj/pop2imap/</a>
+
+    Feedback (good or bad) will often be welcome.
+
+    $Id: imapsync,v 1.592 2014/05/22 10:03:17 gilles Exp gilles $
+
+</pre></div></div>

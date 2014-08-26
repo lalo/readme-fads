@@ -1,0 +1,346 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-giter8" class="anchor" href="#giter8" aria-hidden="true"><span class="octicon octicon-link"></span></a>giter8</h1>
+
+<p><a href="http://blog.twiwt.org/e/f12c0f"><em>Japanese 日本語</em></a></p>
+
+<p>Giter8 is a command line tool to generate files and directories from
+templates published on github or any other git repository. It's 
+implemented in Scala and runs through the 
+<a href="https://github.com/harrah/xsbt/wiki/">Simple Build Tool launcher</a>, but it can produce 
+output for any purpose.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>You can install giter8 and other Scala command line tools with
+<a href="https://github.com/n8han/conscript#readme">Conscript</a>. This will setup Conscript in <code>~/bin/cs</code>:</p>
+
+<pre><code>curl https://raw.githubusercontent.com/n8han/conscript/master/setup.sh | sh
+</code></pre>
+
+<p>(See <a href="https://github.com/n8han/conscript#readme">Conscript's readme</a> for a non-unixy option.) Once <code>cs</code> is
+on your path, you can install (or upgrade) giter8 with this command:</p>
+
+<pre><code>cs n8han/giter8
+</code></pre>
+
+<p>To make sure everything is working, try running <code>g8</code> with no
+parameters. This should download giter8 and its dependencies, then print
+a usage message.</p>
+
+<p>When it's time to upgrade to a new version of giter8, just run the
+same <code>cs</code> command again.</p>
+
+<p>Giter8 is also installable with the OS X package manager <a href="http://mxcl.github.com/homebrew/">Homebrew</a>:</p>
+
+<pre><code>$ brew update &amp;&amp; brew install giter8
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Template repositories must reside on github and be named with the
+suffix <code>.g8</code>. We're keeping a <a href="http://github.com/n8han/giter8/wiki/giter8-templates">list of templates on the wiki</a>.</p>
+
+<p>To apply a template, for example, <a href="http://github.com/softprops/unfiltered.g8">softprops/unfiltered.g8</a>:</p>
+
+<pre><code>$ g8 softprops/unfiltered.g8
+</code></pre>
+
+<p>The <code>.g8</code> suffix is assumed:</p>
+
+<pre><code>$ g8 softprops/unfiltered
+</code></pre>
+
+<p>Either way, giter8 resolves this to the <code>softprops/unfiltered.g8</code>
+repository and queries github for the project's template
+parameters. 
+Alternatively, you can also use a git repository full name&gt;</p>
+
+<pre><code>$ g8 https://github.com/softprops/unfiltered.g8.git
+</code></pre>
+
+<p>You'll be prompted for each parameter, with its default
+value in square brackets:</p>
+
+<pre><code>name [My Web Project]: 
+</code></pre>
+
+<p>Enter your own value or press enter to accept the default. After all
+values have been supplied, giter8 fetches the templates, applies
+the parameters, and writes them to your filesystem. </p>
+
+<p>If the template has a <code>name</code> parameter, it will be used to create base 
+directory in the current directory (typical for a new project). 
+Otherwise, giter8 will output its files and directories into 
+the current directory, skipping over any files that already exist.</p>
+
+<p>Once you become familiar with a template's parameters, you can enter
+them on the command line and skip the interaction:</p>
+
+<pre><code>$ g8 softprops/unfiltered.g8 --name=my-new-website
+</code></pre>
+
+<p>Any unsupplied parameters are assigned their default values.</p>
+
+<h2>
+<a name="user-content-private-repositories" class="anchor" href="#private-repositories" aria-hidden="true"><span class="octicon octicon-link"></span></a>Private Repositories</h2>
+
+<p>Giter8 will use your ssh key to access private repositories, just like git does.</p>
+
+<h2>
+<a name="user-content-making-your-own-templates" class="anchor" href="#making-your-own-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Making your own templates</h2>
+
+<p>The g8 runtime looks for templates in the <code>src/main/g8</code> directory of a
+given github project. This structure is used so that it is easy (but
+not required) for the template itself to be an sbt project. That way,
+an sbt plugin can be employed to locally test templates before pushing
+changes to github.</p>
+
+<p>The easy way to start a new template project is with a giter8 template
+made expressly for that purpose:</p>
+
+<pre><code>$ g8 n8han/giter8
+</code></pre>
+
+<p>This will create an sbt project with stub template sources nested
+under <code>src/main/g8</code>. The file <code>default.properties</code> defines template
+fields and their default values using the Java properties file format.</p>
+
+<p>Properties can be simple keys and values that replace them, but <strong>ls
+properties</strong> tell giter8 to query the <a href="http://ls.implicit.ly/">ls.implicit.ly</a> web
+API. Instead of supplying a particular version (and having to update
+the template with every release), specify a library and giter8 will
+set the value to the latest version according to ls.</p>
+
+<p>The property value format is <code>ls(library, user, repo)</code>. The second two
+parameters are optional, but it is a good idea to specify the github
+at least the user or organization that is bound to the library, in
+case someone else ever publishing a library module with the same name.</p>
+
+<p>The n8han/giter8.g8 template itself uses this feature to refer
+to the latest version of the giter8 sbt plugin.</p>
+
+<pre><code>name = My Template Project
+description = Creates a giter8 project template.
+giter8_version = ls(giter8-plugin, n8han)
+</code></pre>
+
+<p><a href="http://www.stringtemplate.org/">StringTemplate</a>, wrapped by <a href="http://bmc.github.com/scalasti/">Scalasti</a>, is the engine
+that applies giter8 templates, so template fields in source files are
+bracketed with the <code>$</code> character. For example, a "classname" field
+might be referenced in the source as:</p>
+
+<pre><code>class $classname$ {
+</code></pre>
+
+<p>The template fields themselves can be utilized to define the defaults
+of other fields.  For instance, you could build some URLs given the
+user's github id:</p>
+
+<pre><code>name = URL Builder
+github_id=githubber
+developer_url=https://github.com/$github_id$
+project_url=https://github.com/$github_id$/$name;format="norm"$
+</code></pre>
+
+<p>This would yield the following in interactive mode:</p>
+
+<pre><code>name [URL Builder]: my-proj
+github_id [githubber]: n8han
+project_url [https://github.com/n8han/my-proj]:
+developer_url [https://github.com/n8han]:
+</code></pre>
+
+<p>The <code>name</code> field, if defined, is treated specially by giter8. It is
+assumed to be the name of a project being created, so the g8 runtime
+creates a directory based off that name (with spaces and capitals
+replaced) that will contain the template output. If no name field is
+specified in the template, g8's output goes to the user's current
+working directory. In both cases, directories nested under the
+template's source directory are reproduced in its output. File and
+directory names also participate in template expansion, e.g.</p>
+
+<pre><code>src/main/g8/src/main/scala/$classname$.scala
+</code></pre>
+
+<p>The <code>package</code> field, if defined, is assumed to be the package name
+of the user's source. A directory named <code>$package$</code> expands out to
+package directory structure. For example, <code>net.databinder</code> becomes
+<code>net/databinder</code>.</p>
+
+<p>The <code>verbatim</code> field, if defined, is assumed to be the space delimited
+list of file patterns such as <code>*.html *.js</code>. Files matching <code>verbatim</code>
+pattern are excluded from string template processing.</p>
+
+<h3>
+<a name="user-content-formatting-template-fields" class="anchor" href="#formatting-template-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Formatting template fields</h3>
+
+<p>Giter8 has built-in support for formatting template fields. Formatting options
+can be added when referencing fields. For example, the <code>name</code> field can be
+formatted in upper camel case with:</p>
+
+<pre><code>$name;format="Camel"$
+</code></pre>
+
+<p>The formatting options are:</p>
+
+<pre><code>upper    | uppercase       : all uppercase letters
+lower    | lowercase       : all lowercase letters
+cap      | capitalize      : uppercase first letter
+decap    | decapitalize    : lowercase first letter
+start    | start-case      : uppercase the first letter of each word
+word     | word-only       : remove all non-word letters (only a-zA-Z0-9_)
+Camel    | upper-camel     : upper camel case (start-case, word-only)
+camel    | lower-camel     : lower camel case (start-case, word-only, decapitalize)
+hyphen   | hyphenate       : replace spaces with hyphens
+norm     | normalize       : all lowercase with hyphens (lowercase, hyphenate)
+snake    | snake-case      : replace spaces and dots with underscores
+packaged | package-dir     : replace dots with slashes (net.databinder -&gt; net/databinder)
+random   | generate-random : appends random characters to the given string
+</code></pre>
+
+<p>A <code>name</code> field with a value of <code>My Project</code> could be rendered in several ways:</p>
+
+<pre><code>$name$ -&gt; "My Project"
+$name;format="camel"$ -&gt; "myProject"
+$name;format="Camel"$ -&gt; "MyProject"
+$name;format="normalize"$ -&gt; "my-project"
+$name;format="lower,hyphen"$ -&gt; "my-project"
+</code></pre>
+
+<p>Note that multiple format options can be specified (comma-separated) which will
+be applied in the order given.</p>
+
+<p>For file and directory names a format option can be specified after a double
+underscore. For example, a directory named <code>$organization__packaged$</code> will
+change <code>org.somewhere</code> to <code>org/somewhere</code> like the built-in support for
+<code>package</code>. A file named <code>$name__Camel$.scala</code> and the name <code>awesome project</code>
+will create the file <code>AwesomeProject.scala</code>.</p>
+
+<h3>
+<a name="user-content-testing-templates-locally" class="anchor" href="#testing-templates-locally" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing templates locally</h3>
+
+<p>Templates may be passed to the <code>g8</code> command with a <code>file://</code> URL, and
+in this case the template is applied as it is currently saved to the
+file system (giter8 0.6.0 +). In conjunction with the <code>--force</code> option
+which overwrites output files without prompting, you can test changes
+to a template as you are making them.</p>
+
+<p>For example, if you have the Unfiltered template cloned locally you
+could run a command like this:</p>
+
+<pre><code>$ g8 file://unfiltered.g8/ --name=uftest --force
+</code></pre>
+
+<p>In a separate terminal, test out the template.</p>
+
+<pre><code>$ cd uftest/
+$ sbt
+&gt; ~ compile
+</code></pre>
+
+<p>To make changes to the template, save them to its source under the
+<code>.g8</code> directory, then repeat the command to apply the template in the
+original terminal:</p>
+
+<pre><code>$ g8 file://unfiltered.g8/ --name=uftest --force
+</code></pre>
+
+<p>Your <code>uftest</code> sbt session, waiting with the <code>~ compile</code> command, will
+detect the changes and automatically recompile.</p>
+
+<h3>
+<a name="user-content-using-the-giter8-plugin" class="anchor" href="#using-the-giter8-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the giter8-plugin</h3>
+
+<p>Giter8 supplies an sbt plugin for testing templates before pushing
+them to a github branch. If you used the <code>n8han/giter8.g8</code> template
+recommended above, it should already be configured. If you need to
+upgrade an existing template project to the current plugin, you can
+add it as a source dependency in <code>project/project/plugins.scala</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">sbt._</span>
+<span class="k">object</span> <span class="nc">PluginDef</span> <span class="k">extends</span> <span class="nc">Build</span> <span class="o">{</span>
+  <span class="k">lazy</span> <span class="k">val</span> <span class="n">root</span> <span class="k">=</span> <span class="nc">Project</span><span class="o">(</span><span class="s">"plugins"</span><span class="o">,</span> <span class="n">file</span><span class="o">(</span><span class="s">"."</span><span class="o">))</span> <span class="n">dependsOn</span><span class="o">(</span> <span class="n">g8plugin</span> <span class="o">)</span>
+  <span class="k">lazy</span> <span class="k">val</span> <span class="n">g8plugin</span> <span class="k">=</span>
+    <span class="nc">ProjectRef</span><span class="o">(</span><span class="n">uri</span><span class="o">(</span><span class="s">"git://github.com/n8han/giter8#0.4.4"</span><span class="o">),</span> <span class="s">"giter8-plugin"</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>And settings must be applied in a <code>build.sbt</code> file in the project base:</p>
+
+<pre><code>seq(giter8Settings :_*)
+</code></pre>
+
+<p>When you enter sbt's interactive mode in the base directory of a
+template project that is configured to use this plugin, the action
+<code>g8-test</code> will apply the template in the default output directory
+(under <code>target/sbt-test</code>) and run the scripted test for <em>that</em> project
+in a forked process.  You can supply the test scripted as
+<code>src/test/g8/test</code>, otherwise <code>&gt;test</code> is used. This is a good sanity
+check for templates that are supposed to produce sbt projects.</p>
+
+<p>But what if your template is not for an sbt project?</p>
+
+<pre><code>src/main/g8/default.properties
+src/main/g8/TodaysMenu.html
+</code></pre>
+
+<p>You can still use sbt's interactive mode to test the template. The
+lower level <code>g8</code> action will apply default field values
+to the template and write it to the same <code>target/g8</code> directory.</p>
+
+<p>As soon as you push your template to github (remember to name the
+project with a <code>.g8</code> extension) you can test it with the actual g8
+runtime. When you're ready, add your template project to the
+<a href="http://github.com/n8han/giter8/wiki/giter8-templates">the wiki</a> so other giter8 users can find it.</p>
+
+<h2>
+<a name="user-content-scaffolding-plugin" class="anchor" href="#scaffolding-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scaffolding plugin</h2>
+
+<p>Giter8 supplies an sbt plugin for creating and using scaffolds.</p>
+
+<h2>
+<a name="user-content-using-the-scaffold-plugin" class="anchor" href="#using-the-scaffold-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the scaffold plugin</h2>
+
+<p>Add the following lines in <code>project/plugins.sbt</code></p>
+
+<div class="highlight highlight-scala"><pre><span class="n">addSbtPlugin</span><span class="o">(</span><span class="s">"net.databinder.giter8"</span> <span class="o">%</span> <span class="s">"giter8-scaffold"</span> <span class="o">%</span> <span class="s">"0.4.6-SNAPSHOT"</span><span class="o">)</span>
+</pre></div>
+
+<p>You also want to add <code>giter8.ScaffoldPlugin.scaffoldSettings</code> to you project.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">lazy</span> <span class="k">val</span> <span class="n">project</span> <span class="k">=</span> <span class="nc">Project</span><span class="o">(</span><span class="s">"project"</span><span class="o">).</span><span class="n">settings</span><span class="o">(</span><span class="n">giter8</span><span class="o">.</span><span class="nc">ScaffoldPlugin</span><span class="o">.</span><span class="n">scaffoldSettings</span><span class="k">:_</span><span class="kt">*</span><span class="o">)</span>
+</pre></div>
+
+<p>Once done, the  <code>g8-scaffold</code> command can be used in the sbt console.
+Use TAB completion to discover available templates.</p>
+
+<pre><code>[sample] $ g8-scaffold &lt;TAB&gt;
+controller   global       model
+</code></pre>
+
+<p>The template plugin will prompt each property that needed to complete the scaffolding process:</p>
+
+<pre><code>[sample] $ g8-scaffold controller
+className [Application]:
+</code></pre>
+
+<h2>
+<a name="user-content-creating-a-scaffold" class="anchor" href="#creating-a-scaffold" aria-hidden="true"><span class="octicon octicon-link"></span></a>creating a scaffold</h2>
+
+<p>The g8 runtime looks for scaffold in the <code>src/main/scaffolds</code>.
+Each folder inside `<code>src/main/scaffolds</code> is a different scaffold, and will be accessible in the sbt console using the folder name. </p>
+
+<p>Once a template as been used, scaffolds are stored into <code>&lt;project_root&gt;/.g8</code></p>
+
+<pre><code>➜  sample/.g8 
+total 0
+drwxr-xr-x   5 jtournay  staff   170B Aug  6 03:21 .
+drwxr-xr-x  11 jtournay  staff   374B Aug  6 05:29 ..
+drwxr-xr-x   4 jtournay  staff   136B Aug  6 03:21 controller
+drwxr-xr-x   4 jtournay  staff   136B Aug  6 03:21 global
+drwxr-xr-x   4 jtournay  staff   136B Aug  6 03:21 model
+</code></pre>
+
+<p>It's also possible to create your own scaffold in any sbt project by creating or modifying the <code>.g8</code> folder.</p></article></div>

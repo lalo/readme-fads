@@ -1,0 +1,403 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-pjax" class="anchor" href="#pjax" aria-hidden="true"><span class="octicon octicon-link"></span></a>pjax</h1>
+
+<pre><code>        .--.
+       /    \
+      ## a  a
+      (   '._)
+       |'-- |
+     _.\___/_   ___pjax___
+   ."\&gt; \Y/|&lt;'.  '._.-'
+  /  \ \_\/ /  '-' /
+  | --'\_/|/ |   _/
+  |___.-' |  |`'`
+    |     |  |
+    |    / './
+   /__./` | |
+      \   | |
+       \  | |
+       ;  | |
+       /  | |
+ jgs  |___\_.\_
+      `-"--'---'
+</code></pre>
+
+<h2>
+<a name="user-content-pjax--pushstate--ajax" class="anchor" href="#pjax--pushstate--ajax" aria-hidden="true"><span class="octicon octicon-link"></span></a>pjax = pushState + ajax</h2>
+
+<p>pjax is a jQuery plugin that uses ajax and pushState to deliver a fast browsing experience with real permalinks, page titles, and a working back button.</p>
+
+<p>pjax works by grabbing html from your server via ajax and replacing the content of a container on your page with the ajax'd html. It then updates the browser's current url using pushState without reloading your page's layout or any resources (js, css), giving the appearance of a fast, full page load. But really it's just ajax and pushState.</p>
+
+<p>For <a href="http://caniuse.com/#search=pushstate">browsers that don't support pushState</a> pjax fully degrades.</p>
+
+<h2>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h2>
+
+<p>pjax is not fully automatic. You'll need to setup and designate a containing element on your page that will be replaced when you navigate your site.</p>
+
+<p>Consider the following page.</p>
+
+<div class="highlight highlight-html"><pre><span class="cp">&lt;!DOCTYPE html&gt;</span>
+<span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;</span>
+  <span class="c">&lt;!-- styles, scripts, etc --&gt;</span>
+<span class="nt">&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+  <span class="nt">&lt;h1&gt;</span>My Site<span class="nt">&lt;/h1&gt;</span>
+  <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">"container"</span> <span class="na">id=</span><span class="s">"pjax-container"</span><span class="nt">&gt;</span>
+    Go to <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">"/page/2"</span><span class="nt">&gt;</span>next page<span class="nt">&lt;/a&gt;</span>.
+  <span class="nt">&lt;/div&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>We want pjax to grab the url <code>/page/2</code> then replace <code>#pjax-container</code> with whatever it gets back. No styles or scripts will be reloaded and even the h1 can stay the same - we just want to change the <code>#pjax-container</code> element.</p>
+
+<p>We do this by telling pjax to listen on <code>a</code> tags and use <code>#pjax-container</code> as the target container:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">pjax</span><span class="p">(</span><span class="s1">'a'</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+</pre></div>
+
+<p>Now when someone in a pjax-compatible browser clicks "next page" the content of <code>#pjax-container</code> will be replaced with the body of <code>/page/2</code>.</p>
+
+<p>Magic! Almost. You still need to configure your server to look for pjax requests and send back pjax-specific content.</p>
+
+<p>The pjax ajax request sends an <code>X-PJAX</code> header so in this example (and in most cases) we want to return just the content of the page without any layout for any requests with that header.</p>
+
+<p>Here's what it might look like in Rails:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">'X-PJAX'</span><span class="o">]</span>
+    <span class="n">render</span> <span class="ss">:layout</span> <span class="o">=&gt;</span> <span class="kp">false</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you'd like a more automatic solution than pjax for Rails check out <a href="https://github.com/rails/turbolinks">Turbolinks</a>.</p>
+
+<p>Also check out <a href="http://railscasts.com/episodes/294-playing-with-pjax">RailsCasts #294 : Playing with PJAX</a></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-bower" class="anchor" href="#bower" aria-hidden="true"><span class="octicon octicon-link"></span></a>bower</h3>
+
+<p>Via <a href="https://github.com/twitter/bower">bower</a>.</p>
+
+<pre><code>$ bower install jquery-pjax
+</code></pre>
+
+<p>Or add <code>jquery-pjax</code> to your apps <code>bower.json</code>.</p>
+
+<div class="highlight highlight-json"><pre>  <span class="s2">"dependencies"</span><span class="err">:</span> <span class="p">{</span>
+    <span class="nt">"jquery-pjax"</span><span class="p">:</span> <span class="s2">"latest"</span>
+  <span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-standalone" class="anchor" href="#standalone" aria-hidden="true"><span class="octicon octicon-link"></span></a>standalone</h3>
+
+<p>pjax can be downloaded directly into your app's public directory - just be sure you've loaded jQuery first.</p>
+
+<pre><code>curl -O https://raw.github.com/defunkt/jquery-pjax/master/jquery.pjax.js
+</code></pre>
+
+<p><strong>WARNING</strong> Do not hotlink the raw script url. GitHub is not a CDN.</p>
+
+<h2>
+<a name="user-content-dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+
+<p>Requires jQuery 1.8.x or higher.</p>
+
+<h2>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h2>
+
+<p>pjax only works with <a href="http://caniuse.com/#search=pushstate">browsers that support the <code>history.pushState</code> API</a>. When the API isn't supported pjax goes into fallback mode: <code>$.fn.pjax</code> calls will be a no-op and <code>$.pjax</code> will hard load the given url. This mode targets the browser requirements of the jQuery version being used.</p>
+
+<p>For debugging purposes, you can intentionally disable pjax even if the browser supports <code>pushState</code>. Just call <code>$.pjax.disable()</code>. To see if pjax is actually supports <code>pushState</code>, check <code>$.support.pjax</code>.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-fnpjax" class="anchor" href="#fnpjax" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>$.fn.pjax</code>
+</h3>
+
+<p>Let's talk more about the most basic way to get started:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">pjax</span><span class="p">(</span><span class="s1">'a'</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+</pre></div>
+
+<p>This will enable pjax on all links and designate the container as <code>#pjax-container</code>.</p>
+
+<p>If you are migrating an existing site you probably don't want to enable pjax everywhere just yet. Instead of using a global selector like <code>a</code> try annotating pjaxable links with <code>data-pjax</code>, then use <code>'a[data-pjax]'</code> as your selector.</p>
+
+<p>Or try this selector that matches any <code>&lt;a data-pjax href=&gt;</code> links inside a <code>&lt;div data-pjax&gt;</code> container.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">pjax</span><span class="p">(</span><span class="s1">'[data-pjax] a, a[data-pjax]'</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+</pre></div>
+
+<p>When invoking <code>$.fn.pjax</code> there are a few different argument styles you can use:</p>
+
+<ol class="task-list">
+<li><code>$(document).pjax(delegation selector, options object)</code></li>
+<li><code>$(document).pjax(delegation selector, container selector, options object)</code></li>
+</ol><p>In other words:</p>
+
+<ol class="task-list">
+<li>The first argument must always be a <code>String</code> selector used for delegation.</li>
+<li>The second argument can either be a <code>String</code> container selector or an options object.</li>
+<li>If there are three arguments the second must be the <code>String</code> container selector and the third must be the options object.</li>
+</ol><h3>
+<a name="user-content-pjaxclick" class="anchor" href="#pjaxclick" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>$.pjax.click</code>
+</h3>
+
+<p>This is a lower level function used by <code>$.fn.pjax</code> itself. It allows you to get a little more control over the pjax event handling.</p>
+
+<p>This example uses the current click context to set an ancestor as the container:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="k">if</span> <span class="p">(</span><span class="nx">$</span><span class="p">.</span><span class="nx">support</span><span class="p">.</span><span class="nx">pjax</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">'click'</span><span class="p">,</span> <span class="s1">'a[data-pjax]'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">container</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">closest</span><span class="p">(</span><span class="s1">'[data-pjax-container]'</span><span class="p">)</span>
+    <span class="nx">$</span><span class="p">.</span><span class="nx">pjax</span><span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="p">{</span><span class="nx">container</span><span class="o">:</span> <span class="nx">container</span><span class="p">})</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><strong>NOTE</strong> Use the explicit <code>$.support.pjax</code> guard. We aren't using <code>$.fn.pjax</code> so we should avoid binding this event handler unless the browser is actually going to use pjax.</p>
+
+<h3>
+<a name="user-content-pjaxsubmit" class="anchor" href="#pjaxsubmit" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>$.pjax.submit</code>
+</h3>
+
+<p>Submits a form via pjax. This function is experimental but GitHub uses it on <a href="https://gist.github.com/">Gist</a> so give it a shot!</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">'submit'</span><span class="p">,</span> <span class="s1">'form[data-pjax]'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">pjax</span><span class="p">.</span><span class="nx">submit</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<h3>
+<a name="user-content-pjax-1" class="anchor" href="#pjax-1" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>$.pjax</code>
+</h3>
+
+<p>Manual pjax invocation. Used mainly when you want to start a pjax request in a handler that didn't originate from a click. If you can get access to a click <code>event</code>, consider <code>$.pjax.click(event)</code> instead.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">function</span> <span class="nx">applyFilters</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">urlForFilters</span><span class="p">()</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">pjax</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span> <span class="nx">url</span><span class="p">,</span> <span class="nx">container</span><span class="o">:</span> <span class="s1">'#pjax-container'</span><span class="p">})</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h3>
+
+<p>All pjax events except <code>pjax:click</code> &amp; <code>pjax:clicked</code> are fired from the pjax
+container, not the link that was clicked.</p>
+
+<table>
+<tr>
+<th>event</th>
+  <th>cancel</th>
+  <th>arguments</th>
+  <th>notes</th>
+</tr>
+<tr>
+<th colspan="4">event lifecycle upon following a pjaxed link</th>
+</tr>
+<tr>
+<td><code>pjax:click</code></td>
+  <td>✔︎</td>
+  <td><code>options</code></td>
+  <td>fires from a link that got activated; cancel to prevent pjax</td>
+</tr>
+<tr>
+<td><code>pjax:beforeSend</code></td>
+  <td>✔︎</td>
+  <td><code>xhr, options</code></td>
+  <td>can set XHR headers</td>
+</tr>
+<tr>
+<td><code>pjax:start</code></td>
+  <td></td>
+  <td><code>xhr, options</code></td>
+  <td></td>
+</tr>
+<tr>
+<td><code>pjax:send</code></td>
+  <td></td>
+  <td><code>xhr, options</code></td>
+  <td></td>
+</tr>
+<tr>
+<td><code>pjax:clicked</code></td>
+  <td></td>
+  <td><code>options</code></td>
+  <td>fires after pjax has started from a link that got clicked</td>
+</tr>
+<tr>
+<td><code>pjax:beforeReplace</code></td>
+  <td></td>
+  <td><code>contents, options</code></td>
+  <td>before replacing HTML with content loaded from the server</td>
+</tr>
+<tr>
+<td><code>pjax:success</code></td>
+  <td></td>
+  <td><code>data, status, xhr, options</code></td>
+  <td>after replacing HTML content loaded from the server</td>
+</tr>
+<tr>
+<td><code>pjax:timeout</code></td>
+  <td>✔︎</td>
+  <td><code>xhr, options</code></td>
+  <td>fires after <code>options.timeout</code>; will hard refresh unless canceled</td>
+</tr>
+<tr>
+<td><code>pjax:error</code></td>
+  <td>✔︎</td>
+  <td><code>xhr, textStatus, error, options</code></td>
+  <td>on ajax error; will hard refresh unless canceled</td>
+</tr>
+<tr>
+<td><code>pjax:complete</code></td>
+  <td></td>
+  <td><code>xhr, textStatus, options</code></td>
+  <td>always fires after ajax, regardless of result</td>
+</tr>
+<tr>
+<td><code>pjax:end</code></td>
+  <td></td>
+  <td><code>xhr, options</code></td>
+  <td></td>
+</tr>
+<tr>
+<th colspan="4">event lifecycle on browser Back/Forward navigation</th>
+</tr>
+<tr>
+<td><code>pjax:popstate</code></td>
+  <td></td>
+  <td></td>
+  <td>event <code>direction</code> property: "back"/"forward"</td>
+</tr>
+<tr>
+<td><code>pjax:start</code></td>
+  <td></td>
+  <td><code>null, options</code></td>
+  <td>before replacing content</td>
+</tr>
+<tr>
+<td><code>pjax:beforeReplace</code></td>
+  <td></td>
+  <td><code>contents, options</code></td>
+  <td>right before replacing HTML with content from cache</td>
+</tr>
+<tr>
+<td><code>pjax:end</code></td>
+  <td></td>
+  <td><code>null, options</code></td>
+  <td>after replacing content</td>
+</tr>
+</table><p><code>pjax:send</code> &amp; <code>pjax:complete</code> are a good pair of events to use if you are implementing a
+loading indicator. They'll only be triggered if an actual XHR request is made,
+not if the content is loaded from cache:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">'pjax:send'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">$</span><span class="p">(</span><span class="s1">'#loading'</span><span class="p">).</span><span class="nx">show</span><span class="p">()</span>
+<span class="p">})</span>
+<span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">'pjax:complete'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">$</span><span class="p">(</span><span class="s1">'#loading'</span><span class="p">).</span><span class="nx">hide</span><span class="p">()</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>An example of canceling a <code>pjax:timeout</code> event would be to disable the fallback
+timeout behavior if a spinner is being shown:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">'pjax:timeout'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Prevent default timeout redirection behavior</span>
+  <span class="nx">event</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">()</span>
+<span class="p">})</span>
+</pre></div>
+
+<h3>
+<a name="user-content-server-side" class="anchor" href="#server-side" aria-hidden="true"><span class="octicon octicon-link"></span></a>Server side</h3>
+
+<p>Server configuration will vary between languages and frameworks. The following example shows how you might configure Rails.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">'X-PJAX'</span><span class="o">]</span>
+    <span class="n">render</span> <span class="ss">:layout</span> <span class="o">=&gt;</span> <span class="kp">false</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>An <code>X-PJAX</code> request header is set to differentiate a pjax request from normal XHR requests. In this case, if the request is pjax, we skip the layout html and just render the inner contents of the container.</p>
+
+<p>Check if your favorite server framework supports pjax here: <a href="https://gist.github.com/4283721">https://gist.github.com/4283721</a></p>
+
+<h4>
+<a name="user-content-layout-reloading" class="anchor" href="#layout-reloading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Layout Reloading</h4>
+
+<p>Layouts can be forced to do a hard reload assets or html changes.</p>
+
+<p>First set the initial layout version in your header with a custom meta tag.</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;meta</span> <span class="na">http-equiv=</span><span class="s">"x-pjax-version"</span> <span class="na">content=</span><span class="s">"v123"</span><span class="nt">&gt;</span>
+</pre></div>
+
+<p>Then from the server side, set the <code>X-PJAX-Version</code> header to the same.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">'X-PJAX'</span><span class="o">]</span>
+  <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">'X-PJAX-Version'</span><span class="o">]</span> <span class="o">=</span> <span class="s2">"v123"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Deploying a deploy, bumping the version constant to force clients to do a full reload the next request getting the new layout and assets.</p>
+
+<h3>
+<a name="user-content-legacy-api" class="anchor" href="#legacy-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>Legacy API</h3>
+
+<p>Pre 1.0 versions used an older style syntax that was analogous to the now deprecated <code>$.fn.live</code> api. The current api is based off <code>$.fn.on</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="s1">'a[data-pjax]'</span><span class="p">).</span><span class="nx">pjax</span><span class="p">(</span><span class="s1">'#pjax-container'</span><span class="p">)</span>
+</pre></div>
+
+<p>Expanded to</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="s1">'a[data-pjax]'</span><span class="p">).</span><span class="nx">live</span><span class="p">(</span><span class="s1">'click'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">pjax</span><span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>The new api</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">pjax</span><span class="p">(</span><span class="s1">'a[data-pjax]'</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+</pre></div>
+
+<p>Which is roughly the same as</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="nb">document</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">'click'</span><span class="p">,</span> <span class="s1">'a[data-pjax]'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">$</span><span class="p">.</span><span class="nx">pjax</span><span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="s1">'#pjax-container'</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<p><strong>NOTE</strong> The new api gives you control over the delegated element container. <code>$.fn.live</code> always bound to <code>document</code>. This is what you still want to do most of the time.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<pre><code>$ git clone https://github.com/defunkt/jquery-pjax.git
+$ cd jquery-pjax/
+</code></pre>
+
+<p>To run the test suite locally, start up the Sinatra test application.</p>
+
+<pre><code>$ bundle install
+$ bundle exec ruby test/app.rb
+== Sinatra/1.4.5 has taken the stage on 4567 for development with backup from WEBrick
+
+# in another tab:
+$ open http://localhost:4567/
+</code></pre></article></div>

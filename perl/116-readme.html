@@ -1,0 +1,573 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a>Name</h1>
+
+<p><strong>nginx_ajp_module</strong> - support AJP protocol proxy with Nginx</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h1>
+
+<pre><code>    http {
+            upstream tomcats {
+                    server 127.0.0.1:8009;
+                    keepalive 10;
+            }
+
+            server {
+
+                    listen 80;
+
+                    location / {
+                            ajp_keep_conn on;
+                            ajp_pass tomcats;
+                    }
+            }
+    }
+</code></pre>
+
+<h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h1>
+
+<p>With this module, Nginx can connect to AJP port directly. The motivation of writing these modules is Nginx's high performance and robustness.</p>
+
+<h1>
+<a name="user-content-directives" class="anchor" href="#directives" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directives</h1>
+
+<h2>
+<a name="user-content-ajp_buffers" class="anchor" href="#ajp_buffers" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_buffers</h2>
+
+<p><strong>syntax:</strong> <em>ajp_buffers the_number is_size;</em></p>
+
+<p><strong>default:</strong> <em>ajp_buffers 8 4k/8k;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive specifies the number and the size of buffers, into which will be read the response, obtained from the AJP server. By default, the size of one buffer is equal to the size of a page. Depending on platform this is either 4K, 8K or 16K.</p>
+
+<h2>
+<a name="user-content-ajp_buffer_size" class="anchor" href="#ajp_buffer_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_buffer_size</h2>
+
+<p><strong>syntax:</strong> <em>ajp_buffer_size the_size;</em></p>
+
+<p><strong>default:</strong> <em>ajp_buffer_size 4k/8k;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive sets the buffer size, into which will be read the first part of the response, obtained from the AJP server.</p>
+
+<p>In this part of response the small response-header is located, as a rule.</p>
+
+<p>By default, the buffersize is equal to the size of one buffer in directive <code>ajp_buffers</code>; however, it is possible to set it to less.</p>
+
+<h2>
+<a name="user-content-ajp_cache" class="anchor" href="#ajp_cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache zone;</em></p>
+
+<p><strong>default:</strong> <em>off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>The directive specifies the area which actually is the share memory's name for caching. The same area can be used in several places. You must set the <code>ajp_cache_path</code> first.</p>
+
+<h2>
+<a name="user-content-ajp_cache_key" class="anchor" href="#ajp_cache_key" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache_key</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache_key line;</em></p>
+
+<p><strong>default:</strong> <em>none</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>The directive specifies what information is included in the key for caching, for example</p>
+
+<pre><code>    ajp_cache_key "$host$request_uri$cookie_user";
+</code></pre>
+
+<p>Note that by default, the hostname of the server is not included in the cache key. If you are using subdomains for different locations on your website, you need to include it, e.g. by changing the cache key to something like</p>
+
+<pre><code>    ajp_cache_key "$scheme$host$request_uri";
+</code></pre>
+
+<h2>
+<a name="user-content-ajp_cache_methods" class="anchor" href="#ajp_cache_methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache_methods</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache_methods [GET HEAD POST];</em></p>
+
+<p><strong>default:</strong> <em>ajp_cache_methods GET HEAD;</em></p>
+
+<p><strong>context:</strong> <em>main,http,location</em></p>
+
+<p>GET/HEAD is syntax sugar, i.e. you can not disable GET/HEAD even if you set just</p>
+
+<pre><code>    ajp_cache_methods  POST;
+</code></pre>
+
+<h2>
+<a name="user-content-ajp_cache_min_uses" class="anchor" href="#ajp_cache_min_uses" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache_min_uses</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache_min_uses n;</em></p>
+
+<p><strong>default:</strong> <em>ajp_cache_min_uses 1;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Sets the number of requests after which the response will be cached.</p>
+
+<h2>
+<a name="user-content-ajp_cache_path" class="anchor" href="#ajp_cache_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache_path</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache_path /path/to/cache [levels=m:n keys_zone=name:time inactive=time clean_time=time];</em></p>
+
+<p><strong>default:</strong> <em>none</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive sets the cache path and other cache parameters. Cached data stored in files. Key and filename in cache is md5 of proxied URL. <strong>Levels</strong> parameter set number of subdirectories in cache, for example for:</p>
+
+<pre><code>    ajp_cache_path  /data/nginx/cache  levels=1:2   keys_zone=one:10m;
+</code></pre>
+
+<p>file names will be like:</p>
+
+<p>/data/nginx/cache/c/29/b7f54b2df7773722d382f4809d65029c</p>
+
+<h2>
+<a name="user-content-ajp_cache_use_stale" class="anchor" href="#ajp_cache_use_stale" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache_use_stale</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache_use_stale [updating|error|timeout|invalid_header|http_500];</em></p>
+
+<p><strong>default:</strong> <em>ajp_cache_use_stale off;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>If an error occurs while working with the AJP server it is possible to use a stale cached response. This directives determines in which cases it is permitted. The directive’s parameters match those of the <code>ajp_next_upstream</code> directive.</p>
+
+<p>Additionally, the updating parameter permits to use a stale cached response if it is currently being updated. This allows to minimize the number of accesses to AJP servers when updating cached data.</p>
+
+<h2>
+<a name="user-content-ajp_cache_valid" class="anchor" href="#ajp_cache_valid" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_cache_valid</h2>
+
+<p><strong>syntax:</strong> <em>ajp_cache_valid [http_error_code|time];</em></p>
+
+<p><strong>default:</strong> <em>none</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Sets caching time for different response codes. For example, the following directives</p>
+
+<pre><code>    ajp_cache_valid 200 302 10m;
+    ajp_cache_valid 404      1m;
+</code></pre>
+
+<p>set 10 minutes of caching for responses with codes 200 and 302, and 1 minute for responses with code 404.</p>
+
+<p>If only caching time is specified</p>
+
+<pre><code>    ajp_cache_valid 5m;
+</code></pre>
+
+<p>then only 200, 301, and 302 responses are cached.</p>
+
+<p>In addition, it can be specified to cache any responses using the any parameter:</p>
+
+<pre><code>    ajp_cache_valid 200 302 10m;
+    ajp_cache_valid 301      1h;
+    ajp_cache_valid any      1m;
+</code></pre>
+
+<p>Parameters of caching can also be set directly in the response header. This has a higher precedence than setting of caching time using the directive. The “X-Accel-Expires” header field sets caching time of a response in seconds. The value 0 disables to cache a response. If a value starts with the prefix @, it sets an absolute time in seconds since Epoch, up to which the response may be cached. If header does not include the “X-Accel-Expires” field, parameters of caching may be set in the header fields “Expires” or “Cache-Control”. If a header includes the “Set-Cookie” field, such a response will not be cached. Processing of one or more of these response header fields can be disabled using the <code>ajp_ignore_headers</code> directive.</p>
+
+<h2>
+<a name="user-content-ajp_connect_timeout" class="anchor" href="#ajp_connect_timeout" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_connect_timeout</h2>
+
+<p><strong>syntax:</strong> <em>ajp_connect_timeout time;</em></p>
+
+<p><strong>default:</strong> <em>ajp_connect_timeout 60s;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive assigns a timeout for the connection to the upstream server. It is necessary to keep in mind that this time out cannot be more than 75 seconds.</p>
+
+<p>This is not the time until the server returns the pages, this is the <a href="#ajp_read_timeout"> ajp_read_timeout</a>  statement. If your upstream server is up, but hanging (e.g. it does not have enough threads to process your request so it puts you in the pool of connections to deal with later), then this statement will not help as the connection to the server has been made.</p>
+
+<h2>
+<a name="user-content-ajp_header_packet_buffer_size" class="anchor" href="#ajp_header_packet_buffer_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_header_packet_buffer_size</h2>
+
+<p><strong>syntax:</strong> <em>ajp_header packet_buffer_size;</em></p>
+
+<p><strong>default:</strong> <em>ajp_header_packet_buffer_size 8k;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Set the buffer size of Forward Request packet. The range is (0, 2^16).</p>
+
+<h2>
+<a name="user-content-ajp_hide_header" class="anchor" href="#ajp_hide_header" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_hide_header</h2>
+
+<p><strong>syntax:</strong> <em>ajp_hide_header name;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>By default, Nginx does not pass headers "Status" and "X-Accel-..." from the AJP process back to the client.  This directive can be used to hide other headers as well.</p>
+
+<p>If the headers "Status" and "X-Accel-..." must be provided, then it is necessary to use directive ajp_pass_header to force them to be returned to the client.</p>
+
+<h2>
+<a name="user-content-ajp_ignore_headers" class="anchor" href="#ajp_ignore_headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_ignore_headers</h2>
+
+<p><strong>syntax:</strong> <em>ajp_ignore_headers name [name ...];</em></p>
+
+<p><strong>default:</strong> <em>none</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive(0.7.54+) prohibits the processing of the header lines from the proxy server's response.</p>
+
+<p>It can specify the string as "<a href="https://metacpan.org/pod/NginxXSendfile">X-Accel-Redirect</a>", "X-Accel-Expires", "Expires" or "Cache-Control".</p>
+
+<h2>
+<a name="user-content-ajp_ignore_client_abort" class="anchor" href="#ajp_ignore_client_abort" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_ignore_client_abort</h2>
+
+<p><strong>syntax:</strong> <em>ajp_ignore_client_abort on|off;</em></p>
+
+<p><strong>default:</strong> <em>ajp_ignore_client_abort off;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive determines if current request to the AJP-server must be aborted in case the client aborts the request to the server.</p>
+
+<h2>
+<a name="user-content-ajp_intercept_errors" class="anchor" href="#ajp_intercept_errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_intercept_errors</h2>
+
+<p><strong>syntax:</strong> <em>ajp_intercept_errors on|off;</em></p>
+
+<p><strong>default:</strong> <em>ajp_intercept_errors off;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive determines whether or not to transfer 4xx and 5xx errors back to the client or to allow Nginx to answer with directive error_page.</p>
+
+<p>Note: You need to explicitly define the error_page handler for this for it to be useful. As Igor says, "nginx does not intercept an error if there is no custom handler for it it does not show its default pages. This allows to intercept some errors, while passing others as are."</p>
+
+<h2>
+<a name="user-content-ajp_keep_conn" class="anchor" href="#ajp_keep_conn" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_keep_conn</h2>
+
+<p><strong>syntax:</strong> <em>ajp_keep_conn on|off;</em></p>
+
+<p><strong>default:</strong> <em>ajp_keep_conn off;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive determines whether or not to keep the connection alive with backend server.</p>
+
+<h2>
+<a name="user-content-ajp_next_upstream" class="anchor" href="#ajp_next_upstream" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_next_upstream</h2>
+
+<p><strong>syntax:</strong> <em>ajp_next_upstream [error|timeout|invalid_header|http_500|http_502|http_503|http_504|http_404|off];</em></p>
+
+<p><strong>default:</strong> <em>ajp_next_upstream error timeout;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Directive determines, in what cases the request will be transmitted to the next server:</p>
+
+<ul class="task-list">
+<li>error — an error has occurred while connecting to the server, sending a request to it, or reading its response;</li>
+<li>timeout — occurred timeout during the connection with the server, transfer the request or while reading response from the server;</li>
+<li>invalid_header — server returned a empty or incorrect answer;</li>
+<li>http_500 — server returned answer with code 500;</li>
+<li>http_502 — server returned answer with code 502;</li>
+<li>http_503 — server returned answer with code 503;</li>
+<li>http_504 — server returned answer with code 504;</li>
+<li>http_404 — server returned answer with code 404;</li>
+<li>off — it forbids the request transfer to the next server Transferring the request to the next server is only possible when nothing has been transferred to the client -- that is, if an error or timeout arises in the middle of the transfer of the request, then it is not possible to retry the current request on a different server.</li>
+</ul><h2>
+<a name="user-content-ajp_max_data_packet_size" class="anchor" href="#ajp_max_data_packet_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_max_data_packet_size</h2>
+
+<p><strong>syntax:</strong> <em>ajp_max_data_packet_size size;</em></p>
+
+<p><strong>default:</strong> <em>ajp_max_data_packet_size 8k;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Set the maximum size of AJP's Data packet. The range is [8k, 2^16];</p>
+
+<h2>
+<a name="user-content-ajp_max_temp_file_size" class="anchor" href="#ajp_max_temp_file_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_max_temp_file_size</h2>
+
+<p><strong>syntax:</strong> <em>ajp_max_temp_file_size size;</em></p>
+
+<p><strong>default:</strong> <em>ajp_max_temp_file_size 1G;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, if</em></p>
+
+<p>The maximum size of a temporary file when the content is larger than the proxy buffer.  If file is larger than this size, it will be served synchronously from upstream server rather than buffered to disk.</p>
+
+<p>If ajp_max_temp_file_size is equal to zero, temporary files usage will be disabled.</p>
+
+<h2>
+<a name="user-content-ajp_pass" class="anchor" href="#ajp_pass" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_pass</h2>
+
+<p><strong>syntax:</strong> <em>ajp_pass ajp-server</em></p>
+
+<p><strong>default:</strong> <em>none</em></p>
+
+<p><strong>context:</strong> <em>location, if in location</em></p>
+
+<p>Directive assigns the port or socket on which the AJP-server is listening. Port can be indicated by itself or as an address and port, for example:</p>
+
+<pre><code>    ajp_pass   localhost:9000;
+</code></pre>
+
+<p>using a Unix domain socket:</p>
+
+<pre><code>    ajp_pass   unix:/tmp/ajp.socket;
+</code></pre>
+
+<p>You may also use an upstream block.</p>
+
+<pre><code>    upstream backend  {
+            server   localhost:1234;
+    }
+
+    ajp_pass   backend;
+</code></pre>
+
+<h2>
+<a name="user-content-ajp_pass_header" class="anchor" href="#ajp_pass_header" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_pass_header</h2>
+
+<p><strong>syntax:</strong> <em>ajp_pass_header name;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Permits to pass specific header fields from the AJP server to a client.</p>
+
+<h2>
+<a name="user-content-ajp_pass_request_headers" class="anchor" href="#ajp_pass_request_headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_pass_request_headers</h2>
+
+<p><strong>syntax:</strong> <em>ajp_pass_request_headers [ on | off ];</em></p>
+
+<p><strong>default:</strong> <em>ajp_pass_request_headers on;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Permits to pass request header fields from the client to server.</p>
+
+<h2>
+<a name="user-content-ajp_pass_request_body" class="anchor" href="#ajp_pass_request_body" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_pass_request_body</h2>
+
+<p><strong>syntax:</strong> <em>ajp_pass_request_body [ on | off ] ;</em></p>
+
+<p><strong>default:</strong> <em>ajp_pass_request_body on;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Permits to pass request body from the client to server.</p>
+
+<h2>
+<a name="user-content-ajp_read_timeout" class="anchor" href="#ajp_read_timeout" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_read_timeout</h2>
+
+<p><strong>syntax:</strong> <em>ajp_read_timeout time;</em></p>
+
+<p><strong>default:</strong> <em>ajp_read_timeout_time 60</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>Directive sets the amount of time for upstream to wait for a AJP process to send data.  Change this directive if you have long running AJP processes that do not produce output until they have finished processing.  If you are seeing an upstream timed out error in the error log, then increase this parameter to something more appropriate.</p>
+
+<h2>
+<a name="user-content-ajp_send_lowat" class="anchor" href="#ajp_send_lowat" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_send_lowat</h2>
+
+<p><strong>syntax:</strong> <em>ajp_send_lowat [ on | off ];</em></p>
+
+<p><strong>default:</strong> <em>ajp_send_lowat off;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, if</em></p>
+
+<p>This directive set SO_SNDLOWAT. This directive is only available on FreeBSD</p>
+
+<h2>
+<a name="user-content-ajp_send_timeout" class="anchor" href="#ajp_send_timeout" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_send_timeout</h2>
+
+<p><strong>syntax:</strong> <em>ajp_send_timeout time;</em></p>
+
+<p><strong>default:</strong> <em>ajp_send_timeout 60;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive assigns timeout with the transfer of request to the upstream server. Timeout is established not on entire transfer of request, but only between two write operations. If after this time the upstream server will not take new data, then nginx is shutdown the connection.</p>
+
+<h2>
+<a name="user-content-ajp_store" class="anchor" href="#ajp_store" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_store</h2>
+
+<p><strong>syntax:</strong> <em>ajp_store [on | off | path] ;</em></p>
+
+<p><strong>default:</strong> <em>ajp_store off;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive sets the path in which upstream files are stored. The parameter "on" preserves files in accordance with path specified in directives <em>alias</em> or <em>root</em>. The parameter "off" forbids storing. Furthermore, the name of the path can be clearly assigned with the aid of the line with the variables:</p>
+
+<pre><code>    ajp_store   /data/www$original_uri;
+</code></pre>
+
+<p>The time of modification for the file will be set to the date of "Last-Modified" header in the response. To be able to safe files in this directory it is necessary that the path is under the directory with temporary files, given by directive <code>ajp_temp_path</code> for the data location.</p>
+
+<p>This directive can be used for creating the local copies for dynamic output of the backend which is not very often changed, for example:</p>
+
+<pre><code>    location /images/ {
+            root                 /data/www;
+            error_page           404 = @fetch;
+    }
+
+    location @fetch {
+            internal;
+            ajp_pass           backend;
+            ajp_store          on;
+            ajp_store_access   user:rw  group:rw  all:r;
+            ajp_temp_path      /data/temp;
+
+            root               /data/www;
+    }
+</code></pre>
+
+<p>To be clear ajp_store is not a cache, it's rather mirror on demand.</p>
+
+<h2>
+<a name="user-content-ajp_store_access" class="anchor" href="#ajp_store_access" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_store_access</h2>
+
+<p><strong>syntax:</strong> <em>ajp_store_access users:permissions [users:permission ...];</em></p>
+
+<p><strong>default:</strong> <em>ajp_store_access user:rw;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive assigns the permissions for the created files and directories, for example:</p>
+
+<pre><code>    ajp_store_access  user:rw  group:rw  all:r;
+</code></pre>
+
+<p>If any rights for groups or all are assigned, then it is not necessary to assign rights for user:</p>
+
+<pre><code>    ajp_store_access  group:rw  all:r;
+</code></pre>
+
+<h2>
+<a name="user-content-ajp_temp_path" class="anchor" href="#ajp_temp_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_temp_path</h2>
+
+<p><strong>syntax:</strong> <em>ajp_temp_path dir-path [ level1 [ level2 [ level3 ] ] ] ;</em></p>
+
+<p><strong>default:</strong> <em>$NGX_PREFIX/ajp_temp</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p>This directive works like <a href="https://metacpan.org/pod/NginxHttpCoreModule#client_body_temp_path">client_body_temp_path</a>  to specify a location to buffer large proxied requests to the filesystem.</p>
+
+<h2>
+<a name="user-content-ajp_temp_file_write_size" class="anchor" href="#ajp_temp_file_write_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>ajp_temp_file_write_size</h2>
+
+<p><strong>syntax:</strong> <em>ajp_temp_file_write_size size;</em></p>
+
+<p><strong>default:</strong> <em>ajp_temp_file_write_size ["#ajp buffer size"]  * 2;</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, if</em></p>
+
+<p>Sets the amount of data that will be flushed to the ajp_temp_path when writing. It may be used to prevent a worker process blocking for too long while spooling data.</p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>Download the latest version of the release tarball of this module from github (<a href="http://github.com/yaoweibin/nginx_ajp_module">http://github.com/yaoweibin/nginx_ajp_module</a>)</p>
+
+<p>Grab the nginx source code from nginx.org (<a href="http://nginx.org/">http://nginx.org/</a>), for example, the version 1.2.0 (see nginx compatibility), and then build the source with this module:</p>
+
+<pre><code>$ wget 'http://nginx.org/download/nginx-1.4.4.tar.gz'
+$ tar -xzvf nginx-1.4.4.tar.gz
+$ cd nginx-1.4.4/
+$ ./configure --add-module=/path/to/nginx_ajp_module
+
+$ make
+$ make install
+</code></pre>
+
+<h1>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h1>
+
+<ul class="task-list">
+<li>The master branch is for Nginx-1.1.4+</li>
+<li>If you want to use it with Nginx-1.0.x, you can use this nginx-1.0 (<a href="https://github.com/yaoweibin/nginx_ajp_module/tree/nginx-1.0">https://github.com/yaoweibin/nginx_ajp_module/tree/nginx-1.0</a>) branch.</li>
+</ul><h1>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h1>
+
+<ul class="task-list">
+<li>SSL</li>
+</ul><h1>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Issues</h1>
+
+<p>*</p>
+
+<h1>
+<a name="user-content-changelogs" class="anchor" href="#changelogs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changelogs</h1>
+
+<h2>
+<a name="user-content-v03" class="anchor" href="#v03" aria-hidden="true"><span class="octicon octicon-link"></span></a>v0.3</h2>
+
+<ul class="task-list">
+<li>remove the jvm_route and keepalive module</li>
+</ul><h2>
+<a name="user-content-v02" class="anchor" href="#v02" aria-hidden="true"><span class="octicon octicon-link"></span></a>v0.2</h2>
+
+<ul class="task-list">
+<li>bugfix</li>
+</ul><h2>
+<a name="user-content-v01" class="anchor" href="#v01" aria-hidden="true"><span class="octicon octicon-link"></span></a>v0.1</h2>
+
+<ul class="task-list">
+<li>first release</li>
+</ul><h1>
+<a name="user-content-authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors</h1>
+
+<ul class="task-list">
+<li>Weibin Yao(姚伟斌) <em>yaoweibin AT gmail DOT com</em>
+</li>
+<li>Jinti Shen(路奇) <em>jinti.shen AT gmail DOT com</em>
+</li>
+<li>Joshua Zhu(叔度) <em>zhuzhaoyuan AT gmail DOT com</em>
+</li>
+<li>Simon Liu(雕梁) <em>simohayha.bobo AT gmail DOT com</em>
+</li>
+<li>Matthew Ma(东坡) <em>mj19821214 AT gmail DOT com</em>
+</li>
+</ul><h1>
+<a name="user-content-acknowledgments" class="anchor" href="#acknowledgments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Acknowledgments</h1>
+
+<ul class="task-list">
+<li>Thanks 李金虎(<a href="mailto:beagem@163.com">beagem@163.com</a>) to improve the keepalive feature with this module.</li>
+</ul><h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>This README template is from agentzh (<a href="http://github.com/agentzh">http://github.com/agentzh</a>).</p>
+
+<p>I borrowed a lot of codes from Fastcgi module of Nginx. This part of code is copyrighted by Igor Sysoev. And the design of apache's mod_ajp_proxy (<a href="http://httpd.apache.org/docs/trunk/mod/mod_proxy_ajp.html">http://httpd.apache.org/docs/trunk/mod/mod_proxy_ajp.html</a>). Thanks for their hard work.</p>
+
+<p>This module is licensed under the BSD license.</p>
+
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
+<ul class="task-list">
+<li>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</li>
+</ul><p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+<h1>
+<a name="user-content-pod-errors" class="anchor" href="#pod-errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>POD ERRORS</h1>
+
+<p>Hey! <strong>The above document had some coding errors, which are explained below:</strong></p>
+
+<ul class="task-list">
+<li>
+<p>Around line 212:</p>
+
+<p>L&lt;&gt; starts or ends with whitespace</p>
+</li>
+</ul></article></div>

@@ -1,0 +1,96 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-socko" class="anchor" href="#socko" aria-hidden="true"><span class="octicon octicon-link"></span></a>SOCKO</h1>
+
+<p>Socko is an embedded <a href="http://www.scala-lang.org/">Scala</a> web server powered by
+<a href="http://netty.io/">Netty</a> networking and <a href="http://akka.io/">Akka</a> processing.</p>
+
+<p><strong>Please see our <a href="http://sockoweb.org/">web site</a> for documentaiton and more information</strong></p>
+
+<h2>
+<a name="user-content-a-quick-example" class="anchor" href="#a-quick-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>A quick example</h2>
+
+<div class="highlight highlight-scala"><pre>    <span class="k">object</span> <span class="nc">HelloApp</span> <span class="k">extends</span> <span class="nc">Logger</span> <span class="o">{</span>
+      <span class="c1">//</span>
+      <span class="c1">// STEP #1 - Define Actors and Start Akka</span>
+      <span class="c1">// See `HelloHandler`</span>
+      <span class="c1">//</span>
+      <span class="k">val</span> <span class="n">actorSystem</span> <span class="k">=</span> <span class="nc">ActorSystem</span><span class="o">(</span><span class="s">"HelloExampleActorSystem"</span><span class="o">)</span>
+
+      <span class="c1">//</span>
+      <span class="c1">// STEP #2 - Define Routes</span>
+      <span class="c1">// Dispatch all HTTP GET events to a newly instanced `HelloHandler` actor for processing.</span>
+      <span class="c1">// `HelloHandler` will `stop()` itself after processing each request.</span>
+      <span class="c1">//</span>
+      <span class="k">val</span> <span class="n">routes</span> <span class="k">=</span> <span class="nc">Routes</span><span class="o">({</span>
+        <span class="k">case</span> <span class="nc">GET</span><span class="o">(</span><span class="n">request</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span>
+          <span class="n">actorSystem</span><span class="o">.</span><span class="n">actorOf</span><span class="o">(</span><span class="nc">Props</span><span class="o">[</span><span class="kt">HelloHandler</span><span class="o">])</span> <span class="o">!</span> <span class="n">request</span>
+        <span class="o">}</span>
+      <span class="o">})</span>
+
+      <span class="c1">//</span>
+      <span class="c1">// STEP #3 - Start and Stop Socko Web Server</span>
+      <span class="c1">//</span>
+      <span class="k">def</span> <span class="n">main</span><span class="o">(</span><span class="n">args</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">{</span>
+        <span class="k">val</span> <span class="n">webServer</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">WebServer</span><span class="o">(</span><span class="nc">WebServerConfig</span><span class="o">(),</span> <span class="n">routes</span><span class="o">,</span> <span class="n">actorSystem</span><span class="o">)</span>
+        <span class="n">webServer</span><span class="o">.</span><span class="n">start</span><span class="o">()</span>
+
+        <span class="nc">Runtime</span><span class="o">.</span><span class="n">getRuntime</span><span class="o">.</span><span class="n">addShutdownHook</span><span class="o">(</span><span class="k">new</span> <span class="nc">Thread</span> <span class="o">{</span>
+          <span class="k">override</span> <span class="k">def</span> <span class="n">run</span> <span class="o">{</span> <span class="n">webServer</span><span class="o">.</span><span class="n">stop</span><span class="o">()</span> <span class="o">}</span>
+        <span class="o">})</span>
+
+        <span class="nc">System</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">println</span><span class="o">(</span><span class="s">"Open your browser and navigate to http://localhost:8888"</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="cm">/**</span>
+<span class="cm">     * Hello processor writes a greeting and stops.</span>
+<span class="cm">     */</span>
+    <span class="k">class</span> <span class="nc">HelloHandler</span> <span class="k">extends</span> <span class="nc">Actor</span> <span class="o">{</span>
+      <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="k">case</span> <span class="n">event</span><span class="k">:</span> <span class="kt">HttpRequestEvent</span> <span class="o">=&gt;</span>
+          <span class="n">event</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">write</span><span class="o">(</span><span class="s">"Hello from Socko ("</span> <span class="o">+</span> <span class="k">new</span> <span class="nc">Date</span><span class="o">().</span><span class="n">toString</span> <span class="o">+</span> <span class="s">")"</span><span class="o">)</span>
+          <span class="n">context</span><span class="o">.</span><span class="n">stop</span><span class="o">(</span><span class="n">self</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-editing-the-source-code" class="anchor" href="#editing-the-source-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Editing the Source Code</h2>
+
+<ul class="task-list">
+<li><p>We are currently using <a href="http://www.eclipse.org/downloads/packages/eclipse-ide-java-ee-developers/junosr1">Eclipse Juno</a> 
+with <a href="http://scala-ide.org/download/current.html">Scala IDE 3.0</a></p></li>
+<li><p>We are currently using Scala 2.10.1 and JDK7. You will need JDK7 to build.
+The core and rest projects will be compiled for use with JDK6 but SPDY will 
+not be supported.</p></li>
+<li><p>Generate eclipse project files: <code>sbt eclispse</code></p></li>
+<li><p>Start <code>Eclipse</code></p></li>
+<li>
+<p>From the top menu, select <code>File</code> | <code>Import</code></p>
+
+<ul class="task-list">
+<li>Select <code>General</code> | <code>Existing Projects into Workspace</code>. </li>
+<li>Click <code>Next</code>.</li>
+<li>Select the <code>socko</code> source code directory as the root</li>
+<li>Should see <code>socko-examples</code> and <code>socko-webserver</code> under <code>Projects</code>
+</li>
+<li>Click <code>Finish</code>
+</li>
+</ul>
+</li>
+<li><p>To run the scalatest unit test cases, just right click on a test class file and select <code>Run As JUnit Test</code>.</p></li>
+</ul><h2>
+<a name="user-content-getting-help" class="anchor" href="#getting-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Help</h2>
+
+<p>If you have a question or need help, please open a ticket in our <a href="https://github.com/mashupbots/socko/issues">Issues Register</a>.</p>
+
+<h2>
+<a name="user-content-links" class="anchor" href="#links" aria-hidden="true"><span class="octicon octicon-link"></span></a>Links</h2>
+
+<ul class="task-list">
+<li><a href="http://sockoweb.org/">Web Site</a></li>
+<li><a href="http://sockoweb.org/blog">Blog</a></li>
+<li><a href="https://github.com/mashupbots/socko/issues/">Issues</a></li>
+<li><a href="https://github.com/mashupbots/socko/issues/milestones">Road Map</a></li>
+<li><a href="https://github.com/mashupbots/socko/tree/master/socko-examples/src/main/scala/org/mashupbots/socko/examples">Examples</a></li>
+</ul></article></div>

@@ -1,0 +1,605 @@
+<div class="announce instapaper_body org" data-path="README.org" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-bloodhound" class="anchor" href="#bloodhound" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bloodhound</h1>
+<p><a href="./bloodhound.jpg" target="_blank"><img src="./bloodhound.jpg" alt="./bloodhound.jpg" style="max-width:100%;"></a></p>
+<p><a href="https://travis-ci.org/bitemyapp/bloodhound"><img src="https://camo.githubusercontent.com/95db2579dd989b9349aa66f4cff0d6b597569f51/68747470733a2f2f7472617669732d63692e6f72672f626974656d796170702f626c6f6f64686f756e642e737667" alt="https://travis-ci.org/bitemyapp/bloodhound.svg" data-canonical-src="https://travis-ci.org/bitemyapp/bloodhound.svg" style="max-width:100%;"></a></p>
+<h1>
+<a name="user-content-elasticsearch-client-and-query-dsl-for-haskell" class="anchor" href="#elasticsearch-client-and-query-dsl-for-haskell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Elasticsearch client and query DSL for Haskell</h1>
+<h2>
+<a name="user-content-why" class="anchor" href="#why" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why?</h2>
+<p>Search doesn’t have to be hard. Let the dog do it.</p>
+<h2>
+<a name="user-content-version-compatibility" class="anchor" href="#version-compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version compatibility</h2>
+<p>Elasticsearch &gt;= 1.0 is recommended. Bloodhound mostly works with 0.9.x, but I don’t recommend it if you expect everything to work. As of Bloodhound 0.3 all &gt;=1.0 versions of Elasticsearch work.</p>
+<p>Current versions we test against are 1.0.3, 1.1.2, 1.2.3, and 1.3.2. We also check that GHC 7.6 and 7.8 both build and pass tests. See our [TravisCI](<a href="https://travis-ci.org/bitemyapp/bloodhound">https://travis-ci.org/bitemyapp/bloodhound</a>) to learn more.</p>
+<h2>
+<a name="user-content-stability" class="anchor" href="#stability" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stability</h2>
+<p>Bloodhound is beta at the moment. We’ve got a solid library tested across multiple ES versions, but coverage of Elasticsearch functionality isn’t 100% yet.</p>
+<h1>
+<a name="user-content-hackage-page-and-haddock-documentation" class="anchor" href="#hackage-page-and-haddock-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hackage page and Haddock documentation</h1>
+<p><a href="http://hackage.haskell.org/package/bloodhound">http://hackage.haskell.org/package/bloodhound</a></p>
+<h1>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h1>
+<h2>
+<a name="user-content-index-operations" class="anchor" href="#index-operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Index Operations</h2>
+<h3>
+<a name="user-content-create-index" class="anchor" href="#create-index" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create Index</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- Formatted for use in ghci, so there are "let"s in front of the decls.</span>
+
+<span class="c1">-- if you see :{ and :}, they're so you can copy-paste</span>
+<span class="c1">-- the multi-line examples into your ghci REPL.</span>
+
+<span class="kt">:</span><span class="n">set</span> <span class="o">-</span><span class="kt">XDeriveGeneric</span>
+<span class="kr">import</span> <span class="nn">Database.Bloodhound</span>
+<span class="kr">import</span> <span class="nn">Data.Aeson</span>
+<span class="kr">import</span> <span class="nn">Data.Either</span> <span class="p">(</span><span class="kt">Either</span><span class="p">(</span><span class="o">..</span><span class="p">))</span>
+<span class="kr">import</span> <span class="nn">Data.Maybe</span> <span class="p">(</span><span class="nf">fromJust</span><span class="p">)</span>
+<span class="kr">import</span> <span class="nn">Data.Time.Calendar</span> <span class="p">(</span><span class="kt">Day</span><span class="p">(</span><span class="o">..</span><span class="p">))</span>
+<span class="kr">import</span> <span class="nn">Data.Time.Clock</span> <span class="p">(</span><span class="nf">secondsToDiffTime</span><span class="p">,</span> <span class="kt">UTCTime</span><span class="p">(</span><span class="o">..</span><span class="p">))</span>
+<span class="kr">import</span> <span class="nn">Data.Text</span> <span class="p">(</span><span class="kt">Text</span><span class="p">)</span>
+<span class="kr">import</span> <span class="nn">GHC.Generics</span> <span class="p">(</span><span class="kt">Generic</span><span class="p">)</span>
+<span class="kr">import</span> <span class="nn">Network.HTTP.Conduit</span>
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Network.HTTP.Types.Status</span> <span class="k">as</span> <span class="n">NHTS</span>
+
+<span class="c1">-- no trailing slashes in servers, library handles building the path.</span>
+<span class="kr">let</span> <span class="n">testServer</span> <span class="ow">=</span> <span class="p">(</span><span class="kt">Server</span> <span class="s">"http://localhost:9200"</span><span class="p">)</span>
+<span class="kr">let</span> <span class="n">testIndex</span> <span class="ow">=</span> <span class="kt">IndexName</span> <span class="s">"twitter"</span>
+<span class="kr">let</span> <span class="n">testMapping</span> <span class="ow">=</span> <span class="kt">MappingName</span> <span class="s">"tweet"</span>
+
+<span class="c1">-- defaultIndexSettings is exported by Database.Bloodhound as well</span>
+<span class="kr">let</span> <span class="n">defaultIndexSettings</span> <span class="ow">=</span> <span class="kt">IndexSettings</span> <span class="p">(</span><span class="kt">ShardCount</span> <span class="mi">3</span><span class="p">)</span> <span class="p">(</span><span class="kt">ReplicaCount</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="c1">-- createIndex returns IO Reply</span>
+
+<span class="c1">-- response :: Reply, Reply is a synonym for Network.HTTP.Conduit.Response</span>
+<span class="nf">response</span> <span class="ow">&lt;-</span> <span class="n">createIndex</span> <span class="n">testServer</span> <span class="n">defaultIndexSettings</span> <span class="n">testIndex</span>
+
+</pre></div>
+<h3>
+<a name="user-content-delete-index" class="anchor" href="#delete-index" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete Index</h3>
+<h4>
+<a name="user-content-code" class="anchor" href="#code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- response :: Reply</span>
+<span class="nf">response</span> <span class="ow">&lt;-</span> <span class="n">deleteIndex</span> <span class="n">testServer</span> <span class="n">testIndex</span>
+
+</pre></div>
+<h4>
+<a name="user-content-example-response" class="anchor" href="#example-response" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example Response</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- print response if it was a success</span>
+<span class="kt">Response</span> <span class="p">{</span><span class="n">responseStatus</span> <span class="ow">=</span> <span class="kt">Status</span> <span class="p">{</span><span class="n">statusCode</span> <span class="ow">=</span> <span class="mi">200</span><span class="p">,</span> <span class="n">statusMessage</span> <span class="ow">=</span> <span class="s">"OK"</span><span class="p">}</span>
+        <span class="p">,</span> <span class="n">responseVersion</span> <span class="ow">=</span> <span class="kt">HTTP</span><span class="o">/</span><span class="mf">1.1</span>
+        <span class="p">,</span> <span class="n">responseHeaders</span> <span class="ow">=</span> <span class="p">[(</span><span class="s">"Content-Type"</span><span class="p">,</span> <span class="s">"application/json; charset=UTF-8"</span><span class="p">)</span>
+                           <span class="p">,</span> <span class="p">(</span><span class="s">"Content-Length"</span><span class="p">,</span> <span class="s">"21"</span><span class="p">)]</span>
+        <span class="p">,</span> <span class="n">responseBody</span> <span class="ow">=</span> <span class="s">"{</span><span class="se">\"</span><span class="s">acknowledged</span><span class="se">\"</span><span class="s">:true}"</span>
+        <span class="p">,</span> <span class="n">responseCookieJar</span> <span class="ow">=</span> <span class="kt">CJ</span> <span class="p">{</span><span class="n">expose</span> <span class="ow">=</span> <span class="kt">[]</span><span class="p">}</span>
+        <span class="p">,</span> <span class="n">responseClose'</span> <span class="ow">=</span> <span class="kt">ResponseClose</span><span class="p">}</span>
+
+<span class="c1">-- if the index to be deleted didn't exist anyway</span>
+<span class="kt">Response</span> <span class="p">{</span><span class="n">responseStatus</span> <span class="ow">=</span> <span class="kt">Status</span> <span class="p">{</span><span class="n">statusCode</span> <span class="ow">=</span> <span class="mi">404</span><span class="p">,</span> <span class="n">statusMessage</span> <span class="ow">=</span> <span class="s">"Not Found"</span><span class="p">}</span>
+        <span class="p">,</span> <span class="n">responseVersion</span> <span class="ow">=</span> <span class="kt">HTTP</span><span class="o">/</span><span class="mf">1.1</span>
+        <span class="p">,</span> <span class="n">responseHeaders</span> <span class="ow">=</span> <span class="p">[(</span><span class="s">"Content-Type"</span><span class="p">,</span> <span class="s">"application/json; charset=UTF-8"</span><span class="p">)</span>
+                           <span class="p">,</span> <span class="p">(</span><span class="s">"Content-Length"</span><span class="p">,</span><span class="s">"65"</span><span class="p">)]</span>
+        <span class="p">,</span> <span class="n">responseBody</span> <span class="ow">=</span> <span class="s">"{</span><span class="se">\"</span><span class="s">error</span><span class="se">\"</span><span class="s">:</span><span class="se">\"</span><span class="s">IndexMissingException[[twitter] missing]</span><span class="se">\"</span><span class="s">,</span><span class="se">\"</span><span class="s">status</span><span class="se">\"</span><span class="s">:404}"</span>
+        <span class="p">,</span> <span class="n">responseCookieJar</span> <span class="ow">=</span> <span class="kt">CJ</span> <span class="p">{</span><span class="n">expose</span> <span class="ow">=</span> <span class="kt">[]</span><span class="p">}</span>
+        <span class="p">,</span> <span class="n">responseClose'</span> <span class="ow">=</span> <span class="kt">ResponseClose</span><span class="p">}</span>
+
+</pre></div>
+<h3>
+<a name="user-content-refresh-index" class="anchor" href="#refresh-index" aria-hidden="true"><span class="octicon octicon-link"></span></a>Refresh Index</h3>
+<h4>
+<a name="user-content-note-you-have-to-do-this-if-you-expect-to-read-what-you-just-wrote" class="anchor" href="#note-you-have-to-do-this-if-you-expect-to-read-what-you-just-wrote" aria-hidden="true"><span class="octicon octicon-link"></span></a>Note, you <b>have</b> to do this if you expect to read what you just wrote</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="nf">resp</span> <span class="ow">&lt;-</span> <span class="n">refreshIndex</span> <span class="n">testServer</span> <span class="n">testIndex</span>
+
+</pre></div>
+<h4>
+<a name="user-content-example-response-1" class="anchor" href="#example-response-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example Response</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- print resp on success</span>
+<span class="kt">Response</span> <span class="p">{</span><span class="n">responseStatus</span> <span class="ow">=</span> <span class="kt">Status</span> <span class="p">{</span><span class="n">statusCode</span> <span class="ow">=</span> <span class="mi">200</span><span class="p">,</span> <span class="n">statusMessage</span> <span class="ow">=</span> <span class="s">"OK"</span><span class="p">}</span>
+        <span class="p">,</span> <span class="n">responseVersion</span> <span class="ow">=</span> <span class="kt">HTTP</span><span class="o">/</span><span class="mf">1.1</span>
+        <span class="p">,</span> <span class="n">responseHeaders</span> <span class="ow">=</span> <span class="p">[(</span><span class="s">"Content-Type"</span><span class="p">,</span> <span class="s">"application/json; charset=UTF-8"</span><span class="p">)</span>
+                           <span class="p">,</span> <span class="p">(</span><span class="s">"Content-Length"</span><span class="p">,</span><span class="s">"50"</span><span class="p">)]</span>
+        <span class="p">,</span> <span class="n">responseBody</span> <span class="ow">=</span> <span class="s">"{</span><span class="se">\"</span><span class="s">_shards</span><span class="se">\"</span><span class="s">:{</span><span class="se">\"</span><span class="s">total</span><span class="se">\"</span><span class="s">:10,</span><span class="se">\"</span><span class="s">successful</span><span class="se">\"</span><span class="s">:5,</span><span class="se">\"</span><span class="s">failed</span><span class="se">\"</span><span class="s">:0}}"</span>
+        <span class="p">,</span> <span class="n">responseCookieJar</span> <span class="ow">=</span> <span class="kt">CJ</span> <span class="p">{</span><span class="n">expose</span> <span class="ow">=</span> <span class="kt">[]</span><span class="p">}</span>
+        <span class="p">,</span> <span class="n">responseClose'</span> <span class="ow">=</span> <span class="kt">ResponseClose</span><span class="p">}</span>
+
+</pre></div>
+<h2>
+<a name="user-content-mapping-operations" class="anchor" href="#mapping-operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mapping Operations</h2>
+<h3>
+<a name="user-content-create-mapping" class="anchor" href="#create-mapping" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create Mapping</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- don't forget imports and the like at the top.</span>
+
+<span class="kr">data</span> <span class="kt">TweetMapping</span> <span class="ow">=</span> <span class="kt">TweetMapping</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Eq</span><span class="p">,</span> <span class="kt">Show</span><span class="p">)</span>
+
+<span class="c1">-- I know writing the JSON manually sucks.</span>
+<span class="c1">-- I don't have a proper data type for Mappings yet.</span>
+<span class="c1">-- Let me know if this is something you need.</span>
+
+<span class="kt">:</span><span class="p">{</span>
+<span class="kr">instance</span> <span class="kt">ToJSON</span> <span class="kt">TweetMapping</span> <span class="kr">where</span>
+  <span class="n">toJSON</span> <span class="kt">TweetMapping</span> <span class="ow">=</span>
+    <span class="n">object</span> <span class="p">[</span><span class="s">"tweet"</span> <span class="o">.=</span>
+      <span class="n">object</span> <span class="p">[</span><span class="s">"properties"</span> <span class="o">.=</span>
+        <span class="n">object</span> <span class="p">[</span><span class="s">"location"</span> <span class="o">.=</span>
+          <span class="n">object</span> <span class="p">[</span><span class="s">"type"</span> <span class="o">.=</span> <span class="p">(</span><span class="s">"geo_point"</span> <span class="ow">::</span> <span class="kt">Text</span><span class="p">)]]]]</span>
+<span class="kt">:</span><span class="p">}</span>
+
+<span class="nf">resp</span> <span class="ow">&lt;-</span> <span class="n">putMapping</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">testMapping</span> <span class="kt">TweetMapping</span>
+
+</pre></div>
+<h3>
+<a name="user-content-delete-mapping" class="anchor" href="#delete-mapping" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete Mapping</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="nf">resp</span> <span class="ow">&lt;-</span> <span class="n">deleteMapping</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">testMapping</span>
+
+</pre></div>
+<h2>
+<a name="user-content-document-operations" class="anchor" href="#document-operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Document Operations</h2>
+<h3>
+<a name="user-content-indexing-documents" class="anchor" href="#indexing-documents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Indexing Documents</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- don't forget the imports and derive generic setting for ghci</span>
+<span class="c1">-- at the beginning of the examples.</span>
+
+<span class="kt">:</span><span class="p">{</span>
+<span class="kr">data</span> <span class="kt">Location</span> <span class="ow">=</span> <span class="kt">Location</span> <span class="p">{</span> <span class="n">lat</span> <span class="ow">::</span> <span class="kt">Double</span>
+                         <span class="p">,</span> <span class="n">lon</span> <span class="ow">::</span> <span class="kt">Double</span> <span class="p">}</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Eq</span><span class="p">,</span> <span class="kt">Generic</span><span class="p">,</span> <span class="kt">Show</span><span class="p">)</span>
+
+<span class="kr">data</span> <span class="kt">Tweet</span> <span class="ow">=</span> <span class="kt">Tweet</span> <span class="p">{</span> <span class="n">user</span>     <span class="ow">::</span> <span class="kt">Text</span>
+                   <span class="p">,</span> <span class="n">postDate</span> <span class="ow">::</span> <span class="kt">UTCTime</span>
+                   <span class="p">,</span> <span class="n">message</span>  <span class="ow">::</span> <span class="kt">Text</span>
+                   <span class="p">,</span> <span class="n">age</span>      <span class="ow">::</span> <span class="kt">Int</span>
+                   <span class="p">,</span> <span class="n">location</span> <span class="ow">::</span> <span class="kt">Location</span> <span class="p">}</span> <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Eq</span><span class="p">,</span> <span class="kt">Generic</span><span class="p">,</span> <span class="kt">Show</span><span class="p">)</span>
+
+<span class="nf">exampleTweet</span> <span class="ow">=</span> <span class="kt">Tweet</span> <span class="p">{</span> <span class="n">user</span>     <span class="ow">=</span> <span class="s">"bitemyapp"</span>
+                     <span class="p">,</span> <span class="n">postDate</span> <span class="ow">=</span> <span class="kt">UTCTime</span>
+                                  <span class="p">(</span><span class="kt">ModifiedJulianDay</span> <span class="mi">55000</span><span class="p">)</span>
+                                  <span class="p">(</span><span class="n">secondsToDiffTime</span> <span class="mi">10</span><span class="p">)</span>
+                     <span class="p">,</span> <span class="n">message</span>  <span class="ow">=</span> <span class="s">"Use haskell!"</span>
+                     <span class="p">,</span> <span class="n">age</span>      <span class="ow">=</span> <span class="mi">10000</span>
+                     <span class="p">,</span> <span class="n">location</span> <span class="ow">=</span> <span class="kt">Location</span> <span class="mf">40.12</span> <span class="p">(</span><span class="o">-</span><span class="mf">71.34</span><span class="p">)</span> <span class="p">}</span>
+
+<span class="c1">-- automagic (generic) derivation of instances because we're lazy.</span>
+<span class="kr">instance</span> <span class="kt">ToJSON</span>   <span class="kt">Tweet</span>
+<span class="kr">instance</span> <span class="kt">FromJSON</span> <span class="kt">Tweet</span>
+<span class="kr">instance</span> <span class="kt">ToJSON</span>   <span class="kt">Location</span>
+<span class="kr">instance</span> <span class="kt">FromJSON</span> <span class="kt">Location</span>
+<span class="kt">:</span><span class="p">}</span>
+
+<span class="c1">-- Should be able to toJSON and encode the data structures like this:</span>
+<span class="c1">-- λ&gt; toJSON $ Location 10.0 10.0</span>
+<span class="c1">-- Object fromList [("lat",Number 10.0),("lon",Number 10.0)]</span>
+<span class="c1">-- λ&gt; encode $ Location 10.0 10.0</span>
+<span class="c1">-- "{\"lat\":10,\"lon\":10}"</span>
+
+<span class="nf">resp</span> <span class="ow">&lt;-</span> <span class="n">indexDocument</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">testMapping</span> <span class="n">exampleTweet</span> <span class="p">(</span><span class="kt">DocId</span> <span class="s">"1"</span><span class="p">)</span>
+
+</pre></div>
+<h4>
+<a name="user-content-example-response-2" class="anchor" href="#example-response-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example Response</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kt">Response</span> <span class="p">{</span><span class="n">responseStatus</span> <span class="ow">=</span>
+  <span class="kt">Status</span> <span class="p">{</span><span class="n">statusCode</span> <span class="ow">=</span> <span class="mi">200</span><span class="p">,</span> <span class="n">statusMessage</span> <span class="ow">=</span> <span class="s">"OK"</span><span class="p">}</span>
+    <span class="p">,</span> <span class="n">responseVersion</span> <span class="ow">=</span> <span class="kt">HTTP</span><span class="o">/</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">responseHeaders</span> <span class="ow">=</span>
+    <span class="p">[(</span><span class="s">"Content-Type"</span><span class="p">,</span><span class="s">"application/json; charset=UTF-8"</span><span class="p">),</span>
+     <span class="p">(</span><span class="s">"Content-Length"</span><span class="p">,</span><span class="s">"75"</span><span class="p">)]</span>
+    <span class="p">,</span> <span class="n">responseBody</span> <span class="ow">=</span> <span class="s">"{</span><span class="se">\"</span><span class="s">_index</span><span class="se">\"</span><span class="s">:</span><span class="se">\"</span><span class="s">twitter</span><span class="se">\"</span><span class="s">,</span><span class="se">\"</span><span class="s">_type</span><span class="se">\"</span><span class="s">:</span><span class="se">\"</span><span class="s">tweet</span><span class="se">\"</span><span class="s">,</span><span class="se">\"</span><span class="s">_id</span><span class="se">\"</span><span class="s">:</span><span class="se">\"</span><span class="s">1</span><span class="se">\"</span><span class="s">,</span><span class="se">\"</span><span class="s">_version</span><span class="se">\"</span><span class="s">:2,</span><span class="se">\"</span><span class="s">created</span><span class="se">\"</span><span class="s">:false}"</span>
+    <span class="p">,</span> <span class="n">responseCookieJar</span> <span class="ow">=</span> <span class="kt">CJ</span> <span class="p">{</span><span class="n">expose</span> <span class="ow">=</span> <span class="kt">[]</span><span class="p">},</span> <span class="n">responseClose'</span> <span class="ow">=</span> <span class="kt">ResponseClose</span><span class="p">}</span>
+
+</pre></div>
+<h3>
+<a name="user-content-deleting-documents" class="anchor" href="#deleting-documents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deleting Documents</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="nf">resp</span> <span class="ow">&lt;-</span> <span class="n">deleteDocument</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">testMapping</span> <span class="p">(</span><span class="kt">DocId</span> <span class="s">"1"</span><span class="p">)</span>
+
+</pre></div>
+<h3>
+<a name="user-content-getting-documents" class="anchor" href="#getting-documents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Documents</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- n.b., you'll need the earlier imports. responseBody is from http-conduit</span>
+
+<span class="nf">resp</span> <span class="ow">&lt;-</span> <span class="n">getDocument</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">testMapping</span> <span class="p">(</span><span class="kt">DocId</span> <span class="s">"1"</span><span class="p">)</span>
+
+<span class="c1">-- responseBody :: Response body -&gt; body</span>
+<span class="kr">let</span> <span class="n">body</span> <span class="ow">=</span> <span class="n">responseBody</span> <span class="n">resp</span>
+
+<span class="c1">-- you have two options, you use decode and just get Maybe (EsResult Tweet)</span>
+<span class="c1">-- or you can use eitherDecode and get Either String (EsResult Tweet)</span>
+
+<span class="kr">let</span> <span class="n">maybeResult</span> <span class="ow">=</span> <span class="n">decode</span> <span class="n">body</span> <span class="ow">::</span> <span class="kt">Maybe</span> <span class="p">(</span><span class="kt">EsResult</span> <span class="kt">Tweet</span><span class="p">)</span>
+<span class="c1">-- the explicit typing is so Aeson knows how to parse the JSON.</span>
+
+<span class="c1">-- use either if you want to know why something failed to parse.</span>
+<span class="c1">-- (string errors, sadly)</span>
+<span class="kr">let</span> <span class="n">eitherResult</span> <span class="ow">=</span> <span class="n">decode</span> <span class="n">body</span> <span class="ow">::</span> <span class="kt">Either</span> <span class="kt">String</span> <span class="p">(</span><span class="kt">EsResult</span> <span class="kt">Tweet</span><span class="p">)</span>
+
+<span class="c1">-- print eitherResult should look like:</span>
+<span class="kt">Right</span> <span class="p">(</span><span class="kt">EsResult</span> <span class="p">{</span><span class="n">_index</span> <span class="ow">=</span> <span class="s">"twitter"</span>
+               <span class="p">,</span> <span class="n">_type</span> <span class="ow">=</span> <span class="s">"tweet"</span>
+               <span class="p">,</span> <span class="n">_id</span> <span class="ow">=</span> <span class="s">"1"</span>
+               <span class="p">,</span> <span class="n">_version</span> <span class="ow">=</span> <span class="mi">2</span>
+               <span class="p">,</span> <span class="n">found</span> <span class="ow">=</span> <span class="kt">Just</span> <span class="kt">True</span>
+               <span class="p">,</span> <span class="n">_source</span> <span class="ow">=</span> <span class="kt">Tweet</span> <span class="p">{</span><span class="n">user</span> <span class="ow">=</span> <span class="s">"bitemyapp"</span>
+               <span class="p">,</span> <span class="n">postDate</span> <span class="ow">=</span> <span class="mi">2009</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">18</span> <span class="mi">00</span><span class="kt">:</span><span class="mi">00</span><span class="kt">:</span><span class="mi">10</span> <span class="kt">UTC</span>
+               <span class="p">,</span> <span class="n">message</span> <span class="ow">=</span> <span class="s">"Use haskell!"</span>
+               <span class="p">,</span> <span class="n">age</span> <span class="ow">=</span> <span class="mi">10000</span>
+               <span class="p">,</span> <span class="n">location</span> <span class="ow">=</span> <span class="kt">Location</span> <span class="p">{</span><span class="n">lat</span> <span class="ow">=</span> <span class="mf">40.12</span><span class="p">,</span> <span class="n">lon</span> <span class="ow">=</span> <span class="o">-</span><span class="mf">71.34</span><span class="p">}}})</span>
+
+<span class="c1">-- _source in EsResult is parametric, we dispatch the type by passing in what we expect (Tweet) as a parameter to EsResult.</span>
+
+<span class="c1">-- use the _source record accessor to get at your document</span>
+<span class="nf">λ</span><span class="o">&gt;</span> <span class="n">fmap</span> <span class="n">_source</span> <span class="n">result</span>
+<span class="kt">Right</span> <span class="p">(</span><span class="kt">Tweet</span> <span class="p">{</span><span class="n">user</span> <span class="ow">=</span> <span class="s">"bitemyapp"</span>
+            <span class="p">,</span> <span class="n">postDate</span> <span class="ow">=</span> <span class="mi">2009</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">18</span> <span class="mi">00</span><span class="kt">:</span><span class="mi">00</span><span class="kt">:</span><span class="mi">10</span> <span class="kt">UTC</span>
+            <span class="p">,</span> <span class="n">message</span> <span class="ow">=</span> <span class="s">"Use haskell!"</span>
+            <span class="p">,</span> <span class="n">age</span> <span class="ow">=</span> <span class="mi">10000</span>
+            <span class="p">,</span> <span class="n">location</span> <span class="ow">=</span> <span class="kt">Location</span> <span class="p">{</span><span class="n">lat</span> <span class="ow">=</span> <span class="mf">40.12</span><span class="p">,</span> <span class="n">lon</span> <span class="ow">=</span> <span class="o">-</span><span class="mf">71.34</span><span class="p">}})</span>
+
+</pre></div>
+<h2>
+<a name="user-content-search" class="anchor" href="#search" aria-hidden="true"><span class="octicon octicon-link"></span></a>Search</h2>
+<h3>
+<a name="user-content-querying" class="anchor" href="#querying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Querying</h3>
+<h4>
+<a name="user-content-term-query" class="anchor" href="#term-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Term Query</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- exported by the Client module, just defaults some stuff.</span>
+<span class="c1">-- mkSearch :: Maybe Query -&gt; Maybe Filter -&gt; Search</span>
+<span class="c1">-- mkSearch query filter = Search query filter Nothing False 0 10</span>
+
+<span class="kr">let</span> <span class="n">query</span> <span class="ow">=</span> <span class="kt">TermQuery</span> <span class="p">(</span><span class="kt">Term</span> <span class="s">"user"</span> <span class="s">"bitemyapp"</span><span class="p">)</span> <span class="kt">Nothing</span>
+
+<span class="c1">-- AND'ing identity filter with itself and then tacking it onto a query</span>
+<span class="c1">-- search should be a null-operation. I include it for the sake of example.</span>
+<span class="c1">-- &lt;||&gt; (or/plus) should make it into a search that returns everything.</span>
+
+<span class="kr">let</span> <span class="n">filter</span> <span class="ow">=</span> <span class="kt">IdentityFilter</span> <span class="o">&lt;&amp;&amp;&gt;</span> <span class="kt">IdentityFilter</span>
+
+<span class="c1">-- constructing the search object the searchByIndex function dispatches on.</span>
+<span class="kr">let</span> <span class="n">search</span> <span class="ow">=</span> <span class="n">mkSearch</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">query</span><span class="p">)</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">filter</span><span class="p">)</span>
+
+<span class="c1">-- you can also searchByType and specify the mapping name.</span>
+<span class="nf">reply</span> <span class="ow">&lt;-</span> <span class="n">searchByIndex</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">search</span>
+
+<span class="kr">let</span> <span class="n">result</span> <span class="ow">=</span> <span class="n">eitherDecode</span> <span class="p">(</span><span class="n">responseBody</span> <span class="n">reply</span><span class="p">)</span> <span class="ow">::</span> <span class="kt">Either</span> <span class="kt">String</span> <span class="p">(</span><span class="kt">SearchResult</span> <span class="kt">Tweet</span><span class="p">)</span>
+
+<span class="nf">λ</span><span class="o">&gt;</span> <span class="n">fmap</span> <span class="p">(</span><span class="n">hits</span> <span class="o">.</span> <span class="n">searchHits</span><span class="p">)</span> <span class="n">result</span>
+<span class="kt">Right</span> <span class="p">[</span><span class="kt">Hit</span> <span class="p">{</span><span class="n">hitIndex</span> <span class="ow">=</span> <span class="kt">IndexName</span> <span class="s">"twitter"</span>
+          <span class="p">,</span> <span class="n">hitType</span> <span class="ow">=</span> <span class="kt">MappingName</span> <span class="s">"tweet"</span>
+          <span class="p">,</span> <span class="n">hitDocId</span> <span class="ow">=</span> <span class="kt">DocId</span> <span class="s">"1"</span>
+          <span class="p">,</span> <span class="n">hitScore</span> <span class="ow">=</span> <span class="mf">0.30685282</span>
+          <span class="p">,</span> <span class="n">hitSource</span> <span class="ow">=</span> <span class="kt">Tweet</span> <span class="p">{</span><span class="n">user</span> <span class="ow">=</span> <span class="s">"bitemyapp"</span>
+                             <span class="p">,</span> <span class="n">postDate</span> <span class="ow">=</span> <span class="mi">2009</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">18</span> <span class="mi">00</span><span class="kt">:</span><span class="mi">00</span><span class="kt">:</span><span class="mi">10</span> <span class="kt">UTC</span>
+                             <span class="p">,</span> <span class="n">message</span> <span class="ow">=</span> <span class="s">"Use haskell!"</span>
+                             <span class="p">,</span> <span class="n">age</span> <span class="ow">=</span> <span class="mi">10000</span>
+                             <span class="p">,</span> <span class="n">location</span> <span class="ow">=</span> <span class="kt">Location</span> <span class="p">{</span><span class="n">lat</span> <span class="ow">=</span> <span class="mf">40.12</span><span class="p">,</span> <span class="n">lon</span> <span class="ow">=</span> <span class="o">-</span><span class="mf">71.34</span><span class="p">}}}]</span>
+
+</pre></div>
+<h4>
+<a name="user-content-match-query" class="anchor" href="#match-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Match Query</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">query</span> <span class="ow">=</span> <span class="kt">QueryMatchQuery</span> <span class="o">$</span> <span class="n">mkMatchQuery</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">)</span> <span class="p">(</span><span class="kt">QueryString</span> <span class="s">"bitemyapp"</span><span class="p">)</span>
+<span class="kr">let</span> <span class="n">search</span> <span class="ow">=</span> <span class="n">mkSearch</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">query</span><span class="p">)</span> <span class="kt">Nothing</span>
+
+</pre></div>
+<h4>
+<a name="user-content-multi-match-query" class="anchor" href="#multi-match-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-Match Query</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">fields</span> <span class="ow">=</span> <span class="p">[</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">,</span> <span class="kt">FieldName</span> <span class="s">"message"</span><span class="p">]</span>
+<span class="kr">let</span> <span class="n">query</span> <span class="ow">=</span> <span class="kt">QueryMultiMatchQuery</span> <span class="o">$</span> <span class="n">mkMultiMatchQuery</span> <span class="n">fields</span> <span class="p">(</span><span class="kt">QueryString</span> <span class="s">"bitemyapp"</span><span class="p">)</span>
+<span class="kr">let</span> <span class="n">search</span> <span class="ow">=</span> <span class="n">mkSearch</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">query</span><span class="p">)</span> <span class="kt">Nothing</span>
+
+</pre></div>
+<h4>
+<a name="user-content-bool-query" class="anchor" href="#bool-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bool Query</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">innerQuery</span> <span class="ow">=</span> <span class="kt">QueryMatchQuery</span> <span class="o">$</span>
+                 <span class="n">mkMatchQuery</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">)</span> <span class="p">(</span><span class="kt">QueryString</span> <span class="s">"bitemyapp"</span><span class="p">)</span>
+<span class="kr">let</span> <span class="n">query</span> <span class="ow">=</span> <span class="kt">QueryBoolQuery</span> <span class="o">$</span>
+            <span class="n">mkBoolQuery</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">innerQuery</span><span class="p">)</span> <span class="kt">Nothing</span> <span class="kt">Nothing</span>
+<span class="kr">let</span> <span class="n">search</span> <span class="ow">=</span> <span class="n">mkSearch</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">query</span><span class="p">)</span> <span class="kt">Nothing</span>
+
+</pre></div>
+<h4>
+<a name="user-content-boosting-query" class="anchor" href="#boosting-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boosting Query</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">posQuery</span> <span class="ow">=</span> <span class="kt">QueryMatchQuery</span> <span class="o">$</span>
+               <span class="n">mkMatchQuery</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">)</span> <span class="p">(</span><span class="kt">QueryString</span> <span class="s">"bitemyapp"</span><span class="p">)</span>
+<span class="kr">let</span> <span class="n">negQuery</span> <span class="ow">=</span> <span class="kt">QueryMatchQuery</span> <span class="o">$</span>
+               <span class="n">mkMatchQuery</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">)</span> <span class="p">(</span><span class="kt">QueryString</span> <span class="s">"notmyapp"</span><span class="p">)</span>
+<span class="kr">let</span> <span class="n">query</span> <span class="ow">=</span> <span class="kt">QueryBoostingQuery</span> <span class="o">$</span>
+            <span class="kt">BoostingQuery</span> <span class="n">posQuery</span> <span class="n">negQuery</span> <span class="p">(</span><span class="kt">Boost</span> <span class="mf">0.2</span><span class="p">)</span>
+
+</pre></div>
+<h4>
+<a name="user-content-rest-of-the-queryfilter-types" class="anchor" href="#rest-of-the-queryfilter-types" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rest of the query/filter types</h4>
+<p>Just follow the pattern you’ve seen here and check the Hackage API documentation.</p>
+<h3>
+<a name="user-content-sorting" class="anchor" href="#sorting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sorting</h3>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">sortSpec</span> <span class="ow">=</span> <span class="kt">DefaultSortSpec</span> <span class="o">$</span> <span class="n">mkSort</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"age"</span><span class="p">)</span> <span class="kt">Ascending</span>
+
+<span class="c1">-- mkSort is a shortcut function that takes a FieldName and a SortOrder</span>
+<span class="c1">-- to generate a vanilla DefaultSort.</span>
+<span class="c1">-- checkt the DefaultSort type for the full list of customizable options.</span>
+
+<span class="c1">-- From and size are integers for pagination.</span>
+
+<span class="c1">-- When sorting on a field, scores are not computed. By setting TrackSortScores to true, scores will still be computed and tracked.</span>
+
+<span class="c1">-- type Sort = [SortSpec]</span>
+<span class="c1">-- type TrackSortScores = Bool</span>
+<span class="c1">-- type From = Int</span>
+<span class="c1">-- type Size = Int</span>
+
+<span class="c1">-- Search takes Maybe Query</span>
+<span class="c1">--              -&gt; Maybe Filter</span>
+<span class="c1">--              -&gt; Maybe Sort</span>
+<span class="c1">--              -&gt; TrackSortScores</span>
+<span class="c1">--              -&gt; From -&gt; Size</span>
+
+<span class="c1">-- just add more sortspecs to the list if you want tie-breakers.</span>
+<span class="kr">let</span> <span class="n">search</span> <span class="ow">=</span> <span class="kt">Search</span> <span class="kt">Nothing</span> <span class="p">(</span><span class="kt">Just</span> <span class="kt">IdentityFilter</span><span class="p">)</span> <span class="p">(</span><span class="kt">Just</span> <span class="p">[</span><span class="n">sortSpec</span><span class="p">])</span> <span class="kt">False</span> <span class="mi">0</span> <span class="mi">10</span>
+
+</pre></div>
+<h3>
+<a name="user-content-filtering" class="anchor" href="#filtering" aria-hidden="true"><span class="octicon octicon-link"></span></a>Filtering</h3>
+<h4>
+<a name="user-content-and-not-and-or-filters" class="anchor" href="#and-not-and-or-filters" aria-hidden="true"><span class="octicon octicon-link"></span></a>And, Not, and Or filters</h4>
+<p>Filters form a monoid and seminearring.</p>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">instance</span> <span class="kt">Monoid</span> <span class="kt">Filter</span> <span class="kr">where</span>
+  <span class="n">mempty</span> <span class="ow">=</span> <span class="kt">IdentityFilter</span>
+  <span class="n">mappend</span> <span class="n">a</span> <span class="n">b</span> <span class="ow">=</span> <span class="kt">AndFilter</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="n">defaultCache</span>
+
+<span class="kr">instance</span> <span class="kt">Seminearring</span> <span class="kt">Filter</span> <span class="kr">where</span>
+  <span class="n">a</span> <span class="o">&lt;||&gt;</span> <span class="n">b</span> <span class="ow">=</span> <span class="kt">OrFilter</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="n">defaultCache</span>
+
+<span class="c1">-- AndFilter and OrFilter take [Filter] as an argument.</span>
+
+<span class="c1">-- This will return anything, because IdentityFilter returns everything</span>
+<span class="kt">OrFilter</span> <span class="p">[</span><span class="kt">IdentityFilter</span><span class="p">,</span> <span class="n">someOtherFilter</span><span class="p">]</span> <span class="kt">False</span>
+
+<span class="c1">-- This will return exactly what someOtherFilter returns</span>
+<span class="kt">AndFilter</span> <span class="p">[</span><span class="kt">IdentityFilter</span><span class="p">,</span> <span class="n">someOtherFilter</span><span class="p">]</span> <span class="kt">False</span>
+
+<span class="c1">-- Thanks to the seminearring and monoid, the above can be expressed as:</span>
+
+<span class="c1">-- "and"</span>
+<span class="kt">IdentityFilter</span> <span class="o">&lt;&amp;&amp;&gt;</span> <span class="n">someOtherFilter</span>
+
+<span class="c1">-- "or"</span>
+<span class="kt">IdentityFilter</span> <span class="o">&lt;||&gt;</span> <span class="n">someOtherFilter</span>
+
+<span class="c1">-- Also there is a NotFilter, it only accepts a single filter, not a list.</span>
+
+<span class="kt">NotFilter</span> <span class="n">someOtherFilter</span> <span class="kt">False</span>
+
+</pre></div>
+<h4>
+<a name="user-content-identity-filter" class="anchor" href="#identity-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Identity Filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- And'ing two Identity</span>
+<span class="kr">let</span> <span class="n">queryFilter</span> <span class="ow">=</span> <span class="kt">IdentityFilter</span> <span class="o">&lt;&amp;&amp;&gt;</span> <span class="kt">IdentityFilter</span>
+
+<span class="kr">let</span> <span class="n">search</span> <span class="ow">=</span> <span class="n">mkSearch</span> <span class="kt">Nothing</span> <span class="p">(</span><span class="kt">Just</span> <span class="n">queryFilter</span><span class="p">)</span>
+
+<span class="nf">reply</span> <span class="ow">&lt;-</span> <span class="n">searchByType</span> <span class="n">testServer</span> <span class="n">testIndex</span> <span class="n">testMapping</span> <span class="n">search</span>
+
+</pre></div>
+<h4>
+<a name="user-content-boolean-filter" class="anchor" href="#boolean-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boolean Filter</h4>
+<p>Similar to boolean queries.</p>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- Will return only items whose "user" field contains the term "bitemyapp"</span>
+<span class="kr">let</span> <span class="n">queryFilter</span> <span class="ow">=</span> <span class="kt">BoolFilter</span> <span class="p">(</span><span class="kt">MustMatch</span> <span class="p">(</span><span class="kt">Term</span> <span class="s">"user"</span> <span class="s">"bitemyapp"</span><span class="p">)</span> <span class="kt">False</span><span class="p">)</span>
+
+<span class="c1">-- Will return only items whose "user" field does not contain the term "bitemyapp"</span>
+<span class="kr">let</span> <span class="n">queryFilter</span> <span class="ow">=</span> <span class="kt">BoolFilter</span> <span class="p">(</span><span class="kt">MustNotMatch</span> <span class="p">(</span><span class="kt">Term</span> <span class="s">"user"</span> <span class="s">"bitemyapp"</span><span class="p">)</span> <span class="kt">False</span><span class="p">)</span>
+
+<span class="c1">-- The clause (query) should appear in the matching document.</span>
+<span class="c1">-- In a boolean query with no must clauses, one or more should</span>
+<span class="c1">-- clauses must match a document. The minimum number of should</span>
+<span class="c1">-- clauses to match can be set using the minimum_should_match parameter.</span>
+<span class="kr">let</span> <span class="n">queryFilter</span> <span class="ow">=</span> <span class="kt">BoolFilter</span> <span class="p">(</span><span class="kt">ShouldMatch</span> <span class="p">[(</span><span class="kt">Term</span> <span class="s">"user"</span> <span class="s">"bitemyapp"</span><span class="p">)]</span> <span class="kt">False</span><span class="p">)</span>
+
+</pre></div>
+<h4>
+<a name="user-content-exists-filter" class="anchor" href="#exists-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Exists Filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- Will filter for documents that have the field "user"</span>
+<span class="kr">let</span> <span class="n">existsFilter</span> <span class="ow">=</span> <span class="kt">ExistsFilter</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">)</span>
+
+</pre></div>
+<h4>
+<a name="user-content-geo-boundingbox-filter" class="anchor" href="#geo-boundingbox-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geo BoundingBox Filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- topLeft and bottomRight</span>
+<span class="kr">let</span> <span class="n">box</span> <span class="ow">=</span> <span class="kt">GeoBoundingBox</span> <span class="p">(</span><span class="kt">LatLon</span> <span class="mf">40.73</span> <span class="p">(</span><span class="o">-</span><span class="mf">74.1</span><span class="p">))</span> <span class="p">(</span><span class="kt">LatLon</span> <span class="mf">40.10</span> <span class="p">(</span><span class="o">-</span><span class="mf">71.12</span><span class="p">))</span>
+
+<span class="kr">let</span> <span class="n">constraint</span> <span class="ow">=</span> <span class="kt">GeoBoundingBoxConstraint</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"tweet.location"</span><span class="p">)</span> <span class="n">box</span> <span class="kt">False</span> <span class="kt">GeoFilterMemory</span>
+
+</pre></div>
+<h4>
+<a name="user-content-geo-distance-filter" class="anchor" href="#geo-distance-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geo Distance Filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">geoPoint</span> <span class="ow">=</span> <span class="kt">GeoPoint</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"tweet.location"</span><span class="p">)</span> <span class="p">(</span><span class="kt">LatLon</span> <span class="mf">40.12</span> <span class="p">(</span><span class="o">-</span><span class="mf">71.34</span><span class="p">))</span>
+
+<span class="c1">-- coefficient and units</span>
+<span class="kr">let</span> <span class="n">distance</span> <span class="ow">=</span> <span class="kt">Distance</span> <span class="mf">10.0</span> <span class="kt">Miles</span>
+
+<span class="c1">-- GeoFilterType or NoOptimizeBbox</span>
+<span class="kr">let</span> <span class="n">optimizeBbox</span> <span class="ow">=</span> <span class="kt">OptimizeGeoFilterType</span> <span class="kt">GeoFilterMemory</span>
+
+<span class="c1">-- SloppyArc is the usual/default optimization in Elasticsearch today</span>
+<span class="c1">-- but pre-1.0 versions will need to pick Arc or Plane.</span>
+
+<span class="kr">let</span> <span class="n">geoFilter</span> <span class="ow">=</span> <span class="kt">GeoDistanceFilter</span> <span class="n">geoPoint</span> <span class="n">distance</span> <span class="kt">SloppyArc</span> <span class="n">optimizeBbox</span> <span class="kt">False</span>
+
+</pre></div>
+<h4>
+<a name="user-content-geo-distance-range-filter" class="anchor" href="#geo-distance-range-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geo Distance Range Filter</h4>
+<p>Think of a donut and you won’t be far off.</p>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">geoPoint</span> <span class="ow">=</span> <span class="kt">GeoPoint</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"tweet.location"</span><span class="p">)</span> <span class="p">(</span><span class="kt">LatLon</span> <span class="mf">40.12</span> <span class="p">(</span><span class="o">-</span><span class="mf">71.34</span><span class="p">))</span>
+
+<span class="kr">let</span> <span class="n">distanceRange</span> <span class="ow">=</span> <span class="kt">DistanceRange</span> <span class="p">(</span><span class="kt">Distance</span> <span class="mf">0.0</span> <span class="kt">Miles</span><span class="p">)</span> <span class="p">(</span><span class="kt">Distance</span> <span class="mf">10.0</span> <span class="kt">Miles</span><span class="p">)</span>
+
+<span class="kr">let</span> <span class="n">geoFilter</span> <span class="ow">=</span> <span class="kt">GeoDistanceRangeFilter</span> <span class="n">geoPoint</span> <span class="n">distanceRange</span>
+
+</pre></div>
+<h4>
+<a name="user-content-geo-polygon-filter" class="anchor" href="#geo-polygon-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geo Polygon Filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- I think I drew a square here.</span>
+<span class="kr">let</span> <span class="n">points</span> <span class="ow">=</span> <span class="p">[</span><span class="kt">LatLon</span> <span class="mf">40.0</span> <span class="p">(</span><span class="o">-</span><span class="mf">70.00</span><span class="p">),</span>
+              <span class="kt">LatLon</span> <span class="mf">40.0</span> <span class="p">(</span><span class="o">-</span><span class="mf">72.00</span><span class="p">),</span>
+              <span class="kt">LatLon</span> <span class="mf">41.0</span> <span class="p">(</span><span class="o">-</span><span class="mf">70.00</span><span class="p">),</span>
+              <span class="kt">LatLon</span> <span class="mf">41.0</span> <span class="p">(</span><span class="o">-</span><span class="mf">72.00</span><span class="p">)]</span>
+
+<span class="kr">let</span> <span class="n">geoFilter</span> <span class="ow">=</span> <span class="kt">GeoPolygonFilter</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"tweet.location"</span><span class="p">)</span> <span class="n">points</span>
+
+</pre></div>
+<h4>
+<a name="user-content-document-ids-filter" class="anchor" href="#document-ids-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Document IDs filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- takes a mapping name and a list of DocIds</span>
+<span class="kt">IdsFilter</span> <span class="p">(</span><span class="kt">MappingName</span> <span class="s">"tweet"</span><span class="p">)</span> <span class="p">[</span><span class="kt">DocId</span> <span class="s">"1"</span><span class="p">]</span>
+
+</pre></div>
+<h4>
+<a name="user-content-range-filter" class="anchor" href="#range-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Range Filter</h4>
+<h5>
+<a name="user-content-full-range" class="anchor" href="#full-range" aria-hidden="true"><span class="octicon octicon-link"></span></a>Full Range</h5>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- RangeFilter :: FieldName</span>
+<span class="c1">--                -&gt; Either HalfRange Range</span>
+<span class="c1">--                -&gt; RangeExecution</span>
+<span class="c1">--                -&gt; Cache -&gt; Filter</span>
+
+<span class="kr">let</span> <span class="n">filter</span> <span class="ow">=</span> <span class="kt">RangeFilter</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"age"</span><span class="p">)</span>
+             <span class="p">(</span><span class="kt">Right</span> <span class="p">(</span><span class="kt">RangeLtGt</span> <span class="p">(</span><span class="kt">LessThan</span> <span class="mf">100000.0</span><span class="p">)</span> <span class="p">(</span><span class="kt">GreaterThan</span> <span class="mf">1000.0</span><span class="p">)))</span>
+             <span class="kt">RangeExecutionIndex</span> <span class="kt">False</span>
+
+</pre></div>
+<h5>
+<a name="user-content-half-range" class="anchor" href="#half-range" aria-hidden="true"><span class="octicon octicon-link"></span></a>Half Range</h5>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="kr">let</span> <span class="n">filter</span> <span class="ow">=</span> <span class="kt">RangeFilter</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"age"</span><span class="p">)</span>
+             <span class="p">(</span><span class="kt">Left</span> <span class="p">(</span><span class="kt">HalfRangeLt</span> <span class="p">(</span><span class="kt">LessThan</span> <span class="mf">100000.0</span><span class="p">)))</span>
+             <span class="kt">RangeExecutionIndex</span> <span class="kt">False</span>
+
+</pre></div>
+<h4>
+<a name="user-content-regexp-filter" class="anchor" href="#regexp-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Regexp Filter</h4>
+<div class="highlight highlight-haskell"><pre>
+
+<span class="c1">-- RegexpFilter</span>
+<span class="c1">--   :: FieldName</span>
+<span class="c1">--      -&gt; Regexp</span>
+<span class="c1">--      -&gt; RegexpFlags</span>
+<span class="c1">--      -&gt; CacheName</span>
+<span class="c1">--      -&gt; Cache</span>
+<span class="c1">--      -&gt; CacheKey</span>
+<span class="c1">--      -&gt; Filter</span>
+<span class="kr">let</span> <span class="n">filter</span> <span class="ow">=</span> <span class="kt">RegexpFilter</span> <span class="p">(</span><span class="kt">FieldName</span> <span class="s">"user"</span><span class="p">)</span> <span class="p">(</span><span class="kt">Regexp</span> <span class="s">"bite.*app"</span><span class="p">)</span>
+             <span class="kt">AllRegexpFlags</span> <span class="p">(</span><span class="kt">CacheName</span> <span class="s">"test"</span><span class="p">)</span> <span class="kt">False</span> <span class="p">(</span><span class="kt">CacheKey</span> <span class="s">"key"</span><span class="p">)</span>
+
+<span class="c1">-- n.b.</span>
+<span class="c1">-- data RegexpFlags = AllRegexpFlags</span>
+<span class="c1">--                 | NoRegexpFlags</span>
+<span class="c1">--                 | SomeRegexpFlags (NonEmpty RegexpFlag) deriving (Eq, Show)</span>
+
+<span class="c1">-- data RegexpFlag = AnyString</span>
+<span class="c1">--                | Automaton</span>
+<span class="c1">--                | Complement</span>
+<span class="c1">--                | Empty</span>
+<span class="c1">--                | Intersection</span>
+<span class="c1">--                | Interval deriving (Eq, Show)</span>
+
+</pre></div>
+<h1>
+<a name="user-content-possible-future-functionality" class="anchor" href="#possible-future-functionality" aria-hidden="true"><span class="octicon octicon-link"></span></a>Possible future functionality</h1>
+<h2>
+<a name="user-content-span-queries" class="anchor" href="#span-queries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Span Queries</h2>
+<p>Beginning here: <a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-span-first-query.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-span-first-query.html</a></p>
+<h2>
+<a name="user-content-function-score-query" class="anchor" href="#function-score-query" aria-hidden="true"><span class="octicon octicon-link"></span></a>Function Score Query</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html</a></p>
+<h2>
+<a name="user-content-node-discovery-and-failover" class="anchor" href="#node-discovery-and-failover" aria-hidden="true"><span class="octicon octicon-link"></span></a>Node discovery and failover</h2>
+<p>Might require TCP support.</p>
+<h2>
+<a name="user-content-support-for-tcp-access-to-elasticsearch" class="anchor" href="#support-for-tcp-access-to-elasticsearch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support for TCP access to Elasticsearch</h2>
+<p>Pretend to be a transport client?</p>
+<h2>
+<a name="user-content-bulk-cluster-join-merge" class="anchor" href="#bulk-cluster-join-merge" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bulk cluster-join merge</h2>
+<p>Might require making a lucene index on disk with the appropriate format.</p>
+<h2>
+<a name="user-content-geoshapequery" class="anchor" href="#geoshapequery" aria-hidden="true"><span class="octicon octicon-link"></span></a>GeoShapeQuery</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geo-shape-query.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geo-shape-query.html</a></p>
+<h2>
+<a name="user-content-geoshapefilter" class="anchor" href="#geoshapefilter" aria-hidden="true"><span class="octicon octicon-link"></span></a>GeoShapeFilter</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geo-shape-filter.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geo-shape-filter.html</a></p>
+<h2>
+<a name="user-content-geohash-cell-filter" class="anchor" href="#geohash-cell-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geohash cell filter</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geohash-cell-filter.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-geohash-cell-filter.html</a></p>
+<h2>
+<a name="user-content-haschild-filter" class="anchor" href="#haschild-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>HasChild Filter</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-has-child-filter.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-has-child-filter.html</a></p>
+<h2>
+<a name="user-content-hasparent-filter" class="anchor" href="#hasparent-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>HasParent Filter</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-has-parent-filter.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-has-parent-filter.html</a></p>
+<h2>
+<a name="user-content-indices-filter" class="anchor" href="#indices-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Indices Filter</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-indices-filter.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-indices-filter.html</a></p>
+<h2>
+<a name="user-content-query-filter" class="anchor" href="#query-filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Query Filter</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-query-filter.html">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/query-dsl-query-filter.html</a></p>
+<h2>
+<a name="user-content-script-based-sorting" class="anchor" href="#script-based-sorting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Script based sorting</h2>
+<p><a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-sort.html#_script_based_sorting">http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-sort.html#_script_based_sorting</a></p>
+<h2>
+<a name="user-content-collapsing-redundantly-nested-andor-structures" class="anchor" href="#collapsing-redundantly-nested-andor-structures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collapsing redundantly nested and/or structures</h2>
+<p>The Seminearring instance, if deeply nested can possibly produce nested structure that is redundant. Depending on how this affects ES perforamnce, reducing this structure might be valuable.</p>
+<h2>
+<a name="user-content-runtime-checking-for-cycles-in-data-structures" class="anchor" href="#runtime-checking-for-cycles-in-data-structures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Runtime checking for cycles in data structures</h2>
+<p>check for n &gt; 1 occurrences in DFS:</p>
+<p><a href="http://hackage.haskell.org/package/stable-maps-0.0.5/docs/System-Mem-StableName-Dynamic.html">http://hackage.haskell.org/package/stable-maps-0.0.5/docs/System-Mem-StableName-Dynamic.html</a></p>
+<p><a href="http://hackage.haskell.org/package/stable-maps-0.0.5/docs/System-Mem-StableName-Dynamic-Map.html">http://hackage.haskell.org/package/stable-maps-0.0.5/docs/System-Mem-StableName-Dynamic-Map.html</a></p>
+<h1>
+<a name="user-content-photo-origin" class="anchor" href="#photo-origin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Photo Origin</h1>
+<p>Photo from HA! Designs: <a href="https://www.flickr.com/photos/hadesigns/">https://www.flickr.com/photos/hadesigns/</a></p></article></div>

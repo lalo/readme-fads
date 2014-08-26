@@ -1,0 +1,194 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-combinatorrent---a-bittorrent-client" class="anchor" href="#combinatorrent---a-bittorrent-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>Combinatorrent - a bittorrent client.</h1>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>This is a bittorrent client. I am the introduction document and I need to be
+written by some generous soul!</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Here is what I do to install haskell torrrent locally on my machine:</p>
+
+<pre><code>cabal install --prefix=$HOME --user
+</code></pre>
+
+<p>Since we are using the magnificient cabal, this is enough to install haskell
+torrent in our $HOME/bin directory.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Combinatorrent can currently only do one very simple thing. If you call it with</p>
+
+<pre><code>Combinatorrent foo.torrent
+</code></pre>
+
+<p>then it will begin downloading the file in foo.torrent to the current
+directory via the Bittorrent protocol.</p>
+
+<h2>
+<a name="user-content-protocol-support" class="anchor" href="#protocol-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Protocol support</h2>
+
+<p>Currently haskell-torrent supports the following BEPs (See the
+<a href="http://www.bittorrent.org/beps/bep_0000.html">BEP Process</a> document for an
+explanation of these)</p>
+
+<ul class="task-list">
+<li>0003, 0004, 0006, 0010, 0020,</li>
+</ul><p>Combinatorrent implicitly supports these extensions</p>
+
+<ul class="task-list">
+<li>0027: Support by the virtue of only supporting a single tracker and no
+ DHT.</li>
+</ul><p>Partially supported extensions:</p>
+
+<ul class="task-list">
+<li><p>0007: Combinatorrent understands and uses the "peers6" response from
+ the tracker to connect clients. On the other hand, it does nothing to
+ provide the "ipv4=" and "ipv6=" keys on tracker requests. As such, it
+ can be claimed that 0007 support is available, as everything we left
+ out is only qualified as MAY.</p></li>
+<li><p>0023: Combinatorrent supports the "compact" response only, although it
+ is explicitly stated that the client must support both. In practice it
+ has little impact as all modern trackers will only return compact
+ responses anyway.</p></li>
+</ul><p>Combinatorrent is not supporting these BEPs, but strives to do so one day:</p>
+
+<ul class="task-list">
+<li>0005, 0009, 0012, 0015, 0016, 0017, 0018, 0019, 0021, 0022,
+ 0024, 0026, 0028, 0029, 0030, 0031, 0032</li>
+</ul><h2>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h2>
+
+<p>For debugging, jlouis tends to use the following:</p>
+
+<pre><code>make conf build test
+</code></pre>
+
+<p>This builds Combinatorrent with the <em>Debug</em> flag set and also builds the
+software with profiling by default so it is easy to hunt down performance
+regressions. It also runs the internal test-suite for various values. There
+are a couple of interesting targets in the top-level Makefile</p>
+
+<h2>
+<a name="user-content-reading-material-for-hacking-combinatorrent" class="anchor" href="#reading-material-for-hacking-combinatorrent" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reading material for hacking Combinatorrent:</h2>
+
+<ul class="task-list">
+<li><p><a href="http://www.bittorrent.org/beps/bep_0003.html">Protocol specification - BEP0003</a>:
+ This is the original protocol specification, tracked into the BEP
+ process. It is worth reading because it explains the general overview
+ and the precision with which the original protocol was written down.</p></li>
+<li><p><a href="http://www.bittorrent.org/beps/bep_0000.html">Bittorrent Enhancement Process - BEP0000</a>
+ The BEP process is an official process for adding extensions on top of
+ the BitTorrent protocol. It allows implementors to mix and match the
+ extensions making sense for their client and it allows people to
+ discuss extensions publicly in a forum. It also provisions for the
+ deprecation of certain features in the long run as they prove to be of
+ less value.</p></li>
+<li><p><a href="http://wiki.theory.org/Main_Page">wiki.theory.org</a>
+ An alternative description of the protocol. This description is in
+ general much more detailed than the BEP structure. It is worth a read
+ because it acts somewhat as a historic remark and a side channel. Note
+ that there are some commentary on these pages which can be disputed
+ quite a lot.</p></li>
+<li><p><a href="http://erlang.org/doc/design_principles/sup_princ.html">"Supervisor Behaviour"</a>
+ From the Erlang documentation. How the Erlang Supervisor behaviour
+ works. The Supervisor and process structure of Combinatorrent is
+ somewhat inspired by the Erlang ditto.</p></li>
+</ul><h2>
+<a name="user-content-source-code-hierarchy" class="anchor" href="#source-code-hierarchy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source code Hierarchy</h2>
+
+<ul class="task-list">
+<li>
+<p><strong>Data</strong>: Data structures.</p>
+
+<ul class="task-list">
+<li>
+<strong>Queue</strong>: Functional queues. Standard variant with two lists.</li>
+<li>
+<strong>PendingSet</strong>: A wrapper around Data.PSQueue for tracking how
+common a piece is.</li>
+<li>
+<strong>PieceSet</strong>: BitArrays of pieces and their operations.</li>
+</ul>
+</li>
+<li>
+<p><strong>Process</strong>: Process definitions for the different processes comprising
+              Combinatorrent</p>
+
+<ul class="task-list">
+<li>
+<strong>ChokeMgr</strong>: Manages choking and unchoking of peers, based upon the current speed of the peer
+and its current state. Global for multiple torrents.</li>
+<li>
+<strong>Console</strong>: Simple console process. Only responds to 'quit' at the moment.</li>
+<li>
+<strong>DirWatcher</strong>: Watches a directory and adds any torrent present in
+it.</li>
+<li>
+<strong>FS</strong>: Process managing the file system.</li>
+<li>
+<strong>Listen</strong>: Not used at the moment. Step towards listening sockets.</li>
+<li>
+<strong>Peer</strong>: Several process definitions for handling peers. Two for sending, one for receiving
+and one for controlling the peer and handle the state.</li>
+<li>
+<strong>PeerMgr</strong>: Management of a set of peers for a single torrent.</li>
+<li>
+<strong>PieceMgr</strong>: Keeps track of what pieces have been downloaded and what are missing. Also hands
+out blocks for downloading to the peers.</li>
+<li>
+<strong>Status</strong>: Keeps track of uploaded/downloaded/left bytes for a single torrent. Could be globalized.</li>
+<li>
+<strong>Timer</strong>: Timer events.</li>
+<li>
+<strong>TorrentManager</strong>: Manages torrents at the top-level.</li>
+<li>
+<strong>Tracker</strong>: Communication with the tracker.</li>
+</ul>
+</li>
+<li>
+<p><strong>Protocol</strong>: Modules for interacting with the various bittorrent protocols.</p>
+
+<ul class="task-list">
+<li>
+<strong>BCode</strong>: The bittorrent BCode coding. Used by several protocols.</li>
+<li>
+<strong>Wire</strong>: The protocol used for communication between peers.</li>
+</ul>
+</li>
+<li>
+<p><strong>Top Level</strong>:</p>
+
+<ul class="task-list">
+<li>
+<strong>Channels</strong>: Various Channel definitions.</li>
+<li>
+<strong>Combinatorrent</strong>: Main entry point to the code. Sets up processes.</li>
+<li>
+<strong>Digest</strong>: SHA1 digests as used in the bittorrent protocol.</li>
+<li>
+<strong>FS</strong>: Low level Filesystem code. Interacts with files.</li>
+<li>
+<strong>Process</strong>: Code for Erlang-inspired processes.</li>
+<li>
+<strong>RateCalc</strong>: Rate calculations for a network socket. We use this to keep track of the
+current speed of a peer in one direction.</li>
+<li>
+<strong>Supervisor</strong>: Erlang-inspired Supervisor processes.</li>
+<li>
+<strong>Test.hs</strong>: Code for test-framework</li>
+<li>
+<strong>TestInstance.hs</strong>: Various helper instances not present in the test framework by default</li>
+<li>
+<strong>Torrent</strong>: Various helpers and types for Torrents.</li>
+<li>
+<strong>Tracer</strong>: Code for simple "ring"-like tracing.</li>
+<li>
+<strong>Version.hs.in</strong>: Generates <strong>Version.hs</strong> via the configure script.</li>
+</ul>
+</li>
+</ul></article></div>

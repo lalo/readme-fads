@@ -1,0 +1,104 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/sbt/sbt">sbt</a> 0.13</li>
+<li>For sbt 0.12.x version of the plugin, see <a href="https://github.com/mpeltonen/sbt-idea/tree/sbt-0.12#requirements">branch sbt-0.12</a>
+</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Add the following lines to ~/.sbt/0.13/plugins/build.sbt or PROJECT_DIR/project/plugins.sbt</p>
+
+<pre><code>addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")
+</code></pre>
+
+<p>To use the <strong>latest snapshot</strong> version, add also Sonatype snapshots repository resolver into the same <strong>plugins.sbt</strong> file:</p>
+
+<pre><code>resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
+
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.7.0-SNAPSHOT")
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-basic-project" class="anchor" href="#basic-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic project</h3>
+
+<p>Use the <code>gen-idea</code> sbt task to create Idea project files.</p>
+
+<h3>
+<a name="user-content-project-with-dependencies" class="anchor" href="#project-with-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project with dependencies</h3>
+
+<p>If you have two sbt projects A and B, and A depends on B, then use the <code>gen-idea</code> sbt task on Project A to create Idea project files for both projects.</p>
+
+<p>The projects need to be set up in the following way:</p>
+
+<p><em>Project A:</em></p>
+
+<pre><code>import sbt._
+
+object A extends Build {
+  lazy val A = Project("A", file(".")) aggregate(B) dependsOn(B)
+  lazy val B = RootProject(file("../B"))
+}
+</code></pre>
+
+<p><em>Project B:</em></p>
+
+<pre><code>import sbt._
+
+object B extends Build {
+  lazy val B = Project("B", file("."))
+}
+</code></pre>
+
+<h3>
+<a name="user-content-sources-and-javadocs" class="anchor" href="#sources-and-javadocs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sources and javadocs</h3>
+
+<p>By default, classifiers (i.e. sources and javadocs) of dependencies are loaded if found and references added to Idea project files. If you don't want to download/reference them, use command 'gen-idea no-classifiers'.</p>
+
+<h2>
+<a name="user-content-configuration-settings" class="anchor" href="#configuration-settings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration settings</h2>
+
+<h3>
+<a name="user-content-exclude-some-folders" class="anchor" href="#exclude-some-folders" aria-hidden="true"><span class="octicon octicon-link"></span></a>Exclude some folders</h3>
+
+<p>In your build.sbt:</p>
+
+<pre><code>ideaExcludeFolders += ".idea"
+
+ideaExcludeFolders += ".idea_modules"
+</code></pre>
+
+<p>Or in your Build.scala:</p>
+
+<pre><code>...
+import org.sbtidea.SbtIdeaPlugin._
+...
+lazy val myproject = Project(id = "XXXX" ....)
+.settings(ideaExcludeFolders := ".idea" :: ".idea_modules" :: Nil)
+</code></pre>
+
+<h3>
+<a name="user-content-include-extra-test-configurations" class="anchor" href="#include-extra-test-configurations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Include extra test configurations</h3>
+
+<p>In your Build.scala:</p>
+
+<pre><code>lazy val LoadTest = config("test-load") extend Test
+lazy val loadTestSettings : Seq[Setting[_]] = inConfig(LoadTest)(Defaults.testSettings ++ Seq(sourceDirectory in LoadTest &lt;&lt;= (sourceDirectory in LoadTest)(_ / ".." / "test-load")))
+
+lazy val root = Project(...)
+  .settings(ideaExtraTestConfigurations := Seq(LoadTest) :: Nil)
+  .configs( LoadTest )
+  .settings( loadTestSettings : _*)
+</code></pre>
+
+<p>TODO...</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Licensed under the New BSD License. See the LICENSE file for details.</p></article></div>

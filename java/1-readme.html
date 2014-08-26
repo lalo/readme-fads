@@ -1,0 +1,215 @@
+<div class="announce instapaper_body textile" data-path="README.textile" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-elasticsearch" class="anchor" href="#elasticsearch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Elasticsearch</h1>
+<h2>
+<a name="user-content-a-distributed-restful-search-engine" class="anchor" href="#a-distributed-restful-search-engine" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Distributed RESTful Search Engine</h2>
+<h3>
+<a name="user-content-httpwwwelasticsearchorg" class="anchor" href="#httpwwwelasticsearchorg" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="http://www.elasticsearch.org">http://www.elasticsearch.org</a>
+</h3>
+<p>Elasticsearch is a distributed RESTful search engine built for the cloud. Features include:</p>
+<ul>
+<li>Distributed and Highly Available Search Engine.
+	<ul>
+<li>Each index is fully sharded with a configurable number of shards.</li>
+		<li>Each shard can have one or more replicas.</li>
+		<li>Read / Search operations performed on either one of the replica shard.</li>
+	</ul>
+</li>
+	<li>Multi Tenant with Multi Types.
+	<ul>
+<li>Support for more than one index.</li>
+		<li>Support for more than one type per index.</li>
+		<li>Index level configuration (number of shards, index storage, …).</li>
+	</ul>
+</li>
+	<li>Various set of APIs
+	<ul>
+<li>HTTP RESTful API</li>
+		<li>Native Java API.</li>
+		<li>All APIs perform automatic node operation rerouting.</li>
+	</ul>
+</li>
+	<li>Document oriented
+	<ul>
+<li>No need for upfront schema definition.</li>
+		<li>Schema can be defined per type for customization of the indexing process.</li>
+	</ul>
+</li>
+	<li>Reliable, Asynchronous Write Behind for long term persistency.</li>
+	<li>(Near) Real Time Search.</li>
+	<li>Built on top of Lucene
+	<ul>
+<li>Each shard is a fully functional Lucene index</li>
+		<li>All the power of Lucene easily exposed through simple configuration / plugins.</li>
+	</ul>
+</li>
+	<li>Per operation consistency
+	<ul>
+<li>Single document level operations are atomic, consistent, isolated and durable.</li>
+	</ul>
+</li>
+	<li>Open Source under Apache 2 License.</li>
+</ul><h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+<p>First of all, DON’T PANIC. It will take 5 minutes to get the gist of what Elasticsearch is all about.</p>
+<h3>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h3>
+<ul>
+<li>
+<a href="http://www.elasticsearch.org/download">Download</a> and unzip the Elasticsearch official distribution.</li>
+	<li>Run <code>bin/elasticsearch</code> on unix, or <code>bin\elasticsearch.bat</code> on windows.</li>
+	<li>Run <code>curl -X GET http://localhost:9200/</code>.</li>
+	<li>Start more servers …</li>
+</ul><h3>
+<a name="user-content-indexing" class="anchor" href="#indexing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Indexing</h3>
+<p>Let’s try and index some twitter like information. First, let’s create a twitter user, and add some tweets (the <code>twitter</code> index will be created automatically):</p>
+<pre>
+curl -XPUT 'http://localhost:9200/twitter/user/kimchy' -d '{ "name" : "Shay Banon" }'
+
+curl -XPUT 'http://localhost:9200/twitter/tweet/1' -d '
+{ 
+    "user": "kimchy", 
+    "postDate": "2009-11-15T13:12:00", 
+    "message": "Trying out Elasticsearch, so far so good?" 
+}'
+
+curl -XPUT 'http://localhost:9200/twitter/tweet/2' -d '
+{ 
+    "user": "kimchy", 
+    "postDate": "2009-11-15T14:12:12", 
+    "message": "Another tweet, will it be indexed?" 
+}'
+</pre>
+<p>Now, let’s see if the information was added by GETting it:</p>
+<pre>
+curl -XGET 'http://localhost:9200/twitter/user/kimchy?pretty=true'
+curl -XGET 'http://localhost:9200/twitter/tweet/1?pretty=true'
+curl -XGET 'http://localhost:9200/twitter/tweet/2?pretty=true'
+</pre>
+<h3>
+<a name="user-content-searching" class="anchor" href="#searching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Searching</h3>
+<p>Mmm search…, shouldn’t it be elastic? <br>
+Let’s find all the tweets that <code>kimchy</code> posted:</p>
+<pre>
+curl -XGET 'http://localhost:9200/twitter/tweet/_search?q=user:kimchy&amp;pretty=true'
+</pre>
+<p>We can also use the JSON query language Elasticsearch provides instead of a query string:</p>
+<pre>
+curl -XGET 'http://localhost:9200/twitter/tweet/_search?pretty=true' -d '
+{ 
+    "query" : { 
+        "match" : { "user": "kimchy" }
+    } 
+}'
+</pre>
+<p>Just for kicks, let’s get all the documents stored (we should see the user as well):</p>
+<pre>
+curl -XGET 'http://localhost:9200/twitter/_search?pretty=true' -d '
+{ 
+    "query" : { 
+        "matchAll" : {} 
+    } 
+}'
+</pre>
+<p>We can also do range search (the <code>postDate</code> was automatically identified as date)</p>
+<pre>
+curl -XGET 'http://localhost:9200/twitter/_search?pretty=true' -d '
+{ 
+    "query" : { 
+        "range" : { 
+            "postDate" : { "from" : "2009-11-15T13:00:00", "to" : "2009-11-15T14:00:00" } 
+        } 
+    } 
+}'
+</pre>
+<p>There are many more options to perform search, after all, it’s a search product no? All the familiar Lucene queries are available through the JSON query language, or through the query parser.</p>
+<h3>
+<a name="user-content-multi-tenant--indices-and-types" class="anchor" href="#multi-tenant--indices-and-types" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi Tenant – Indices and Types</h3>
+<p>Maan, that twitter index might get big (in this case, index size == valuation). Let’s see if we can structure our twitter system a bit differently in order to support such large amount of data.</p>
+<p>Elasticsearch support multiple indices, as well as multiple types per index. In the previous example we used an index called <code>twitter</code>, with two types, <code>user</code> and <code>tweet</code>.</p>
+<p>Another way to define our simple twitter system is to have a different index per user (though note that an index has an overhead). Here is the indexing curl’s in this case:</p>
+<pre>
+curl -XPUT 'http://localhost:9200/kimchy/info/1' -d '{ "name" : "Shay Banon" }'
+
+curl -XPUT 'http://localhost:9200/kimchy/tweet/1' -d '
+{ 
+    "user": "kimchy", 
+    "postDate": "2009-11-15T13:12:00", 
+    "message": "Trying out Elasticsearch, so far so good?" 
+}'
+
+curl -XPUT 'http://localhost:9200/kimchy/tweet/2' -d '
+{ 
+    "user": "kimchy", 
+    "postDate": "2009-11-15T14:12:12", 
+    "message": "Another tweet, will it be indexed?" 
+}'
+</pre>
+<p>The above index information into the <code>kimchy</code> index, with two types, <code>info</code> and <code>tweet</code>. Each user will get his own special index.</p>
+<p>Complete control on the index level is allowed. As an example, in the above case, we would want to change from the default 5 shards with 1 replica per index, to only 1 shard with 1 replica per index (== per twitter user). Here is how this can be done (the configuration can be in yaml as well):</p>
+<pre>
+curl -XPUT http://localhost:9200/another_user/ -d '
+{ 
+    "index" : { 
+        "numberOfShards" : 1, 
+        "numberOfReplicas" : 1 
+    } 
+}'
+</pre>
+<p>Search (and similar operations) are multi index aware. This means that we can easily search on more than one<br>
+index (twitter user), for example:</p>
+<pre>
+curl -XGET 'http://localhost:9200/kimchy,another_user/_search?pretty=true' -d '
+{ 
+    "query" : { 
+        "matchAll" : {} 
+    } 
+}'
+</pre>
+<p>Or on all the indices:</p>
+<pre>
+curl -XGET 'http://localhost:9200/_search?pretty=true' -d '
+{ 
+    "query" : { 
+        "matchAll" : {} 
+    } 
+}'
+</pre>
+<p>{One liner teaser}: And the cool part about that? You can easily search on multiple twitter users (indices), with different boost levels per user (index), making social search so much simpler (results from my friends rank higher than results from my friends friends).</p>
+<h3>
+<a name="user-content-distributed-highly-available" class="anchor" href="#distributed-highly-available" aria-hidden="true"><span class="octicon octicon-link"></span></a>Distributed, Highly Available</h3>
+<p>Let’s face it, things will fail….</p>
+<p>Elasticsearch is a highly available and distributed search engine. Each index is broken down into shards, and each shard can have one or more replica. By default, an index is created with 5 shards and 1 replica per shard (5/1). There are many topologies that can be used, including 1/10 (improve search performance), or 20/1 (improve indexing performance, with search executed in a map reduce fashion across shards).</p>
+<p>In order to play with Elasticsearch distributed nature, simply bring more nodes up and shut down nodes. The system will continue to serve requests (make sure you use the correct http port) with the latest data indexed.</p>
+<h3>
+<a name="user-content-where-to-go-from-here" class="anchor" href="#where-to-go-from-here" aria-hidden="true"><span class="octicon octicon-link"></span></a>Where to go from here?</h3>
+<p>We have just covered a very small portion of what Elasticsearch is all about. For more information, please refer to the <a href="http://www.elasticsearch.org">elasticsearch.org</a> website.</p>
+<h3>
+<a name="user-content-building-from-source" class="anchor" href="#building-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building from Source</h3>
+<p>Elasticsearch uses <a href="http://maven.apache.org">Maven</a> for its build system.</p>
+<p>In order to create a distribution, simply run the <code>mvn clean package
+-DskipTests</code> command in the cloned directory.</p>
+<p>The distribution will be created under <code>target/releases</code>.</p>
+<p>See the <a href="TESTING.asciidoc">TESTING</a> file for more information about<br>
+running the Elasticsearch test suite.</p>
+<h3>
+<a name="user-content-upgrading-to-elasticsearch-1x" class="anchor" href="#upgrading-to-elasticsearch-1x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading to Elasticsearch 1.x?</h3>
+<p>In order to ensure a smooth upgrade process from earlier versions of Elasticsearch (&lt; 1.0.0), it is recommended to perform a full cluster restart. Please see the “Upgrading” section of the <a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/setup.html">setup reference</a>.</p>
+<h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+<pre>
+This software is licensed under the Apache 2 license, quoted below.
+
+Copyright 2009-2014 Elasticsearch &lt;http://www.elasticsearch.org&gt;
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+</pre></article></div>

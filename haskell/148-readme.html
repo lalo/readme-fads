@@ -1,0 +1,894 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-liquidhaskell-" class="anchor" href="#liquidhaskell-" aria-hidden="true"><span class="octicon octicon-link"></span></a>LiquidHaskell <a href="https://travis-ci.org/ucsd-progsys/liquidhaskell"><img src="https://camo.githubusercontent.com/fbfab6b7e981df6589d82d88e36895524d5910c9/68747470733a2f2f7472617669732d63692e6f72672f756373642d70726f677379732f6c69717569646861736b656c6c2e737667" alt="Build Status" data-canonical-src="https://travis-ci.org/ucsd-progsys/liquidhaskell.svg" style="max-width:100%;"></a>
+</h1>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>LiquidHaskell requires (in addition to the cabal dependencies)</p>
+
+<ul class="task-list">
+<li>recent OCaml compiler</li>
+<li>SMTLIB2 compatible solver</li>
+</ul><h2>
+<a name="user-content-how-to-clone-build-and-install" class="anchor" href="#how-to-clone-build-and-install" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Clone, Build and Install</h2>
+
+<p>To begin building, run the following commands in the root
+directory of the distribution:</p>
+
+<ol class="task-list">
+<li>
+<p>Install a suitable smt solver binary, e.g.</p>
+
+<ul class="task-list">
+<li><a href="http://z3.codeplex.com/">Z3</a></li>
+<li>
+<a href="http://cvc4.cs.nyu.edu/">CVC4</a> </li>
+<li><a href="http://mathsat.fbk.eu/download.html">MathSat</a></li>
+</ul>
+</li>
+</ol><ol class="task-list">
+<li>
+<p>Create top-level project directory and clone repositories:</p>
+
+<p>mkdir /path/to/liquid
+cd /path/to/liquid
+git clone <a href="mailto:git@github.com">git@github.com</a>:ucsd-progsys/liquid-fixpoint.git
+git clone <a href="mailto:git@github.com">git@github.com</a>:ucsd-progsys/liquidhaskell.git
+cd liquidhaskell
+cabal sandbox init
+cabal sandbox add-source ../liquid-fixpoint/</p>
+</li>
+<li>
+<p>Install </p>
+
+<p>cabal install</p>
+</li>
+</ol><p>To <strong>rebuild</strong> after this step, run</p>
+
+<pre><code>`make` or `cabal install`
+</code></pre>
+
+<p>inside</p>
+
+<pre><code>/path/to/liquid/liquidhaskell/
+</code></pre>
+
+<h2>
+<a name="user-content-how-to-run" class="anchor" href="#how-to-run" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Run</h2>
+
+<p>To verify a file called <code>foo.hs</code> at type</p>
+
+<pre><code>$ liquid foo.hs
+</code></pre>
+
+<h2>
+<a name="user-content-how-to-run-regression-tests-" class="anchor" href="#how-to-run-regression-tests-" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Run Regression Tests </h2>
+
+<pre><code>$ make test
+</code></pre>
+
+<p>To use threads to speed up the tests</p>
+
+<pre><code>$ make THREADS=30 test
+</code></pre>
+
+<p>Or your favorite number of threads, depending on cores etc.</p>
+
+<p>You can directly extend and run the tests by modifying </p>
+
+<pre><code>tests/regrtest.py
+</code></pre>
+
+<p>For example, to run the tests with a particular SMT solver</p>
+
+<pre><code>./regrtest.py -t 30 -o "--smtsolver=mathsat"
+./regrtest.py -t 30 -o "--smtsolver=cvc4"
+</code></pre>
+
+<p>To run the regression test <em>and</em> the benchmarks run</p>
+
+<pre><code> $ make all-test
+</code></pre>
+
+<h2>
+<a name="user-content-how-to-profile-" class="anchor" href="#how-to-profile-" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to Profile </h2>
+
+<ol class="task-list">
+<li>
+<p>Build with profiling on</p>
+
+<p>$ make pdeps &amp;&amp; make prof</p>
+</li>
+<li>
+<p>Run with profiling</p>
+
+<p>$ time liquid range.hs +RTS -hc -p</p>
+
+<p>$ time liquid range.hs +RTS -hy -p</p>
+
+<p>Followed by this which shows the stats file </p>
+
+<p>$ more liquid.prof</p>
+
+<p>or by this to see the graph</p>
+
+<p>$ hp2ps -e8in -c liquid.hp</p>
+
+<p>$ gv liquid.ps</p>
+
+<p>etc.</p>
+</li>
+</ol><h2>
+<a name="user-content-how-to-get-stack-traces-on-exceptions-" class="anchor" href="#how-to-get-stack-traces-on-exceptions-" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to Get Stack Traces On Exceptions </h2>
+
+<ol class="task-list">
+<li>
+<p>Build with profiling on</p>
+
+<p>$ make pdeps &amp;&amp; make prof</p>
+</li>
+<li>
+<p>Run with backtraces</p>
+
+<p>$ liquid +RTS -xc -RTS foo.hs</p>
+</li>
+</ol><h1>
+<a name="user-content-command-line-options" class="anchor" href="#command-line-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Line Options</h1>
+
+<p>LiquidHaskell supports several command line options, to configure the
+checking. Each option can be passed in at the command line, or directly
+added to the source file via:</p>
+
+<pre><code>{-@ LIQUID "option-within-quotes" @-}
+</code></pre>
+
+<p>for example, to disable termination checking (see below)</p>
+
+<pre><code>{-@ LIQUID "--notermination" @-}
+</code></pre>
+
+<p>You may also put command line options in the environment variable
+<code>LIQUIDHASKELL_OPTS</code>. For example, if you add the line:</p>
+
+<pre><code>LIQUIDHASKELL_OPTS="--diff"
+</code></pre>
+
+<p>to your <code>.bashrc</code> then, by default, all files will be 
+<em>incrementally checked</em> unless you run with the overriding 
+<code>--full</code> flag (see below).</p>
+
+<h2>
+<a name="user-content-incremental-checking" class="anchor" href="#incremental-checking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Incremental Checking</h2>
+
+<p>LiquidHaskell supports <em>incremental</em> checking where each run only checks 
+the part of the program that has been modified since the previous run.</p>
+
+<pre><code>$ liquid --diff foo.hs
+</code></pre>
+
+<p>Each run of <code>liquid</code> saves the file to a <code>.bak</code> file and the <em>subsequent</em> 
+run 
+    + does a <code>diff</code> to see what has changed w.r.t. the <code>.bak</code> file
+    + only generates constraints for the <code>[CoreBind]</code> corresponding to the 
+       changed top-level binders and their transitive dependencies.</p>
+
+<p>The time savings are quite significant. For example:</p>
+
+<pre><code>$ time liquid --notermination -i . Data/ByteString.hs &gt; log 2&gt;&amp;1
+
+real    7m3.179s
+user    4m18.628s
+sys     0m21.549s
+</code></pre>
+
+<p>Now if you go and tweak the definition of <code>spanEnd</code> on line 1192 and re-run:</p>
+
+<pre><code>$ time liquid -d --notermination -i . Data/ByteString.hs &gt; log 2&gt;&amp;1
+
+real    0m11.584s
+user    0m6.008s
+sys     0m0.696s
+</code></pre>
+
+<p>The diff is only performed against <strong>code</strong>, i.e. if you only change
+specifications, qualifiers, measures, etc. <code>liquid -d</code> will not perform
+any checks. In this case, you may specify individual definitions to verify:</p>
+
+<pre><code>$ liquid -b bar -b baz foo.hs
+</code></pre>
+
+<p>This will verify <code>bar</code> and <code>baz</code>, as well as any functions they use.</p>
+
+<p>If you always want to run a given file with diff-checking, add
+the pragma:</p>
+
+<pre><code>{-@ LIQUID "--diff" @-}
+</code></pre>
+
+<h2>
+<a name="user-content-full-checking-default" class="anchor" href="#full-checking-default" aria-hidden="true"><span class="octicon octicon-link"></span></a>Full Checking (DEFAULT)</h2>
+
+<p>To force LiquidHaskell to check the <strong>whole</strong> file (DEFAULT), use:</p>
+
+<pre><code>$ liquid --full foo.hs
+</code></pre>
+
+<p>to the file. This will override any other <code>--diff</code> incantation 
+elsewhere (e.g. inside the file.)</p>
+
+<p>If you always want to run a given file with full-checking, add
+the pragma:</p>
+
+<pre><code>{-@ LIQUID "--full" @-}
+</code></pre>
+
+<h2>
+<a name="user-content-specifying-different-smt-solvers" class="anchor" href="#specifying-different-smt-solvers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying Different SMT Solvers</h2>
+
+<p>By default, LiquidHaskell uses the SMTLIB2 interface for Z3.</p>
+
+<p>To run a different solver (supporting SMTLIB2) do:</p>
+
+<pre><code>$ liquid --smtsolver=NAME foo.hs
+</code></pre>
+
+<p>Currently, LiquidHaskell supports</p>
+
+<ul class="task-list">
+<li>
+<a href="http://cvc4.cs.nyu.edu/">CVC4</a> </li>
+<li><a href="http://mathsat.fbk.eu/download.html">MathSat</a></li>
+</ul><p>To use these solvers, you must install the corresponding binaries
+from the above web-pages into your <code>PATH</code>.</p>
+
+<p>You can also build and link against the Z3 API (faster but requires more
+dependencies). If you do so, you can use that interface with:</p>
+
+<pre><code>$ liquid --smtsolver=z3mem foo.hs
+</code></pre>
+
+<h2>
+<a name="user-content-short-error-messages" class="anchor" href="#short-error-messages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Short Error Messages</h2>
+
+<p>By default, subtyping error messages will contain the inferred type, the 
+expected type -- which is <strong>not</strong> a super-type, hence the error -- and a 
+context containing relevant variables and their type to help you understand
+the error. If you don't want the above and instead, want only the 
+<strong>source position</strong> of the error use:</p>
+
+<pre><code>--short-errors
+</code></pre>
+
+<h2>
+<a name="user-content-short-unqualified-module-names" class="anchor" href="#short-unqualified-module-names" aria-hidden="true"><span class="octicon octicon-link"></span></a>Short (Unqualified) Module Names</h2>
+
+<p>By default, the inferred types will have fully qualified module names.
+To use unqualified names, much easier to read, use:</p>
+
+<pre><code>--short-names
+</code></pre>
+
+<h2>
+<a name="user-content-totality-check" class="anchor" href="#totality-check" aria-hidden="true"><span class="octicon octicon-link"></span></a>Totality Check</h2>
+
+<p>LiquidHaskell can prove the absence of pattern match failures.
+Use the <code>totality</code> flag to prove that all defined functions are total.</p>
+
+<pre><code>liquid --totality test.hs
+</code></pre>
+
+<p>For example, the definition</p>
+
+<pre><code> fromJust :: Maybe a -&gt; a
+ fromJust (Just a) = a
+</code></pre>
+
+<p>is not total and it will create an error message.
+If we exclude <code>Nothing</code> from its domain, for example using the following specification</p>
+
+<pre><code> {-@ fromJust :: {v:Maybe a | (isJust v)} -&gt; a @-}
+</code></pre>
+
+<p><code>fromJust</code> will be safe.</p>
+
+<h2>
+<a name="user-content-termination-check" class="anchor" href="#termination-check" aria-hidden="true"><span class="octicon octicon-link"></span></a>Termination Check</h2>
+
+<p>By <strong>default</strong> a termination check is performed on all recursive functions.</p>
+
+<p>Use the <code>no-termination</code> option to disable the check</p>
+
+<pre><code>liquid --no-termination test.hs
+</code></pre>
+
+<p>In recursive functions the <em>first</em> algebraic or integer argument should be decreasing.</p>
+
+<p>The default decreasing measure for lists is length and Integers its value.</p>
+
+<p>The user can specify the decreasing measure in data definitions:</p>
+
+<pre><code>{-@ data L [llen] a = Nil | Cons (x::a) (xs:: L a) @-}
+</code></pre>
+
+<p>Defines that <code>llen</code> is the decreasing measure (to be defined by the user).</p>
+
+<p>For example, in the function <code>foldl</code></p>
+
+<pre><code>foldl k acc N           = acc
+foldl k acc (Cons x xs) = foldl k (x `k` acc) xs 
+</code></pre>
+
+<p>by default the <em>second</em> argument (the first non-function argument) will be 
+checked to be decreasing. However, the explicit hint </p>
+
+<pre><code>{-@ Decrease foo 3 @-}
+</code></pre>
+
+<p>tells LiquidHaskell to instead use the <em>third</em> argument. </p>
+
+<p>To <em>disable</em> termination checking for <code>foo</code> that is, to <em>assume</em> that it 
+is terminating (possibly for some complicated reason currently beyond the 
+scope of LiquidHaskell) you can write</p>
+
+<pre><code>{-@ Lazy foo @-}
+</code></pre>
+
+<p>Some functions do not decrease on a single argument, but rather a
+combination of arguments, e.g. the Ackermann function.</p>
+
+<pre><code>ack m n
+  | m == 0          = n + 1
+  | m &gt; 0 &amp;&amp; n == 0 = ack (m-1) 1
+  | m &gt; 0 &amp;&amp; n &gt;  0 = ack (m-1) (ack m (n-1))
+</code></pre>
+
+<p>In all but one recursive call <code>m</code> decreases, in the final call <code>m</code>
+does not decrease but <code>n</code> does. We can capture this notion of "x
+normally decreases, but if it does not, y will" with an extended
+annotation</p>
+
+<pre><code>{-@ Decrease ack 1 2 @-}
+</code></pre>
+
+<p>An alternative way to express this specification is by annotating 
+the function's type with the appropriate decreasing expressions.
+As an example, you can give <code>ack</code> a type</p>
+
+<pre><code>{-@ ack :: m:Nat -&gt; n:Nat -&gt; Nat / [m,n] @-}
+</code></pre>
+
+<p>stating that the expressions <code>[m, n]</code> are lexicographically decreasing.</p>
+
+<p>Decreasing expressions can be arbitrary refinement expressions, e.g., </p>
+
+<pre><code>{-@ merge :: Ord a =&gt; xs:[a] -&gt; ys:[a] -&gt; [a] / [(len xs) + (len ys)] @-}
+</code></pre>
+
+<p>states that at each recursive call of <code>merge</code> the sum of the lengths 
+of its arguments will be decreased.</p>
+
+<p>When dealing with mutually recursive functions you may run into a
+situation where the decreasing parameter must be measured <em>across</em> a
+series of invocations, e.g.</p>
+
+<pre><code>even 0 = True
+even n = odd (n-1)
+
+odd  n = not $ even n
+</code></pre>
+
+<p>In this case, you can introduce a ghost parameter that orders the <em>functions</em></p>
+
+<pre><code>even 0 _ = True
+even n _ = odd (n-1) 1
+
+odd  n _ = not $ even n 0
+</code></pre>
+
+<p>thus recovering a decreasing measure for the pair of functions, the
+pair of arguments. This can be encoded with the lexicographic
+termination annotation <code>{-@ Decrease even 1 2 @-}</code> (see
+tests/pos/mutrec.hs for the full example).</p>
+
+<h2>
+<a name="user-content-lazy-variables" class="anchor" href="#lazy-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Lazy Variables</h2>
+
+<p>A variable cab be specified as <code>LAZYVAR</code></p>
+
+<pre><code>{-@ LAZYVAR z @-}
+</code></pre>
+
+<p>With this annotation the definition of <code>z</code> will be checked at the points where
+it is used. For example, with the above annotation the following code is SAFE:</p>
+
+<pre><code>foo = if x &gt; 0 then z else x
+  where z = 42 `safeDiv` x
+        x = choose 0
+</code></pre>
+
+<p>By default, all the variables starting with <code>fail</code> are marked as LAZY, to defer
+failing checks at the point where these variables are used.</p>
+
+<h2>
+<a name="user-content-prune-unsorted-predicates" class="anchor" href="#prune-unsorted-predicates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prune Unsorted Predicates</h2>
+
+<p>By default unsorted predicates are pruned away (yielding <code>true</code> 
+for the corresponding refinement.) To disable this behaviour 
+use the <code>no-prune-unsorted</code> flag.</p>
+
+<pre><code>liquid --no-prune-unsorted test.hs
+</code></pre>
+
+<h2>
+<a name="user-content-ignore-false-predicates" class="anchor" href="#ignore-false-predicates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ignore False Predicates</h2>
+
+<p>[PLEASE EDIT: I have no idea what "ignoring false predicates means"]</p>
+
+<p>To ignore false predicates use the nofalse option</p>
+
+<pre><code>liquid --nofalse test.hs
+</code></pre>
+
+<p>See tests/neg/lazy.lhs</p>
+
+<h1>
+<a name="user-content-writing-specifications" class="anchor" href="#writing-specifications" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing Specifications</h1>
+
+<h2>
+<a name="user-content-modules-without-code" class="anchor" href="#modules-without-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules WITHOUT code</h2>
+
+<p>For a module Foo.Bar.Baz the spec file is</p>
+
+<pre><code>include/Foo/Bar/Baz.spec
+</code></pre>
+
+<p>See, for example, the contents of</p>
+
+<pre><code>include/Prelude.spec
+include/Data/List.spec
+include/Data/Vector.spec
+</code></pre>
+
+<h2>
+<a name="user-content-modules-with-code-data" class="anchor" href="#modules-with-code-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules WITH code: Data</h2>
+
+<p>Write the specification directly into the .hs or .lhs file, 
+above the data definition. See, for example, <code>tests/pos/Map.hs</code></p>
+
+<pre><code>{-@
+data Map k a &lt;l :: k -&gt; k -&gt; Bool, r :: k -&gt; k -&gt; Bool&gt;
+  = Tip 
+  | Bin (sz    :: Size) 
+        (key   :: k) 
+        (value :: a) 
+        (left  :: Map &lt;l, r&gt; (k &lt;l key&gt;) a) 
+        (right :: Map &lt;l, r&gt; (k &lt;r key&gt;) a) 
+@-}
+data Map k a = Tip
+             | Bin Size k a (Map k a) (Map k a)
+</code></pre>
+
+<p>You can also write invariants for data type definitions 
+together with the types. For example see (tests/pos/record0.hs)</p>
+
+<pre><code>{-@ data LL a = BXYZ { size  :: {v: Int | v &gt; 0 }
+                     , elems :: {v: [a] | (len v) = size }
+                     }
+@-}
+</code></pre>
+
+<h2>
+<a name="user-content-modules-with-code-functions-" class="anchor" href="#modules-with-code-functions-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules WITH code: Functions </h2>
+
+<p>Write the specification directly into the .hs or .lhs file, 
+above the function definition. For example (tests/pos/spec0.hs)</p>
+
+<pre><code>{-@ incr :: x:{v: Int | v &gt; 0} -&gt; {v: Int | v &gt; x} @-}
+incr   :: Int -&gt; Int
+incr x = x + 1
+</code></pre>
+
+<h2>
+<a name="user-content-modules-with-code-type-classes" class="anchor" href="#modules-with-code-type-classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules WITH code: Type Classes</h2>
+
+<p>Write the specification directly into the .hs or .lhs file, 
+above the type class definition. For example (tests/pos/Class.hs)</p>
+
+<pre><code>{-@ class Sized s where
+      size :: forall a. x:s a -&gt; {v:Int | v = (size x)}
+@-}
+class Sized s where
+  size :: s a -&gt; Int
+</code></pre>
+
+<p>Any measures used in the refined class definition will need to be
+<em>generic</em> (see <a href="#specifying-measures">Specifying Measures</a>).</p>
+
+<h2>
+<a name="user-content-refinement-type-aliases" class="anchor" href="#refinement-type-aliases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Refinement Type Aliases</h2>
+
+<h4>
+<a name="user-content-predicate-aliases" class="anchor" href="#predicate-aliases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Predicate Aliases</h4>
+
+<p>Often, the propositions in the refinements can get rather long and
+verbose. You can write predicate aliases like so:</p>
+
+<pre><code>{-@ predicate Lt X Y = X &lt; Y        @-}
+{-@ predicate Ge X Y = not (Lt X Y) @-}
+</code></pre>
+
+<p>and then use the aliases inside refinements, <a href="tests/pos/pred.hs">for example</a></p>
+
+<pre><code>{-@ incr :: x:{v:Int | (Pos v)} -&gt; { v:Int | ((Pos v) &amp;&amp; (Ge v x))} @-}
+incr :: Int -&gt; Int
+incr x = x + 1
+</code></pre>
+
+<p>See <a href="benchmarks/esop2013-submission/Base.hs">Data.Map</a> for a more substantial 
+and compelling example.</p>
+
+<p><strong>Syntax:</strong> The key requirements for type aliases are:</p>
+
+<ul class="task-list">
+<li>Value parameters are specified in **upper**case: <code>X</code>, <code>Y</code>, <code>Z</code> etc.</li>
+</ul><h4>
+<a name="user-content-type-aliases" class="anchor" href="#type-aliases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Type Aliases</h4>
+
+<p>Similarly, it is often quite tedious to keep writing </p>
+
+<pre><code>{v: Int | v &gt; 0}
+</code></pre>
+
+<p>Thus, LiquidHaskell supports refinement-type aliases of the form:</p>
+
+<pre><code>{-@ type Gt      N = {v: Int | N &lt;  v} @-}
+{-@ type GeNum a N = {v: a   | N &lt;= v} @-}
+</code></pre>
+
+<p>or</p>
+
+<pre><code>{-@ type SortedList a = [a]&lt;{\fld v -&gt; (v &gt;= fld)}&gt; @-}
+</code></pre>
+
+<p>or </p>
+
+<pre><code>{-@ type OMap k a = Map &lt;{\root v -&gt; v &lt; root}, {\root v -&gt; v &gt; root}&gt; k a @-}
+</code></pre>
+
+<p>or </p>
+
+<pre><code>{-@ type MinSPair a = (a, OSplay a) &lt;\fld -&gt; {v : Splay {v:a|v&gt;fld} | 0=0}&gt; @-}
+</code></pre>
+
+<p>and then use the above in signatures like:</p>
+
+<pre><code>{-@ incr: x: Int -&gt; GeNum Int x @-}
+
+or
+
+{-@ incr: x: Int -&gt; Gt x @-}
+</code></pre>
+
+<p>and:</p>
+
+<pre><code>{-@ assert insert :: (Ord a) =&gt; a -&gt; SortedList a -&gt; SortedList a @-}
+
+[see](tests/pos/ListSort.hs)
+</code></pre>
+
+<p>and:</p>
+
+<pre><code>{-@ assert insert :: (Ord k) =&gt; k -&gt; a -&gt; OMap k a -&gt; OMap k a @-}
+
+[see](tests/pos/Map.hs)
+</code></pre>
+
+<p><strong>Syntax:</strong> The key requirements for type aliases are:</p>
+
+<ol class="task-list">
+<li>Type parameters are specified in **lower**case: <code>a</code>, <code>b</code>, <code>c</code> etc.</li>
+<li>Value parameters are specified in **upper**case: <code>X</code>, <code>Y</code>, <code>Z</code> etc.</li>
+</ol><h2>
+<a name="user-content-specifying-measures" class="anchor" href="#specifying-measures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying Measures</h2>
+
+<p>Can be placed in .spec file or in .hs/.lhs file wrapped around {-@ @-}</p>
+
+<p>Value measures (include/GHC/Base.spec)</p>
+
+<pre><code>measure len :: forall a. [a] -&gt; GHC.Types.Int
+len ([])     = 0
+len (y:ys)   = 1 + len(ys)
+</code></pre>
+
+<p>Propositional measures (tests/pos/LambdaEval.hs)</p>
+
+<pre><code>{-@
+measure isValue      :: Expr -&gt; Bool
+isValue (Const i)    = true 
+isValue (Lam x e)    = true 
+isValue (Var x)      = false
+isValue (App e1 e2)  = false
+isValue (Plus e1 e2) = false 
+isValue (Fst e)      = false
+isValue (Snd e)      = false
+isValue (Pair e1 e2) = ((? (isValue(e1))) &amp;&amp; (? (isValue(e2))))
+@-}
+</code></pre>
+
+<p>Raw measures (tests/pos/meas8.hs)</p>
+
+<pre><code>{-@ measure rlen :: [a] -&gt; Int 
+rlen ([])   = {v | v = 0}
+rlen (y:ys) = {v | v = (1 + rlen(ys))}
+@-}
+</code></pre>
+
+<p>Generic measures (tests/pos/Class.hs)</p>
+
+<pre><code>{-@ class measure size :: a -&gt; Int @-}
+{-@ instance measure size :: [a] -&gt; Int
+    size ([])   = 0
+    size (x:xs) = 1 + (size xs)
+@-}
+{-@ instance measure size :: Tree a -&gt; Int
+    size (Leaf)       = 0
+    size (Node x l r) = 1 + (size l) + (size r)
+@-}
+</code></pre>
+
+<h1>
+<a name="user-content-self-invariants" class="anchor" href="#self-invariants" aria-hidden="true"><span class="octicon octicon-link"></span></a>Self-Invariants</h1>
+
+<p>Sometimes, we require specifications that allow <em>inner</em> components of a
+type to refer to the <em>outer</em> components, typically, to measure-based
+properties of outer components. For example, the following invariant
+about <code>Maybe</code> values</p>
+
+<pre><code>{-@ type IMaybe a = {v0 : Maybe {v : a | ((isJust v0) &amp;&amp; v = (fromJust v0))} | 0 = 0 } @-}
+</code></pre>
+
+<p>states that the <em>inner</em> <code>a</code> enjoys the property that the <em>outer</em> container
+is definitely a <code>Just</code> and furthermore, the inner value is exactly the same 
+as the <code>fromJust</code> property of the outer container.</p>
+
+<p>As another example, suppose we have a <a href="include/Data/Set/Set.spec">measure</a>:</p>
+
+<pre><code>measure listElts :: [a] -&gt; (Set a) 
+listElts([])   = {v | (? Set_emp(v))}
+listElts(x:xs) = {v | v = Set_cup(Set_sng(x), listElts(xs)) }
+</code></pre>
+
+<p>Now, all lists enjoy the property </p>
+
+<pre><code>{-@ type IList a = {v0 : List  {v : a | (Set_mem v (listElts v0)) } | true } @-}
+</code></pre>
+
+<p>which simply states that each <em>inner</em> element is indeed, a member of the
+set of the elements belonging to the entire list. </p>
+
+<p>One often needs these <em>circular</em> or <em>self</em> invariants to connect different
+levels (or rather, to <em>reify</em> the connections between the two levels.) See 
+<a href="tests/pos/maybe4.hs">this test</a> for a simple example and <code>hedgeUnion</code> and
+<a href="benchmarks/esop2013-submission/Base.hs">Data.Map.Base</a> for a complex one.</p>
+
+<h1>
+<a name="user-content-invariants-" class="anchor" href="#invariants-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Invariants </h1>
+
+<p>There are two ways of specifying invariants in LiquidHaskell.
+First, there are <em>global</em> invariants that always hold for a data-type. For
+example,  the length of a list cannot be negative</p>
+
+<pre><code>{-@ invariant {v:[a] | (len v &gt;= 0)} @-}
+</code></pre>
+
+<p>LiquidHaskell can prove that this invariant holds, by proving that all List's
+constractos (ie., <code>:</code> and <code>[]</code>) satisfy it.(TODO!)
+Then, LiquidHaskell assumes that each list element that is created satisfies
+this invariant.</p>
+
+<p>Second, there are <em>local</em> invariants that one may use. For
+example, in <a href="tests/pos/StreamInvariants.hs">test/pos/StreamInvariants.hs</a> every
+list is treated as a Stream. To establish this local invariant one can use the
+<code>using</code> declaration</p>
+
+<pre><code>{-@ using ([a]) as  {v:[a] | (len v &gt; 0)} @-}
+</code></pre>
+
+<p>denoting that each list is not empty.
+Then, LiquidHaskell will prove that this invariant holds, by proving that <em>all
+calls</em> to List's
+constractos (ie., <code>:</code> and <code>[]</code>) satisfy it, and
+will assume that each list element that is created satisfies
+this invariant.</p>
+
+<p>With this, at the <a href="tests/neg/StreamInvariants.hs">above</a> test LiquidHaskell
+proves that taking the <code>head</code> of a list is safe.
+But, at <a href="tests/neg/StreamInvariants.hs">test/neg/StreamInvariants.hs</a> the usage of
+<code>[]</code> falsifies this local invariant resulting in an "Invariant Check" error.</p>
+
+<h1>
+<a name="user-content-formal-grammar-of-refinement-predicates" class="anchor" href="#formal-grammar-of-refinement-predicates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Formal Grammar of Refinement Predicates</h1>
+
+<h2>
+<a name="user-content-constants" class="anchor" href="#constants" aria-hidden="true"><span class="octicon octicon-link"></span></a>(C)onstants</h2>
+
+<pre><code>c := 0, 1, 2, ...
+</code></pre>
+
+<h2>
+<a name="user-content-variables" class="anchor" href="#variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>(V)ariables</h2>
+
+<pre><code>v := x, y, z, ...
+</code></pre>
+
+<h2>
+<a name="user-content-expressions" class="anchor" href="#expressions" aria-hidden="true"><span class="octicon octicon-link"></span></a>(E)xpressions</h2>
+
+<pre><code>e := v                      -- variable
+   | c                      -- constant
+   | (e + e)                -- addition
+   | (e - e)                -- subtraction
+   | (c * e)                -- cmultiplication by constant
+   | (v e1 e2 ... en)       -- uninterpreted function application
+   | (if p then e else e)   -- if-then-else
+</code></pre>
+
+<h2>
+<a name="user-content-relations" class="anchor" href="#relations" aria-hidden="true"><span class="octicon octicon-link"></span></a>(R)elations</h2>
+
+<pre><code>r := ==               -- equality
+   | /=               -- disequality
+   | &gt;=               -- greater than or equal
+   | &lt;=               -- less than or equal
+   | &gt;                -- greater than
+   | &lt;                -- less than
+</code></pre>
+
+<h2>
+<a name="user-content-predicates" class="anchor" href="#predicates" aria-hidden="true"><span class="octicon octicon-link"></span></a>(P)redicates</h2>
+
+<pre><code>p := (e r e)          -- binary relation
+   | (v e1 e2 ... en) -- predicate (or alias) application
+   | (p &amp;&amp; p)         -- and
+   | (p || p)         -- or
+   | (p =&gt; p)         -- implies
+   | (not p)          -- negation
+   | true
+   | false
+</code></pre>
+
+<h1>
+<a name="user-content-specifying-qualifiers" class="anchor" href="#specifying-qualifiers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying Qualifiers</h1>
+
+<p>There are several ways to specify qualifiers.</p>
+
+<h2>
+<a name="user-content-by-separate-hquals-files-" class="anchor" href="#by-separate-hquals-files-" aria-hidden="true"><span class="octicon octicon-link"></span></a>By Separate <code>.hquals</code> Files </h2>
+
+<p>You can write qualifier files e.g. <a href="include/Prelude.hquals">Prelude.hquals</a> </p>
+
+<p>If a module is called or imports </p>
+
+<pre><code>Foo.Bar.Baz
+</code></pre>
+
+<p>Then the system automatically searches for</p>
+
+<pre><code>include/Foo/Bar/Baz.hquals
+</code></pre>
+
+<h2>
+<a name="user-content-by-including-hquals-files" class="anchor" href="#by-including-hquals-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>By Including <code>.hquals</code> Files</h2>
+
+<p>Additional qualifiers may be used by adding lines of the form:</p>
+
+<pre><code>{-@ include &lt;path/to/file.hquals&gt; @-}
+</code></pre>
+
+<p>to the Haskell source. See, <a href="tests/pos/meas5.hs">this</a> for example.</p>
+
+<h2>
+<a name="user-content-in-haskell-source-or-spec-files" class="anchor" href="#in-haskell-source-or-spec-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>In Haskell Source or Spec Files</h2>
+
+<p>Finally, you can specifiers directly inside source (.hs or .lhs) or spec (.spec)
+files by writing as shown <a href="tests/pos/qualTest.hs">here</a> </p>
+
+<pre><code>{-@ qualif Foo(v:Int, a: Int) : (v = a + 100)   @-}
+</code></pre>
+
+<p><strong>Note</strong> In addition to these, LiquidHaskell scrapes qualifiers from all
+the specifications you write i.e. </p>
+
+<ol class="task-list">
+<li>all imported type signatures, </li>
+<li>measure bodies and,</li>
+<li>data constructor definitions.</li>
+</ol><h1>
+<a name="user-content-generating-html-output" class="anchor" href="#generating-html-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>Generating HTML Output</h1>
+
+<p>The system produces HTML files with colorized source, and mouseover 
+inferred type annotations, which are quite handy for debugging failed 
+verification attempts.</p>
+
+<ul class="task-list">
+<li><p><strong>Regular Haskell</strong> When you run: <code>liquid foo.hs</code> you get a file 
+<code>foo.hs.html</code> with the annotations. The coloring is done using
+<code>hscolour</code>.</p></li>
+<li>
+<p><strong>Markdown + Literate Haskell</strong> You can also feed in literate haskell files
+where the comments are in <a href="http://johnmacfarlane.net/pandoc/demo/example9/pandocs-markdown.html">Pandoc markdown</a>. 
+In this case, the tool will run <code>pandoc</code> to generate the HTML from the comments.
+Of course, this requires that you have <code>pandoc</code> installed as a binary on
+your system. If not, <code>hscolour</code> is used to render the HTML.</p>
+
+<p>It is also possible to generate <em>slide shows</em> from the above.
+See the <a href="docs/tutorial">tutorial directory</a> for an example.</p>
+</li>
+</ul><h1>
+<a name="user-content-editor-integration" class="anchor" href="#editor-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Editor Integration</h1>
+
+<h2>
+<a name="user-content-emacs" class="anchor" href="#emacs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Emacs</h2>
+
+<p>LH has <a href="https://github.com/flycheck/flycheck">flycheck</a> integration with emacs.</p>
+
+<p><strong>Install</strong></p>
+
+<ol class="task-list">
+<li>Copy <code>syntax/flycheck-liquid.el</code> into your emacs path.</li>
+<li>Ensure that the checker <code>haskell-liquid</code> is in the chain of <em>flycheck</em> checkers used in <em>haskell-mode</em>.</li>
+</ol><p><strong>Disable</strong></p>
+
+<p>To disable flycheck-liquid on a particular file, add:</p>
+
+<pre><code>-- Local Variables:
+-- flycheck-disabled-checkers: (haskell-liquid)
+-- End:
+</code></pre>
+
+<p>at the end of the file.</p>
+
+<h2>
+<a name="user-content-vim" class="anchor" href="#vim" aria-hidden="true"><span class="octicon octicon-link"></span></a>Vim</h2>
+
+<p><strong>Install</strong></p>
+
+<ol class="task-list">
+<li>Add the following to your <code>.vimrc</code>
+</li>
+</ol><pre><code>Bundle 'scrooloose/syntastic'
+Bundle 'panagosg7/vim-annotations'
+let g:vim_annotations_offset = '/.liquid/'
+</code></pre>
+
+<ol class="task-list">
+<li>Copy the following files</li>
+</ol><pre><code>cp syntax/haskell.vim ~/.vimrc/syntax/haskell.vim
+cp syntax/liquid.vim  ~/.vimrc/bundle/syntastic/syntax_checkers/haskell/liquid.vim
+</code></pre>
+
+<p><strong>Run</strong></p>
+
+<ul class="task-list">
+<li>
+<code>:SyntasticCheck liquid</code> runs liquidhaskell on the current buffer.</li>
+</ul><p><strong>View</strong></p>
+
+<ol class="task-list">
+<li><p><strong>Warnings</strong> will be displayed in the usual error buffer.</p></li>
+<li><p><strong>Inferred Types</strong> will be displayed when <code>&lt;F1&gt;</code> is pressed over an identifier.</p></li>
+</ol><p><strong>Options</strong></p>
+
+<p>You can configure the checker in various ways in your <code>.vimrc</code>.</p>
+
+<ul class="task-list">
+<li>To run after <strong>each save</strong>, for <em>all</em> Haskell files, add:</li>
+</ul><pre><code>let g:syntastic_mode_map = { 'mode': 'active' }
+let g:syntastic_haskell_checkers = ['hdevtools', 'hlint', 'liquid']
+</code></pre>
+
+<ul class="task-list">
+<li>To pass extra options to liquidhaskell add: </li>
+</ul><pre><code>let g:syntastic_haskell_liquid_args = "--diff"
+</code></pre></article></div>

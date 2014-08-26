@@ -1,0 +1,114 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-laravel-ide-helper-generator" class="anchor" href="#laravel-ide-helper-generator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Laravel IDE Helper Generator</h2>
+
+<p><a href="https://packagist.org/packages/barryvdh/laravel-ide-helper"><img src="https://camo.githubusercontent.com/a9bb58a7946278594dd971d46f5127f07b668d8b/68747470733a2f2f706f7365722e707567782e6f72672f62617272797664682f6c61726176656c2d6964652d68656c7065722f76657273696f6e2e706e67" alt="Latest Stable Version" data-canonical-src="https://poser.pugx.org/barryvdh/laravel-ide-helper/version.png" style="max-width:100%;"></a> <a href="https://packagist.org/packages/barryvdh/laravel-ide-helper"><img src="https://camo.githubusercontent.com/b7cb2cb27da60d5ad17300a1f3e36dee9aa57233/68747470733a2f2f706f7365722e707567782e6f72672f62617272797664682f6c61726176656c2d6964652d68656c7065722f642f746f74616c2e706e67" alt="Total Downloads" data-canonical-src="https://poser.pugx.org/barryvdh/laravel-ide-helper/d/total.png" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-complete-phpdocs-directly-from-the-source" class="anchor" href="#complete-phpdocs-directly-from-the-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Complete phpDocs, directly from the source</h3>
+
+<p><em>Checkout <a href="https://laracasts.com/series/how-to-be-awesome-in-phpstorm/episodes/15">this Laracasts video</a> for a quick introduction/explanation!</em></p>
+
+<p>This packages generates a file that your IDE can understand, so it can provide accurate autocompletion. Generation is done, based on the files in your project, so they are alway up-to-date.
+If you don't want to generate it, you can add a pre-generated file to the root folder of your laravel project. (But this isn't as up-to-date as self generated files)</p>
+
+<ul class="task-list">
+<li>Generated version: <a href="https://gist.github.com/barryvdh/5227822">https://gist.github.com/barryvdh/5227822</a>
+</li>
+</ul><p>Note: You do need CodeIntel for Sublime Text: <a href="https://github.com/SublimeCodeIntel/SublimeCodeIntel">https://github.com/SublimeCodeIntel/SublimeCodeIntel</a></p>
+
+<h3>
+<a name="user-content-automatic-phpdoc-generation-for-laravel-facades" class="anchor" href="#automatic-phpdoc-generation-for-laravel-facades" aria-hidden="true"><span class="octicon octicon-link"></span></a>Automatic phpDoc generation for Laravel Facades</h3>
+
+<p>Require this package in your composer.json and run composer update (or run <code>composer require barryvdh/laravel-ide-helper:1.*</code> directly):</p>
+
+<pre><code>"barryvdh/laravel-ide-helper": "1.*"
+</code></pre>
+
+<p>After updating composer, add the ServiceProvider to the providers array in app/config/app.php</p>
+
+<pre><code>'Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider',
+</code></pre>
+
+<p>You can now re-generate the docs yourself (for future updates) in artisan</p>
+
+<pre><code>php artisan ide-helper:generate
+</code></pre>
+
+<p>Note: bootstrap/compiled.php has to be cleared first, so run <code>php artisan clear-compiled</code> before generating (and <code>php artisan optimize</code> after..)</p>
+
+<p>You can configure your composer.json to do this after each commit:</p>
+
+<pre><code>"scripts":{
+    "post-update-cmd":[
+        "php artisan clear-compiled",
+        "php artisan ide-helper:generate",
+        "php artisan optimize",
+    ]
+},
+</code></pre>
+
+<p>You can also publish the config-file to change implementations (ie. interface to specific class) or set defaults for --helpers or --sublime.</p>
+
+<pre><code>php artisan config:publish barryvdh/laravel-ide-helper
+</code></pre>
+
+<p>The generator tries to identify the real class, but if it cannot be found, you can define it in the config file.</p>
+
+<p>Some classes need a working database connection. If you do not have a working default connection, some facades will not be included.
+You can use a in-memory sqlite driver, using the -M option.</p>
+
+<p>You can choose to include helper files. This is not enabled by default, but you can override this with the --helpers (-H) option.
+The Illuminate/Support/helpers.php is already set-up, but you can add/remove your own files in the config file.</p>
+
+<h3>
+<a name="user-content-automatic-phpdocs-for-models" class="anchor" href="#automatic-phpdocs-for-models" aria-hidden="true"><span class="octicon octicon-link"></span></a>Automatic phpDocs for Models</h3>
+
+<blockquote>
+<p><strong>Note:</strong> Since v1.10 you need to require <code>doctrine/dbal: ~2.3</code> in your own composer.json. </p>
+</blockquote>
+
+<p>If you don't want to write your properties yourself, you can use the command <code>ide-helper:models</code> to generate
+phpDocs, based on table columns, relations and getters/setters. You can write the comments directly to your Model file, using the <code>--write (-W)</code> option. By default, you are asked to overwrite or write to a separate file (_ide_helper_models.php) (You can force No with <code>--nowrite (-N)</code>).
+Please make sure to backup your models, before writing the info.
+It should keep the existing comments and only append new properties/methods. The existing phpdoc is replaced, or added if not found.
+With the <code>--reset (-R)</code> option, the existing phpdocs are ignored, only the newly found columns/relations are saved as phpdocs.</p>
+
+<pre><code>php artisan ide-helper:models Post
+
+/**
+ * An Eloquent Model: 'Post'
+ *
+ * @property integer $id
+ * @property integer $author_id
+ * @property string $title
+ * @property string $text
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property-read \User $author
+ * @property-read \Illuminate\Database\Eloquent\Collection|\Comment[] $comments
+ */
+</code></pre>
+
+<p>By default, models in app/models are scanned. The optional argument tells what models to use (also outside app/models).</p>
+
+<pre><code>php artisan ide-helper:models Post User
+</code></pre>
+
+<p>You can also scan a different directory, using the --dir option (relative from the base path):</p>
+
+<pre><code>php artisan ide-helper:models --dir="app/workbench/name/package/models" --dir="app/src/Model"
+</code></pre>
+
+<p>You can publish the config file (<code>php artisan config:publish barryvdh/laravel-ide-helper</code>) and set the default directories.</p>
+
+<p>Models can be ignored using the --ignore (-I) option</p>
+
+<pre><code>php artisan ide-helper:models --ignore="Post,User"
+</code></pre>
+
+<p>Note: With namespaces, wrap your model name in " signs: <code>php artisan ide-helper:models "API\User"</code>, or escape the slashes (<code>Api\\User</code>)</p>
+
+<h3>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h3>
+
+<p>The Laravel IDE Helper Generator is open-sourced software licensed under the <a href="http://opensource.org/licenses/MIT">MIT license</a></p></article></div>

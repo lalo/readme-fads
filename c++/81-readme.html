@@ -1,0 +1,292 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>Halide is a programming language designed to make it easier to write
+high-performance image processing code on modern machines. Halide
+currently targets X86, ARM, CUDA, OpenCL, and OpenGL on OS X, Linux,
+and Windows.</p>
+
+<p>Rather than being a standalone programming language, Halide is
+embedded in C++. This means you write C++ code that builds an
+in-memory representation of a Halide pipeline using Halide's C++
+API. You can then compile this representation to an object file, or
+JIT-compile it and run it in the same process.</p>
+
+<p>For more detail about what Halide is, see <a href="http://halide-lang.org">http://halide-lang.org</a>.</p>
+
+<p>For API documentation see <a href="http://halide-lang.org/docs">http://halide-lang.org/docs</a></p>
+
+<p>To see some example code, look in the tutorials directory.</p>
+
+<p>If you've acquired a full source distribution and want to build
+Halide, see the notes below.</p>
+
+<h1>
+<a name="user-content-some-useful-environment-variables" class="anchor" href="#some-useful-environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Some useful environment variables</h1>
+
+<p>HL_TARGET=... will set Halide's AOT compilation target.</p>
+
+<p>HL_JIT_TARGET=... will set Halide's JIT compilation target.</p>
+
+<p>HL_DEBUG_CODEGEN=1 will print out pseudocode for what Halide is
+compiling. Higher numbers will print more detail.</p>
+
+<p>HL_NUM_THREADS=... specifies the size of the thread pool. This has no
+effect on OS X or iOS, where we just use grand central dispatch.</p>
+
+<p>HL_TRACE=1 injects print statements into compiled Halide code that
+will describe what the program is doing at runtime. Higher values
+print more detail.</p>
+
+<p>HL_TRACE_FILE=... specifies a binary target file to dump tracing data
+into. The output can be parsed programmatically by starting from the
+code in utils/HalideTrace.cpp</p>
+
+<p>HL_PROFILE=1 injects timing data collection code. The output can be
+parsed using utils/HalideProf.cpp</p>
+
+<h1>
+<a name="user-content-using-halide-on-osx" class="anchor" href="#using-halide-on-osx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Halide on OSX</h1>
+
+<p>Precompiled Halide distributions are built using XCode's command-line
+tools with Apple clang 500.2.76. This means that we link against
+libc++ instead of libstdc++. You may need to adjust compiler options
+accordingly if you're using an older XCode which does not default to
+libc++.</p>
+
+<p>For parallelism, Halide automatically uses Apple's Grand Central
+Dispatch, so it is not possible to control the number of threads used
+without overriding the parallel runtime entirely.</p>
+
+<h1>
+<a name="user-content-building-halide" class="anchor" href="#building-halide" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Halide</h1>
+
+<p>Building halide requires at least llvm 3.3, along with the matching
+version of clang. llvm-config and clang must be somewhere in the
+path. If your OS does not have packages for llvm-3.3, you can find
+binaries for it at <a href="http://llvm.org/releases/download.html">http://llvm.org/releases/download.html</a>. Download an
+appropriate package and then either install it, or at least put the
+bin subdirectory in your path. (This works well on OS X and Ubuntu.)</p>
+
+<p>If you want to build it yourself, first check it out from subversion:</p>
+
+<p>% svn co <a href="https://llvm.org/svn/llvm-project/llvm/branches/release_33">https://llvm.org/svn/llvm-project/llvm/branches/release_33</a> llvm3.3
+% svn co <a href="https://llvm.org/svn/llvm-project/cfe/branches/release_33">https://llvm.org/svn/llvm-project/cfe/branches/release_33</a> llvm3.3/tools/clang</p>
+
+<p>Then build it like so:</p>
+
+<p>% cd llvm3.3
+% ./configure --disable-terminfo --enable-optimized --enable-assertions --with-clang --enable-targets=x86,arm,nvptx
+% make -j8</p>
+
+<p>(Users of OSX 10.8+ may need to explicitly specify GCC vs Clang,
+prepending "CC=gcc CXX=g++" to the configure command.)</p>
+
+<p>Then finally tell Halide's Makefile about it like so:</p>
+
+<p>% export LLVM_CONFIG=/Release+Asserts/bin/llvm-config
+% export CLANG=/Release+Asserts/bin/clang</p>
+
+<p>If you wish to use cmake to build llvm, the build procedure is:</p>
+
+<p>% cd llvm3.3
+% mkdir build
+% cd build
+% cmake -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD="X86;ARM;NVPTX" -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release ..
+% make -j8</p>
+
+<p>then to point Halide to it:</p>
+
+<p>export LLVM_CONFIG=/build/bin/llvm-config
+export CLANG=/build/bin/clang</p>
+
+<p>On Ubuntu llvm 3.2 also works, but you should omit --disable-terminfo
+or -DLLVM_ENABLE_TERMINFO=OFF when configuring it.</p>
+
+<p>With LLVM_CONFIG and CLANG set (or the appropriate llvm-config and
+clang in your path), you should be able to just run 'make' in this
+directory. 'make run_tests' will run the JIT test suite, and 'make
+test_apps' will make sure all the apps compile and run (but won't
+check their output).</p>
+
+<p>There is no 'make install' yet. If you want to make an install
+package, run 'make distrib'.</p>
+
+<h2>
+<a name="user-content-building-halide-and-llvm-as-32-bit-on-64-bit-linux" class="anchor" href="#building-halide-and-llvm-as-32-bit-on-64-bit-linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Halide and llvm as 32-bit on 64-bit linux</h2>
+
+<p>This is necessary if you want to JIT compile 32-bit code. It is not
+necessary for AOT compiling 32-bit Halide pipelines. The 64-bit
+version of Halide cross-compiles 32-bit code just fine.</p>
+
+<p>To get a 32-bit llvm, configure and compile it like so:
+  % CC="gcc -m32" CXX="g++ -m32" ./configure --enable-targets=x86,arm,nvptx --enable-assertions --enable-optimized --build=i686-pc-linux-gnu
+  % CC="gcc -m32" CXX="g++ -m32" make</p>
+
+<p>To generate a 32-bit Halide, compile it like so:
+  % HL_TARGET=x86-32 LD="ld -melf_i386" CC="gcc -m32" CXX="g++ -m32" make</p>
+
+<p>You should then be able to run the JIT tests with a 32-bit target:
+  % CXX="g++ -m32 -msse4" make build_tests
+  % HL_TARGET=x86-32-sse41 make run_tests</p>
+
+<p>If you have a 32-bit libpng, you can also run the apps in 32-bit:
+  % HL_TARGET=x86-32-sse41 CXX="g++ -m32 -msse4" make test_apps
+The tests should pass, but the tutorials will fail to compile unless
+you manually supply a 32-bit libpng.</p>
+
+<h2>
+<a name="user-content-building-halide-with-native-client-support" class="anchor" href="#building-halide-with-native-client-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Halide with Native Client support</h2>
+
+<p>Halide is capable of generating Native Client (NaCl) object files and
+Portable Native Client (PNaCl) bitcode.  JIT compilation is not
+supported. For both NaCl and PNaCl, the PNaCl llvm tree is used as it
+contains required llvm headers and libraries for compiling to all
+Native Client targets.</p>
+
+<p>In order to build Halide with Native Client support, one will need the
+PNaCl llvm tree from:
+    <a href="http://git.chromium.org/native_client/pnacl-llvm.git">http://git.chromium.org/native_client/pnacl-llvm.git</a>
+and, for good measure, PNaCl's version of clang:
+    <a href="http://git.chromium.org/native_client/pnacl-clang.git">http://git.chromium.org/native_client/pnacl-clang.git</a>
+To check these out:
+  % git clone <a href="http://git.chromium.org/native_client/pnacl-llvm.git">http://git.chromium.org/native_client/pnacl-llvm.git</a> pnacl-llvm
+  % cd pnacl-llvm/tools
+  % git clone <a href="http://git.chromium.org/native_client/pnacl-clang.git">http://git.chromium.org/native_client/pnacl-clang.git</a> clang
+  % cd ../..</p>
+
+<p>To enable all Halide targets, build it like so:
+  % mkdir build
+  % cd build
+  % cmake -DLLVM_TARGETS_TO_BUILD="X86;ARM;NVPTX" -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release ..
+  % make -j8</p>
+
+<p>It will possibly be helpful to get the entire dev tree for
+PNaCl. Documentation for this is here:
+    <a href="http://www.chromium.org/nativeclient/pnacl/developing-pnacl">http://www.chromium.org/nativeclient/pnacl/developing-pnacl</a></p>
+
+<p>To use generated code in an application, you'll of course also need
+the Native Client SDK:
+    <a href="https://developer.chrome.com/native-client/sdk/download">https://developer.chrome.com/native-client/sdk/download</a></p>
+
+<p>Once The Native Client prerequisites are in place, set the following
+variables (on the command line or by editing the Makefile):</p>
+
+<p>Point LLVM_CONFIG to the llvm-config that lives in your pnacl llvm
+ build. E.g:</p>
+
+<p>% export LLVM_CONFIG=/llvm/pnacl-llvm/build/bin/llvm-config</p>
+
+<p>Change WITH_NATIVE_CLIENT to "true" (or any non-empty value):</p>
+
+<p>% export WITH_NATIVE_CLIENT=true</p>
+
+<p>With these variables set, run make. This will build a Halide lib
+capable of generating native client objects. Neither the tests nor
+most of the apps Makefiles have been updated to work with cross
+compilation however. Try the app HelloNacl for a working example.</p>
+
+<h1>
+<a name="user-content-halide-openglglsl-backend" class="anchor" href="#halide-openglglsl-backend" aria-hidden="true"><span class="octicon octicon-link"></span></a>Halide OpenGL/GLSL backend</h1>
+
+<p>Halide's OpenGL backend offloads image processing operations to the GPU by
+generating GLSL-based fragment shaders.</p>
+
+<p>Compared to other GPU-based processing options such as CUDA and OpenCL, OpenGL
+has two main advantages: it is available on basically every desktop computer
+and mobile device, and it is generally well supported across different
+hardware vendors.</p>
+
+<p>The main disadvantage of OpenGL as an image processing framework is that the
+computational capabilities of fragment shaders are quite restricted. In
+general, the processing model provided by OpenGL is most suitable for filters
+where each output pixel can be expressed as a simple function of the input
+pixels. This covers a wide range of interesting operations like point-wise
+filters and convolutions; but a few common image processing operations such as
+histograms or recursive filters are notoriously hard to express in GLSL.</p>
+
+<h2>
+<a name="user-content-writing-opengl-based-filters" class="anchor" href="#writing-opengl-based-filters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing OpenGL-Based Filters</h2>
+
+<p>To enable code generation for OpenGL, include "opengl" in the target specifier
+passed to Halide. Since OpenGL shaders are limited in their computational
+power, you must also specify a CPU target for those parts of the filter that
+cannot or should not be computed on the GPU. Examples of valid target
+specifiers are</p>
+
+<p>host-opengl
+  x86-opengl-gpu_debug</p>
+
+<p>Adding "gpu_debug", as in the second example, adds additional logging output
+and is highly recommended during development.</p>
+
+<p>By default, filters compiled for OpenGL targets run completely on the CPU.
+Execution on the GPU must be enabled for individual Funcs by appropriate
+scheduling calls.</p>
+
+<p>GLSL fragment shaders implicitly iterate over two spatial dimensions x,y and
+the color channel. Due to the way color channels handled in GLSL, only filters
+for which the color index is a compile-time constant can be scheduled.  The
+main consequence is that the range of color variables must be explicitly
+specified for both input and output buffers before scheduling:</p>
+
+<p>ImageParam input;
+  Func f;
+  Var x, y, c;
+  f(x, y, c) = ...;</p>
+
+<p>input.set_bounds(2, 0, 3);   // specify color range for input
+  f.bound(c, 0, 3);            // and output
+  f.glsl(x, y, c);</p>
+
+<h2>
+<a name="user-content-jit-compilation" class="anchor" href="#jit-compilation" aria-hidden="true"><span class="octicon octicon-link"></span></a>JIT Compilation</h2>
+
+<p>For JIT compilation Halide attempts to load the system libraries for opengl
+and creates a new context to use for each module. Windows is not yet supported.</p>
+
+<p>Examples for JIT execution of OpenGL-based filters can be found in test/opengl.</p>
+
+<h2>
+<a name="user-content-aot-compilation" class="anchor" href="#aot-compilation" aria-hidden="true"><span class="octicon octicon-link"></span></a>AOT Compilation</h2>
+
+<p>When AOT (ahead-of-time) compilation is used, Halide generates OpenGL-enabled
+object files that can be linked to and called from a host application. In
+general, this is fairly straightforward, but a few things must be taken care
+of.</p>
+
+<p>On Linux, OS X, and Android, Halide creates its own OpenGL context unless the
+current thread already has an active context.  On other platforms you have to
+link implementations of the following two functions with your Halide code:</p>
+
+<p>extern "C" int halide_opengl_create_context(void *) {
+      return 0;  // if successful
+  }</p>
+
+<p>extern "C" void *halide_opengl_get_proc_addr(void *, const char *name) {
+      ...
+  }</p>
+
+<p>Halide allocates and deletes textures as necessary.  Applications may manage
+the textures by hand by setting the 'dev' field in buffer_t; this is most
+useful for reusing image data that is already stored in textures. Some
+rudimentary checks are performed to ensure that externally allocated textures
+have the correct format, but in general that's the responsibility of the
+application.</p>
+
+<h2>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h2>
+
+<p>GLSL shaders can only express a subset of the Halide language.  The current
+implementation of the OpenGL backend targets OpenGL ES 2.0, which has
+additional restrictions, but is widely available on both mobile devices and
+traditional computers. Some limitations include:</p>
+
+<ul class="task-list">
+<li><p>Only uint8 textures are properly supported so far. uint16 buffers work in
+principle, but are truncated to 8 bits by many OpenGL implementations.
+Support for float and half-float textures is planned for the near future.</p></li>
+<li><p>Only 2D images with 1, 3, or 4 color channels can be scheduled;</p></li>
+<li><p>Textures are either read-only or write-only, never read-write;</p></li>
+<li><p>Reductions cannot be implemented in GLSL and must be run on the CPU.</p></li>
+</ul><p>The maximum texture size in OpenGL is GL_MAX_TEXTURE_SIZE, which is often
+smaller than the image of interest; on mobile devices, for example,
+GL_MAX_TEXTURE_SIZE is commonly 2048. Tiling must be used to process larger
+images.</p></article></div>

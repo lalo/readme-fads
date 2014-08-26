@@ -1,0 +1,46 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-twitter-mysql-55" class="anchor" href="#twitter-mysql-55" aria-hidden="true"><span class="octicon octicon-link"></span></a>Twitter MySQL 5.5</h1>
+
+<p>This is <a href="http://twitter.com/">Twitter</a>'s MySQL development branch, which is based on MySQL 5.5 as published by Oracle on <a href="https://launchpad.net/mysql-server">MySQL on Launchpad</a>. </p>
+
+<p>This repository is published in order to share code and information and is <em>not intended to be used directly outside of Twitter</em>. We provide no guarantees of bug fixes, ongoing maintenance, compatibility, or suitability for any user outside of Twitter.</p>
+
+<p>The original README file provided with the upstream MySQL release can be found at <a href="https://github.com/twitter/mysql/blob/master/README-MySQL">README-MySQL</a>.</p>
+
+<h1>
+<a name="user-content-features-in-twitter-mysql" class="anchor" href="#features-in-twitter-mysql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features in Twitter MySQL</h1>
+
+<h2>
+<a name="user-content-additional-status-variables" class="anchor" href="#additional-status-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional status variables</h2>
+
+<p>Additional status variables have been added, particularly from the internals of InnoDB. This allows us to monitor our systems more effectively and understand their behavior better when handling production workloads. The variables added are:</p>
+
+<ul class="task-list">
+<li>The number of InnoDB files and tablespace files opened, closed, and currently open. This information was previously not exposed by InnoDB.</li>
+<li>The number of deadlocks encountered. This information was previously not exposed by InnoDB.</li>
+<li>The current log sequence number (LSN) as well as the LSN flushed up to and checkpointed up to. This information has previously been available in <code>SHOW ENGINE INNODB STATUS</code>.</li>
+</ul><h2>
+<a name="user-content-optimization-of-memory-allocation-under-numa" class="anchor" href="#optimization-of-memory-allocation-under-numa" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optimization of memory allocation under NUMA</h2>
+
+<p>On most recent multi-processor systems, a <a href="http://en.wikipedia.org/wiki/Non-Uniform_Memory_Access">non-uniform memory access NUMA</a> (NUMA) architecture is in use, which divides the total system memory across multiple NUMA "nodes". When allocating large amounts of memory to InnoDB's buffer pool, as is typical, some inefficiencies as well as serious problems can be encountered. More details about the problems typical in NUMA systems running MySQL can be found in <a href="http://blog.jcole.us/2010/09/28/mysql-swap-insanity-and-the-numa-architecture/">a blog post by Jeremy Cole</a>. The following changes have been made to optimize and improve this:</p>
+
+<ul class="task-list">
+<li>An option has been added to forcibly pre-allocate the entire buffer pool during startup. This is primarily intended to force the system to decide which pages to allocate, and on which NUMA node to allocate them. If the buffer pool can't be fully allocated for any reason, InnoDB will abort during startup.</li>
+<li>An option has been added to <code>mysqld_safe</code> to wrap the start of <code>mysqld</code> with <code>numactl --interleave=all</code> to interleave memory allocation between all NUMA nodes available. This ensures that no NUMA node is favored for any allocation, so that memory usage will remain even over time between multiple NUMA nodes.</li>
+<li>An option has been added to <code>mysqld_safe</code> to flush the operating system buffer caches before startup (on Linux only). Linux will normally not evict optional caches to make new allocations unless the system is under memory pressure, which can cause supposedly evenly interleaved memory allocations to still be done unevenly, favoring the node with less data cached before startup. Flushing the caches before startup ensures that no large cache allocations are present in the system before InnoDB allocates its buffer pool.</li>
+</ul><h2>
+<a name="user-content-server-side-query-timeout" class="anchor" href="#server-side-query-timeout" aria-hidden="true"><span class="octicon octicon-link"></span></a>Server-side query timeout</h2>
+
+<ul class="task-list">
+<li>Reduced unnecessary work through improved server-side statement timeout support. This allows the server to proactively cancel queries that run longer than a millisecond-granularity timeout.</li>
+</ul><h2>
+<a name="user-content-buffer-pool-export-and-restore-by-prefetch" class="anchor" href="#buffer-pool-export-and-restore-by-prefetch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Buffer pool export and restore by prefetch</h2>
+
+<ul class="task-list">
+<li>Export and restore InnoDB buffer pool in using a safe and lightweight method. This enables us to build tools to support rolling restarts of our services with minimal pain.</li>
+</ul><h2>
+<a name="user-content-optimization-for-solid-state-drives-ssds" class="anchor" href="#optimization-for-solid-state-drives-ssds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optimization for solid-state drives (SSDs)</h2>
+
+<ul class="task-list">
+<li>Optimize MySQL for SSD-based machines, including page-flushing behavior and reduction in writes to disk to improve lifespan.</li>
+</ul></article></div>

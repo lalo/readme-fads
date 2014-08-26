@@ -1,0 +1,95 @@
+<div class="announce instapaper_body rst" data-path="README.rst" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><a href="https://camo.githubusercontent.com/a43be3d606980968139b94d81a58f55a39084416/687474703a2f2f692e696d6775722e636f6d2f7a68636f542e706e67" target="_blank"><img alt="http://i.imgur.com/zhcoT.png" src="https://camo.githubusercontent.com/a43be3d606980968139b94d81a58f55a39084416/687474703a2f2f692e696d6775722e636f6d2f7a68636f542e706e67" data-canonical-src="http://i.imgur.com/zhcoT.png" style="max-width:100%;"></a><h2>
+<a name="user-content-peewee" class="anchor" href="#peewee" aria-hidden="true"><span class="octicon octicon-link"></span></a>peewee</h2>
+<ul>
+<li>A small, expressive ORM</li>
+<li>Written in python with support for versions 2.6+ and 3.2+.</li>
+<li>built-in support for sqlite, mysql and postgresql</li>
+<li>tons of extensions available in the <a href="http://docs.peewee-orm.com/en/latest/peewee/playhouse.html">playhouse</a> (postgres hstore/json/arrays, sqlite full-text-search, schema migrations, and much more).</li>
+</ul><a href="https://travis-ci.org/coleifer/peewee"><img alt="https://api.travis-ci.org/coleifer/peewee.png?branch=master" src="https://camo.githubusercontent.com/62b54abd9f02c5755dcafc41530fb588459d10ae/68747470733a2f2f6170692e7472617669732d63692e6f72672f636f6c65696665722f7065657765652e706e673f6272616e63683d6d6173746572" data-canonical-src="https://api.travis-ci.org/coleifer/peewee.png?branch=master" style="max-width:100%;"></a>
+<p>For flask integration, check out <a href="http://flask-peewee.readthedocs.org/">flask-peewee</a>, which includes and admin interface, RESTful APIs, authentication, and more. You can also use peewee with the popular extension <a href="http://flask-admin.readthedocs.org/en/latest/">flask-admin</a>.</p>
+<p>Defining models is similar to Django or SQLAlchemy:</p>
+<pre>
+from peewee import *
+
+db = SqliteDatabase('my_database.db', threadlocals=True)
+
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+class User(BaseModel):
+    username = CharField(unique=True)
+
+class Tweet(BaseModel):
+    user = ForeignKeyField(User, related_name='tweets')
+    message = TextField()
+    created_date = DateTimeField(default=datetime.datetime.now)
+    is_published = BooleanField(default=True)
+</pre>
+<p>Connect to the database and create tables:</p>
+<pre>
+db.connect()
+db.create_tables([User, Tweet])
+</pre>
+<p>Create a few rows:</p>
+<pre>
+charlie = User.create(username='charlie')
+huey = User(username='huey')
+huey.save()
+
+# No need to set `is_published` or `created_date` since they
+# will just use the default values we specified.
+Tweet.create(user=charlie, message='My first tweet')
+</pre>
+<p>Queries are expressive and composable:</p>
+<pre>
+# A simple query selecting a user.
+User.get(User.username == 'charles')
+
+# Get tweets created by one of several users. The "&lt;&lt;" operator
+# corresponds to the SQL "IN" operator.
+usernames = ['charlie', 'huey', 'mickey']
+users = User.select().where(User.username &lt;&lt; usernames)
+tweets = Tweet.select().where(Tweet.user &lt;&lt; users)
+
+# We could accomplish the same using a JOIN:
+tweets = (Tweet
+          .select()
+          .join(User)
+          .where(User.username &lt;&lt; usernames))
+
+# How many tweets were published today?
+tweets_today = (Tweet
+                .select()
+                .where(
+                    (Tweet.created_date &gt;= datetime.date.today()) &amp;
+                    (Tweet.is_published == True))
+                .count())
+
+# Paginate the user table and show me page 3 (users 41-60).
+User.select().order_by(User.username).paginate(3, 20)
+
+# Order users by the number of tweets they've created:
+tweet_ct = fn.Count(Tweet.id)
+users = (User
+         .select(User, tweet_ct.alias('ct'))
+         .join(Tweet, JOIN_LEFT_OUTER)
+         .group_by(User)
+         .order_by(tweet_ct.desc()))
+
+# Do an atomic update
+Counter.update(count=Counter.count + 1).where(
+    Counter.url == request.url)
+</pre>
+<p>Check out the <a href="http://docs.peewee-orm.com/en/latest/peewee/example.html">example app</a> for a working Twitter-clone website written with Flask.</p>
+<h3>
+<a name="user-content-learning-more" class="anchor" href="#learning-more" aria-hidden="true"><span class="octicon octicon-link"></span></a>Learning more</h3>
+<p>Check the <a href="http://docs.peewee-orm.com/">documentation</a> for more examples.</p>
+<p>Specific question? Come hang out in the #peewee channel on freenode.irc.net, or post to the mailing list, <a href="http://groups.google.com/group/peewee-orm">http://groups.google.com/group/peewee-orm</a> . If you would like to report a bug, <a href="https://github.com/coleifer/peewee/issues/new">create a new issue</a> on GitHub.</p>
+<h3>
+<a name="user-content-still-want-more-info" class="anchor" href="#still-want-more-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>Still want more info?</h3>
+<a href="https://camo.githubusercontent.com/6d7a8d415a938b85e6227fc54f4dfa9ae716fe4d/687474703a2f2f6d656469612e636861726c65736c65696665722e636f6d2f626c6f672f70686f746f732f7761742e6a7067" target="_blank"><img alt="http://media.charlesleifer.com/blog/photos/wat.jpg" src="https://camo.githubusercontent.com/6d7a8d415a938b85e6227fc54f4dfa9ae716fe4d/687474703a2f2f6d656469612e636861726c65736c65696665722e636f6d2f626c6f672f70686f746f732f7761742e6a7067" data-canonical-src="http://media.charlesleifer.com/blog/photos/wat.jpg" style="max-width:100%;"></a><h3>
+<a name="user-content-why-does-peewee-exist" class="anchor" href="#why-does-peewee-exist" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why does peewee exist?</h3>
+<p>peewee began when I was working on a small app in flask and found myself writing lots of queries and wanting a very simple abstraction on top of the sql.  I had so much fun working on it that I kept adding features. peewee is small enough that its my hope anyone with an interest in orms will be able to understand the code without much trouble.</p>
+<p>I hope you enjoy using peewee as much as I've enjoyed working on it!</p>
+<a href="https://camo.githubusercontent.com/3ca654014e0c230c50bd9323ebc6e72905c9195f/687474703a2f2f6d656469612e636861726c65736c65696665722e636f6d2f706c617967726f756e642f6e6f7465732f696d672f696d2d393766336534326330322e6a7067" target="_blank"><img alt="http://media.charlesleifer.com/playground/notes/img/im-97f3e42c02.jpg" src="https://camo.githubusercontent.com/3ca654014e0c230c50bd9323ebc6e72905c9195f/687474703a2f2f6d656469612e636861726c65736c65696665722e636f6d2f706c617967726f756e642f6e6f7465732f696d672f696d2d393766336534326330322e6a7067" data-canonical-src="http://media.charlesleifer.com/playground/notes/img/im-97f3e42c02.jpg" style="max-width:100%;"></a></article></div>

@@ -1,0 +1,271 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>Conduits are an approach to the streaming data problem. It is meant as an
+alternative to enumerators/iterators, hoping to address the same issues with
+different trade-offs based on real-world experience with enumerators.</p>
+
+<h1>
+<a name="user-content-current-documentation" class="anchor" href="#current-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Current Documentation</h1>
+
+<p>The most up-to-date documentation is available in the <code>Data.Conduit</code> module
+itself, which is <a href="http://hackage.haskell.org/packages/archive/conduit/latest/doc/html/Data-Conduit.html">available for reading on
+Hackage</a>.</p>
+
+<p>The remainder of the contents of this page are kept for historical reasons, to
+give an idea of the original driving factors behind conduit. Note that plenty
+of the descriptions of the current state of the package are inaccurate.</p>
+
+<h1>
+<a name="user-content-general-goal" class="anchor" href="#general-goal" aria-hidden="true"><span class="octicon octicon-link"></span></a>General Goal</h1>
+
+<p>Let's start by defining the goal of enumerators, iterators, and conduits. We
+want a standard interface to represent streaming data from one point to
+another, possibly modifying the data along the way.</p>
+
+<p>This goal is also achieved by lazy I/O; the problem with lazy I/O, however, is
+that of deterministic resource cleanup. That is to say, with lazy I/O, you
+cannot be guaranteed that your file handles will be closed as soon as you have
+finished reading data from them.</p>
+
+<p>We want to keep the same properties of constant memory usage from lazy I/O, yet
+have guarantees that scarce resources will be freed as early as possible.</p>
+
+<h1>
+<a name="user-content-enumerator" class="anchor" href="#enumerator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enumerator</h1>
+
+<p><strong>Note</strong>: This is biased towards John Millikin's enumerator package, as that is
+the package with which I have the most familiarity.</p>
+
+<p>The concept of an enumerator is fairly simple. We have an <code>Iteratee</code> which
+"consumes" data. It keeps its state while being fed data by an <code>Enumerator</code>.
+The <code>Enumerator</code> will feed data a few chunks at a time to an <code>Iteratee</code>,
+transforming the <code>Iteratee</code>'s state at each call. Additionally, there is an
+<code>Enumeratee</code> that acts as both an <code>Enumerator</code> and <code>Iteratee</code>.</p>
+
+<p>As a result, there are a few changes to code structure that need to take place
+in order to fully leverage enumerators:</p>
+
+<ul class="task-list">
+<li>
+<p>The <code>Enumerator</code>s control code flow. This is an Inversion of Control (IoC)
+ technique.</p>
+
+<p><strong>Practical ramification</strong>: <code>Iteratee</code> code can be more difficult to
+ structure. Note that this is a subjective opinion, noted by many newcomers to
+ the enumerator paradigm.</p>
+
+<p><strong>Requirement</strong>: Nothing specific, likely addressing the requirements
+ below will automatically solve this.</p>
+</li>
+<li>
+<p><code>Iteratee</code>s are not able to allocate scarce resources. Since they do not
+ have any control of the flow of the program, they cannot guarantee that
+ the resources will be released, especially in the presence of exceptions.</p>
+
+<p><strong>Practical ramification</strong>: There is no way to create an <code>iterFile</code>, which
+ will stream data into a file. Instead, you must allocate a file handle
+ before entering the <code>Iteratee</code> and pass that in. In some cases, such an
+ approach would mean file handles are kept open too long.</p>
+
+<p><strong>Clarification</strong>: It is certainly <em>possible</em> to write iterFile, but there
+ are no guarantees that it will close the allocated <code>Handle</code>, since the calling
+ <code>Enumerator</code> may throw an exception before sending an <code>EOF</code> to the <code>Iteratee</code>.</p>
+
+<p><strong>Requirement</strong>: We need a solution which would allow code something like
+ the following to correctly open and close file handles, even in the presence
+ of exceptions.</p>
+
+<pre><code> run $ enumFile "input.txt" $$ iterFile "output.txt"
+</code></pre>
+</li>
+<li>
+<p>None of this plays nicely with monad transformers, though this does not
+ seem to be an inherent problem with enumerators, instead with the current
+ library.</p>
+
+<p><strong>Practical ramification</strong>: You cannot enumerate a file when running in a
+ <code>ReaderT IO</code>.</p>
+
+<p><strong>Requirement</strong>: The following pseudo-code should work:</p>
+
+<pre><code> runReaderT (run $ enumFile "input" $$ iterFile "output") ()
+</code></pre>
+</li>
+<li>
+<p>Instead of passing around a <code>Handle</code> to pull data from, your code should
+ live inside an <code>Iteratee</code>. This makes it difficult and/or impossible to
+ interleave two different sources.</p>
+
+<p><strong>Practical ramification</strong>: Even with libraries designed to interoperate
+ (like http-enumerator and warp), it is not possible to create a proper
+ streaming HTTP proxy.</p>
+
+<p><strong>Note</strong>: This might actually be possible using the "nested iteratee"
+ technique. I would still posit that this is far too complicated a
+ solution to the problem.</p>
+
+<p><strong>Requirement</strong>: It should be possible to pass around some type of producer
+ which will be called piecemeal. For example, the request body in Warp should be
+ expressible as:</p>
+
+<pre><code> data Request = Request
+     { ...
+     , requestBody :: Enumerator ByteString IO ()
+     }
+</code></pre>
+
+<p>Applications should be able to do something like:</p>
+
+<pre><code> bs &lt;- requestBody req $$ takeBytes 10
+ someAction bs
+ rest &lt;- requestBody req $$ takeRest
+ finalAction rest
+</code></pre>
+
+<p>Note that there may be other approaches to solving the same problem, this
+ is just one possibility.</p>
+</li>
+<li>
+<p>While the concepts are simple, actually writing low-level Iteratee code is
+ very complex. This in turn intimidates users from adopting the approach.
+ Again, this is a subjective measurement.</p>
+
+<p><strong>Requirement</strong>: Newcomers should be able to easily understand how to use
+ the package, and with a little more training feel comfortable writing their own
+ producers/consumers.</p>
+</li>
+</ul><h1>
+<a name="user-content-conduits" class="anchor" href="#conduits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conduits</h1>
+
+<p>Conduits attempt to provide a similar high-level API to enumerators, while
+providing a drastically different low-level implementation. The first question
+to visit is: why does the enumerator need to control flow of the program? The
+main purpose is to ensure that resources are released properly. But this in
+fact solved only <em>half</em> the problem; iteratees still cannot release resources.</p>
+
+<h2>
+<a name="user-content-resourcet" class="anchor" href="#resourcet" aria-hidden="true"><span class="octicon octicon-link"></span></a>ResourceT</h2>
+
+<p>So our first issue to address is to create a new way to deal with resource
+allocation. We represent this as a monad transformer, <code>ResourceT</code>. It works as
+follows:</p>
+
+<ul class="task-list">
+<li><p>You can register a cleanup action, which will return a <code>ReleaseKey</code>.</p></li>
+<li><p>If you pass your <code>ReleaseKey</code> to the <code>release</code> function, your action will be
+called automatically, and your action will be unregistered.</p></li>
+<li><p>When the monad is exited (via <code>runRelease</code>), all remaining registered actions
+will be called.</p></li>
+<li><p>All of this is provided in an exception-safe manner.</p></li>
+</ul><p>For example, you would be able to open a file handle, and then register an
+action to close the file handle. In your code, you would call <code>release</code> on your
+<code>ReleaseKey</code> as soon as you reach the end of the contents you are streaming. If
+that code is never reached, the file handle will be released when the monad
+terminates.</p>
+
+<h2>
+<a name="user-content-source" class="anchor" href="#source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source</h2>
+
+<p>Now that we have a way to deal with resources, we can take a radically
+different approach to production of data streams. Instead of a push system,
+where the enumerators sends data down the pipeline, we have a pull system,
+where data is requested from the source. Additionally, a source allows
+buffering of input data, so data can be "pushed back" onto the source to be
+available for a later call.</p>
+
+<h2>
+<a name="user-content-sink" class="anchor" href="#sink" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sink</h2>
+
+<p>A <code>Sink</code> is the corollary to an <code>Iteratee</code>. It takes a stream of data, and can
+return a result, consisting of leftover input and an output. Like an
+<code>Iteratee</code>, a <code>Sink</code> provides a <code>Monad</code> instance, which allows easy chaining
+together of <code>Sink</code>s.</p>
+
+<p>However, a big difference is that your code needn't live in the <code>Sink</code> monad.
+You can easily pass around your sources and connect them to different <code>Sink</code>s.
+As a practical example, when the Web Application Interface (WAI) is translated
+to conduits, the application lives in the <code>ResourceT IO</code> monad, and the
+<code>Request</code> value contains a <code>requestBody</code> record, which is a <code>Source IO
+ByteString</code>.</p>
+
+<h2>
+<a name="user-content-conduit" class="anchor" href="#conduit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conduit</h2>
+
+<p>Conduits are simply functions that take a stream of input data and return
+leftover input as well as a stream of output data. Conduits are far simpler to
+implement than their corollary, <code>Enumeratee</code>s.</p>
+
+<h2>
+<a name="user-content-connecting" class="anchor" href="#connecting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Connecting</h2>
+
+<p>While you can directly pull data from a <code>Source</code>, or directly push to a <code>Sink</code>, the easiest approach is to use the built-in connect operators. These follow the naming convention from the enumerator package, e.g.:</p>
+
+<pre><code>sourceFile "myfile.txt" $$ sinkFile "mycopy.txt"
+sourceFile "myfile.txt" $= uppercase {- a conduit -} $$ sinkFile "mycopy.txt"
+fromList [1..10] $$ Data.Conduit.List.map (+ 1) =$ fold (+) 0
+</code></pre>
+
+<h1>
+<a name="user-content-trade-offs" class="anchor" href="#trade-offs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Trade-offs</h1>
+
+<p>Overall, the approach achieves the goals I had hoped for. The main downside in
+its current form is its reliance on mutable data. Instead of having an
+<code>Iteratee</code> return a new <code>Iteratee</code>, thereby provide an illusion of mutability,
+in conduit the sources and sinks must maintain their state internally. As a
+result, code must live in IO and usually use something like an IORef to keep
+track of the current state.</p>
+
+<p>I believe this to be an acceptable trade-off, since:</p>
+
+<ol class="task-list">
+<li>Virtually all conduit code will be performing I/O, so staying in the <code>IO</code>
+monad is reasonable.</li>
+<li>By using <code>monad-control</code>, conduit can work with any monad <em>based</em> on <code>IO</code>,
+meaning all standard transformers (except <code>ContT</code>) can be used.</li>
+<li>Enumerator experience has shown that the majority of the time, you construct
+<code>Iteratee</code>s by using built-in functions, such as fold and map. Therefore,
+the complication of tracking mutable state will usually be abstracted from
+users.</li>
+</ol><p>Another minor point is that, in order to provide an efficient <code>Monad</code> instance,
+the <code>Sink</code> type is complicated with tracking two cases: a <code>Sink</code> which expects
+data and one which does not. As expressed in point (3) above, this should not
+have a major impact for users.</p>
+
+<p>Finally, since most <code>Source</code>s and <code>Sink</code>s begin their life by allocating some
+mutable variable, both types allow some arbitrary monadic action to be run
+before actual processing begins. The monad (et al) instances and connect
+functions are all built to run this action once and then continue operation.</p>
+
+<h1>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h1>
+
+<p>This is currently no more than a proof-of-concept, to see the differences
+between enumerators and conduits for practical problems. This may serve as a
+basis for WAI and Yesod in the future, but that will only be after careful
+vetting of the idea. Your input is greatly appreciated!</p>
+
+<h1>
+<a name="user-content-notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h1>
+
+<p>This is just a collection of my personal notes, completely unorganized.</p>
+
+<ul class="task-list">
+<li><p>In enumerator, it's relatively easy to combined multiple <code>Iteratee</code>s into
+an <code>Enumeratee</code>. The equivalent (turning <code>Sink</code>s into a <code>Conduit</code>) is
+harder.  See, for example, chunking in http-conduit. Perhaps this can be
+improved with a better <code>sequence</code>.</p></li>
+<li><p>Names and operators are very long right now. Is that a feature or a bug?</p></li>
+<li><p>Should we use Vector in place of lists?</p></li>
+<li><p>It might be worth transitioning to RegionT. Will the extra type parameter
+scare people away?</p></li>
+<li><p>Perhaps the whole BSource/BConduit concept doesn't need to be exposed to
+the user. Advantage of exposing: it makes it obvious at the type level that
+a source/conduit can be reused, and possibly more efficient implementations
+(no double buffering). Disadvantage: more functions to implement/user to
+keep track of, so harder to use.</p></li>
+<li><p>I dislike the travesty which is <code>type FilePath = [Char]</code>, so I'm using the
+system-filepath package. I've used it for a lot of internal code at work,
+and it performs wonderfully. If anyone is concerned about this approach,
+let me know.</p></li>
+<li><p>Should we rename ConduitM to Conduit (et al), and then give Conduit a name
+like ConduitRaw? After all, users interact with the current "M" versions
+more often than anything else.</p></li>
+</ul></article></div>

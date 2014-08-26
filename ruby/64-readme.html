@@ -1,0 +1,383 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-actsastaggableon" class="anchor" href="#actsastaggableon" aria-hidden="true"><span class="octicon octicon-link"></span></a>ActsAsTaggableOn</h1>
+
+<p><a href="http://travis-ci.org/mbleigh/acts-as-taggable-on"><img src="https://camo.githubusercontent.com/3cb02d1d5df816f914594dd482d38ee70360c539/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6d626c656967682f616374732d61732d7461676761626c652d6f6e2e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/mbleigh/acts-as-taggable-on.png" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/mbleigh/acts-as-taggable-on"><img src="https://camo.githubusercontent.com/6037e1008f9c147cd47b8882a69f394c89e60448/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f6d626c656967682f616374732d61732d7461676761626c652d6f6e2e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/mbleigh/acts-as-taggable-on.png" style="max-width:100%;"></a>
+<a href="http://inch-ci.org/github/mbleigh/acts-as-taggable-on"><img src="https://camo.githubusercontent.com/046a0e11134f050136bdd56366de47a6cc54510b/687474703a2f2f696e63682d63692e6f72672f6769746875622f6d626c656967682f616374732d61732d7461676761626c652d6f6e2e706e67" alt="Inline docs" data-canonical-src="http://inch-ci.org/github/mbleigh/acts-as-taggable-on.png" style="max-width:100%;"></a></p>
+
+<p>This plugin was originally based on Acts as Taggable on Steroids by Jonathan Viney.
+It has evolved substantially since that point, but all credit goes to him for the
+initial tagging functionality that so many people have used.</p>
+
+<p>For instance, in a social network, a user might have tags that are called skills,
+interests, sports, and more. There is no real way to differentiate between tags and
+so an implementation of this type is not possible with acts as taggable on steroids.</p>
+
+<p>Enter Acts as Taggable On. Rather than tying functionality to a specific keyword
+(namely <code>tags</code>), acts as taggable on allows you to specify an arbitrary number of
+tag "contexts" that can be used locally or in combination in the same way steroids
+was used.</p>
+
+<h2>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h2>
+
+<p>Versions 2.x are compatible with Ruby 1.8.7+ and Rails 3.</p>
+
+<p>Versions 2.4.1 and up are compatible with Rails 4 too (thanks to arabonradar and cwoodcox).</p>
+
+<p>Versions &gt;= 3.x are compatible with Ruby 1.9.3+ and Rails 3 and 4.</p>
+
+<p>For an up-to-date roadmap, see <a href="https://github.com/mbleigh/acts-as-taggable-on/issues/milestones">https://github.com/mbleigh/acts-as-taggable-on/issues/milestones</a></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>To use it, add it to your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'acts-as-taggable-on'</span>
+</pre></div>
+
+<p>and bundle:</p>
+
+<pre lang="shell"><code>bundle
+</code></pre>
+
+<h4>
+<a name="user-content-post-installation" class="anchor" href="#post-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Post Installation</h4>
+
+<p>Install migrations</p>
+
+<pre lang="shell"><code># For the latest versions :
+rake acts_as_taggable_on_engine:install:migrations
+# For versions 2.4.1 and earlier :
+rails generate acts_as_taggable_on:migration
+</code></pre>
+
+<p>Review the generated migrations then migrate :</p>
+
+<pre lang="shell"><code>rake db:migrate
+</code></pre>
+
+<h4>
+<a name="user-content-upgrading" class="anchor" href="#upgrading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading</h4>
+
+<p>see <a href="UPGRADING.md">UPGRADING</a></p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Setup</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">acts_as_taggable</span> <span class="c1"># Alias for acts_as_taggable_on :tags</span>
+  <span class="n">acts_as_taggable_on</span> <span class="ss">:skills</span><span class="p">,</span> <span class="ss">:interests</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">UsersController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">user_params</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:tag_list</span><span class="p">)</span> <span class="c1">## Rails 4 strong params usage</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="vi">@user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s2">"Bobby"</span><span class="p">)</span>
+</pre></div>
+
+<p>Add and remove a single tag</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"awesome"</span><span class="p">)</span>   <span class="c1"># add a single tag. alias for &lt;&lt;</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"awesome"</span><span class="p">)</span> <span class="c1"># remove a single tag</span>
+</pre></div>
+
+<p>Add and remove multiple tags in an array</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"awesome"</span><span class="p">,</span> <span class="s2">"slick"</span><span class="p">)</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"awesome"</span><span class="p">,</span> <span class="s2">"slick"</span><span class="p">)</span>
+</pre></div>
+
+<p>You can also add and remove tags in format of String. This would
+be convenient in some cases such as handling tag input param in a String.</p>
+
+<p>Pay attention you need to add <code>parse: true</code> as option in this case.</p>
+
+<p>You may also want to take a look at delimiter in the string. The default
+is comma <code>,</code> so you don't need to do anything here. However, if you made
+a change on delimiter setting, make sure the string will match. See
+<a href="#configuration">configuration</a> for more about delimiter.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"awesome, slick"</span><span class="p">,</span> <span class="ss">parse</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">"awesome, slick"</span><span class="p">,</span> <span class="ss">parse</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<p>You can also add and remove tags by direct assignment. Note this will
+remove existing tags so use it with attention.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span> <span class="o">=</span> <span class="s2">"awesome, slick, hefty"</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">save</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">reload</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tags</span>
+<span class="o">=&gt;</span> <span class="o">[</span><span class="c1">#&lt;ActsAsTaggableOn::Tag id: 1, name: "awesome", taggings_count: 1&gt;,</span>
+ <span class="c1">#&lt;ActsAsTaggableOn::Tag id: 2, name: "slick", taggings_count: 1&gt;,</span>
+ <span class="c1">#&lt;ActsAsTaggableOn::Tag id: 3, name: "hefty", taggings_count: 1&gt;]</span>
+</pre></div>
+
+<p>With the defined context in model, you have multiple new methods at disposal
+to manage and view the tags in the context. For example, with <code>:skill</code> context
+these methods are added to the model: <code>skill_list</code>(and <code>skill_list.add</code>, <code>skill_list.remove</code>
+<code>skill_list=</code>), <code>skills</code>(plural), <code>skill_counts</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span><span class="o">.</span><span class="n">skill_list</span> <span class="o">=</span> <span class="s2">"joking, clowning, boxing"</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">save</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">reload</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">skills</span>
+<span class="o">=&gt;</span> <span class="o">[</span><span class="c1">#&lt;ActsAsTaggableOn::Tag id: 1, name: "joking", taggings_count: 1&gt;,</span>
+ <span class="c1">#&lt;ActsAsTaggableOn::Tag id: 2, name: "clowning", taggings_count: 1&gt;,</span>
+ <span class="c1">#&lt;ActsAsTaggableOn::Tag id: 3, name: "boxing", taggings_count: 1&gt;]</span>
+
+<span class="vi">@user</span><span class="o">.</span><span class="n">skill_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"coding"</span><span class="p">)</span>
+
+<span class="vi">@user</span><span class="o">.</span><span class="n">skill_list</span>
+<span class="c1"># =&gt; ["joking", "clowning", "boxing", "coding"]</span>
+
+<span class="vi">@another_user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s2">"Alice"</span><span class="p">)</span>
+<span class="vi">@another_user</span><span class="o">.</span><span class="n">skill_list</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"clowning"</span><span class="p">)</span>
+<span class="vi">@another_user</span><span class="o">.</span><span class="n">save</span>
+
+<span class="no">User</span><span class="o">.</span><span class="n">skill_counts</span>
+<span class="o">=&gt;</span> <span class="o">[</span><span class="c1">#&lt;ActsAsTaggableOn::Tag id: 1, name: "joking", taggings_count: 1&gt;,</span>
+ <span class="c1">#&lt;ActsAsTaggableOn::Tag id: 2, name: "clowning", taggings_count: 2&gt;,</span>
+ <span class="c1">#&lt;ActsAsTaggableOn::Tag id: 3, name: "boxing", taggings_count: 1&gt;]</span>
+</pre></div>
+
+<p>To preserve the order in which tags are created use <code>acts_as_ordered_taggable</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="c1"># Alias for acts_as_ordered_taggable_on :tags</span>
+  <span class="n">acts_as_ordered_taggable</span>
+  <span class="n">acts_as_ordered_taggable_on</span> <span class="ss">:skills</span><span class="p">,</span> <span class="ss">:interests</span>
+<span class="k">end</span>
+
+<span class="vi">@user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s2">"Bobby"</span><span class="p">)</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span> <span class="o">=</span> <span class="s2">"east, south"</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">save</span>
+
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span> <span class="o">=</span> <span class="s2">"north, east, south, west"</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">save</span>
+
+<span class="vi">@user</span><span class="o">.</span><span class="n">reload</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list</span> <span class="c1"># =&gt; ["north", "east", "south", "west"]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-finding-tagged-objects" class="anchor" href="#finding-tagged-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finding Tagged Objects</h3>
+
+<p>Acts As Taggable On uses scopes to create an association for tags.
+This way you can mix and match to filter down your results.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">acts_as_taggable_on</span> <span class="ss">:tags</span><span class="p">,</span> <span class="ss">:skills</span>
+  <span class="n">scope</span> <span class="ss">:by_join_date</span><span class="p">,</span> <span class="n">order</span><span class="p">(</span><span class="s2">"created_at DESC"</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="s2">"awesome"</span><span class="p">)</span><span class="o">.</span><span class="n">by_join_date</span>
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="s2">"awesome"</span><span class="p">)</span><span class="o">.</span><span class="n">by_join_date</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="ss">:page</span> <span class="o">=&gt;</span> <span class="n">params</span><span class="o">[</span><span class="ss">:page</span><span class="o">]</span><span class="p">,</span> <span class="ss">:per_page</span> <span class="o">=&gt;</span> <span class="mi">20</span><span class="p">)</span>
+
+<span class="c1"># Find users that matches all given tags:</span>
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="o">[</span><span class="s2">"awesome"</span><span class="p">,</span> <span class="s2">"cool"</span><span class="o">]</span><span class="p">,</span> <span class="ss">:match_all</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+
+<span class="c1"># Find users with any of the specified tags:</span>
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="o">[</span><span class="s2">"awesome"</span><span class="p">,</span> <span class="s2">"cool"</span><span class="o">]</span><span class="p">,</span> <span class="ss">:any</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+
+<span class="c1"># Find users that has not been tagged with awesome or cool:</span>
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="o">[</span><span class="s2">"awesome"</span><span class="p">,</span> <span class="s2">"cool"</span><span class="o">]</span><span class="p">,</span> <span class="ss">:exclude</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+
+<span class="c1"># Find users with any of the tags based on context:</span>
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="o">[</span><span class="s1">'awesome'</span><span class="p">,</span> <span class="s1">'cool'</span><span class="o">]</span><span class="p">,</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:tags</span><span class="p">,</span> <span class="ss">:any</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="o">[</span><span class="s1">'smart'</span><span class="p">,</span> <span class="s1">'shy'</span><span class="o">]</span><span class="p">,</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:skills</span><span class="p">,</span> <span class="ss">:any</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<p>You can also use <code>:wild =&gt; true</code> option along with <code>:any</code> or <code>:exclude</code> option. It will be looking for <code>%awesome%</code> and <code>%cool%</code> in SQL.</p>
+
+<p><strong>Tip:</strong> <code>User.tagged_with([])</code> or <code>User.tagged_with('')</code> will return <code>[]</code>, an empty set of records.</p>
+
+<h3>
+<a name="user-content-relationships" class="anchor" href="#relationships" aria-hidden="true"><span class="octicon octicon-link"></span></a>Relationships</h3>
+
+<p>You can find objects of the same type based on similar tags on certain contexts.
+Also, objects will be returned in descending order based on the total number of
+matched tags.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@bobby</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find_by_name</span><span class="p">(</span><span class="s2">"Bobby"</span><span class="p">)</span>
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">skill_list</span> <span class="c1"># =&gt; ["jogging", "diving"]</span>
+
+<span class="vi">@frankie</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find_by_name</span><span class="p">(</span><span class="s2">"Frankie"</span><span class="p">)</span>
+<span class="vi">@frankie</span><span class="o">.</span><span class="n">skill_list</span> <span class="c1"># =&gt; ["hacking"]</span>
+
+<span class="vi">@tom</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find_by_name</span><span class="p">(</span><span class="s2">"Tom"</span><span class="p">)</span>
+<span class="vi">@tom</span><span class="o">.</span><span class="n">skill_list</span> <span class="c1"># =&gt; ["hacking", "jogging", "diving"]</span>
+
+<span class="vi">@tom</span><span class="o">.</span><span class="n">find_related_skills</span> <span class="c1"># =&gt; [&lt;User name="Bobby"&gt;, &lt;User name="Frankie"&gt;]</span>
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">find_related_skills</span> <span class="c1"># =&gt; [&lt;User name="Tom"&gt;]</span>
+<span class="vi">@frankie</span><span class="o">.</span><span class="n">find_related_skills</span> <span class="c1"># =&gt; [&lt;User name="Tom"&gt;]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-dynamic-tag-contexts" class="anchor" href="#dynamic-tag-contexts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Tag Contexts</h3>
+
+<p>In addition to the generated tag contexts in the definition, it is also possible
+to allow for dynamic tag contexts (this could be user generated tag contexts!)</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s2">"Bobby"</span><span class="p">)</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">set_tag_list_on</span><span class="p">(</span><span class="ss">:customs</span><span class="p">,</span> <span class="s2">"same, as, tag, list"</span><span class="p">)</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_list_on</span><span class="p">(</span><span class="ss">:customs</span><span class="p">)</span> <span class="c1"># =&gt; ["same", "as", "tag", "list"]</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">save</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tags_on</span><span class="p">(</span><span class="ss">:customs</span><span class="p">)</span> <span class="c1"># =&gt; [&lt;Tag name='same'&gt;,...]</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">tag_counts_on</span><span class="p">(</span><span class="ss">:customs</span><span class="p">)</span>
+<span class="no">User</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="s2">"same"</span><span class="p">,</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:customs</span><span class="p">)</span> <span class="c1"># =&gt; [@user]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-tag-ownership" class="anchor" href="#tag-ownership" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tag Ownership</h3>
+
+<p>Tags can have owners:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">acts_as_tagger</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Photo</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">acts_as_taggable_on</span> <span class="ss">:locations</span>
+<span class="k">end</span>
+
+<span class="vi">@some_user</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="vi">@some_photo</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s2">"paris, normandy"</span><span class="p">,</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:locations</span><span class="p">)</span>
+<span class="vi">@some_user</span><span class="o">.</span><span class="n">owned_taggings</span>
+<span class="vi">@some_user</span><span class="o">.</span><span class="n">owned_tags</span>
+<span class="no">Photo</span><span class="o">.</span><span class="n">tagged_with</span><span class="p">(</span><span class="s2">"paris"</span><span class="p">,</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:locations</span><span class="p">,</span> <span class="ss">:owned_by</span> <span class="o">=&gt;</span> <span class="vi">@some_user</span><span class="p">)</span>
+<span class="vi">@some_photo</span><span class="o">.</span><span class="n">locations_from</span><span class="p">(</span><span class="vi">@some_user</span><span class="p">)</span> <span class="c1"># =&gt; ["paris", "normandy"]</span>
+<span class="vi">@some_photo</span><span class="o">.</span><span class="n">owner_tags_on</span><span class="p">(</span><span class="vi">@some_user</span><span class="p">,</span> <span class="ss">:locations</span><span class="p">)</span> <span class="c1"># =&gt; [#&lt;ActsAsTaggableOn::Tag id: 1, name: "paris"&gt;...]</span>
+<span class="vi">@some_photo</span><span class="o">.</span><span class="n">owner_tags_on</span><span class="p">(</span><span class="kp">nil</span><span class="p">,</span> <span class="ss">:locations</span><span class="p">)</span> <span class="c1"># =&gt; Ownerships equivalent to saying @some_photo.locations</span>
+<span class="vi">@some_user</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="vi">@some_photo</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s2">"paris, normandy"</span><span class="p">,</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="ss">:locations</span><span class="p">,</span> <span class="ss">:skip_save</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span> <span class="c1">#won't save @some_photo object</span>
+</pre></div>
+
+<h3>
+<a name="user-content-dirty-objects" class="anchor" href="#dirty-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dirty objects</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@bobby</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find_by_name</span><span class="p">(</span><span class="s2">"Bobby"</span><span class="p">)</span>
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">skill_list</span> <span class="c1"># =&gt; ["jogging", "diving"]</span>
+
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">skill_list_changed?</span> <span class="c1">#=&gt; false</span>
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">changes</span> <span class="c1">#=&gt; {}</span>
+
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">skill_list</span> <span class="o">=</span> <span class="s2">"swimming"</span>
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">changes</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"skill_list"</span><span class="o">=&gt;[</span><span class="s2">"jogging, diving"</span><span class="p">,</span> <span class="o">[</span><span class="s2">"swimming"</span><span class="o">]]</span><span class="p">}</span>
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">skill_list_changed?</span> <span class="c1">#=&gt; true</span>
+
+<span class="vi">@bobby</span><span class="o">.</span><span class="n">skill_list_change</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="o">[</span><span class="s2">"jogging, diving"</span><span class="p">,</span> <span class="o">[</span><span class="s2">"swimming"</span><span class="o">]]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-tag-cloud-calculations" class="anchor" href="#tag-cloud-calculations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tag cloud calculations</h3>
+
+<p>To construct tag clouds, the frequency of each tag needs to be calculated.
+Because we specified <code>acts_as_taggable_on</code> on the <code>User</code> class, we can
+get a calculation of all the tag counts by using <code>User.tag_counts_on(:customs)</code>. But what if we wanted a tag count for
+a single user's posts? To achieve this we call tag_counts on the association:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">User</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="ss">:first</span><span class="p">)</span><span class="o">.</span><span class="n">posts</span><span class="o">.</span><span class="n">tag_counts_on</span><span class="p">(</span><span class="ss">:tags</span><span class="p">)</span>
+</pre></div>
+
+<p>A helper is included to assist with generating tag clouds.</p>
+
+<p>Here is an example that generates a tag cloud.</p>
+
+<p>Helper:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">module</span> <span class="nn">PostsHelper</span>
+  <span class="kp">include</span> <span class="no">ActsAsTaggableOn</span><span class="o">::</span><span class="no">TagsHelper</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Controller:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">tag_cloud</span>
+    <span class="vi">@tags</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">tag_counts_on</span><span class="p">(</span><span class="ss">:tags</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>View:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%</span> <span class="n">tag_cloud</span><span class="p">(</span><span class="vi">@tags</span><span class="p">,</span> <span class="sx">%w(css1 css2 css3 css4)</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">tag</span><span class="p">,</span> <span class="n">css_class</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  </span><span class="cp">&lt;%=</span> <span class="n">link_to</span> <span class="n">tag</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:action</span> <span class="o">=&gt;</span> <span class="ss">:tag</span><span class="p">,</span> <span class="ss">:id</span> <span class="o">=&gt;</span> <span class="n">tag</span><span class="o">.</span><span class="n">name</span> <span class="p">},</span> <span class="ss">:class</span> <span class="o">=&gt;</span> <span class="n">css_class</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<p>CSS:</p>
+
+<div class="highlight highlight-css"><pre><span class="nc">.css1</span> <span class="p">{</span> <span class="k">font-size</span><span class="o">:</span> <span class="m">1.0em</span><span class="p">;</span> <span class="p">}</span>
+<span class="nc">.css2</span> <span class="p">{</span> <span class="k">font-size</span><span class="o">:</span> <span class="m">1.2em</span><span class="p">;</span> <span class="p">}</span>
+<span class="nc">.css3</span> <span class="p">{</span> <span class="k">font-size</span><span class="o">:</span> <span class="m">1.4em</span><span class="p">;</span> <span class="p">}</span>
+<span class="nc">.css4</span> <span class="p">{</span> <span class="k">font-size</span><span class="o">:</span> <span class="m">1.6em</span><span class="p">;</span> <span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>If you would like to remove unused tag objects after removing taggings, add:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">ActsAsTaggableOn</span><span class="o">.</span><span class="n">remove_unused_tags</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<p>If you want force tags to be saved downcased:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">ActsAsTaggableOn</span><span class="o">.</span><span class="n">force_lowercase</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<p>If you want tags to be saved parametrized (you can redefine to_param as well):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">ActsAsTaggableOn</span><span class="o">.</span><span class="n">force_parameterize</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<p>If you would like tags to be case-sensitive and not use LIKE queries for creation:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">ActsAsTaggableOn</span><span class="o">.</span><span class="n">strict_case_match</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<p>If you want to change the default delimiter (it defaults to ','). You can also pass in an array of delimiters such as ([',', '|']):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">ActsAsTaggableOn</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="s1">','</span>
+</pre></div>
+
+<p><em>NOTE: SQLite by default can't upcase or downcase multibyte characters, resulting in unwanted behavior. Load the SQLite ICU extension for proper handle of such characters. <a href="http://www.sqlite.org/src/artifact?ci=trunk&amp;filename=ext/icu/README.txt">See docs</a></em></p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>We have a long list of valued contributors. <a href="https://github.com/mbleigh/acts-as-taggable-on/contributors">Check them all</a></p>
+
+<h2>
+<a name="user-content-maintainer" class="anchor" href="#maintainer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maintainer</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/tilsammans">Joost Baaij</a></li>
+</ul><h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul class="task-list">
+<li>Write benchmark script</li>
+<li>Resolve concurrency issues</li>
+</ul><h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>Acts As Taggable On uses RSpec for its test coverage. Inside the gem
+directory, you can run the specs with:</p>
+
+<pre lang="shell"><code>bundle
+rake spec
+</code></pre>
+
+<p>You can run all the tests across all the Rails versions by running <code>rake appraise</code>.  If you'd also like to <a href="https://github.com/grosser/wwtd">run the tests across all rubies and databases as configured for Travis CI, install and run <code>wwtd</code></a>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>See <a href="https://github.com/mbleigh/acts-as-taggable-on/blob/master/LICENSE.md">LICENSE</a></p></article></div>

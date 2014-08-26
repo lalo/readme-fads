@@ -1,0 +1,82 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://www.versioneye.com/objective-c/reachability/references"><img src="https://camo.githubusercontent.com/a9141e9eead5615511923599bfb72348cecbf39a/68747470733a2f2f7777772e76657273696f6e6579652e636f6d2f6f626a6563746976652d632f72656163686162696c6974792f7265666572656e63655f62616467652e7376673f7374796c653d666c6174" alt="Reference Status" data-canonical-src="https://www.versioneye.com/objective-c/reachability/reference_badge.svg?style=flat" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-reachability" class="anchor" href="#reachability" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reachability</h1>
+
+<p>This is a drop-in replacement for Apple's <code>Reachability</code> class. It is ARC-compatible, and it uses the new GCD methods to notify of network interface changes.</p>
+
+<p>In addition to the standard <code>NSNotification</code>, it supports the use of blocks for when the network becomes reachable and unreachable.</p>
+
+<p>Finally, you can specify whether a WWAN connection is considered "reachable".</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>Once you have added the <code>.h/m</code> files to your project, simply:</p>
+
+<ul class="task-list">
+<li>Go to the <code>Project-&gt;TARGETS-&gt;Build Phases-&gt;Link Binary With Libraries</code>.</li>
+<li>Press the plus in the lower left of the list.</li>
+<li>Add <code>SystemConfiguration.framework</code>.</li>
+</ul><p>Boom, you're done.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<h3>
+<a name="user-content-block-example" class="anchor" href="#block-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Block Example</h3>
+
+<p>This sample uses blocks to notify when the interface state has changed. The blocks will be called on a <strong>BACKGROUND THREAD</strong>, so you need to dispatch UI updates onto the main thread.</p>
+
+<pre><code>// Allocate a reachability object
+Reachability* reach = [Reachability reachabilityWithHostname:@"www.google.com"];
+
+// Set the blocks
+reach.reachableBlock = ^(Reachability*reach)
+{
+    // keep in mind this is called on a background thread
+    // and if you are updating the UI it needs to happen
+    // on the main thread, like this:
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+      NSLog(@"REACHABLE!");
+    });
+};
+
+reach.unreachableBlock = ^(Reachability*reach)
+{
+    NSLog(@"UNREACHABLE!");
+};
+
+// Start the notifier, which will cause the reachability object to retain itself!
+[reach startNotifier];
+</code></pre>
+
+<h3>
+<a name="user-content-nsnotification-example" class="anchor" href="#nsnotification-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>NSNotification</code> Example</h3>
+
+<p>This sample will use <code>NSNotification</code>s to notify when the interface has changed. They will be delivered on the <strong>MAIN THREAD</strong>, so you <em>can</em> do UI updates from within the function.</p>
+
+<p>In addition, it asks the <code>Reachability</code> object to consider the WWAN (3G/EDGE/CDMA) as a non-reachable connection (you might use this if you are writing a video streaming app, for example, to save the user's data plan).</p>
+
+<pre><code>// Allocate a reachability object
+Reachability* reach = [Reachability reachabilityWithHostname:@"www.google.com"];
+
+// Tell the reachability that we DON'T want to be reachable on 3G/EDGE/CDMA
+reach.reachableOnWWAN = NO;
+
+// Here we set up a NSNotification observer. The Reachability that caused the notification
+// is passed in the object parameter
+[[NSNotificationCenter defaultCenter] addObserver:self
+                                         selector:@selector(reachabilityChanged:)
+                                             name:kReachabilityChangedNotification
+                                           object:nil];
+
+[reach startNotifier];
+</code></pre>
+
+<h2>
+<a name="user-content-tell-the-world" class="anchor" href="#tell-the-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tell the world</h2>
+
+<p>Head over to <a href="https://github.com/tonymillion/Reachability/wiki/Projects-using-Reachability">Projects using Reachability</a> and add your project for "Maximum Wins!".</p></article></div>

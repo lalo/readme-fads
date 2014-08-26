@@ -1,0 +1,175 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-flex" class="anchor" href="#flex" aria-hidden="true"><span class="octicon octicon-link"></span></a>FLEX</h1>
+
+<p>FLEX (Flipboard Explorer) is a set of in-app debugging and exploration tools for iOS development. When presented, FLEX shows a toolbar that lives in a window above your application. From this toolbar, you can view and modify nearly every piece of state in your running application.</p>
+
+<p><a href="https://camo.githubusercontent.com/9986601c5e4306f7935032465911c0f70596e046/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f62617369632d766965772d6578706c6f726174696f6e2e676966" target="_blank"><img src="https://camo.githubusercontent.com/9986601c5e4306f7935032465911c0f70596e046/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f62617369632d766965772d6578706c6f726174696f6e2e676966" alt="View Hierarchy Exploration" data-canonical-src="http://engineering.flipboard.com/assets/flex/basic-view-exploration.gif" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-give-yourself-debugging-superpowers" class="anchor" href="#give-yourself-debugging-superpowers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Give Yourself Debugging Superpowers</h2>
+
+<ul class="task-list">
+<li>Inspect and modify views in the hierarchy.</li>
+<li>See the properties and ivars on any object.</li>
+<li>Dynamically modify many properties and ivars.</li>
+<li>Dynamically call instance and class methods.</li>
+<li>Access any live object via a scan of the heap.</li>
+<li>View the file system within your app's sandbox.</li>
+<li>Explore all classes in your app and linked systems frameworks (public and private).</li>
+<li>Quickly access useful objects such as <code>[UIApplication sharedApplication]</code>, the app delegate, the root view controller on the key window, and more.</li>
+<li>Dynamically view and modify <code>NSUserDefaults</code> values.</li>
+</ul><p>Unlike many other debugging tools, FLEX runs entirely inside your app, so you don't need to be connected to LLDB/Xcode or a different remote debugging server. It works well in the simulator and on physical devices.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Short version:</p>
+
+<div class="highlight highlight-objc"><pre><span class="p">[[</span><span class="n">FLEXManager</span> <span class="n">sharedManager</span><span class="p">]</span> <span class="n">showExplorer</span><span class="p">];</span>
+</pre></div>
+
+<p>More complete version:</p>
+
+<div class="highlight highlight-objc"><pre><span class="cp">#if DEBUG</span>
+<span class="cp">#import "FLEXManager.h"</span>
+<span class="cp">#endif</span>
+
+<span class="p">...</span>
+
+<span class="o">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nl">handleSixFingerQuadrupleTap</span><span class="p">:(</span><span class="bp">UITapGestureRecognizer</span> <span class="o">*</span><span class="p">)</span><span class="n">tapRecognizer</span>
+<span class="p">{</span>
+<span class="cp">#if DEBUG</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">tapRecognizer</span><span class="p">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">UIGestureRecognizerStateRecognized</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// This could also live in a handler for a keyboard shortcut, debug menu item, etc.</span>
+        <span class="p">[[</span><span class="n">FLEXManager</span> <span class="n">sharedManager</span><span class="p">]</span> <span class="n">showExplorer</span><span class="p">];</span>
+    <span class="p">}</span>
+<span class="cp">#endif</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-feature-examples" class="anchor" href="#feature-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Feature Examples</h2>
+
+<h3>
+<a name="user-content-modify-views" class="anchor" href="#modify-views" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modify Views</h3>
+
+<p>Once a view is selected, you can tap on the info bar below the toolbar to present more details about the view. From there, you can modify properties and call methods.</p>
+
+<p><a href="https://camo.githubusercontent.com/950a2612b1dc796bc5cc3fd9909ed465166afc5b/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f616476616e6365642d766965772d65646974696e672e676966" target="_blank"><img src="https://camo.githubusercontent.com/950a2612b1dc796bc5cc3fd9909ed465166afc5b/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f616476616e6365642d766965772d65646974696e672e676966" alt="View Modification" data-canonical-src="http://engineering.flipboard.com/assets/flex/advanced-view-editing.gif" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-all-objects-on-the-heap" class="anchor" href="#all-objects-on-the-heap" aria-hidden="true"><span class="octicon octicon-link"></span></a>All Objects on the Heap</h3>
+
+<p>FLEX queries malloc for all the live allocated memory blocks and searches for ones that look like objects. You can see everything from here.</p>
+
+<p><a href="https://camo.githubusercontent.com/573692941c2901c0fd1ce0f085c101f6b4d3ae3b/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f686561702d62726f777365722e676966" target="_blank"><img src="https://camo.githubusercontent.com/573692941c2901c0fd1ce0f085c101f6b4d3ae3b/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f686561702d62726f777365722e676966" alt="Heap Exploration" data-canonical-src="http://engineering.flipboard.com/assets/flex/heap-browser.gif" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-file-browser" class="anchor" href="#file-browser" aria-hidden="true"><span class="octicon octicon-link"></span></a>File Browser</h3>
+
+<p>View the file system within your app's sandbox. FLEX shows file sizes, image previews, and pretty prints <code>.json</code> and <code>.plist</code> files. You can copy text and image files to the pasteboard if you want to inspect them outside of your app.</p>
+
+<p><a href="https://camo.githubusercontent.com/df6e924a21ecaf8080342d80f384e88f8249c3fe/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f66696c652d62726f777365722e676966" target="_blank"><img src="https://camo.githubusercontent.com/df6e924a21ecaf8080342d80f384e88f8249c3fe/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f66696c652d62726f777365722e676966" alt="File Browser" data-canonical-src="http://engineering.flipboard.com/assets/flex/file-browser.gif" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-system-library-exploration" class="anchor" href="#system-library-exploration" aria-hidden="true"><span class="octicon octicon-link"></span></a>System Library Exploration</h3>
+
+<p>Go digging for all things public and private. To learn more about a class, you can create an instance of it and explore its default state.</p>
+
+<p><a href="https://camo.githubusercontent.com/c91fc34a63f05f803cdc0d23d72ae047d0b960bd/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f73797374656d2d6c69627261726965732d62726f777365722e676966" target="_blank"><img src="https://camo.githubusercontent.com/c91fc34a63f05f803cdc0d23d72ae047d0b960bd/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f73797374656d2d6c69627261726965732d62726f777365722e676966" alt="System Libraries Browser" data-canonical-src="http://engineering.flipboard.com/assets/flex/system-libraries-browser.gif" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-nsuserdefaults-editing" class="anchor" href="#nsuserdefaults-editing" aria-hidden="true"><span class="octicon octicon-link"></span></a>NSUserDefaults Editing</h3>
+
+<p>FLEX allows you to edit defaults that are any combination of strings, numbers, arrays, and dictionaries. The input is parsed as <code>JSON</code>. If other kinds of objects are set for a defaults key (i.e. <code>NSDate</code>), you can view them but not edit them.</p>
+
+<p><a href="https://camo.githubusercontent.com/c9b72bf288f79993fbbc46cd4c0c37504fd8e11b/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f6e737573657264656661756c74732d656469746f722e676966" target="_blank"><img src="https://camo.githubusercontent.com/c9b72bf288f79993fbbc46cd4c0c37504fd8e11b/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f6e737573657264656661756c74732d656469746f722e676966" alt="NSUserDefaults Editor" data-canonical-src="http://engineering.flipboard.com/assets/flex/nsuserdefaults-editor.gif" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-learning-from-other-apps" class="anchor" href="#learning-from-other-apps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Learning from Other Apps</h3>
+
+<p>The code injection is left as an exercise for the reader. <img class="emoji" title=":innocent:" alt=":innocent:" src="https://assets-cdn.github.com/images/icons/emoji/unicode/1f607.png" height="20" width="20" align="absmiddle"></p>
+
+<p><a href="https://camo.githubusercontent.com/de456cb9f822094e49b40692cd9720c8e99905d7/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d726576657273652d312e706e67" target="_blank"><img src="https://camo.githubusercontent.com/de456cb9f822094e49b40692cd9720c8e99905d7/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d726576657273652d312e706e67" alt="Springboard Lock Screen" data-canonical-src="http://engineering.flipboard.com/assets/flex/flex-readme-reverse-1.png" style="max-width:100%;"></a><a href="https://camo.githubusercontent.com/44624ad09a907893fc95bf35283bc12439ae9d93/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d726576657273652d322e706e67" target="_blank"><img src="https://camo.githubusercontent.com/44624ad09a907893fc95bf35283bc12439ae9d93/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d726576657273652d322e706e67" alt="Springboard Home Screen" data-canonical-src="http://engineering.flipboard.com/assets/flex/flex-readme-reverse-2.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-excluding-flex-from-release-app-store-builds" class="anchor" href="#excluding-flex-from-release-app-store-builds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Excluding FLEX from Release (App Store) Builds</h2>
+
+<p>FLEX makes it easy to explore the internals of your app, so it is not something you should expose to your users. Fortunately, it is easy to exclude FLEX files from Release builds. In Xcode, navigate to the "Build Settings" tab of your project. Click the plus and select <code>Add User-Defined Setting</code>.</p>
+
+<p><a href="https://camo.githubusercontent.com/5b1cbb5cb14496ee12a8a8aeacc2c155a735a1c1/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d6578636c7564652d312e706e67" target="_blank"><img src="https://camo.githubusercontent.com/5b1cbb5cb14496ee12a8a8aeacc2c155a735a1c1/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d6578636c7564652d312e706e67" alt="Add User-Defined Setting" data-canonical-src="http://engineering.flipboard.com/assets/flex/flex-readme-exclude-1.png" style="max-width:100%;"></a></p>
+
+<p>Name the setting <code>EXCLUDED_SOURCE_FILE_NAMES</code>. For your <code>Release</code> configuration, set the value to <code>FLEX*</code>. This will exclude all files with the prefix FLEX from compilation. Leave the value blank for your <code>Debug</code> configuration.</p>
+
+<p><a href="https://camo.githubusercontent.com/843997bca76f737561e1084293e9dfd90cda4d97/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d6578636c7564652d322e706e67" target="_blank"><img src="https://camo.githubusercontent.com/843997bca76f737561e1084293e9dfd90cda4d97/687474703a2f2f656e67696e656572696e672e666c6970626f6172642e636f6d2f6173736574732f666c65782f666c65782d726561646d652d6578636c7564652d322e706e67" alt="EXCLUDED_SOURCE_FILE_NAMES" data-canonical-src="http://engineering.flipboard.com/assets/flex/flex-readme-exclude-2.png" style="max-width:100%;"></a></p>
+
+<p>At the places in your code where you integrate FLEX, do a <code>#if DEBUG</code> check to ensure the tool is only accessible in your <code>Debug</code> builds and to avoid errors in your <code>Release</code> builds. For more help with integrating FLEX, see the example project.</p>
+
+<h2>
+<a name="user-content-additional-notes" class="anchor" href="#additional-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Notes</h2>
+
+<ul class="task-list">
+<li>When setting fields of type <code>id</code> or values in <code>NSUserDefaults</code>, FLEX attempts to parse the input string as <code>JSON</code>. This allows you to use a combination of strings, numbers, arrays, and dictionaries. If you want to set a string value, it must be wrapped in quotes. For ivars or properties that are explicitly typed as <code>NSStrings</code>, quotes are not required.</li>
+<li>You may want to disable the exception breakpoint while using FLEX. Certain functions that FLEX uses throw exceptions when they get input they can't handle (i.e. <code>NSGetSizeAndAlignment()</code>). FLEX catches these to avoid crashing, but your breakpoint will get hit if it is active.</li>
+</ul><h2>
+<a name="user-content-thanks--credits" class="anchor" href="#thanks--credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thanks &amp; Credits</h2>
+
+<p>FLEX builds on ideas and inspiration from open source tools that came before it. The following resources have been particularly helpful:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/domesticcatsoftware/DCIntrospect">DCIntrospect</a>: view hierarchy debugging for the iOS simulator.</li>
+<li>
+<a href="https://github.com/square/PonyDebugger">PonyDebugger</a>: network, core data, and view hierarchy debugging using the Chrome Developer Tools interface.</li>
+<li>
+<a href="https://www.mikeash.com/pyblog/">Mike Ash</a>: well written, informative blog posts on all things obj-c and more. The links below were very useful for this project:
+
+<ul class="task-list">
+<li><a href="https://github.com/mikeash/MAObjCRuntime">MAObjCRuntime</a></li>
+<li><a href="https://www.mikeash.com/pyblog/friday-qa-2013-02-08-lets-build-key-value-coding.html">Let's Build Key Value Coding</a></li>
+<li><a href="https://www.mikeash.com/pyblog/friday-qa-2013-09-27-arm64-and-you.html">ARM64 and You</a></li>
+</ul>
+</li>
+<li>
+<a href="https://github.com/heardrwt/RHObjectiveBeagle">RHObjectiveBeagle</a>: a tool for scanning the heap for live objects. It should be noted that the source code of RHObjectiveBeagle was not consulted due to licensing concerns.</li>
+<li>
+<a href="https://www.opensource.apple.com/source/lldb/lldb-179.1/examples/darwin/heap_find/heap/heap_find.cpp">heap_find.cpp</a>: an example of enumerating malloc blocks for finding objects on the heap.</li>
+<li>
+<a href="https://gist.github.com/samdmarshall/17f4e66b5e2e579fd396">Gist</a> from <a href="https://github.com/samdmarshall">@samdmarshall</a>: another example of enumerating malloc blocks.</li>
+<li>
+<a href="http://www.sealiesoftware.com/blog/archive/2013/09/24/objc_explain_Non-pointer_isa.html">Non-pointer isa</a>: an explanation of changes to the isa field on iOS for ARM64 and mention of the useful <code>objc_debug_isa_class_mask</code> variable.</li>
+</ul><h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>We welcome pull requests for bug fixes, new features, and improvements to FLEX. Contributors to the main FLEX repository must accept Flipboard's Apache-style <a href="https://docs.google.com/forms/d/1gh9y6_i8xFn6pA15PqFeye19VqasuI9-bGp_e0owy74/viewform">Individual Contributor License Agreement (CLA)</a> before any changes can be merged.</p>
+
+<h2>
+<a name="user-content-changes" class="anchor" href="#changes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changes</h2>
+
+<h4>
+<a name="user-content-v120-in-progress" class="anchor" href="#v120-in-progress" aria-hidden="true"><span class="octicon octicon-link"></span></a>v1.2.0 (in progress)</h4>
+
+<ul class="task-list">
+<li>Search bar filtering and sorting by file size in the file browser (@DaidoujiChen)</li>
+</ul><h4>
+<a name="user-content-v110-2014731" class="anchor" href="#v110-2014731" aria-hidden="true"><span class="octicon octicon-link"></span></a>v1.1.0 2014/7/31</h4>
+
+<ul class="task-list">
+<li>Support adding custom entries to the "Globals" menu (@JaviSoto)</li>
+<li>Warnings cleanup (@JaviSoto)</li>
+<li>WYSIWYG font picker input view (@DaidoujiChen)</li>
+<li>Small bug fixes around status bar styling, rotation, and ivar value display (@ryanolsonk)</li>
+</ul><h4>
+<a name="user-content-v101-20140726" class="anchor" href="#v101-20140726" aria-hidden="true"><span class="octicon octicon-link"></span></a>v1.0.1 2014/07/26</h4>
+
+<ul class="task-list">
+<li>Warnings cleanup and small bugfixes with rotation and interface orientations (@ryanolsonk)</li>
+</ul><h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul class="task-list">
+<li>Swift runtime introspection (swift classes, swift objects on the heap, etc.)</li>
+<li>Network request logging</li>
+<li>Improved file type detection and display in the file browser</li>
+<li>Add new NSUserDefault key/value pairs on the fly</li>
+</ul><p>Have a question or suggestion for FLEX? Contact <a href="https://twitter.com/ryanolsonk">@ryanolsonk</a> on twitter.</p></article></div>

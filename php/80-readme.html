@@ -1,0 +1,619 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-web-framework-performance-comparison" class="anchor" href="#web-framework-performance-comparison" aria-hidden="true"><span class="octicon octicon-link"></span></a>Web Framework Performance Comparison</h1>
+
+<p><a href="https://travis-ci.org/TechEmpower/FrameworkBenchmarks"><img src="https://camo.githubusercontent.com/42dc408e92ac3235cdaed2a850d1fb7a030b3b9b/68747470733a2f2f7472617669732d63692e6f72672f54656368456d706f7765722f4672616d65776f726b42656e63686d61726b732e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/TechEmpower/FrameworkBenchmarks.svg?branch=master" style="max-width:100%;"></a></p>
+
+<p>This project provides representative performance measures across a wide field of web 
+application frameworks. With much help from the community, coverage is quite broad and 
+we are happy to broaden it further with contributions. The project presently includes 
+frameworks on many languages including <code>Go</code>, <code>Python</code>, <code>Java</code>, <code>Ruby</code>, <code>PHP</code>, <code>C#</code>, <code>Clojure</code>, 
+<code>Groovy</code>, <code>Dart</code>, <code>JavaScript</code>, <code>Erlang</code>, <code>Haskell</code>, <code>Scala</code>, <code>Perl</code>, <code>Lua</code>, <code>C</code>, and others.  The 
+current tests exercise plaintext responses, JSON seralization, database reads 
+and writes via the object-relational mapper (ORM), collections, sorting, server-side templates,
+and XSS counter-measures. Future tests will exercise other components and greater computation.</p>
+
+<p><a href="http://www.techempower.com/benchmarks/">Read more and see the results of our tests on Amazon EC2 and physical hardware</a>. 
+For descriptions of the test types that we run, see the <a href="http://www.techempower.com/benchmarks/#section=code">test requirements section</a>.</p>
+
+<p>Join in the conversation at our 
+<a href="https://groups.google.com/forum/?fromgroups=#!forum/framework-benchmarks">Google Group</a>, 
+or chat with us on <a href="https://freenode.net/faq.shtml#whatwhy">Freenode</a> at <code>#techempower-fwbm</code>. </p>
+
+<h1>
+<a name="user-content-how-do-i-contribute-updates-or-new-frameworks" class="anchor" href="#how-do-i-contribute-updates-or-new-frameworks" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I contribute updates or new frameworks?</h1>
+
+<p>If you plan to add a new framework or update an existing framework, you only 
+need to run in <em>verify</em> mode. This will launch the framework, query all URLs, and verify that 
+returned data matches the <a href="http://www.techempower.com/benchmarks/#section=code">benchmark requirements</a>. </p>
+
+<p>If <em>verify</em> mode is all you need, you can potentially develop without ever running our 
+codebase locally - our <a href="https://travis-ci.org/TechEmpower/FrameworkBenchmarks">Travis-CI.org</a> setup 
+can run the verification for you. This is as simple as going to travis-ci.org, using the 
+<code>Log in with Github</code> button, and enabling Travis-CI for your fork. All commit pushes 
+will be automatically verified by Travis-CI, and you will get full log output. 
+You can submit a pull request when your code passes the Travis-CI verification and have 
+confidence it will be merged quickly. While this development route is slightly slower than 
+standard local development, it does not require any local setup process.</p>
+
+<p>You can also run <em>verify</em> mode on a single computer, although you should be comfortable with us 
+installing multiple large software suites. 
+You will need to enable passwordless SSH access to localhost (<a href="https://www.google.com/#hl=en&amp;q=passwordless%20SSH%20access">search Google for help</a>, yielding references such as these: <a href="http://hortonworks.com/kb/generating-ssh-keys-for-passwordless-login/">article 1</a> <a href="http://superuser.com/questions/336226/how-to-ssh-to-localhost-without-password">article 2</a> <a href="https://help.ubuntu.com/community/SSH/OpenSSH/Keys">article 3</a>), and you will also 
+need to enable passwordless sudo access (<a href="https://www.google.com/#hl=en&amp;q=passwordless%20sudo">Google for help</a>).
+Once you have cloned our repository, run <code>toolset/run-tests.py --help</code> for detailed 
+help on running in <em>verify</em> mode and see the sections below for more guidance. </p>
+
+<h1>
+<a name="user-content-how-do-i-run-the-benchmark-myself" class="anchor" href="#how-do-i-run-the-benchmark-myself" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I run the benchmark myself?</h1>
+
+<p>If you plan to run the benchmark and compare results, you need to run in <em>benchmark</em> 
+mode. We recommend having a minimum of three distinct computers with a fast network 
+connection in between, all of which you should be comfortable installing a large amount
+of additional software on. One of these computers (the <code>app server</code>) must have passwordless
+SSH access to the other two (<a href="https://www.google.com/#hl=en&amp;q=passwordless%20SSH%20access">search Google for help</a>, yielding references such as these: <a href="http://hortonworks.com/kb/generating-ssh-keys-for-passwordless-login/">article 1</a> <a href="http://superuser.com/questions/336226/how-to-ssh-to-localhost-without-password">article 2</a> <a href="https://help.ubuntu.com/community/SSH/OpenSSH/Keys">article 3</a>), and on every computer 
+you will need to have passwordless sudo access (<a href="https://www.google.com/#hl=en&amp;q=passwordless%20sudo">Google for help</a>).
+Once you have cloned our repository, run <code>toolset/run-tests.py --help</code> for detailedhelp
+on running in <em>benchmark</em> mode and see the sections below for more guidance. </p>
+
+<p>If you are not an expert, please ensure your setup can run in <em>verify</em> mode before 
+attempting to run in <em>benchmark</em> mode. </p>
+
+<h1>
+<a name="user-content-project-overview" class="anchor" href="#project-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Overview</h1>
+
+<p>Running the full benchmark requires at least three computers:</p>
+
+<ul class="task-list">
+<li>
+<code>app server</code>: The computer that your framework will be launched on.</li>
+<li>
+<code>load server</code>: The computer that will generate client load. Also known as the <code>client machine</code>.</li>
+<li>
+<code>database server</code>: The computer that runs all the databases. Also knonw as the <code>DB server</code>.</li>
+</ul><p>This codebase (<code>TechEmpower/FrameworkBenchmarks</code> aka <code>TFB</code>) must be run on 
+the <code>app server</code>. The codebase contains a number of <code>framework directories</code>, each 
+of which contains one or more <code>framework test implementations</code>. While our current setup has 
+many directories, we are working to consolidate related code into fewer directories<br>
+with more tests per directory. </p>
+
+<p>When run, <code>TFB</code> will: </p>
+
+<ul class="task-list">
+<li>select which framework tests are to be run based on command-line arguments you provide</li>
+<li>install the necessary software (both on the <code>app server</code> and other servers)</li>
+<li>launch the framework</li>
+<li>access the urls listed in <a href="http://www.techempower.com/benchmarks/#section=code">the requirements</a> and verify the responses</li>
+<li>launch the load generation software on the <code>load server</code>
+</li>
+<li>gather the results</li>
+<li>halt the framework</li>
+</ul><h1>
+<a name="user-content-installation-and-usage-details" class="anchor" href="#installation-and-usage-details" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation and Usage Details</h1>
+
+<p>If you choose to run TFB on your own computer, you will need to install 
+passwordless SSH to your <code>load server</code> and your <code>database server</code> from 
+your <code>app server</code>. You will also need to enable passwordless sudo access
+on all three servers. If you are only planning to use <em>verify</em> mode, then
+all three servers can be the same computer, and you will need to ensure
+you have passwordless sudo access to <code>localhost</code>. </p>
+
+<p>For all Linux framework tests, we use <a href="http://www.ubuntu.com/download/server">Ubuntu 14.04</a>, so 
+it is recommended you use this for development or use.  Furthermore, the load server is Linux-only,
+even when testing Windows frameworks.</p>
+
+<h2>
+<a name="user-content-configuration-file-usage" class="anchor" href="#configuration-file-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration File Usage</h2>
+
+<p>TFB takes a large number of command-line arguments, and it can become tedious to 
+specify them repeatedly. We recommend you create a <code>benchmark.cfg</code> file by 
+copying the example <code>benchmark.cfg.example</code> file and modifying as needed. 
+See <code>toolset/run-tests.py --help</code> for a description of each flag. </p>
+
+<p>For running in <em>verify</em> mode, you can set the various hosts to <code>localhost</code>. 
+For running in <em>benchmark</em> mode, you will need all of the servers' IP addresses.</p>
+
+<p>Note: environment variables can also be used for a number of the arguments.</p>
+
+<h2>
+<a name="user-content-installation-basics" class="anchor" href="#installation-basics" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation Basics</h2>
+
+<p>After you have a configuration file, run the following to setup your 
+various servers. We use the <code>--install-only</code> flag in our examples to 
+prevent launching tests at this stage. </p>
+
+<p><strong>Setting up the <code>load server</code></strong></p>
+
+<pre><code>toolset/run-tests.py --install client --verbose  --install-only
+</code></pre>
+
+<p><strong>Setting up the <code>database server</code></strong></p>
+
+<pre><code>toolset/run-tests.py --install database --verbose --install-only
+# We are still working to automate MongoDO. Until this, please run
+# this as well (replacing database-ip with your own value)
+mongo --host database-ip &lt; config/create.js
+</code></pre>
+
+<p><strong>Setting up the <code>app server</code></strong></p>
+
+<p>You can choose to selectively install components by using the 
+<code>--test</code> and <code>--exclude</code> flags. </p>
+
+<pre><code># Install just the software for beego (as an example)
+toolset/run-tests.py --install server --test beego --verbose --install-only
+
+# Install all php software but php-fuel (as another example)
+toolset/run-tests.py --install server --test php* --exclude php-fuel --verbose --install-only
+
+# Install *all* framework software. Expect this to take hours!
+# If running on a remote server, use `screen` or `tmux` or `nohup` to 
+# prevent the installation from being terminated if you are disconnected
+toolset/run-tests.py --install server --verbose --install-only
+</code></pre>
+
+<h2>
+<a name="user-content-listing-tests" class="anchor" href="#listing-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Tests</h2>
+
+<p>You can easily list all available tests</p>
+
+<pre><code>╰─$ toolset/run-tests.py --list-tests
+activeweb
+activeweb-raw
+aspnet
+aspnet-jsonnet
+aspnet-mongodb-raw
+aspnet-mono
+aspnet-mono-jsonnet
+aspnet-mono-mongodb-raw
+&lt;snip&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Tests</h2>
+
+<p>There are a number of options that can be specified: </p>
+
+<pre><code># Run a verification for test beego
+toolset/run-tests.py --test beego --mode verify
+
+# Run the default benchmark for the beego test
+toolset/run-tests.py --test beego
+
+# Specify which test types are run during benchmark
+toolset/run-tests.py --test beego --type json
+toolset/run-tests.py --test beego --type db
+toolset/run-tests.py --test beego --type fortune
+
+# Specify a number of options for how the load is generated
+toolset/run-tests.py --test beego --max-concurrency 24 --max-threads 24 --duration 20 --max-queries 200
+
+# Run a tiny benchmark
+toolset/run-tests.py --test beego --max-threads 2 --max-concurrency 2 
+</code></pre>
+
+<h2>
+<a name="user-content-finding-output-logs" class="anchor" href="#finding-output-logs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finding output logs</h2>
+
+<p>Logs file locations use the format <code>results/ec2/latest/logs/wt/err.txt</code>. 
+The general structure is <code>results/&lt;run name&gt;/&lt;timestamp&gt;/logs/&lt;test name&gt;/&lt;file&gt;</code>
+You can use the <code>--name</code> flag to change the <code>&lt;run name&gt;</code>
+If you re-run the same test multiple times, you will get a different folder
+for each <code>&lt;timestamp&gt;</code>, although the <code>latest</code> folder will be kept up to date. 
+The <code>&lt;test name&gt;</code> is simply the name of the test type you ran, and <code>&lt;file&gt;</code> is either <code>out.txt</code>
+or <code>err.txt</code> (these are the <code>logout</code> and <code>logerr</code> arguments passed into each 
+<code>setup.py</code> file. </p>
+
+<p>Note: If you're looking for logs from our official benchmark rounds, see 
+<a href="https://github.com/TechEmpower/TFB-Round-9">Round 9</a> and 
+<a href="https://github.com/TechEmpower/TFB-Round-8">Round 8</a></p>
+
+<h1>
+<a name="user-content-contribution-guidelines" class="anchor" href="#contribution-guidelines" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribution Guidelines</h1>
+
+<p>The community has consistently helped in making these tests better, and we welcome any 
+and all changes. These guidelines prevent us from having to give repeated feedback on 
+the same topics: </p>
+
+<ul class="task-list">
+<li>
+<strong>Use specific versions</strong>: If you're updating any software or dependency, please be 
+specific with the version number. Also, update the appropriate <code>README</code> to reflect that change</li>
+<li>
+<strong>Rope in experts</strong>: If you're making a performance tweak, our team may not be 
+able to verify your code--we are not experts in every language. It's always helpful 
+to ping expert users and provide a basic introduction on their credentials. If you 
+are an expert that is willing to be pinged occasionally, please add yourself to 
+the appropriate test README files. </li>
+<li>
+<strong>Use a personal Travis-CI account</strong>: This one is mainly for your own sanity. Our 
+<a href="https://travis-ci.org/TechEmpower/FrameworkBenchmarks">main Travis-CI</a> can occasionally
+become clogged with so many pull requests that it takes a day to finish all the 
+builds. If you create a fork and enable Travis-CI.org, you will get your own 
+build queue. This means 1) only your commits/branches are being verified, so there is 
+no delay waiting for an unrelated pull request, and 2) you can cancel unneeded items. 
+This does not affect our own Travis-CI setup at all - any commits added to a pull 
+request will be verifed as normal. </li>
+<li>
+<strong>Read the README</strong>: We know that's cliche. However, our toolset drags in a lot of 
+different concepts and frameworks, and it can really help to read the README's, such 
+as this one, the one inside the <code>toolset/</code> directory, and the ones inside specific 
+framework directories</li>
+</ul><hr><h1>
+<a name="user-content-adding-frameworks-or-tests" class="anchor" href="#adding-frameworks-or-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding Frameworks or Tests</h1>
+
+<p>When adding a new framework or new test to an existing 
+framework, please follow these steps:</p>
+
+<ul class="task-list">
+<li>Update/add a <a href="#the-benchmark_config-file">benchmark_config</a>
+</li>
+<li>Update/add a <a href="#setup-files">setup file</a>
+</li>
+<li>Update/add an <a href="#install-file">install.sh file</a>
+</li>
+<li>(Optional) Update/add a <a href="#bash-environment-file">bash_profile.sh file</a>
+</li>
+<li>When creating a database test, use the table/collection <code>hello_world</code>. 
+Our database setup scripts are stored inside the <code>config/</code> folder if 
+you need to see the database schema</li>
+</ul><h3>
+<a name="user-content-the-benchmark_config-file" class="anchor" href="#the-benchmark_config-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>The benchmark_config File</h3>
+
+<p>The <code>benchmark_config</code> file is used by our scripts to identify 
+available tests - it should exist at the root of the framework directory.
+We</p>
+
+<p>Here is an example <code>benchmark_config</code> from the <code>Compojure</code> framework. 
+There are two different tests listed for the <code>Compojure</code> framework, </p>
+
+<pre><code>{
+  "framework": "compojure",
+  "tests": [{
+    "default": {
+      "setup_file": "setup",
+      "json_url": "/compojure/json",
+      "db_url": "/compojure/db/1",
+      "query_url": "/compojure/db/",
+      "fortune_url": "/compojure/fortune-hiccup",
+      "plaintext_url": "/compojure/plaintext",
+      "port": 8080,
+      "approach": "Realistic",
+      "classification": "Micro",
+      "database": "MySQL",
+      "framework": "compojure",
+      "language": "Clojure",
+      "orm": "Micro",
+      "platform": "Servlet",
+      "webserver": "Resin",
+      "os": "Linux",
+      "database_os": "Linux",
+      "display_name": "compojure",
+      "notes": "",
+      "versus": "servlet"
+    },
+    "raw": {
+      "setup_file": "setup",
+      "db_url": "/compojure/dbraw/1",
+      "query_url": "/compojure/dbraw/",
+      "port": 8080,
+      "approach": "Realistic",
+      "classification": "Micro",
+      "database": "MySQL",
+      "framework": "compojure",
+      "language": "Clojure",
+      "orm": "Raw",
+      "platform": "Servlet",
+      "webserver": "Resin",
+      "os": "Linux",
+      "database_os": "Linux",
+      "display_name": "compojure-raw",
+      "notes": "",
+      "versus": "servlet"
+    }
+  }]
+}
+</code></pre>
+
+<ul class="task-list">
+<li>
+<code>framework:</code> Specifies the framework name.</li>
+<li>
+<code>tests:</code> A list of tests that can be run for this framework. In many cases, 
+this contains a single element for the "default" test, but additional tests 
+can be specified.  Each test name must be unique when concatenated with the
+framework name. Each test will be run separately in our Rounds, so it is to your
+benefit to provide multiple variations in case one works better in some cases
+
+<ul class="task-list">
+<li>
+<code>setup_file:</code> The location of the <a href="#setup-files">python setup file</a> that 
+can start and stop the test, excluding the <code>.py</code> ending. If your different 
+tests require different setup approachs, use another setup file. </li>
+<li>
+<code>json_url (optional):</code> The URI to the JSON test, typically <code>/json</code>
+</li>
+<li>
+<code>db_url (optional):</code> The URI to the database test, typically <code>/db</code>
+</li>
+<li>
+<code>query_url (optional):</code> The URI to the variable query test. The URI 
+must be set up so that an integer can be applied to the end of the URI to
+specify the number of queries to run.  For example, <code>/query?queries=</code> 
+(to yield <code>/query?queries=20</code>) or <code>/query/</code> (to yield <code>/query/20</code>)</li>
+<li>
+<code>fortune_url (optional):</code> the URI to the fortunes test, typically <code>/fortune</code>
+</li>
+<li>
+<code>update_url (optional):</code> the URI to the updates test, setup in a 
+manner similar to <code>query_url</code> described above.</li>
+<li>
+<code>plaintext_url (optional):</code> the URI of the plaintext test, 
+typically <code>/plaintext</code>
+</li>
+<li>
+<code>port:</code> The port the server is listening on</li>
+<li>
+<code>approach (metadata):</code> <code>Realistic</code> or <code>Stripped</code> (see 
+<a href="http://www.techempower.com/benchmarks/#section=code&amp;hw=peak&amp;test=json">here</a> for a description of all metadata attributes)</li>
+<li>
+<code>classification (metadata):</code> <code>Full</code>, <code>Micro</code>, or <code>Platform</code>
+</li>
+<li>
+<code>database (metadata):</code> <code>MySQL</code>, <code>Postgres</code>, <code>MongoDB</code>, <code>SQLServer</code>, or <code>None</code>
+</li>
+<li>
+<code>framework (metadata):</code> name of the framework</li>
+<li>
+<code>language (metadata):</code> name of the language</li>
+<li>
+<code>orm (metadata):</code> <code>Full</code>, <code>Micro</code>, or <code>Raw</code>
+</li>
+<li>
+<code>platform (metadata):</code> name of the platform</li>
+<li>
+<code>webserver (metadata):</code> name of the web-server (also referred 
+to as the "front-end server")</li>
+<li>
+<code>os (metadata):</code> The application server's operating system, 
+<code>Linux</code> or <code>Windows</code>
+</li>
+<li>
+<code>database_os (metadata):</code> The database server's operating 
+system, <code>Linux</code> or <code>Windows</code>
+</li>
+<li>
+<code>display_name (metadata):</code> How to render this test permutation's name on
+the results web site.  Some permutation names can be really long, 
+so the display_name is provided in order to provide something more succinct.</li>
+<li>
+<code>versus (optional):</code> The name of another test (elsewhere in this project) that is a subset of this framework.  This allows for the generation of the framework efficiency chart in the results web site.  For example, Compojure is compared to "servlet" since Compojure is built on the Servlets platform.</li>
+</ul>
+</li>
+</ul><p>The requirements section 
+<a href="http://www.techempower.com/benchmarks/#section=code&amp;hw=peak&amp;test=json">here</a> 
+explains the expected response for each URL as well all metadata 
+options available. </p>
+
+<h3>
+<a name="user-content-testing-on-both-windows-and-linux" class="anchor" href="#testing-on-both-windows-and-linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing on both Windows and Linux</h3>
+
+<p>If your framework and platform can execute on both Windows and Linux, we 
+encourage you to specify tests for both operating systems.  This increases the 
+amount of testing you should do before submitting your pull-request, however, 
+so we understand if you start with just one of the two. Travis-CI cannot 
+automatically verify Windows-based tests, and therefore you should verify 
+your code manually. </p>
+
+<p>The steps involved are:</p>
+
+<ul class="task-list">
+<li>Assuming you have implemented the Linux test already, add a new test 
+permutation to your <code>benchmark_config</code> file for the Windows test.  When 
+the benchmark script runs on Linux, it skips tests where <code>os</code> in <code>Windows</code>
+and vice versa. </li>
+<li>Add the necessary tweaks to your <a href="#setup-files">setup file</a> to start and stop on the new operating system.  See, for example, <a href="https://github.com/TechEmpower/FrameworkBenchmarks/blob/master/go/setup.py">the script for Go</a>.</li>
+<li>Test on Windows and Linux to make sure everything works as expected.</li>
+</ul><h3>
+<a name="user-content-install-file" class="anchor" href="#install-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install File</h3>
+
+<p>The <code>install.sh</code> file for each framework starts the bash process which will 
+install that framework. Typically, the first thing done is to call <code>fw_depends</code> 
+to run installations for any necessary software that TFB has already 
+created installation scripts for. TFB provides a reasonably wide range of 
+core software, so your <code>install.sh</code> may only need to call <code>fw_depends</code> and 
+exit. Note: <code>fw_depends</code> does not guarantee dependency installation, so 
+list software in the proper order e.g. if <code>foo</code> depends on <code>bar</code>
+use <code>fw_depends bar foo</code>.</p>
+
+<p>Here are some example <code>install.sh</code> files</p>
+
+<div class="highlight highlight-bash"><pre><span class="c">#!/bin/bash</span>
+
+<span class="c"># My framework only needs nodejs</span>
+fw_depends nodejs
+</pre></div>
+
+<div class="highlight highlight-bash"><pre><span class="c">#!/bin/bash</span>
+
+<span class="c"># My framework needs nodejs and mono and go</span>
+fw_depends nodejs mono go
+</pre></div>
+
+<div class="highlight highlight-bash"><pre><span class="c">#!/bin/bash</span>
+
+<span class="c"># My framework needs nodejs</span>
+fw_depends nodejs
+
+<span class="c"># ...and some other software that there is no installer script for.</span>
+<span class="c"># Note: Use IROOT variable to put software in the right folder. </span>
+<span class="c">#       You can also use FWROOT to refer to the project root, or </span>
+<span class="c">#       TROOT to refer to the root of your framework</span>
+<span class="c"># Please see guidelines on writing installation scripts</span>
+wget mystuff.tar.gz -O mystuff.tar.gz
+untar mystuff.tar.gz
+<span class="nb">cd </span>mystuff
+make --prefix<span class="o">=</span><span class="nv">$IROOT</span> <span class="o">&amp;&amp;</span> sudo make install
+</pre></div>
+
+<p>To see what TFB provides installations for, look in <code>toolset/setup/linux</code>
+in the folders <code>frameworks</code>, <code>languages</code>, <code>systools</code>, and <code>webservers</code>. 
+You should pass the filename, without the ".sh" extension, to fw_depends. 
+Here is a listing as of July 2014: </p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>ls frameworks                                                                
+grails.sh  nawak.sh  play1.sh  siena.sh     vertx.sh  yesod.sh
+jester.sh  onion.sh  play2.sh  treefrog.sh  wt.sh
+<span class="nv">$ </span>ls languages
+composer.sh  erlang.sh   hhvm.sh   mono.sh    perl.sh     pypy.sh     racket.sh   urweb.sh
+dart.sh      go.sh       java.sh   nimrod.sh  python2.sh  ringojs.sh  xsp.sh
+elixir.sh    haskell.sh  jruby.sh  nodejs.sh  php.sh      python3.sh  ruby.sh 
+<span class="nv">$ </span>ls systools
+leiningen.sh  maven.sh
+<span class="nv">$ </span>ls webservers
+lapis.sh  mongrel2.sh  nginx.sh  openresty.sh  resin.sh  weber.sh  zeromq.sh
+</pre></div>
+
+<h3>
+<a name="user-content-bash-environment-file" class="anchor" href="#bash-environment-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bash Environment File</h3>
+
+<p>The <code>bash_profile.sh</code> file is sourced before installing software or before
+running the framework test. This is mostly used when running your 
+framework, to perform actions such as updating <code>PATH</code> or defining environment 
+variables your framework requires e.g. <code>GOROOT</code>. You can use these 
+variables: </p>
+
+<ul class="task-list">
+<li>
+<strong>FWROOT:</strong> Root of project</li>
+<li>
+<strong>IROOT:</strong> Root of installation for the current framework</li>
+<li>
+<strong>TROOT:</strong> Root directory for the current framework </li>
+</ul><p>Example of <code>bash_profile.sh</code>: </p>
+
+<div class="highlight highlight-bash"><pre><span class="c"># Set the root of our go installation</span>
+<span class="nb">export </span><span class="nv">GOROOT</span><span class="o">=</span><span class="k">${</span><span class="nv">IROOT</span><span class="k">}</span>/go
+
+<span class="c"># Where to find the go executable</span>
+<span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">"$GOROOT/bin:$PATH"</span>
+
+<span class="nb">export </span><span class="nv">GOPATH</span><span class="o">=</span><span class="k">${</span><span class="nv">FWROOT</span><span class="k">}</span>/go
+</pre></div>
+
+<p>Do not cause any output, such as using <code>echo</code>, inside of <code>bash_profile.sh</code></p>
+
+<h3>
+<a name="user-content-setup-files" class="anchor" href="#setup-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup Files</h3>
+
+<p>The setup file is responsible for starting and stopping the test. This script is responsible for (among other things):</p>
+
+<ul class="task-list">
+<li>Modifying the framework's configuration to point to the correct database host</li>
+<li>Compiling and/or packaging the code</li>
+<li>Starting the server</li>
+<li>Stopping the server</li>
+</ul><p>The setup file is a python script that contains a start() and a stop() function.  The start function should build the source, make any necessary changes to the framework's configuration, and then start the server.  The stop function should shutdown the server, including all sub-processes as applicable.</p>
+
+<h4>
+<a name="user-content-configuring-database-connectivity-in-start" class="anchor" href="#configuring-database-connectivity-in-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring database connectivity in start()</h4>
+
+<p>By convention, the configuration files used by a framework should specify the database server as <code>localhost</code> so that developing tests in a single-machine environment can be done in an ad hoc fashion, without using the benchmark scripts.</p>
+
+<p>When running a benchmark script, the script needs to modify each framework's configuration so that the framework connects to a database host provided as a command line argument.  In order to do this, use setup_util.replace_text() to make necessary modifications prior to starting the server.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-python"><pre><span class="n">setup_util</span><span class="o">.</span><span class="n">replace_text</span><span class="p">(</span><span class="s">"wicket/src/main/webapp/WEB-INF/resin-web.xml"</span><span class="p">,</span> <span class="s">"mysql:\/\/.*:3306"</span><span class="p">,</span> <span class="s">"mysql://"</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">database_host</span> <span class="o">+</span> <span class="s">":3306"</span><span class="p">)</span>
+</pre></div>
+
+<p>Using <code>localhost</code> in the raw configuration file is not a requirement as long as the <code>replace_text</code> call properly injects the database host provided to the benchmarker toolset as a command line argument.</p>
+
+<h4>
+<a name="user-content-a-full-example" class="anchor" href="#a-full-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>A full example</h4>
+
+<p>Here is an example of Wicket's setup file.</p>
+
+<div class="highlight highlight-python"><pre><span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">setup_util</span>
+
+<span class="c">##################################################</span>
+<span class="c"># start(args, logfile, errfile)</span>
+<span class="c">#</span>
+<span class="c"># Starts the server for Wicket</span>
+<span class="c"># returns 0 if everything completes, 1 otherwise</span>
+<span class="c">##################################################</span>
+<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">errfile</span><span class="p">):</span>
+
+<span class="c"># setting the database url</span>
+<span class="n">setup_util</span><span class="o">.</span><span class="n">replace_text</span><span class="p">(</span><span class="s">"wicket/src/main/webapp/WEB-INF/resin-web.xml"</span><span class="p">,</span> <span class="s">"mysql:\/\/.*:3306"</span><span class="p">,</span> <span class="s">"mysql://"</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">database_host</span> <span class="o">+</span> <span class="s">":3306"</span><span class="p">)</span>
+
+<span class="c"># 1. Compile and package</span>
+<span class="c"># 2. Clean out possible old tests</span>
+<span class="c"># 3. Copy package to Resin's webapp directory</span>
+<span class="c"># 4. Start resin</span>
+<span class="k">try</span><span class="p">:</span>
+  <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="s">"mvn clean compile war:war"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="s">"wicket"</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">errfile</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">logfile</span><span class="p">)</span>
+  <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="s">"rm -rf $RESIN_HOME/webapps/*"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">errfile</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">logfile</span><span class="p">)</span>
+  <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="s">"cp wicket/target/hellowicket-1.0-SNAPSHOT.war $RESIN_HOME/webapps/wicket.war"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">errfile</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">logfile</span><span class="p">)</span>
+  <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="s">"$RESIN_HOME/bin/resinctl start"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">errfile</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">logfile</span><span class="p">)</span>
+  <span class="k">return</span> <span class="mi">0</span>
+<span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+  <span class="k">return</span> <span class="mi">1</span>
+
+<span class="c">##################################################</span>
+<span class="c"># stop(logfile, errfile)</span>
+<span class="c">#</span>
+<span class="c"># Stops the server for Wicket</span>
+<span class="c"># returns 0 if everything completes, 1 otherwise</span>
+<span class="c">##################################################</span>
+<span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="n">logfile</span><span class="p">):</span>
+<span class="k">try</span><span class="p">:</span>
+  <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="s">"$RESIN_HOME/bin/resinctl shutdown"</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">errfile</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">logfile</span><span class="p">)</span>
+  <span class="k">return</span> <span class="mi">0</span>
+<span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+  <span class="k">return</span> <span class="mi">1</span>
+</pre></div>
+
+<h4>
+<a name="user-content-a-tool-to-generate-your-setup-file" class="anchor" href="#a-tool-to-generate-your-setup-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>A tool to generate your setup file</h4>
+
+<p>A contributor named <a href="https://github.com/kpacha">@kpacha</a> has built a pure JavaScript tool for generating the <code>setup.py</code> file for a new framework via an in-browser form.  Check out his <a href="http://kpacha.github.io/FrameworkBenchmarks-setup-builder/">FrameworkBenchmarks Setup Builder</a>.</p>
+
+<hr><h2>
+<a name="user-content-windows-server-setup" class="anchor" href="#windows-server-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows server setup</h2>
+
+<ul class="task-list">
+<li>Connect to the Windows server via Remote Desktop.</li>
+<li>Copy <code>installer-bootstrap.ps1</code> from "toolset/setup/windows" to the server (use CTRL-C and CTRL-V).</li>
+<li>Copy your Linux client private key too.</li>
+<li>Right click on the installer script and select <code>Run with PowerShell</code>.</li>
+<li>Press Enter to confirm.</li>
+<li>It will install git and then launch <code>installer.ps1</code> from the repository, which will install everything else.</li>
+<li>The installation takes about 20 minutes.</li>
+<li>Then you have a working console: try <code>python</code>, <code>git</code>, <code>ssh</code>, <code>curl</code>, <code>node</code> etc. and verify that everything works + PowerShell goodies.</li>
+</ul><p>The client/database machine is still assumed to be a Linux box. You can install just the client software via</p>
+
+<pre><code>python toolset\run-tests.py -s server-private-ip -c client-private-ip -i "C:\Users\Administrator\Desktop\client.key" --install-software --install client --list-tests
+</code></pre>
+
+<p>but this step is not required if you already installed the Linux server and client as described above.</p>
+
+<p>Now you can run tests:</p>
+
+<pre><code>python toolset\run-tests.py -s server-private-ip -c client-private-ip -i "C:\Users\Administrator\Desktop\client.key" --max-threads 2 --duration 30 --sleep 5 --name win --test aspnet --type all
+</code></pre>
+
+<hr><h2>
+<a name="user-content-sql-server-setup" class="anchor" href="#sql-server-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>SQL Server setup</h2>
+
+<ul class="task-list">
+<li>Connect to the SQL Server host via Remote Desktop.</li>
+<li>Run a <code>Command Prompt</code> as Administrator.</li>
+<li>
+<p>Enter this command:</p>
+
+<pre><code>powershell -ExecutionPolicy Bypass -Command "iex (New-Object Net.WebClient).DownloadString('https://raw.github.com/TechEmpower/FrameworkBenchmarks/master/toolset/setup/sqlserver/setup-sqlserver-bootstrap.ps1')"
+</code></pre>
+</li>
+<li><p>This will configure SQL Server, the Windows Firewall, and populate the database.</p></li>
+</ul><p>Now, when running <code>run-tests.py</code>, just add <code>-d &lt;ip of SQL Server instance&gt;</code>. This works for the (Windows Server-based) <code>aspnet-sqlserver-raw</code> and <code>aspnet-sqlserver-entityframework</code> tests.</p></article></div>

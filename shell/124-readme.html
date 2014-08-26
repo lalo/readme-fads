@@ -1,0 +1,152 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-go-package-manager-" class="anchor" href="#go-package-manager-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Go Package Manager <a href="https://travis-ci.org/pote/gpm"><img src="https://camo.githubusercontent.com/8c6276dbacd527c897258668d4cde2e8f4a036ff/68747470733a2f2f7472617669732d63692e6f72672f706f74652f67706d2e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/pote/gpm.png?branch=master" style="max-width:100%;"></a>
+</h1>
+
+<div align="center">
+  <a href="./gpm_logo.png" target="_blank"><img src="./gpm_logo.png" style="max-width:100%;"></a>
+</div>
+
+<p>gpm is a minimalistic package manager for Go that leverages the power of the <code>go get</code> command and the underlying version control systems used by it to set your Go dependencies to desired versions, thus allowing easily reproducible builds in your Go projects.</p>
+
+<p>Go Package Manager makes no assumptions about your dependencies and supports Git, Bazaar and Mercurial hosted Go packages, for a smoother workflow be sure to check out <a href="https://github.com/pote/gvp">gvp</a> - the Go Versioning Packager which  provides dependency isolation for your projects.</p>
+
+<h4>
+<a name="user-content-go-package-versioning-and-vendoring-with-gpm--gvp-in-one-simple-gif" class="anchor" href="#go-package-versioning-and-vendoring-with-gpm--gvp-in-one-simple-gif" aria-hidden="true"><span class="octicon octicon-link"></span></a>Go package versioning and vendoring with gpm + <a href="https://github.com/pote/gvp">gvp</a> in one simple gif:</h4>
+
+<p><a href="./gpm_install.gif" target="_blank"><img src="./gpm_install.gif" alt="gpm + gvp" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-install-in-osx-with-homebrew" class="anchor" href="#install-in-osx-with-homebrew" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install in OSX with Homebrew</h3>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>brew install gpm
+</pre></div>
+
+<h3>
+<a name="user-content-install-manually-on-nix" class="anchor" href="#install-manually-on-nix" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install manually on *nix</h3>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>git clone https://github.com/pote/gpm.git <span class="o">&amp;&amp;</span> <span class="nb">cd </span>gpm
+<span class="nv">$ </span>git checkout v1.2.3 <span class="c"># You can ignore this part if you want to install HEAD.</span>
+<span class="nv">$ </span>./configure
+<span class="nv">$ </span>make install
+</pre></div>
+
+<h3>
+<a name="user-content-use-directly-from-github-suggested-for-ci-servers" class="anchor" href="#use-directly-from-github-suggested-for-ci-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use directly from GitHub (suggested for CI servers)</h3>
+
+<p>As gpm is a bash script you can always use it directly from GitHub via <code>wget</code> or <code>curl</code>, this is particularly useful for CI servers and other automated environments.</p>
+
+<div class="highlight highlight-bash"><pre><span class="c">## With wget</span>
+<span class="nv">$ </span>wget -qO- https://raw.githubusercontent.com/pote/gpm/v1.2.3/bin/gpm <span class="p">|</span> bash
+
+<span class="c">## With cURL</span>
+<span class="nv">$ </span>curl -s https://raw.githubusercontent.com/pote/gpm/v1.2.3/bin/gpm <span class="p">|</span> bash
+</pre></div>
+
+<p><strong>Note</strong>: You can always use the version on master if you like to live dangerously by piping <code>https://raw.githubusercontent.com/pote/gpm/master/bin/gpm</code> instead of <code>https://raw.githubusercontent.com/pote/gpm/v1.2.3/bin/gpm</code>.</p>
+
+<h2>
+<a name="user-content-the-godeps-file" class="anchor" href="#the-godeps-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Godeps file</h2>
+
+<p><code>gpm</code> expects you to have a file called <code>Godeps</code> in the root of your Go application in the format <code>&lt;import path&gt; &lt;tag/revision&gt;</code>.</p>
+
+<p>Once this file is in place, running the <code>gpm</code> tool will download those packages and check out the specified versions.</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>ls .
+Godeps  foo.go  foo_test.go
+
+<span class="nv">$ </span>cat Godeps
+github.com/nu7hatch/gotrail               v0.0.2
+github.com/replicon/fast-archiver         v1.02
+launchpad.net/gocheck                     r2013.03.03   <span class="c"># Bazaar repositories are supported</span>
+code.google.com/p/go.example/hello/...    ae081cd1d6cc  <span class="c"># And so are Mercurial ones</span>
+
+<span class="nv">$ </span>gpm install
+&gt;&gt; Getting package github.com/nu7hatch/gotrail
+&gt;&gt; Getting package github.com/replicon/fast-archiver
+&gt;&gt; Getting package launchpad.net/gocheck
+&gt;&gt; Getting package code.google.com/p/go.example/hello/...
+&gt;&gt; Setting github.com/nu7hatch/gotrail to version v0.0.2
+&gt;&gt; Setting github.com/replicon/fast-archiver to version v1.02
+&gt;&gt; Setting code.google.com/p/go.example/hello/... to version ae081cd1d6cc
+&gt;&gt; Setting launchpad.net/gocheck to version r2013.03.03
+&gt;&gt; All Done
+</pre></div>
+
+<p>It is recommended to keep a healthy and exhaustive <code>Godeps</code> file in the root of all Go project that use external dependencies,
+this way any project includes the documentation required to be built correctly at any point in time.</p>
+
+<h3>
+<a name="user-content-commands" class="anchor" href="#commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Commands</h3>
+
+<p>gpm has the following commands:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>gpm             <span class="c"># Same as 'install'.</span>
+<span class="nv">$ </span>gpm install     <span class="c"># Parses the Godeps file, installs dependencies and sets</span>
+                  <span class="c"># them to the appropriate version.</span>
+<span class="nv">$ </span>gpm version     <span class="c"># Outputs version information</span>
+<span class="nv">$ </span>gpm <span class="nb">help</span>        <span class="c"># Prints this message</span>
+</pre></div>
+
+<h3>
+<a name="user-content-plugins" class="anchor" href="#plugins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Plugins</h3>
+
+<p>As of version <a href="https://github.com/pote/gpm/releases/tag/v1.1.1">v1.1.1</a> gpm supports plugins, the intent of which is the ability to add powerful non-core features to gpm without compromising the simplicity of its codebase.</p>
+
+<p>The way gpm plugin works is simple: whenever an unknown command is passed into gpm it will look for an executable in your <code>$PATH</code> called <code>gpm-&lt;command&gt;</code> and if it exists it will run it while passing all extra arguments to it, simple yet powerful.</p>
+
+<p>This brings a lot to the table: plugins can be written in anything, they can be Go binaries, bash scripts, Ruby gems, Python packages, you name it. gpm wants to make it easy for you to extend it. :)</p>
+
+<h4>
+<a name="user-content-installing-plugins-through-homebrew" class="anchor" href="#installing-plugins-through-homebrew" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing plugins through Homebrew</h4>
+
+<p>I maintain a <a href="https://github.com/pote/homebrew-gpm_plugins">repository with homebrew formulae for gpm plugins</a> that you can add to your system with the <code>brew tap</code> command:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>brew tap pote/gpm_plugins
+</pre></div>
+
+<p>After you've done this you can install plugins as you would with any other homebrew packge.</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>brew install gpm-bootstrap
+</pre></div>
+
+<p>If you have written a gpm plugin and want it included please send a pull request to the repo! I'd love to get a healthy plugin ecosystem going. :)</p>
+
+<h4>
+<a name="user-content-official-plugins" class="anchor" href="#official-plugins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Official Plugins</h4>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/pote/gpm-bootstrap">gpm-bootstrap</a> - creates a <code>Godeps</code> file for a Go project by analyzing it's dependencies and their latest releases/revisions.</li>
+</ul><h3>
+<a name="user-content-further-reading" class="anchor" href="#further-reading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further Reading</h3>
+
+<p>The creator for the <a href="https://github.com/technosophos/gpm-git">gpm-git</a> and <a href="https://github.com/technosophos/gpm-local">gpm-local</a> wrote a <a href="http://technosophos.com/2014/05/29/why-gpm-is-the-right-go-package-manager.html">fantastic blog post explaining the usage and rationale</a> of gpm and <a href="https://github.com/pote/gvp">gvp</a>, it sums up explanations for several of the design decisions behind both tools. </p>
+
+<h3>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h3>
+
+<p>Lots of people have contributed to make gpm what it is today, if you want to take your time to play around
+with the code please do so! Opening issues on bugs, feature requests or simple food for thought are a great
+way to contribute, if you send a pull request please be a good citizen and do things in a tidy manner.</p>
+
+<ul class="task-list">
+<li>Create a feature branch with a meaningful name.</li>
+<li>Make sure your commit messages and PR comments are informative.</li>
+<li>Write a test for your feature if applicable.</li>
+<li>Always remember to run the test suite with <code>make test</code> before comitting.</li>
+</ul><p>Either way, thank you <strong>very</strong> much for any form of contribution, even if a patch ends up not being merged
+the fact that it was sent and forced us to think about it is a contribution in itself.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Released under MIT License, check LICENSE file for details.</p>
+
+<h2>
+<a name="user-content-authorshipinspirationhugs" class="anchor" href="#authorshipinspirationhugs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authorship/Inspiration/Hugs</h2>
+
+<p>This tool is inspired by Ruby's <a href="http://cyx.github.io/dep/">dep gem</a> - authored by <a href="http://cyx.is/">@cyx</a> and <a href="http://soveran.com/">@soveran</a>, big thanks to them and to all the contributions made by the many wonderful people in our <a href="https://github.com/pote/gpm/graphs/contributors">contributors page</a>.</p>
+
+<p>gpm is maintained by <a href="https://github.com/pote">@pote</a> and <a href="https:/github.com/elcuervo">@elcuervo</a>.</p>
+
+<p>Go Package Manager evolved from <a href="https://github.com/VividCortex/johnny-deps">Johnny Deps</a>, a tool I wrote for internal use of Vivid Cortex and which is now maintained by the Vivid Cortex team.</p></article></div>

@@ -1,0 +1,186 @@
+<div class="announce instapaper_body " data-path="README" id="readme"><div class="plain"><pre>Name:
+    App::perlbrew - Manage perl installations in your $HOME
+
+Description:
+    perlbrew is a program to automate the building and installation of perl
+    in an easy way. It provides multiple isolated perl environments, and a
+    mechanism for you to switch between them.
+
+    Everything are installed unter "~/perl5/perlbrew". You then need to
+    include a bashrc/cshrc provided by perlbrew to tweak the PATH for you.
+    You then can benefit from not having to run 'sudo' commands to install
+    cpan modules because those are installed inside your HOME too.
+
+    For the documentation of perlbrew usage see perlbrew command on CPAN, or
+    by running "perlbrew help". The following documentation features the API
+    of "App::perlbrew" module, and may not be remotely close to what your
+    want to read.
+
+Installation:
+    It is the simplest to use the perlbrew installer, just paste this
+    statement to your terminal:
+
+        curl -kL <a href="http://install.perlbrew.pl">http://install.perlbrew.pl</a> | bash
+
+    Or this one, if you have "fetch" (default on FreeBSD):
+
+        fetch -o- <a href="http://install.perlbrew.pl">http://install.perlbrew.pl</a> | sh
+
+    After that, "perlbrew" installs itself to "~/perl5/perlbrew/bin", and
+    you should follow the instruction on screen to modify your shell rc file
+    to put it in your PATH.
+
+    The installed perlbrew command is a standalone executable that can be
+    run with system perl. The minimum system perl version requirement is
+    5.8.0, which should be good enough for most of the OSes these days.
+
+    A fat-packed version of "patchperl" is also installed to
+    "~/perl5/perlbrew/bin", which is required to build old perls.
+
+    The directory "~/perl5/perlbrew" will contain all install perl
+    executables, libraries, documentations, lib, site_libs. In the
+    documentation, that directory is referred as "perlbrew root". If you
+    need to set it to somewhere else because, say, your HOME has limited
+    quota, you can do that by setting "PERLBREW_ROOT" environment variable
+    before running the installer:
+
+        export PERLBREW_ROOT=/opt/perl5
+        curl -kL <a href="http://install.perlbrew.pl">http://install.perlbrew.pl</a> | bash
+
+    As a result, different users on the same machine can all share the same
+    perlbrew root directory (although only original user that made the
+    installation would have the permission to perform perl installations.)
+
+    You may also install perlbrew from CPAN:
+
+        cpan App::perlbrew
+
+    In this case, the perlbrew command is installed as "/usr/bin/perlbrew"
+    or "/usr/local/bin/perlbrew" or others, depending on the location of
+    your system perl installation.
+
+    Please make sure not to run this with one of the perls brewed with
+    perlbrew. It's the best to turn perlbrew off before you run that, if
+    you're upgrading.
+
+        perlbrew off
+        cpan App::perlbrew
+
+    You should always use system cpan (like /usr/bin/cpan) to install
+    "App::perlbrew" because it will be installed under a system PATH like
+    "/usr/bin", which is not affected by perlbrew "switch" or "use" command.
+
+    The "self-upgrade" command will not upgrade the perlbrew installed by
+    cpan command, but it is also easy to upgrade perlbrew by running `cpan
+    App::perlbrew` again.
+
+Configuration:
+    PERLBREW_ROOT
+        By default, perlbrew builds and installs perls into
+        "$ENV{HOME}/perl5/perlbrew" directory. To use a different directory,
+        set this environment variable in your "bashrc" to the directory in
+        your shell RC before sourcing perlbrew's RC.
+
+        It is possible to share one perlbrew root with multiple user account
+        on the same machine. Therefore people do not have to install the
+        same version of perl over an over. Let's say "/opt/perl5" is the
+        directory we want to share. All users should be able append this
+        snippet to their bashrc to make it effective:
+
+            export PERLBREW_ROOT=/opt/perl5
+            source ${PERLBREW_ROOT}/etc/bashrc
+
+        After doing so, everyone's PATH should include "/opt/perl5/bin" and
+        "/opt/perl5/perls/${PERLBREW_PERL}/bin". Each user can invoke
+        "perlbrew switch" and "perlbrew use" to independently switch to
+        different perl environment of their choice. However, only the user
+        with write permission to $PERLBREW_ROOT may install CPAN modules.
+        This is both good and bad depending on the working convention of
+        your team.
+
+        If you wish to install CPAN modules only for yourself, you should
+        use the "lib" command to construct a personal local::lib
+        environment. local::lib environments are personal, and are not
+        shared between different users. For more detail, read "perlbrew help
+        lib" and the documentation of local::lib.
+
+        If you want even a cooler module isolation and wish to install CPAN
+        modules used for just one project, you should use carton for this
+        purpose.
+
+        It is also possible to set this variable before installing perlbrew
+        to make perlbrew install itself under the given PERLBREW_ROOT:
+
+            export PERLBREW_ROOT=/opt/perl5
+            curl -kL <a href="http://install.perlbrew.pl">http://install.perlbrew.pl</a> | bash
+
+        After doing this, the perlbrew executable is installed as
+        "/opt/perl5/bin/perlbrew"
+
+    PERLBREW_HOME
+        By default, perlbrew stores per-user setting to
+        "$ENV{HOME}/.perlbrew" directory. To use a different directory, set
+        this environment variable in your shell RC before sourcing
+        perlbrew's RC.
+
+        In some cases, say, your home directory is on NFS and shared across
+        multiple machines, you may wish to have several different perlbrew
+        setting per-machine. To do so, you can use the "PERLBREW_HOME"
+        environment variable to tell perlbrew where to look for the
+        initialization file. Here's a brief bash snippet for the given
+        scenario.
+
+            if [ "$(hostname)" == "machine-a" ]; then
+                export PERLBREW_HOME=~/.perlbrew-a
+            elif [ "$(hostname)" == "machine-b" ]; then
+                export PERLBREW_HOME=~/.perlbrew-b
+            fi
+
+            source ~/perl5/perlbrew/etc/bashrc
+
+    PERLBREW_CONFIGURE_FLAGS
+        This environment variable specify the list of command like flags to
+        pass through to 'sh Configure'. By default it is '-de'.
+
+    PERLBREW_CPAN_MIRROR
+        The CPAN mirror url of your choice.
+
+Project Development:
+    perlbrew project uses github
+    &lt;<a href="http://github.com/gugod/App-perlbrew/issues">http://github.com/gugod/App-perlbrew/issues</a>&gt; and RT
+    &lt;<a href="https://rt.cpan.org/Dist/Display.html?Queue=App-perlbrew">https://rt.cpan.org/Dist/Display.html?Queue=App-perlbrew</a>&gt; for issue
+    tracking. Issues sent to these two systems will eventually be reviewed
+    and handled.
+
+    See &lt;<a href="https://github.com/gugod/App-perlbrew/contributors">https://github.com/gugod/App-perlbrew/contributors</a>&gt; for a list of
+    project contributors.
+
+Author:
+    Kang-min Liu "&lt;gugod@gugod.org&gt;"
+
+Copyright:
+    Copyright (c) 2010,2011,2012,2013,2014 Kang-min Liu "&lt;gugod@gugod.org&gt;".
+
+Disclaimer of Warranty:
+    BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+    FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN
+    OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+    PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+    EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE
+    ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH
+    YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
+    NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+    IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+    WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+    REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+    TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+    CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+    SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+    RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+    FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+    SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+    DAMAGES.
+
+</pre></div></div>

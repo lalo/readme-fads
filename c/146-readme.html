@@ -1,0 +1,182 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-smartos-live-smartos-platform" class="anchor" href="#smartos-live-smartos-platform" aria-hidden="true"><span class="octicon octicon-link"></span></a>smartos-live: SmartOS Platform</h1>
+
+<h2>
+<a name="user-content-quickstart" class="anchor" href="#quickstart" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quickstart</h2>
+
+<ul class="task-list">
+<li>create/modify an appropriate configure.local fragment</li>
+<li>./configure</li>
+<li>gmake world</li>
+<li>gmake live</li>
+</ul><h2>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h2>
+
+<p>This is smartos-live, which builds a SmartOS platform image containing the
+illumos core OS components; a set of "extra" mostly third-party software
+required by illumos, by other SmartOS software, or for system management; a
+collection of utilities comprising SmartOS-specific functionality
+found in projects/local; and implementation-specific overlays that deliver
+additional files verbatim.</p>
+
+<p>The build process accumulates from those various components a set of objects
+into a subdirectory of the smartos-live root.  This subdirectory is known as
+the proto area and by default is named proto.  All objects that are
+delivered by the platform are built against the contents of the proto area,
+such that they use the interfaces defined by the headers and libraries
+provided by the software being delivered rather than that installed on the
+build system.  However, not all objects installed into the proto area are
+delivered by the platform.  This allows objects in the platform to be built
+correctly without forcing us to deliver private objects in the platform that
+would conflict with objects delivered by pkgsrc into zones.</p>
+
+<p>Each component (illumos, illumos-extra, illumos-live, and each subproject
+and overlay) includes a manifest.  The manifest lists the files installed
+into the proto area by that component that should be delivered by the
+platform, along with its type, ownership, and permissions.  This includes
+directories and symlinks; simply creating a directory or symlink in the
+proto area does not result in that object being delivered by the program.
+This also means that symlinks in the proto area can be broken without
+obvious effects on the platform image, which is usually a bug and can result
+in silent (and not-so-silent) build problems.</p>
+
+<p>The manifests are aggregated and the resulting list of objects assembled
+into lofi filesystems created in /tmp, which in turn are assembled into the
+platform image itself.  This process is performed mainly by the
+tools/build_live script.</p>
+
+<h2>
+<a name="user-content-tools" class="anchor" href="#tools" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tools</h2>
+
+<p>As of June 2012, the Sun Studio compiler should no longer be executed as
+part of the build process.  However, it is still used for building lint
+libraries and for linting illumos.  Hopefully this dependency will be
+removed in the future.</p>
+
+<p>Additional build tools are required to be present on the build system;
+configure (see below) will install them if you are building on an
+IPS-capable system, which is not supported nor recommended.  If you are
+building in a SmartOS zone, which is the supported and recommended practice,
+see <a href="http://wiki.smartos.org/display/DOC/Building+SmartOS+on+SmartOS">http://wiki.smartos.org/display/DOC/Building+SmartOS+on+SmartOS</a> for zone
+setup instructions.  The existence and necessity of the "fake-subset" is a
+bug that should be addressed by incorporating build-time tools into the
+build process itself in the manner of usr/src/tools in illumos.</p>
+
+<h2>
+<a name="user-content-build-steps" class="anchor" href="#build-steps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build Steps</h2>
+
+<p>The configure script sets everything up for building including:</p>
+
+<ul class="task-list">
+<li>ensures system has required packages installed (and is running on illumos!)</li>
+<li>ensures SUNWspro is installed in <code>/opt/SUNWspro</code>
+</li>
+<li>downloads and installs gcc 4.4.4 in <code>/opt/gcc/4.4.4</code>
+</li>
+<li>ensures that <code>projects/illumos</code> exists and creates <code>illumos.sh</code> there</li>
+<li>ensures that <code>projects/illumos-extra</code> exists</li>
+<li>downloads the opensolaris manpages</li>
+</ul><h3>
+<a name="user-content-the-make-world-works-as-follows" class="anchor" href="#the-make-world-works-as-follows" aria-hidden="true"><span class="octicon octicon-link"></span></a>The "make world" works as follows:</h3>
+
+<ul class="task-list">
+<li><p>The subset of illumos-extra required at build time to encode runtime
+dependencies into illumos is built, starting with gcc 4.4.4, and
+installed into the bootstrap proto area (by default, proto.strap).</p></li>
+<li><p>The illumos source in projects/illumos (can be a link) is built with the
+aid of tools/build_illumos and installed into the proto area.  The
+compiler used is the one installed in <code>/opt/gcc/4.4.4</code>; this is a bug
+covered by OS-1324.</p></li>
+<li><p>All illumos-extra components are built and installed into the proto
+area.</p></li>
+<li><p>The local sources in the <code>src</code> subdirectory are built and installed into
+the proto area.</p></li>
+</ul><h3>
+<a name="user-content-the-make-live-uses-the-toolsbuild_live-script-as-follows" class="anchor" href="#the-make-live-uses-the-toolsbuild_live-script-as-follows" aria-hidden="true"><span class="octicon octicon-link"></span></a>The "make live" uses the tools/build_live script as follows:</h3>
+
+<ul class="task-list">
+<li>
+<p>The manifest is used, directories and links are created and files are taken:</p>
+
+<ul class="task-list">
+<li>from an overlay directory, in the order specified by the configure
+fragment's <code>OVERLAY</code> variable; then</li>
+<li>from the proto area; finally</li>
+<li>from the <code>man/man</code> subdirectory</li>
+</ul>
+</li>
+<li><p>Once the files are copied in, the tools/customize script is run which also
+sources tools/customize.* if they exist</p></li>
+<li><p>Then the image is packed up and put in output with an expanded directory and
+a <code>platform-BUILDSTAMP.tgz</code></p></li>
+<li>
+<p>A log of the live image creation is written into the <code>log</code> subdirectory
+containing entries of the form:</p>
+
+<p>FILE: [path/to/file][PERM][owner/uid][group/gid]: OK (/path/to/source)
+LINK(symlink): source =&gt; target: OK
+LINK: source =&gt; target: OK
+DIR: [path/to/dir][PERM][owner/uid][group/gid]: OK</p>
+
+<p>If the build fails during this step, check the log file for any entries
+containing FAIL.  In most cases, this will be the result of a bug in the
+build system (or an object that was not delivered to the proto area, in
+which case the failure to stop that build at that point is also a build
+system bug).</p>
+</li>
+</ul><h2>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Issues</h2>
+
+<ul class="task-list">
+<li><p>There are still a small number of illumos-extra components that do not
+use the unified makefile system, and are built against the build system's
+headers and libraries. (TBD)</p></li>
+<li><p>python should be part of illumos-extra, as there are a small number of
+tools delivered that use it. (TBD)</p></li>
+<li><p>The illumos-extra gcc 4.4.4 should be used to build illumos. (OS-1324)  </p></li>
+<li><p>While there should never be a delivered object with build environment
+DT_RPATH leakage, there is currently no tool for checking this.
+(OS-1122)</p></li>
+<li><p>There is also no tool for verifying that all objects delivered within
+the platform have no dependencies outside the platform.  This includes
+both runtime library linking and the execution of interpreters.
+(OS-1122)</p></li>
+<li><p>The fake-subset tarball, and likely the adjuncts tarball as well,
+contains files that are no longer needed.  These should be pruned
+aggressively so that we can use them as an inventory of remaining bugs
+to be fixed. (OS-1326)</p></li>
+<li><p>illumos-extra recurses over all components even during an incremental
+build.  This is time-consuming and usually pointless. (OS-1319) </p></li>
+<li><p>The complete set of build-order dependencies within illumos-extra
+probably has not been enumerated.  Doing so would allow for greater
+parallelism in that portion of the build.  In addition, it is likely
+that many of the components are actually unsafe to build in parallel
+internally. (TBD)</p></li>
+<li><p>The illumos-extra unified makefile system is not documented.</p></li>
+</ul><h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Changes for any of the above issues, or any other bug you encounter, are
+welcome and may be submitted via the appropriate github repository.
+Additional issues may also be filed there.</p>
+
+<p>In order to accept patches, Joyent requires contributors to sign a
+Contributor agreement, available at
+<a href="https://download.joyent.com/pub/cla_smartos.pdf">https://download.joyent.com/pub/cla_smartos.pdf</a>.  Please fill out this form
+and email to <a href="mailto:smartos@joyent.com">smartos@joyent.com</a> prior to sending pull requests or patches.</p>
+
+<h2>
+<a name="user-content-other-notes" class="anchor" href="#other-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other Notes</h2>
+
+<ul class="task-list">
+<li>The resulting image requires a 64-bit machine</li>
+<li>The BUILDSTAMP is available in the live image in /etc/joyent_buildstamp</li>
+<li>
+<p>There is a manifest created:</p>
+
+<p>output/platform-BUILDSTAMP/i86pc/amd64/boot_archive.manifest</p>
+
+<p>which contains a list of all files/links in the image + md5sums of files and
+is also available in the live image itself in /var/log/manifest</p>
+</li>
+</ul></article></div>

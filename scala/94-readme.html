@@ -1,0 +1,189 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-storehaus-" class="anchor" href="#storehaus-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Storehaus <a href="http://travis-ci.org/twitter/storehaus"><img src="https://camo.githubusercontent.com/91fc0c10b711dd19eb459b542b7cf2268a26e741/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f747769747465722f73746f7265686175732e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/twitter/storehaus.png" style="max-width:100%;"></a>
+</h2>
+
+<p>Storehaus is a library that makes it easy to work with asynchronous key value stores. Storehaus is built on top of Twitter's <a href="https://github.com/twitter/util/blob/master/util-core/src/main/scala/com/twitter/util/Future.scala">Future</a>.</p>
+
+<h3>
+<a name="user-content-storehaus-core" class="anchor" href="#storehaus-core" aria-hidden="true"><span class="octicon octicon-link"></span></a>Storehaus-Core</h3>
+
+<p>Storehaus's core module defines three traits; a read-only <code>ReadableStore</code> a write-only <code>WritableStore</code> and a read-write <code>Store</code>. The traits themselves are tiny:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">com.twitter.storehaus</span>
+
+<span class="k">import</span> <span class="nn">com.twitter.util.</span><span class="o">{</span> <span class="nc">Closable</span><span class="o">,</span> <span class="nc">Future</span><span class="o">,</span> <span class="nc">Time</span> <span class="o">}</span>
+
+<span class="k">trait</span> <span class="nc">ReadableStore</span><span class="o">[</span><span class="kt">-K</span>, <span class="kt">+V</span><span class="o">]</span> <span class="nc">extends</span> <span class="nc">Closeable</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="n">get</span><span class="o">(</span><span class="n">k</span><span class="k">:</span> <span class="kt">K</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">V</span><span class="o">]]</span>
+  <span class="k">def</span> <span class="n">multiGet</span><span class="o">[</span><span class="kt">K1</span> <span class="k">&lt;:</span> <span class="kt">K</span><span class="o">](</span><span class="n">ks</span><span class="k">:</span> <span class="kt">Set</span><span class="o">[</span><span class="kt">K1</span><span class="o">])</span><span class="k">:</span> <span class="kt">Map</span><span class="o">[</span><span class="kt">K1</span>, <span class="kt">Future</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">V</span><span class="o">]]]</span>
+  <span class="k">override</span> <span class="k">def</span> <span class="n">close</span><span class="o">(</span><span class="n">time</span><span class="k">:</span> <span class="kt">Time</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Future</span><span class="o">.</span><span class="nc">Unit</span>
+<span class="o">}</span>
+
+<span class="k">trait</span> <span class="nc">WritableStore</span><span class="o">[</span><span class="kt">-K</span>, <span class="kt">-V</span><span class="o">]</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="n">put</span><span class="o">(</span><span class="n">kv</span><span class="k">:</span> <span class="o">(</span><span class="kt">K</span><span class="o">,</span> <span class="kt">V</span><span class="o">))</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="n">multiPut</span><span class="o">(</span><span class="nc">Map</span><span class="o">(</span><span class="n">kv</span><span class="o">)).</span><span class="n">apply</span><span class="o">(</span><span class="n">kv</span><span class="o">.</span><span class="n">_1</span><span class="o">)</span>
+  <span class="k">def</span> <span class="n">multiPut</span><span class="o">[</span><span class="kt">K1</span> <span class="k">&lt;:</span> <span class="kt">K</span><span class="o">](</span><span class="n">kvs</span><span class="k">:</span> <span class="kt">Map</span><span class="o">[</span><span class="kt">K1</span>, <span class="kt">V</span><span class="o">])</span><span class="k">:</span> <span class="kt">Map</span><span class="o">[</span><span class="kt">K1</span>, <span class="kt">Future</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]]</span> <span class="k">=</span>
+    <span class="n">kvs</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">kv</span> <span class="k">=&gt;</span> <span class="o">(</span><span class="n">kv</span><span class="o">.</span><span class="n">_1</span><span class="o">,</span> <span class="n">put</span><span class="o">(</span><span class="n">kv</span><span class="o">))</span> <span class="o">}</span>
+  <span class="k">override</span> <span class="k">def</span> <span class="n">close</span><span class="o">(</span><span class="n">time</span><span class="k">:</span> <span class="kt">Time</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Future</span><span class="o">.</span><span class="nc">Unit</span>
+<span class="o">}</span>
+
+<span class="k">trait</span> <span class="nc">Store</span><span class="o">[</span><span class="kt">-K</span>, <span class="kt">V</span><span class="o">]</span> <span class="nc">extends</span> <span class="nc">ReadableStore</span><span class="o">[</span><span class="kt">K</span>, <span class="kt">V</span><span class="o">]</span> <span class="k">with</span> <span class="nc">WritableStore</span><span class="o">[</span><span class="kt">K</span>, <span class="kt">Option</span><span class="o">[</span><span class="kt">V</span><span class="o">]]</span>
+</pre></div>
+
+<p>The <code>ReadableStore</code> trait uses the <code>Future[Option[V]]</code> return type to communicate one of three states about each value. A value is either</p>
+
+<ul class="task-list">
+<li>definitely present,</li>
+<li>definitely missing, or</li>
+<li>unknown due to some error (perhaps a timeout, or a downed host).</li>
+</ul><p>The <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.ReadableStore%24"><code>ReadableStore</code></a> and <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.Store%24"><code>Store</code></a> companion objects provide a bunch of ways to create new stores. See the linked API documentation for more information.</p>
+
+<h3>
+<a name="user-content-combinators" class="anchor" href="#combinators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Combinators</h3>
+
+<p>Coding with Storehaus's interfaces gives you access to a number of powerful combinators. The easiest way to access these combinators is by wrapping your store in an <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.EnrichedReadableStore"><code>EnrichedReadableStore</code></a> or an <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.EnrichedStore"><code>EnrichedStore</code></a>. Storehaus provides implicit conversions inside of the <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.ReadableStore%24"><code>ReadableStore</code></a> and <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.Store%24"><code>Store</code></a> objects.</p>
+
+<p>Here's an example of the <code>mapValues</code> combinator, useful for transforming the type of an existing store.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.storehaus.ReadableStore</span>
+<span class="k">import</span> <span class="nn">ReadableStore.enrich</span>
+
+<span class="c1">// Create a ReadableStore from Int -&gt; String:</span>
+<span class="k">val</span> <span class="n">store</span> <span class="k">=</span> <span class="nc">ReadableStore</span><span class="o">.</span><span class="n">fromMap</span><span class="o">(</span><span class="nc">Map</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span><span class="o">](</span><span class="mi">1</span> <span class="o">-&gt;</span> <span class="s">"some value"</span><span class="o">,</span> <span class="mi">2</span> <span class="o">-&gt;</span> <span class="s">"other value"</span><span class="o">))</span>
+
+<span class="c1">// "get" behaves as expected:</span>
+<span class="n">store</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="n">get</span>
+<span class="c1">// res5: Option[String] = Some(some value)</span>
+
+<span class="c1">// calling "mapValues" with a function from V =&gt; NewV returns a new ReadableStore[K, NewV]:</span>
+<span class="k">val</span> <span class="n">countStore</span><span class="k">:</span> <span class="kt">ReadableStore</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="n">store</span><span class="o">.</span><span class="n">mapValues</span> <span class="o">{</span> <span class="n">s</span> <span class="k">=&gt;</span> <span class="n">s</span><span class="o">.</span><span class="n">size</span> <span class="o">}</span>
+
+<span class="c1">// This new store applies the function to every value on the way out:</span>
+<span class="n">countStore</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="n">get</span>
+<span class="c1">// res6: Option[Int] = Some(10)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-storehaus-algebra" class="anchor" href="#storehaus-algebra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Storehaus-Algebra</h3>
+
+<p><code>storehaus-algebra</code> module adds the <code>MergeableStore</code> trait. If you're using key-value stores for aggregations, you're going to love <code>MergeableStore</code>.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">com.twitter.storehaus.algebra</span>
+
+<span class="k">trait</span> <span class="nc">MergeableStore</span><span class="o">[</span><span class="kt">-K</span>, <span class="kt">V</span><span class="o">]</span> <span class="nc">extends</span> <span class="nc">Store</span><span class="o">[</span><span class="kt">K</span>, <span class="kt">V</span><span class="o">]</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="n">monoid</span><span class="k">:</span> <span class="kt">Monoid</span><span class="o">[</span><span class="kt">V</span><span class="o">]</span>
+  <span class="k">def</span> <span class="n">merge</span><span class="o">(</span><span class="n">kv</span><span class="k">:</span> <span class="o">(</span><span class="kt">K</span><span class="o">,</span> <span class="kt">V</span><span class="o">))</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">V</span><span class="o">]]</span> <span class="k">=</span> <span class="n">multiMerge</span><span class="o">(</span><span class="nc">Map</span><span class="o">(</span><span class="n">kv</span><span class="o">)).</span><span class="n">apply</span><span class="o">(</span><span class="n">kv</span><span class="o">.</span><span class="n">_1</span><span class="o">)</span>
+  <span class="k">def</span> <span class="n">multiMerge</span><span class="o">[</span><span class="kt">K1</span> <span class="k">&lt;:</span> <span class="kt">K</span><span class="o">](</span><span class="n">kvs</span><span class="k">:</span> <span class="kt">Map</span><span class="o">[</span><span class="kt">K1</span>, <span class="kt">V</span><span class="o">])</span><span class="k">:</span> <span class="kt">Map</span><span class="o">[</span><span class="kt">K1</span>, <span class="kt">Future</span><span class="o">[</span><span class="kt">Option</span><span class="o">[</span><span class="kt">V</span><span class="o">]]]</span> <span class="k">=</span> <span class="n">kvs</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">kv</span> <span class="k">=&gt;</span> <span class="o">(</span><span class="n">kv</span><span class="o">.</span><span class="n">_1</span><span class="o">,</span> <span class="n">merge</span><span class="o">(</span><span class="n">kv</span><span class="o">))</span> <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><code>MergeableStore</code>'s <code>merge</code> and <code>multiMerge</code> are similar to <code>put</code> and <code>multiPut</code>; the difference is that values added with <code>merge</code> are added to the store's existing value and the previous value is returned.
+Because the addition is handled with a <code>Semigroup[V]</code> or <code>Monoid[V]</code> from Twitter's <a href="https://github.com/twitter/algebird">Algebird</a> project, it's easy to write stores that aggregate <a href="http://twitter.github.com/algebird/#com.twitter.algebird.ListMonoid">Lists</a>, <a href="http://twitter.github.com/algebird/#com.twitter.algebird.DecayedValue">decayed values</a>, even <a href="http://twitter.github.com/algebird/#com.twitter.algebird.HyperLogLog%24">HyperLogLog</a> instances.</p>
+
+<p>The <a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.algebra.MergeableStore%24"><code>MergeableStore</code></a> object provides a number of combinators on these stores. For ease of use, Storehaus provides an implicit conversion to an enrichment on <code>MergeableStore</code>. Access this by importing <code>MergeableStore.enrich</code>.</p>
+
+<h3>
+<a name="user-content-other-modules" class="anchor" href="#other-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other Modules</h3>
+
+<p>Storehaus provides a number of modules wrapping existing key-value stores. Enriching these key-value stores with Storehaus's combinators has been hugely helpful to us here at Twitter. Writing your jobs in terms of Storehaus stores makes it easy to test your jobs; use an in-memory <code>JMapStore</code> in testing and a <code>MemcacheStore</code> in production.</p>
+
+<ul class="task-list">
+<li>
+<a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.memcache.MemcacheStore">Storehaus-memcache</a> (wraps Twitter's <a href="https://github.com/twitter/finagle/tree/master/finagle-memcached">finagle-memcached</a> library)</li>
+<li>
+<a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.mysql.MySqlStore">Storehaus-mysql</a> (wraps Twitter's <a href="https://github.com/twitter/finagle/tree/master/finagle-mysql">finagle-mysql</a> library)</li>
+<li>
+<a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.redis.RedisStore">Storehaus-redis</a> (wraps Twitter's <a href="https://github.com/twitter/finagle/tree/master/finagle-redis">finagle-redis</a> library)</li>
+<li><a href="http://twitter.github.com/storehaus/#com.twitter.storehaus.hbase.HBaseStore">Storehaus-hbase</a></li>
+<li><a href="https://github.com/twitter/storehaus/tree/develop/storehaus-dynamodb">storehaus-dynamodb</a></li>
+</ul><h4>
+<a name="user-content-planned-modules" class="anchor" href="#planned-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Planned Modules</h4>
+
+<p>Here's a list of modules we plan in implementing, with links to the github issues tracking progress on these modules:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/twitter/storehaus/issues/51">storehaus-leveldb</a></li>
+<li><a href="https://github.com/twitter/storehaus/issues/52">storehaus-berkeleydb</a></li>
+</ul><h2>
+<a name="user-content-community-and-documentation" class="anchor" href="#community-and-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community and Documentation</h2>
+
+<p>To learn more and find links to tutorials and information around the web, check out the <a href="https://github.com/twitter/storehaus/wiki">Storehaus Wiki</a>.</p>
+
+<p>The latest ScalaDocs are hosted on Storehaus's <a href="http://twitter.github.io/storehaus">Github Project Page</a>.</p>
+
+<p>Discussion occurs primarily on the <a href="https://groups.google.com/forum/#!forum/storehaus">Storehaus mailing list</a>. Issues should be reported on the <a href="https://github.com/twitter/storehaus/issues">GitHub issue tracker</a>.</p>
+
+<h2>
+<a name="user-content-maven" class="anchor" href="#maven" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maven</h2>
+
+<p>Storehaus modules are available on maven central. The current groupid and version for all modules is, respectively, <code>"com.twitter"</code> and  <code>0.9.0</code>.</p>
+
+<p>Current published artifacts are</p>
+
+<ul class="task-list">
+<li><code>storehaus-core_2.9.3</code></li>
+<li><code>storehaus-core_2.10</code></li>
+<li><code>storehaus-algebra_2.9.3</code></li>
+<li><code>storehaus-algebra_2.10</code></li>
+<li><code>storehaus-memcache_2.9.3</code></li>
+<li><code>storehaus-memcache_2.10</code></li>
+<li><code>storehaus-mysql_2.9.3</code></li>
+<li><code>storehaus-mysql_2.10</code></li>
+<li><code>storehaus-hbase_2.9.3</code></li>
+<li><code>storehaus-hbase_2.10</code></li>
+<li><code>storehaus-redis_2.9.3</code></li>
+<li><code>storehaus-redis_2.10</code></li>
+<li><code>storehaus-dynamodb_2.9.3</code></li>
+<li><code>storehaus-dynamodb_2.10</code></li>
+<li><code>storehaus-cache_2.9.3</code></li>
+<li><code>storehaus-cache_2.10</code></li>
+<li><code>storehaus-testing_2.9.3</code></li>
+<li><code>storehaus-testing_2.10</code></li>
+</ul><p>The suffix denotes the scala version.</p>
+
+<h2>
+<a name="user-content-testing-notes" class="anchor" href="#testing-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing notes</h2>
+
+<p>We use travis-ci to set up any underlying stores (e.g. MySQL, Redis, Memcached) for the tests. In order for these tests to pass on your local machine, you may need additional setup.</p>
+
+<h3>
+<a name="user-content-mysql-tests" class="anchor" href="#mysql-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>MySQL tests</h3>
+
+<p>You will need MySQL installed on your local machine.
+Once installed, run the <code>mysql</code> commands listed in <a href="https://github.com/twitter/storehaus/blob/develop/.travis.yml">.travis.yml</a> file.</p>
+
+<h3>
+<a name="user-content-redis-tests" class="anchor" href="#redis-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redis tests</h3>
+
+<p>You will need <a href="http://redis.io/">redis</a> installed on your local machine. Redis comes bundled with an executable for spinning up a server called <code>redis-server</code>. The Storehaus redis tests expect the factory defaults for connecting to one of these redis server instances, resolvable on <code>localhost</code> port <code>6379</code>.</p>
+
+<h3>
+<a name="user-content-memcached" class="anchor" href="#memcached" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memcached</h3>
+
+<p>You will need <a href="http://memcached.org/">Memcached</a> installed on your local machine and running on the default port <code>11211</code>.</p>
+
+<h2>
+<a name="user-content-authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors</h2>
+
+<ul class="task-list">
+<li>Oscar Boykin <a href="https://twitter.com/posco">https://twitter.com/posco</a>
+</li>
+<li>Sam Ritchie <a href="https://twitter.com/sritchie">https://twitter.com/sritchie</a>
+</li>
+</ul><h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>Here are a few that shine among the many:</p>
+
+<ul class="task-list">
+<li>Ruban Monu <a href="https://twitter.com/rubanm">https://twitter.com/rubanm</a>, for <code>storehaus-mysql</code>
+</li>
+<li>Doug Tangren <a href="https://twitter.com/softprops">https://twitter.com/softprops</a>, for <code>storehaus-redis</code>
+</li>
+<li>Ryan Weald <a href="https://twitter.com/rweald">https://twitter.com/rweald</a>, for <code>storehaus-dynamodb</code>
+</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright 2013 Twitter, Inc.</p>
+
+<p>Licensed under the Apache License, Version 2.0: <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p></article></div>

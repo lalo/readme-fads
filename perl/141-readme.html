@@ -1,0 +1,570 @@
+<div class="announce instapaper_body pod" data-path="README.pod" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><a name="user-content-___top" aria-hidden="true"></a>
+
+<h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-NAME" aria-hidden="true">NAME</a>
+</h1>
+
+<p>feedgnuplot - General purpose pipe-oriented plotting tool</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-SYNOPSIS" aria-hidden="true">SYNOPSIS</a>
+</h1>
+
+<p>Simple plotting of piped data:</p>
+
+<pre> $ seq 5 | awk '{print 2*$1, $1*$1}'
+ 2 1
+ 4 4
+ 6 9
+ 8 16
+ 10 25
+
+ $ seq 5 | awk '{print 2*$1, $1*$1}' |
+   feedgnuplot --lines --points --legend 0 "data 0" --title "Test plot" --y2 1
+               --terminal 'dumb 80,40' --exit
+
+                                  Test plot
+
+  10 ++------+--------+-------+-------+-------+--------+-------+------*A 25
+     +       +        +       +       +       +        +       +    **#+
+     |       :        :       :       :       :        : data 0+**A*** |
+     |       :        :       :       :       :        :       :** #   |
+   9 ++.......................................................**.##....|
+     |       :        :       :       :       :        :    ** :#      |
+     |       :        :       :       :       :        :  **   #       |
+     |       :        :       :       :       :        :**   ##:      ++ 20
+   8 ++................................................A....#..........|
+     |       :        :       :       :       :      **:   #   :       |
+     |       :        :       :       :       :    **  : ##    :       |
+     |       :        :       :       :       :  **    :#      :       |
+     |       :        :       :       :       :**      B       :       |
+   7 ++......................................**......##................|
+     |       :        :       :       :    ** :    ##  :       :      ++ 15
+     |       :        :       :       :  **   :   #    :       :       |
+     |       :        :       :       :**     : ##     :       :       |
+   6 ++..............................*A.......##.......................|
+     |       :        :       :    ** :     ##:        :       :       |
+     |       :        :       :  **   :    #  :        :       :       |
+     |       :        :       :**     :  ##   :        :       :      ++ 10
+   5 ++......................**........##..............................|
+     |       :        :    ** :      #B       :        :       :       |
+     |       :        :  **   :    ## :       :        :       :       |
+     |       :        :**     :  ##   :       :        :       :       |
+   4 ++...............A.......###......................................|
+     |       :      **:     ##:       :       :        :       :       |
+     |       :    **  :   ##  :       :       :        :       :      ++ 5
+     |       :  **    : ##    :       :       :        :       :       |
+     |       :**    ##B#      :       :       :        :       :       |
+   3 ++.....**..####...................................................|
+     |    **####      :       :       :       :        :       :       |
+     |  **## :        :       :       :       :        :       :       |
+     B**     +        +       +       +       +        +       +       +
+   2 A+------+--------+-------+-------+-------+--------+-------+------++ 0
+     1      1.5       2      2.5      3      3.5       4      4.5      5</pre>
+
+<p>Simple real-time plotting example: plot how much data is received on the wlan0 network interface in bytes/second (uses bash, awk and Linux):</p>
+
+<pre> $ while true; do sleep 1; cat /proc/net/dev; done |
+   gawk '/wlan0/ {if(b) {print $2-b; fflush()} b=$2}' |
+   feedgnuplot --lines --stream --xlen 10 --ylabel 'Bytes/sec' --xlabel seconds</pre>
+
+<h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-DESCRIPTION" aria-hidden="true">DESCRIPTION</a>
+</h1>
+
+<p>This is a flexible, command-line-oriented frontend to Gnuplot. It creates plots from data coming in on STDIN or given in a filename passed on the commandline. Various data representations are supported, as is hardcopy output and streaming display of live data. A simple example:</p>
+
+<pre> $ seq 5 | awk '{print 2*$1, $1*$1}' | feedgnuplot</pre>
+
+<p>You should see a plot with two curves. The <code>awk</code> command generates some data to plot and the <code>feedgnuplot</code> reads it in from STDIN and generates the plot. The <code>awk</code> invocation is just an example; more interesting things would be plotted in normal usage. No commandline-options are required for the most basic plotting. Input parsing is flexible; every line need not have the same number of points. New curves will be created as needed.</p>
+
+<p>The most commonly used functionality of gnuplot is supported directly by the script. Anything not directly supported can still be done with options such as <code>--set</code>, <code>--extracmds</code> <code>--style</code>, etc. Arbitrary gnuplot commands can be passed in with <code>--extracmds</code>. For example, to turn off the grid, you can pass in <code>--extracmds 'unset grid'</code>. Commands <code>--set</code> and <code>--unset</code> exists to provide nicer syntax, so this is equivalent to passing <code>--unset grid</code>. As many of these options as needed can be passed in. To add arbitrary curve styles, use <code>--style curveID extrastyle</code>. Pass these more than once to affect more than one curve.</p>
+
+<p>To apply an extra style to <i>all</i> the curves that lack an explicit <code>--style</code>, pass in <code>--styleall extrastyle</code>. In the most common case, the extra style is <code>with something</code>. To support this more simply, you can pass in <code>--with something</code> instead of <code>--styleall 'with something'</code>. <code>--styleall</code> and <code>--with</code> are mutually exclusive. Furthermore any curve-specific <code>--style</code> overrides the global <code>--styleall</code> or <code>--with</code> setting.</p>
+
+<h2>
+<a name="user-content-data-formats" class="anchor" href="#data-formats" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Data_formats" aria-hidden="true">Data formats</a>
+</h2>
+
+<p>By default, each value present in the incoming data represents a distinct data point, as demonstrated in the original example above (we had 10 numbers in the input and 10 points in the plot). If requested, the script supports more sophisticated interpretation of input data</p>
+
+<h3>
+<a name="user-content-domain-selection" class="anchor" href="#domain-selection" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Domain_selection" aria-hidden="true">Domain selection</a>
+</h3>
+
+<p>If <code>--domain</code> is passed in, the first value on each line of input is interpreted as the <i>X</i>-value for the rest of the data on that line. Without <code>--domain</code> the <i>X</i>-value is the line number, and the first value on a line is a plain data point like the others. Default is <code>--nodomain</code>. Thus the original example above produces 2 curves, with <b>1,2,3,4,5</b> as the <i>X</i>-values. If we run the same command with <code>--domain</code>:</p>
+
+<pre> $ seq 5 | awk '{print 2*$1, $1*$1}' | feedgnuplot --domain</pre>
+
+<p>we get only 1 curve, with <b>2,4,6,8,10</b> as the <i>X</i>-values. As many points as desired can appear on a single line, but all points on a line are associated with the <i>X</i>-value at the start of that line.</p>
+
+<h3>
+<a name="user-content-curve-indexing" class="anchor" href="#curve-indexing" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Curve_indexing" aria-hidden="true">Curve indexing</a>
+</h3>
+
+<p>By default, each column represents a separate curve. This is fine unless sparse data is to be plotted. With the <code>--dataid</code> option, each point is represented by 2 values: a string identifying the curve, and the value itself. If we add <code>--dataid</code> to the original example:</p>
+
+<pre> $ seq 5 | awk '{print 2*$1, $1*$1}' | feedgnuplot --dataid --autolegend</pre>
+
+<p>we get 5 different curves with one point in each. The first column, as produced by <code>awk</code>, is <b>2,4,6,8,10</b>. These are interpreted as the IDs of the curves to be plotted. The <code>--autolegend</code> option adds a legend using the given IDs to label the curves. The IDs need not be numbers; generic strings are accepted. As many points as desired can appear on a single line. <code>--domain</code> can be used in conjunction with <code>--dataid</code>.</p>
+
+<h3>
+<a name="user-content-multi-value-style-support" class="anchor" href="#multi-value-style-support" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Multi-value_style_support" aria-hidden="true">Multi-value style support</a>
+</h3>
+
+<p>Depending on how gnuplot is plotting the data, more than one value may be needed to represent the range of a single point. Basic 2D plots have 2 numbers representing each point: 1 domain and 1 range. But if plotting with <code>--circles</code>, for instance, then there's an extra range value: the radius. A similar situation exists with <code>--colormap</code> where each point contains the position <i>and</i> the color. There are other gnuplot styles that require more data (such as error bars), but none of these are directly supported by the script. They can still be used, however, by specifying the specific style with <code>--style</code>, and specifying how many values are needed for each point with <code>--rangesizeall</code> or <code>--rangesize</code> or <code>--extraValuesPerPoint</code>. Those options that specify the range size are required <i>only</i> for styles not explicitly supported by feedgnuplot; supported styles do the right thing automatically.</p>
+
+<p>More examples: if making a 2d plot of y error bars where gnuplot expects a (x,y,ydelta) tuple for each point, you want <code>--rangesizeall 2</code> because you have one domain value (x) and 2 range values (y,ydelta). Gnuplot can also plot lopsided y errorbars by giving a tuple (x,y,ylow,yhigh). This is similar as before, but you want <code>--rangesizeall 3</code> instead.</p>
+
+<h3>
+<a name="user-content-3d-data" class="anchor" href="#3d-data" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-3D_data" aria-hidden="true">3D data</a>
+</h3>
+
+<p>To plot 3D data, pass in <code>--3d</code>. <code>--domain</code> MUST be given when plotting 3D data to avoid domain ambiguity. If 3D data is being plotted, there are by definition 2 domain values instead of one (<i>Z</i> as a function of <i>X</i> and <i>Y</i> instead of <i>Y</i> as a function of <i>X</i>). Thus the first 2 values on each line are interpreted as the domain instead of just 1. The rest of the processing happens the same way as before.</p>
+
+<h3>
+<a name="user-content-timedate-data" class="anchor" href="#timedate-data" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Time/date_data" aria-hidden="true">Time/date data</a>
+</h3>
+
+<p>If the input data domain is a time/date, this can be interpreted with <code>--timefmt</code>. This option takes a single argument: the format to use to parse the data. The format is documented in 'set timefmt' in gnuplot, although the common flags that <code>strftime</code> understands are generally supported. The backslash sequences in the format are <i>not</i> supported, so if you want a tab, put in a tab instead of \t. Whitespace in the format <i>is</i> supported. When this flag is given, some other options act a little bit differently:</p>
+
+<ul>
+<li>
+<code>--xlen</code> is an <i>integer</i> in seconds</li>
+
+<li>
+<code>--xmin</code> and <code>--xmax</code> <i>must</i> use the format passed in to <code>--timefmt</code>
+</li>
+</ul><p>Using this option changes both the way the input is parsed <i>and</i> the way the x-axis tics are labelled. Gnuplot tries to be intelligent in this labelling, but it doesn't always do what the user wants. The labelling can be controlled with the gnuplot <code>set format</code> command, which takes the same type of format string as <code>--timefmt</code>. Example:</p>
+
+<pre> $ sar 1 -1 |
+   awk '$1 ~ /..:..:../ &amp;&amp; $8 ~/^[0-9\.]*$/ {print $1,$8; fflush()}' |
+   feedgnuplot --stream --domain
+                --lines --timefmt '%H:%M:%S'
+                --set 'format x "%H:%M:%S"'</pre>
+
+<p>This plots the 'idle' CPU consumption against time.</p>
+
+<p>Note that while gnuplot supports the time/date on any axis, <i>feedgnuplot</i> currently supports it <i>only</i> as the x-axis domain. This may change in the future.</p>
+
+<h2>
+<a name="user-content-real-time-streaming-data" class="anchor" href="#real-time-streaming-data" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Real-time_streaming_data" aria-hidden="true">Real-time streaming data</a>
+</h2>
+
+<p>To plot real-time data, pass in the <code>--stream [refreshperiod]</code> option. Data will then be plotted as it is received. The plot will be updated every <code>refreshperiod</code> seconds. If the period isn't specified, a 1Hz refresh rate is used. To refresh at specific intervals indicated by the data, set the refreshperiod to 0 or to 'trigger'. The plot will then <i>only</i> be refreshed when a data line 'replot' is received. This 'replot' command works in both triggered and timed modes, but in triggered mode, it's the only way to replot. Look in <a href="#Special_data_commands">"Special data commands"</a> for more information.</p>
+
+<p>To plot only the most recent data (instead of <i>all</i> the data), <code>--xlen windowsize</code> can be given. This will create an constantly-updating, scrolling view of the recent past. <code>windowsize</code> should be replaced by the desired length of the domain window to plot, in domain units (passed-in values if <code>--domain</code> or line numbers otherwise). If the domain is a time/date via <code>--timefmt</code>, then <code>windowsize</code> is and <i>integer</i> in seconds.</p>
+
+<h3>
+<a name="user-content-special-data-commands" class="anchor" href="#special-data-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Special_data_commands" aria-hidden="true">Special data commands</a>
+</h3>
+
+<p>If we are reading streaming data, the input stream can contain special commands in addition to the raw data. Feedgnuplot looks for these at the start of every input line. If a command is detected, the rest of the line is discarded. These commands are</p>
+
+<dl>
+<dt><a name="user-content-replot" aria-hidden="true"><code>replot</code></a></dt>
+
+<dd>
+<p>This command refreshes the plot right now, instead of waiting for the next refresh time indicated by the timer. This command works in addition to the timed refresh, as indicated by <code>--stream [refreshperiod]</code>.</p>
+
+</dd>
+<dt><a name="user-content-clear" aria-hidden="true"><code>clear</code></a></dt>
+
+<dd>
+<p>This command clears out the current data in the plot. The plotting process continues, however, to any data following the <code>clear</code>.</p>
+
+</dd>
+<dt><a name="user-content-exit" aria-hidden="true"><code>exit</code></a></dt>
+
+<dd>
+<p>This command causes feedgnuplot to exit.</p>
+</dd>
+</dl><h2>
+<a name="user-content-hardcopy-output" class="anchor" href="#hardcopy-output" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Hardcopy_output" aria-hidden="true">Hardcopy output</a>
+</h2>
+
+<p>The script is able to produce hardcopy output with <code>--hardcopy outputfile</code>. The output type can be inferred from the filename, if <b>.ps</b>, <b>.eps</b>, <b>.pdf</b>, <b>.svg</b> or <b>.png</b> is requested. If any other file type is requested, <code>--terminal</code> <i>must</i> be passed in to tell gnuplot how to make the plot.</p>
+
+<h2>
+<a name="user-content-self-plotting-data-files" class="anchor" href="#self-plotting-data-files" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Self-plotting_data_files" aria-hidden="true">Self-plotting data files</a>
+</h2>
+
+<p>This script can be used to enable self-plotting data files. There are 2 ways of doing this: with a shebang (#!) or with inline perl data.</p>
+
+<h3>
+<a name="user-content-self-plotting-data-with-a-" class="anchor" href="#self-plotting-data-with-a-" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Self-plotting_data_with_a_#!" aria-hidden="true">Self-plotting data with a #!</a>
+</h3>
+
+<p>A self-plotting, executable data file <code>data</code> is formatted as</p>
+
+<pre> $ cat data
+ #!/usr/bin/feedgnuplot --lines --points
+ 2 1
+ 4 4
+ 6 9
+ 8 16
+ 10 25
+ 12 36
+ 14 49
+ 16 64
+ 18 81
+ 20 100
+ 22 121
+ 24 144
+ 26 169
+ 28 196
+ 30 225</pre>
+
+<p>This is the shebang (#!) line followed by the data, formatted as before. The data file can be plotted simply with</p>
+
+<pre> $ ./data</pre>
+
+<p>The caveats here are that on Linux the whole #! line is limited to 127 characters and that the full path to feedgnuplot must be given. The 127 character limit is a serious limitation, but this can likely be resolved with a kernel patch. I have only tried on Linux 2.6.</p>
+
+<h3>
+<a name="user-content-self-plotting-data-with-perl-inline-data" class="anchor" href="#self-plotting-data-with-perl-inline-data" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Self-plotting_data_with_perl_inline_data" aria-hidden="true">Self-plotting data with perl inline data</a>
+</h3>
+
+<p>Perl supports storing data and code in the same file. This can also be used to create self-plotting files:</p>
+
+<pre> $ cat plotdata.pl
+ #!/usr/bin/perl
+ use strict;
+ use warnings;
+
+ open PLOT, "| feedgnuplot --lines --points" or die "Couldn't open plotting pipe";
+ while( &lt;DATA&gt; )
+ {
+   my @xy = split;
+   print PLOT "@xy\n";
+ }
+ __DATA__
+ 2 1
+ 4 4
+ 6 9
+ 8 16
+ 10 25
+ 12 36
+ 14 49
+ 16 64
+ 18 81
+ 20 100
+ 22 121
+ 24 144
+ 26 169
+ 28 196
+ 30 225</pre>
+
+<p>This is especially useful if the logged data is not in a format directly supported by feedgnuplot. Raw data can be stored after the __DATA__ directive, with a small perl script to manipulate the data into a useable format and send it to the plotter.</p>
+
+<h1>
+<a name="user-content-arguments" class="anchor" href="#arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-ARGUMENTS" aria-hidden="true">ARGUMENTS</a>
+</h1>
+
+<ul>
+<li>--<code>[no]domain</code>
+<p>If enabled, the first element of each line is the domain variable. If not, the point index is used</p>
+</li>
+
+<li>--<code>[no]dataid</code>
+<p>If enabled, each data point is preceded by the ID of the data set that point corresponds to. This ID is interpreted as a string, NOT as just a number. If not enabled, the order of the point is used.</p>
+
+<p>As an example, if line 3 of the input is "0 9 1 20" then</p>
+
+<ul>
+<li>
+<code>--nodomain --nodataid</code> would parse the 4 numbers as points in 4 different curves at x=3</li>
+
+<li>
+<code>--domain --nodataid</code> would parse the 4 numbers as points in 3 different curves at x=0. Here, 0 is the x-variable and 9,1,20 are the data values</li>
+
+<li>
+<code>--nodomain --dataid</code> would parse the 4 numbers as points in 2 different curves at x=3. Here 0 and 1 are the data IDs and 9 and 20 are the data values</li>
+
+<li>
+<code>--domain --dataid</code> would parse the 4 numbers as a single point at x=0. Here 9 is the data ID and 1 is the data value. 20 is an extra value, so it is ignored. If another value followed 20, we'd get another point in curve ID 20</li>
+</ul>
+</li>
+
+<li>
+<code>--[no]3d</code>
+<p>Do [not] plot in 3D. This only makes sense with <code>--domain</code>. Each domain here is an (x,y) tuple</p>
+</li>
+
+<li>--<code>timefmt [format]</code>
+<p>Interpret the X data as a time/date, parsed with the given format</p>
+</li>
+
+<li>
+<code>--colormap</code>
+<p>Show a colormapped xy plot. Requires extra data for the color. zmin/zmax can be used to set the extents of the colors. Automatically sets the <code>--rangesize</code>.</p>
+</li>
+
+<li>
+<code>--stream [period]</code>
+<p>Plot the data as it comes in, in realtime. If period is given, replot every period seconds. If no period is given, replot at 1Hz. If the period is given as 0 or 'trigger', replot <i>only</i> when the incoming data dictates this. See the <a href="#Real-time_streaming_data">"Real-time streaming data"</a> section of the man page.</p>
+</li>
+
+<li>
+<code>--[no]lines</code>
+<p>Do [not] draw lines to connect consecutive points</p>
+</li>
+
+<li>
+<code>--[no]points</code>
+<p>Do [not] draw points</p>
+</li>
+
+<li>
+<code>--circles</code>
+<p>Plot with circles. This requires a radius be specified for each point. Automatically sets the <code>--rangesize</code>. <code>Not</code> supported for 3d plots.</p>
+</li>
+
+<li>
+<code>--title xxx</code>
+<p>Set the title of the plot</p>
+</li>
+
+<li>
+<code>--legend curveID legend</code>
+<p>Set the label for a curve plot. Use this option multiple times for multiple curves. With <code>--dataid</code>, curveID is the ID. Otherwise, it's the index of the curve, starting at 0</p>
+</li>
+
+<li>
+<code>--autolegend</code>
+<p>Use the curve IDs for the legend. Titles given with <code>--legend</code> override these</p>
+</li>
+
+<li>
+<code>--xlen xxx</code>
+<p>When using <code>--stream</code>, sets the size of the x-window to plot. Omit this or set it to 0 to plot ALL the data. Does not make sense with 3d plots. Implies <code>--monotonic</code></p>
+</li>
+
+<li>
+<code>--xmin/xmax/ymin/ymax/y2min/y2max/zmin/zmax xxx</code>
+<p>Set the range for the given axis. These x-axis bounds are ignored in a streaming plot. The y2-axis bound do not apply in 3d plots. The z-axis bounds apply <i>only</i> to 3d plots or colormaps.</p>
+</li>
+
+<li>
+<code>--xlabel/ylabel/y2label/zlabel xxx</code>
+<p>Label the given axis. The y2-axis label does not apply to 3d plots while the z-axis label applies <i>only</i> to 3d plots.</p>
+</li>
+
+<li>
+<code>--y2 xxx</code>
+<p>Plot the data specified by this curve ID on the y2 axis. Without <code>--dataid</code>, the ID is just an ordered 0-based index. Does not apply to 3d plots. Can be passed multiple times, or passed a comma-separated list. By default the y2-axis curves look the same as the y-axis ones. I.e. the viewer of the resulting plot has to be told which is which via an axes label, legend, etc. Prior to version 1.25 of feedgnuplot the curves plotted on the y2 axis were drawn with a thicker line. This is no longer the case, but that behavior can be brought back by passing something like</p>
+
+<pre> --y2 curveid --style curveid 'linewidth 3'</pre>
+</li>
+
+<li>
+<code>--histogram curveID</code>
+<p>Set up a this specific curve to plot a histogram. The bin width is given with the <code>--binwidth</code> option (assumed 1.0 if omitted). <code>--histogram</code> does <i>not</i> touch the drawing style. It is often desired to plot these with boxes, and this <i>must</i> be explicitly requested by <code>--with boxes</code>. This works with <code>--domain</code> and/or <code>--stream</code>, but in those cases the x-value is used <i>only</i> to cull old data because of <code>--xlen</code> or <code>--monotonic</code>. I.e. the x-values are <i>not</i> drawn in any way. Can be passed multiple times, or passed a comma- separated list</p>
+</li>
+
+<li>
+<code>--binwidth width</code>
+<p>The width of bins when making histograms. This setting applies to ALL histograms in the plot. Defaults to 1.0 if not given.</p>
+</li>
+
+<li>
+<code>--histstyle style</code>
+<p>Normally, histograms are generated with the 'smooth freq' gnuplot style. <code>--histstyle</code> can be used to select different 'smooth' settings. Allowed are 'unique', 'cumulative' and 'cnormal'. 'unique' indicates whether a bin has at least one item in it: instead of counting the items, it'll always report 0 or 1. 'cumulative' is the integral of the "normal" histogram. 'cnormal' is like 'cumulative', but rescaled to end up at 1.0.</p>
+</li>
+
+<li>
+<code>--style curveID style</code>
+<p>Additional styles per curve. With <code>--dataid</code>, curveID is the ID. Otherwise, it's the index of the curve, starting at 0. Use this option multiple times for multiple curves. <code>--styleall</code> does <i>not</i> apply to curves that have a <code>--style</code></p>
+</li>
+
+<li>
+<code>--curvestyle curveID</code>
+<p>Synonym for <code>--style</code></p>
+</li>
+
+<li>
+<code>--styleall xxx</code>
+<p>Additional styles for all curves that have no <code>--style</code>. This is overridden by any applicable <code>--style</code>. Exclusive with <code>--with</code>.</p>
+</li>
+
+<li>
+<code>--curvestyleall xxx</code>
+<p>Synonym for <code>--styleall</code></p>
+</li>
+
+<li>
+<code>--with xxx</code>
+<p>Same as <code>--styleall</code>, but prefixed with "with". Thus</p>
+
+<pre> --with boxes</pre>
+
+<p>is equivalent to</p>
+
+<pre> --styleall 'with boxes'</pre>
+
+<p>Exclusive with <code>--styleall</code>.</p>
+</li>
+
+<li>
+<code>--extracmds xxx</code>
+<p>Additional commands to pass on to gnuplot verbatim. These could contain extra global styles for instance. Can be passed multiple times.</p>
+</li>
+
+<li>
+<code>--set xxx</code>
+<p>Additional 'set' commands to pass on to gnuplot verbatim. <code>--set 'a b c'</code> will result in gnuplot seeing a <code>set a b c</code> command. Can be passed multiple times.</p>
+</li>
+
+<li>
+<code>--unset xxx</code>
+<p>Additional 'unset' commands to pass on to gnuplot verbatim. <code>--unset 'a b c'</code> will result in gnuplot seeing a <code>unset a b c</code> command. Can be passed multiple times.</p>
+</li>
+
+<li>
+<code>--square</code>
+<p>Plot data with aspect ratio 1. For 3D plots, this controls the aspect ratio for all 3 axes</p>
+</li>
+
+<li>
+<code>--square_xy</code>
+<p>For 3D plots, set square aspect ratio for ONLY the x,y axes</p>
+</li>
+
+<li>
+<code>--hardcopy xxx</code>
+<p>If not streaming, output to a file specified here. Format inferred from filename, unless specified by <code>--terminal</code></p>
+</li>
+
+<li>
+<code>--terminal xxx</code>
+<p>String passed to 'set terminal'. No attempts are made to validate this. <code>--hardcopy</code> sets this to some sensible defaults if --hardcopy is given .png, .pdf, .ps, .eps or .svg. If any other file type is desired, use both <code>--hardcopy</code> and <code>--terminal</code></p>
+</li>
+
+<li>
+<code>--maxcurves xxx</code>
+<p>The maximum allowed number of curves. This is 100 by default, but can be reset with this option. This exists purely to prevent perl from allocating all of the system's memory when reading bogus data</p>
+</li>
+
+<li>
+<code>--monotonic</code>
+<p>If <code>--domain</code> is given, checks to make sure that the x- coordinate in the input data is monotonically increasing. If a given x-variable is in the past, all data currently cached for this curve is purged. Without <code>--monotonic</code>, all data is kept. Does not make sense with 3d plots. No <code>--monotonic</code> by default. The data is replotted before being purged</p>
+</li>
+
+<li>
+<code>--rangesize curveID xxx</code>
+<p>The options <code>--rangesizeall</code>, <code>--rangesize</code> and <code>--extraValuesPerPoint</code> set the number of values are needed to represent each point being plotted (see <a href="#Multi-value_style_support">"Multi-value style support"</a> above). These options are <i>only</i> needed if unknown styles are used, with <code>--styleall</code> or <code>--with</code> for instance.</p>
+
+<p><code>--rangesize</code> is used to set how many values are needed to represent the range of a point for a particular curve. This overrides any defaults that may exist for this curve only.</p>
+</li>
+
+<li>
+<code>--rangesizeall xxx</code>
+<p>Like <code>--rangesize</code>, but applies to <i>all</i> the curves.</p>
+
+<p><code>--extraValuesPerPoint xxx</code></p>
+
+<p>Like <code>--rangesizeall</code>, but instead of overriding the default, adds to it. For example, if plotting non-lopsided y errorbars gnuplot wants (x,y,ydelta) tuples. These can be specified both with <code>--rangesizeall 2</code> (because there are 2 range values) or <code>--extraValuesPerPoint 1</code> (because there's 1 more value than usual).</p>
+
+<p>This option is <i>only</i> needed if unknown styles are used, with <code>--styleall</code> or <code>--with</code> for instance.</p>
+</li>
+
+<li>
+<code>--dump</code>
+<p>Instead of printing to gnuplot, print to STDOUT. Very useful for debugging. It is possible to send the output produced this way to gnuplot directly.</p>
+</li>
+
+<li>
+<code>--exit</code>
+<p>Terminate the feedgnuplot process after passing data to gnuplot. The window will persist but will not be interactive. Without this option feedgnuplot keeps running and must be killed by the user. Note that this option works only with later versions of gnuplot and only with some gnuplot terminals.</p>
+</li>
+
+<li>
+<code>--geometry</code>
+<p>If using X11, specifies the size, position of the plot window</p>
+</li>
+
+<li>
+<code>--version</code>
+<p>Print the version and exit</p>
+</li>
+</ul><h1>
+<a name="user-content-recipes" class="anchor" href="#recipes" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-RECIPES" aria-hidden="true">RECIPES</a>
+</h1>
+
+<h2>
+<a name="user-content-basic-plotting-of-piped-data" class="anchor" href="#basic-plotting-of-piped-data" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Basic_plotting_of_piped_data" aria-hidden="true">Basic plotting of piped data</a>
+</h2>
+
+<pre> $ seq 5 | awk '{print 2*$1, $1*$1}'
+ 2 1
+ 4 4
+ 6 9
+ 8 16
+ 10 25
+
+ $ seq 5 | awk '{print 2*$1, $1*$1}' |
+   feedgnuplot --lines --points --legend 0 "data 0" --title "Test plot" --y2 1</pre>
+
+<h2>
+<a name="user-content-realtime-plot-of-network-throughput" class="anchor" href="#realtime-plot-of-network-throughput" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Realtime_plot_of_network_throughput" aria-hidden="true">Realtime plot of network throughput</a>
+</h2>
+
+<p>Looks at wlan0 on Linux.</p>
+
+<pre> $ while true; do sleep 1; cat /proc/net/dev; done |
+   gawk '/wlan0/ {if(b) {print $2-b; fflush()} b=$2}' |
+   feedgnuplot --lines --stream --xlen 10 --ylabel 'Bytes/sec' --xlabel seconds</pre>
+
+<h2>
+<a name="user-content-realtime-plot-of-battery-charge-in-respect-to-time" class="anchor" href="#realtime-plot-of-battery-charge-in-respect-to-time" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Realtime_plot_of_battery_charge_in_respect_to_time" aria-hidden="true">Realtime plot of battery charge in respect to time</a>
+</h2>
+
+<p>Uses the result of the <code>acpi</code> command.</p>
+
+<pre> $ while true; do acpi; sleep 15; done |
+   perl -nE 'BEGIN{ $| = 1; } /([0-9]*)%/; say join(" ", time(), $1);' |
+   feedgnuplot --stream --ymin 0 --ymax 100 --lines --domain --xlabel 'Time' --timefmt '%s' --ylabel "Battery charge (%)"</pre>
+
+<h2>
+<a name="user-content-realtime-plot-of-temperatures-in-an-ibm-thinkpad" class="anchor" href="#realtime-plot-of-temperatures-in-an-ibm-thinkpad" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Realtime_plot_of_temperatures_in_an_IBM_Thinkpad" aria-hidden="true">Realtime plot of temperatures in an IBM Thinkpad</a>
+</h2>
+
+<p>Uses <code>/proc/acpi/ibm/thermal</code>, which reports temperatures at various locations in a Thinkpad.</p>
+
+<pre> $ while true; do cat /proc/acpi/ibm/thermal | awk '{$1=""; print}' ; sleep 1; done |
+   feedgnuplot --stream --xlen 100 --lines --autolegend --ymax 100 --ymin 20 --ylabel 'Temperature (deg C)'</pre>
+
+<h2>
+<a name="user-content-plotting-a-histogram-of-file-sizes-in-a-directory" class="anchor" href="#plotting-a-histogram-of-file-sizes-in-a-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Plotting_a_histogram_of_file_sizes_in_a_directory" aria-hidden="true">Plotting a histogram of file sizes in a directory</a>
+</h2>
+
+<pre> $ ls -l | awk '{print $5/1e6}' |
+   feedgnuplot --histogram 0 --with boxes --ymin 0 --xlabel 'File size (MB)' --ylabel Frequency</pre>
+
+<h1>
+<a name="user-content-acknowledgement" class="anchor" href="#acknowledgement" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-ACKNOWLEDGEMENT" aria-hidden="true">ACKNOWLEDGEMENT</a>
+</h1>
+
+<p>This program is originally based on the driveGnuPlots.pl script from Thanassis Tsiodras. It is available from his site at <a href="http://users.softlab.ece.ntua.gr/~ttsiod/gnuplotStreaming.html">http://users.softlab.ece.ntua.gr/~ttsiod/gnuplotStreaming.html</a></p>
+
+<h1>
+<a name="user-content-repository" class="anchor" href="#repository" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-REPOSITORY" aria-hidden="true">REPOSITORY</a>
+</h1>
+
+<p><a href="https://github.com/dkogan/feedgnuplot">https://github.com/dkogan/feedgnuplot</a></p>
+
+<h1>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-AUTHOR" aria-hidden="true">AUTHOR</a>
+</h1>
+
+<p>Dima Kogan, <code>&lt;dima@secretsauce.net&gt;</code></p>
+
+<h1>
+<a name="user-content-license-and-copyright" class="anchor" href="#license-and-copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-LICENSE_AND_COPYRIGHT" aria-hidden="true">LICENSE AND COPYRIGHT</a>
+</h1>
+
+<p>Copyright 2011-2012 Dima Kogan.</p>
+
+<p>This program is free software; you can redistribute it and/or modify it under the terms of either: the GNU General Public License as published by the Free Software Foundation; or the Artistic License.</p>
+
+<p>See <a href="http://dev.perl.org/licenses/">http://dev.perl.org/licenses/</a> for more information.</p></article></div>

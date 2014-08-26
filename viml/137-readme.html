@@ -1,0 +1,94 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-vim-textobj-user---create-your-own-text-objects" class="anchor" href="#vim-textobj-user---create-your-own-text-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>vim-textobj-user - Create your own text objects</h1>
+
+<p><a href="https://travis-ci.org/kana/vim-textobj-user"><img src="https://camo.githubusercontent.com/8994dbaa6fabb1397d3e882f0fdff4ef206081e8/68747470733a2f2f7472617669732d63692e6f72672f6b616e612f76696d2d746578746f626a2d757365722e706e67" alt="Build Status" data-canonical-src="https://travis-ci.org/kana/vim-textobj-user.png" style="max-width:100%;"></a></p>
+
+<p>vim-textobj-user is a Vim plugin to create your own text objects without pain.
+It is hard to create text objects, because there are many pitfalls to deal
+with.  This plugin hides such details and provides a declarative way to define
+text objects.  You can use regular expressions to define simple text objects,
+or use functions to define complex ones.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<h3>
+<a name="user-content-simple-text-objects-defined-by-a-pattern" class="anchor" href="#simple-text-objects-defined-by-a-pattern" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple text objects defined by a pattern</h3>
+
+<p>Define <code>ad</code>/<code>id</code> to select a date such as <code>2013-03-16</code>, and
+define <code>at</code>/<code>it</code> to select a time such as <code>22:04:21</code>:</p>
+
+<div class="highlight highlight-vim"><pre><span class="k">call</span> textobj#user#plugin<span class="p">(</span><span class="s1">'datetime'</span><span class="p">,</span> {
+\   <span class="s1">'date'</span>: {
+\     <span class="s1">'pattern'</span>: <span class="s1">'\&lt;\d\d\d\d-\d\d-\d\d\&gt;'</span><span class="p">,</span>
+\     <span class="s1">'select'</span>: [<span class="s1">'ad'</span><span class="p">,</span> <span class="s1">'id'</span>]<span class="p">,</span>
+\   }<span class="p">,</span>
+\   <span class="s1">'time'</span>: {
+\     <span class="s1">'pattern'</span>: <span class="s1">'\&lt;\d\d:\d\d:\d\d\&gt;'</span><span class="p">,</span>
+\     <span class="s1">'select'</span>: [<span class="s1">'at'</span><span class="p">,</span> <span class="s1">'it'</span>]<span class="p">,</span>
+\   }<span class="p">,</span>
+\ }<span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-simple-text-objects-surrounded-by-a-pair-of-patterns" class="anchor" href="#simple-text-objects-surrounded-by-a-pair-of-patterns" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple text objects surrounded by a pair of patterns</h3>
+
+<p>Define <code>aP</code> to select a PHP code with <code>&lt;?php</code> and <code>?&gt;</code>, and
+define <code>iP</code> to select a PHP code without <code>&lt;?php</code> and <code>?&gt;</code>:</p>
+
+<div class="highlight highlight-vim"><pre><span class="k">call</span> textobj#user#plugin<span class="p">(</span><span class="s1">'php'</span><span class="p">,</span> {
+\   <span class="s1">'code'</span>: {
+\     <span class="s1">'pattern'</span>: [<span class="s1">'&lt;?php\&gt;'</span><span class="p">,</span> <span class="s1">'?&gt;'</span>]<span class="p">,</span>
+\     <span class="s1">'select-a'</span>: <span class="s1">'aP'</span><span class="p">,</span>
+\     <span class="s1">'select-i'</span>: <span class="s1">'iP'</span><span class="p">,</span>
+\   }<span class="p">,</span>
+\ }<span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-complex-text-objects-defined-by-functions" class="anchor" href="#complex-text-objects-defined-by-functions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Complex text objects defined by functions</h3>
+
+<p>Define <code>al</code> to select the current line, and
+define <code>il</code> to select the current line without indentation:</p>
+
+<div class="highlight highlight-vim"><pre><span class="k">call</span> textobj#user#plugin<span class="p">(</span><span class="s1">'line'</span><span class="p">,</span> {
+\   <span class="s1">'-'</span>: {
+\     <span class="s1">'select-a-function'</span>: <span class="s1">'CurrentLineA'</span><span class="p">,</span>
+\     <span class="s1">'select-a'</span>: <span class="s1">'aP'</span><span class="p">,</span>
+\     <span class="s1">'select-i-function'</span>: <span class="s1">'CurrentLineI'</span><span class="p">,</span>
+\     <span class="s1">'select-i'</span>: <span class="s1">'iP'</span><span class="p">,</span>
+\   }<span class="p">,</span>
+\ }<span class="p">)</span>
+
+<span class="k">function</span><span class="p">!</span> CurrentLineA<span class="p">()</span>
+  normal<span class="p">!</span> <span class="m">0</span>
+  <span class="k">let</span> head_pos <span class="p">=</span> getpos<span class="p">(</span><span class="s1">'.'</span><span class="p">)</span>
+  normal<span class="p">!</span> $
+  <span class="k">let</span> tail_pos <span class="p">=</span> getpos<span class="p">(</span><span class="s1">'.'</span><span class="p">)</span>
+  <span class="k">return</span> [<span class="s1">'v'</span><span class="p">,</span> head_pos<span class="p">,</span> tail_pos]
+<span class="k">endfunction</span>
+
+<span class="k">function</span><span class="p">!</span> CurrentLineI<span class="p">()</span>
+  normal<span class="p">!</span> ^
+  <span class="k">let</span> head_pos <span class="p">=</span> getpos<span class="p">(</span><span class="s1">'.'</span><span class="p">)</span>
+  normal<span class="p">!</span> g_
+  <span class="k">let</span> tail_pos <span class="p">=</span> getpos<span class="p">(</span><span class="s1">'.'</span><span class="p">)</span>
+  <span class="k">let</span> non_blank_char_exists_p <span class="p">=</span> getline<span class="p">(</span><span class="s1">'.'</span><span class="p">)</span>[head_pos[<span class="m">2</span>] <span class="p">-</span> <span class="m">1</span>] <span class="p">!~</span># <span class="s1">'\s'</span>
+  <span class="k">return</span>
+  \ non_blank_char_exists_p
+  \ ? [<span class="s1">'v'</span><span class="p">,</span> head_pos<span class="p">,</span> tail_pos]
+  \ : <span class="m">0</span>
+<span class="k">endfunction</span>
+</pre></div>
+
+<h2>
+<a name="user-content-further-reading" class="anchor" href="#further-reading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further reading</h2>
+
+<p>You can define your own text objects like the above examples.  See also
+<a href="https://github.com/kana/vim-textobj-user/blob/master/doc/textobj-user.txt">the reference manual</a>
+for more details.</p>
+
+<p>There are many text objects written with vim-textobj-user.
+If you want to find useful ones, or to know how they are implemented,
+see <a href="https://github.com/kana/vim-textobj-user/wiki">a list of text objects implemented with
+vim-textobj-user</a>.</p></article></div>

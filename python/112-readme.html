@@ -1,0 +1,80 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>RQ (<em>Redis Queue</em>) is a simple Python library for queueing jobs and processing
+them in the background with workers.  It is backed by Redis and it is designed
+to have a low barrier to entry.  It should be integrated in your web stack
+easily.</p>
+
+<p><a href="https://secure.travis-ci.org/nvie/rq"><img src="https://camo.githubusercontent.com/f9b51167720e9858b99cd22ad8f518f6d22872c2/68747470733a2f2f7472617669732d63692e6f72672f6e7669652f72712e7376673f6272616e63683d6d6173746572" alt="Build status" data-canonical-src="https://travis-ci.org/nvie/rq.svg?branch=master" style="max-width:100%;"></a>
+<a href="https://pypi.python.org/pypi/rq"><img src="https://camo.githubusercontent.com/af9a736b7fec2773ed45afa86ced9c3002a989ba/68747470733a2f2f70797069702e696e2f642f72712f62616467652e737667" alt="Downloads" data-canonical-src="https://pypip.in/d/rq/badge.svg" style="max-width:100%;"></a>
+<a href="https://caniusepython3.com/project/rq"><img src="https://camo.githubusercontent.com/d5c8eaaeae18c79ca846dc790cc7eb9302688417/68747470733a2f2f63616e69757365707974686f6e332e636f6d2f70726f6a6563742f72712e737667" alt="Can I Use Python 3?" data-canonical-src="https://caniusepython3.com/project/rq.svg" style="max-width:100%;"></a>
+<a href="https://coveralls.io/r/nvie/rq"><img src="https://camo.githubusercontent.com/67fd13d7dadb15ce9af066676c813912d7bdd1a4/68747470733a2f2f696d672e736869656c64732e696f2f636f766572616c6c732f6e7669652f72712e737667" alt="Coverage Status" data-canonical-src="https://img.shields.io/coveralls/nvie/rq.svg" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>First, run a Redis server, of course:</p>
+
+<div class="highlight highlight-console"><pre><span class="gp">$</span> redis-server
+</pre></div>
+
+<p>To put jobs on queues, you don't have to do anything special, just define
+your typically lengthy or blocking function:</p>
+
+<div class="highlight highlight-python"><pre><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="k">def</span> <span class="nf">count_words_at_url</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+    <span class="sd">"""Just an example function that's called async."""</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+</pre></div>
+
+<p>You do use the excellent <a href="http://python-requests.org">requests</a> package, don't you?</p>
+
+<p>Then, create a RQ queue:</p>
+
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">rq</span> <span class="kn">import</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">use_connection</span>
+<span class="n">use_connection</span><span class="p">()</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
+</pre></div>
+
+<p>And enqueue the function call:</p>
+
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">my_module</span> <span class="kn">import</span> <span class="n">count_words_at_url</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">count_words_at_url</span><span class="p">,</span> <span class="s">'http://nvie.com'</span><span class="p">)</span>
+</pre></div>
+
+<p>For a more complete example, refer to the <a href="http://nvie.github.com/rq/docs/">docs</a>.  But this is the essence.</p>
+
+<h3>
+<a name="user-content-the-worker" class="anchor" href="#the-worker" aria-hidden="true"><span class="octicon octicon-link"></span></a>The worker</h3>
+
+<p>To start executing enqueued function calls in the background, start a worker
+from your project's directory:</p>
+
+<div class="highlight highlight-console"><pre><span class="gp">$</span> rqworker
+<span class="go">*** Listening for work on default</span>
+<span class="go">Got count_words_at_url('http://nvie.com') from default</span>
+<span class="go">Job result = 818</span>
+<span class="go">*** Listening for work on default</span>
+</pre></div>
+
+<p>That's about it.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Simply use the following command to install the latest released version:</p>
+
+<pre><code>pip install rq
+</code></pre>
+
+<p>If you want the cutting edge version (that may well be broken), use this:</p>
+
+<pre><code>pip install -e git+git@github.com:nvie/rq.git@master#egg=rq
+</code></pre>
+
+<h2>
+<a name="user-content-project-history" class="anchor" href="#project-history" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project history</h2>
+
+<p>This project has been inspired by the good parts of <a href="http://www.celeryproject.org/">Celery</a>, <a href="https://github.com/defunkt/resque">Resque</a>
+and <a href="http://flask.pocoo.org/snippets/73/">this snippet</a>, and has been created as a lightweight alternative to the
+heaviness of Celery or other AMQP-based queueing implementations.</p></article></div>

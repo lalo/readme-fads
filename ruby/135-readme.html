@@ -1,0 +1,1178 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-mina" class="anchor" href="#mina" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mina</h1>
+
+<p>Really fast deployer and server automation tool.</p>
+
+<p>Mina works really fast because it's a deploy Bash script generator. It
+generates an entire procedure as a Bash script and runs it remotely in the
+server.</p>
+
+<p>Compare this to the likes of Vlad or Capistrano, where each command
+is run separately on their own SSH sessions. Mina only creates <em>one</em> SSH
+session per deploy, minimizing the SSH connection overhead.</p>
+
+<pre><code>$ gem install mina
+$ mina
+</code></pre>
+
+<p><a href="https://travis-ci.org/mina-deploy/mina"><img src="https://camo.githubusercontent.com/14c03f1c6b028cfc8d5c91231cbd9a32afebd00e/68747470733a2f2f7472617669732d63692e6f72672f6d696e612d6465706c6f792f6d696e612e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/mina-deploy/mina.svg?branch=master" style="max-width:100%;"></a> <a href="http://badge.fury.io/rb/mina"><img src="https://camo.githubusercontent.com/82c01fcb4ce3aedc827fd5193a26a4bcf94d7b38/68747470733a2f2f62616467652e667572792e696f2f72622f6d696e612e737667" alt="Gem Version" data-canonical-src="https://badge.fury.io/rb/mina.svg" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-user-guide" class="anchor" href="#user-guide" aria-hidden="true"><span class="octicon octicon-link"></span></a>User guide</h1>
+
+<h2>
+<a name="user-content-setting-up-a-project" class="anchor" href="#setting-up-a-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting up a project</h2>
+
+<p>Let's deploy a project using Mina.</p>
+
+<h3>
+<a name="user-content-step-1-create-a-configdeployrb" class="anchor" href="#step-1-create-a-configdeployrb" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 1: Create a config/deploy.rb</h3>
+
+<p>In your project, type <code>mina init</code> to create a sample of this file.</p>
+
+<pre><code>$ mina init
+Created config/deploy.rb.
+</code></pre>
+
+<p>This is just a Rake file with tasks! See <a href="#about-deployrb">About deploy.rb</a> for 
+more info on what <em>deploy.rb</em> is. You will want to at least configure your
+server:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/deploy.rb</span>
+<span class="n">set</span> <span class="ss">:user</span><span class="p">,</span> <span class="s1">'username'</span>
+<span class="n">set</span> <span class="ss">:domain</span><span class="p">,</span> <span class="s1">'your.server.com'</span>
+<span class="n">set</span> <span class="ss">:deploy_to</span><span class="p">,</span> <span class="s1">'/var/www/flipstack.com'</span>
+<span class="o">.</span><span class="n">.</span><span class="o">.</span>
+</pre></div>
+
+<h3>
+<a name="user-content-step-2-set-up-your-server" class="anchor" href="#step-2-set-up-your-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 2: Set up your server</h3>
+
+<p>Make a directory in your server called <code>/var/www/flipstack.com</code> (in <em>deploy_to</em>)
+change it's ownership to the correct user.</p>
+
+<pre><code>$ ssh username@your.server.com
+
+# Once in your server, create the deploy folder:
+~@your.server.com$ mkdir /var/www/flipstack.com
+~@your.server.com$ chown -R username /var/www/flipstack.com
+</code></pre>
+
+<h3>
+<a name="user-content-step-3-run-mina-setup" class="anchor" href="#step-3-run-mina-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 3: Run 'mina setup'</h3>
+
+<p>Back at your computer, do <code>mina setup</code> to set up the <a href="#directory_structure">folder 
+structure</a> in this path. This will connect to your server 
+via SSH and create the right directories.</p>
+
+<pre><code>$ mina setup
+-----&gt; Creating folders... done.
+</code></pre>
+
+<p>See <a href="#directory-structure">directory structure</a> for more info.</p>
+
+<h3>
+<a name="user-content-step-4-deploy" class="anchor" href="#step-4-deploy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 4: Deploy!</h3>
+
+<p>Use <code>mina deploy</code> to run the <code>deploy</code> task defined in <em>config/deploy.rb</em>.</p>
+
+<pre><code>$ mina deploy
+-----&gt; Deploying to 2012-06-12-040248
+       ...
+       Lots of things happening...
+       ...
+-----&gt; Done.
+</code></pre>
+
+<h2>
+<a name="user-content-about-deployrb" class="anchor" href="#about-deployrb" aria-hidden="true"><span class="octicon octicon-link"></span></a>About deploy.rb</h2>
+
+<p>The file <code>deploy.rb</code> is simply a Rakefile invoked by Rake. In fact, <code>mina</code> is
+mostly an alias that invokes Rake to load <code>deploy.rb</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Sample config/deploy.rb</span>
+<span class="n">set</span> <span class="ss">:domain</span><span class="p">,</span> <span class="s1">'your.server.com'</span>
+
+<span class="n">task</span> <span class="ss">:restart</span> <span class="k">do</span>
+  <span class="n">queue</span> <span class="s1">'sudo service restart apache'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>As it's all Rake, you can define tasks that you can invoke using <code>mina</code>. In this
+example, it provides the <code>mina restart</code> command.</p>
+
+<p>The magic of Mina is in the new commands it gives you.</p>
+
+<p>The <code>queue</code> command queues up Bash commands to be run on the remote server.
+If you invoke <code>mina restart</code>, it will invoke the task above and run the queued
+commands on the remote server <code>your.server.com</code> via SSH.</p>
+
+<p>See <a href="#the-command-queue">the command queue</a> for more information on the <em>queue</em>
+command.</p>
+
+<h2>
+<a name="user-content-the-command-queue" class="anchor" href="#the-command-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>The command queue</h2>
+
+<p>At the heart of it, Mina is merely sugar on top of Rake to queue commands
+and execute them remotely at the end. Take a look at this minimal <em>deploy.rb</em>
+configuration:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/deploy.rb</span>
+<span class="n">set</span> <span class="ss">:user</span><span class="p">,</span> <span class="s1">'john'</span>
+<span class="n">set</span> <span class="ss">:domain</span><span class="p">,</span> <span class="s1">'flipstack.com'</span>
+
+<span class="n">task</span> <span class="ss">:logs</span> <span class="k">do</span>
+  <span class="n">queue</span> <span class="s1">'echo "Contents of the log file are as follows:"'</span>
+  <span class="n">queue</span> <span class="s2">"tail -f /var/log/apache.log"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Once you type <code>mina logs</code> in your terminal, it invokes the *queue*d commands
+remotely on the server using the command <code>ssh john@flipstack.com</code>.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>mina logs --simulate
+<span class="c"># Execute the following commands via</span>
+<span class="c"># ssh john@flipstack.com:</span>
+<span class="c">#</span>
+<span class="nb">echo</span> <span class="s2">"Contents of the log file are as follows:"</span>
+tail -f /var/log/apache.log
+</pre></div>
+
+<h2>
+<a name="user-content-subtasks" class="anchor" href="#subtasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Subtasks</h2>
+
+<p>Mina provides the helper <code>invoke</code> to invoke other tasks from a
+task.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/deploy.rb</span>
+<span class="n">task</span> <span class="ss">:down</span> <span class="k">do</span>
+  <span class="n">invoke</span> <span class="ss">:maintenance_on</span>
+  <span class="n">invoke</span> <span class="ss">:restart</span>
+<span class="k">end</span>
+
+<span class="n">task</span> <span class="ss">:maintenance_on</span>
+  <span class="n">queue</span> <span class="s1">'touch maintenance.txt'</span>
+<span class="k">end</span>
+
+<span class="n">task</span> <span class="ss">:restart</span>
+  <span class="n">queue</span> <span class="s1">'sudo service restart apache'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>In this example above, if you type <code>mina down</code>, it simply invokes the other
+subtasks which queues up their commands. The commands will be run after
+everything.</p>
+
+<h2>
+<a name="user-content-directory-structure" class="anchor" href="#directory-structure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directory structure</h2>
+
+<p>The deploy procedures make the assumption that you have a folder like so:</p>
+
+<pre><code>/var/www/flipstack.com/     # The deploy_to path
+ |-  releases/              # Holds releases, one subdir per release
+ |   |- 1/
+ |   |- 2/
+ |   |- 3/
+ |   '- ...
+ |-  shared/                # Holds files shared between releases
+ |   |- logs/               # Log files are usually stored here
+ |   `- ...
+ '-  current/               # A symlink to the current release in releases/
+</code></pre>
+
+<p>It also assumes that the <code>deploy_to</code> path is fully writeable/readable for the
+user we're going to SSH with.</p>
+
+<h2>
+<a name="user-content-deploying" class="anchor" href="#deploying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploying</h2>
+
+<p>Mina provides the <code>deploy</code> command which *queue*s up a deploy script for
+you.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/deploy.rb</span>
+<span class="n">set</span> <span class="ss">:domain</span><span class="p">,</span> <span class="s1">'flipstack.com'</span>
+<span class="n">set</span> <span class="ss">:user</span><span class="p">,</span> <span class="s1">'flipstack'</span>
+<span class="n">set</span> <span class="ss">:deploy_to</span><span class="p">,</span> <span class="s1">'/var/www/flipstack.com'</span>
+<span class="n">set</span> <span class="ss">:repository</span><span class="p">,</span> <span class="s1">'http://github.com/flipstack/flipstack.git'</span>
+
+<span class="n">task</span> <span class="ss">:deploy</span> <span class="k">do</span>
+  <span class="n">deploy</span> <span class="k">do</span>
+    <span class="c1"># Put things that prepare the empty release folder here.</span>
+    <span class="c1"># Commands queued here will be run on a new release directory.</span>
+    <span class="n">invoke</span> <span class="ss">:'git:clone'</span>
+    <span class="n">invoke</span> <span class="ss">:'bundle:install'</span>
+
+    <span class="c1"># These are instructions to start the app after it's been prepared.</span>
+    <span class="n">to</span> <span class="ss">:launch</span> <span class="k">do</span>
+      <span class="n">queue</span> <span class="s1">'touch tmp/restart.txt'</span>
+    <span class="k">end</span>
+
+    <span class="c1"># This optional block defines how a broken release should be cleaned up.</span>
+    <span class="n">to</span> <span class="ss">:clean</span> <span class="k">do</span>
+      <span class="n">queue</span> <span class="s1">'log "failed deployment"'</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>It works by capturing the *queue*d commands inside the block, wrapping them
+in a deploy script, then *queue*ing them back in.</p>
+
+<h3>
+<a name="user-content-how-deploying-works" class="anchor" href="#how-deploying-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How deploying works</h3>
+
+<p>Here is an example of a deploy! (Note that some commands have been simplified
+to illustrate the point better.)</p>
+
+<h3>
+<a name="user-content-step-1-build-it" class="anchor" href="#step-1-build-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 1: Build it</h3>
+
+<p>The deploy process builds a new temp folder with instructions you provide.
+In this example, it will do <code>git:clone</code> and <code>bundle:install</code>.</p>
+
+<pre><code>$ mina deploy --verbose
+-----&gt; Creating the build path
+       $ mkdir tmp/build-128293482394
+-----&gt; Cloning the Git repository
+       $ git clone https://github.com/flipstack/flipstack.git . -n --recursive
+       Cloning... done.
+-----&gt; Installing gem dependencies using Bundler
+       $ bundle install --without development:test
+       Using i18n (0.6.0)
+       Using multi_json (1.0.4)
+       ...
+       Your bundle is complete! It was installed to ./vendor/bundle
+</code></pre>
+
+<h3>
+<a name="user-content-step-2-move-it-to-releases" class="anchor" href="#step-2-move-it-to-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 2: Move it to releases</h3>
+
+<p>Once the project has been built, it will be moved to <code>releases/</code>. A symlink
+called <code>current/</code> will be created to point to the active release.</p>
+
+<pre><code>$
+-----&gt; Moving to releases/4
+       $ mv "./tmp/build-128293482394" "releases/4"
+-----&gt; Symlinking to current
+       $ ln -nfs releases/4 current
+</code></pre>
+
+<h3>
+<a name="user-content-step-3-launch-it" class="anchor" href="#step-3-launch-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step 3: Launch it</h3>
+
+<p>Invoke the commands queued up in the <code>to :launch</code> block. These often
+commands to restart the webserver process. Once this in complete, you're done!</p>
+
+<pre><code>$
+-----&gt; Launching
+       $ cd releases/4
+       $ sudo service nginx restart
+-----&gt; Done. Deployed v4
+</code></pre>
+
+<h3>
+<a name="user-content-what-about-failure" class="anchor" href="#what-about-failure" aria-hidden="true"><span class="octicon octicon-link"></span></a>What about failure?</h3>
+
+<p>If it fails at any point, the release path will be deleted. If any commands are
+queued using the <code>to :clean</code> block, they will be run. It will be as if nothing
+happened. Lets see what happens if a build fails:</p>
+
+<pre><code>$
+-----&gt; Launching
+       $ cd releases/4
+       $ sudo service nginx restart
+       Starting nginx... error: can't start service
+-----&gt; ERROR: Deploy failed.
+-----&gt; Cleaning up build
+       $ rm -rf tmp/build-128293482394
+-----&gt; Unlinking current
+       $ ln -nfs releases/3 current
+       OK
+</code></pre>
+
+<h2>
+<a name="user-content-command-line-options" class="anchor" href="#command-line-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command line options</h2>
+
+<p>Basic usage:</p>
+
+<pre><code>$ mina [OPTIONS] [TASKS] [VAR1=val VAR2=val ...]
+</code></pre>
+
+<h3>
+<a name="user-content-options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Options</h3>
+
+<ul class="task-list">
+<li><p><code>-v</code> / <code>--verbose</code> - This will show commands being done on the server. Off by
+default.</p></li>
+<li><p><code>-S</code> / <code>--simulate</code> - This will not invoke any SSH connections; instead, it
+will simply output the script it builds.</p></li>
+<li><p><code>-t</code> / <code>--trace</code> - Show backtraces when errors occur.</p></li>
+<li><p><code>-f FILE</code> - Use a custom deploy.rb configuration.</p></li>
+<li><p><code>-V</code> / <code>--version</code> - Shows the current version.</p></li>
+</ul><h3>
+<a name="user-content-tasks" class="anchor" href="#tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h3>
+
+<p>There are many tasks available. See the <a href="http://mina-deploy.github.io/mina/tasks/index.html">tasks reference</a>, or 
+type <code>mina tasks</code>.</p>
+
+<h3>
+<a name="user-content-variables" class="anchor" href="#variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Variables</h3>
+
+<p>You may specify additional variables in the <code>KEY=value</code> style, just like Rake.
+You can add as many variables as needed.</p>
+
+<pre><code>$ mina restart on=staging
+
+# This sets the ENV['on'] variable to 'staging'.
+</code></pre>
+
+<h1>
+<a name="user-content-helpers" class="anchor" href="#helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Helpers</h1>
+
+<h3>
+<a name="user-content-invoke" class="anchor" href="#invoke" aria-hidden="true"><span class="octicon octicon-link"></span></a>invoke</h3>
+
+<p>Invokes another Rake task.</p>
+
+<p>Invokes the task given in <code>task</code>. Returns nothing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">invoke</span> <span class="ss">:'git:clone'</span>
+<span class="n">invoke</span> <span class="ss">:restart</span>
+</pre></div>
+
+<p>Options:
+  reenable (bool) - Execute the task even next time.</p>
+
+<h3>
+<a name="user-content-erb" class="anchor" href="#erb" aria-hidden="true"><span class="octicon octicon-link"></span></a>erb</h3>
+
+<p>Evaluates an ERB block in the current scope and returns a string.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">b</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="c1"># Assuming foo.erb is &lt;%= a %&gt; and &lt;%= b %&gt;</span>
+<span class="nb">puts</span> <span class="n">erb</span><span class="p">(</span><span class="s1">'foo.erb'</span><span class="p">)</span>
+<span class="c1">#=&gt; "1 and 2"</span>
+</pre></div>
+
+<p>Returns the output string of the ERB template.</p>
+
+<h3>
+<a name="user-content-run" class="anchor" href="#run" aria-hidden="true"><span class="octicon octicon-link"></span></a>run!</h3>
+
+<p>SSHs into the host and runs the code that has been queued.</p>
+
+<p>This is already automatically invoked before Rake exits to run all
+commands that have been queued up.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue</span> <span class="s2">"sudo restart"</span>
+<span class="n">run!</span>
+</pre></div>
+
+<p>Returns nothing.</p>
+
+<h3>
+<a name="user-content-report_time" class="anchor" href="#report_time" aria-hidden="true"><span class="octicon octicon-link"></span></a>report_time</h3>
+
+<p>Report time elapsed in the block.
+Returns the output of the block.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">report_time</span> <span class="k">do</span>
+  <span class="nb">sleep</span> <span class="mi">2</span>
+  <span class="c1"># do other things</span>
+<span class="k">end</span>
+<span class="c1"># Output:</span>
+<span class="c1"># Elapsed time: 2.00 seconds</span>
+</pre></div>
+
+<h3>
+<a name="user-content-measure" class="anchor" href="#measure" aria-hidden="true"><span class="octicon octicon-link"></span></a>measure</h3>
+
+<p>Measures the time (in seconds) a block takes.
+Returns a [time, output] tuple.</p>
+
+<h3>
+<a name="user-content-mina_cleanup" class="anchor" href="#mina_cleanup" aria-hidden="true"><span class="octicon octicon-link"></span></a>mina_cleanup</h3>
+
+<p><strong>Internal:</strong> Invoked when Rake exits.</p>
+
+<p>Returns nothing.</p>
+
+<h2>
+<a name="user-content-errors" class="anchor" href="#errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Errors</h2>
+
+<h3>
+<a name="user-content-die" class="anchor" href="#die" aria-hidden="true"><span class="octicon octicon-link"></span></a>die</h3>
+
+<p>Exits with a nice looking message.
+Returns nothing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">die</span> <span class="mi">2</span>
+<span class="n">die</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"Tests failed"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-error" class="anchor" href="#error" aria-hidden="true"><span class="octicon octicon-link"></span></a>error</h3>
+
+<p><strong>Internal:</strong> Prints to stdout.
+Consider using <code>print_error</code> instead.</p>
+
+<h2>
+<a name="user-content-queueing" class="anchor" href="#queueing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Queueing</h2>
+
+<h3>
+<a name="user-content-queue" class="anchor" href="#queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>queue</h3>
+
+<p>Queues code to be run.</p>
+
+<p>This queues code to be run to the current code bucket (defaults to <code>:default</code>).
+To get the things that have been queued, use commands[:default]</p>
+
+<p>Returns nothing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue</span> <span class="s2">"sudo restart"</span>
+<span class="n">queue</span> <span class="s2">"true"</span>
+<span class="n">commands</span> <span class="o">==</span> <span class="o">[</span><span class="s1">'sudo restart'</span><span class="p">,</span> <span class="s1">'true'</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-queue-1" class="anchor" href="#queue-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>queue!</h3>
+
+<p>Shortcut for <code>queue</code>ing a command that shows up in verbose mode.</p>
+
+<h3>
+<a name="user-content-echo_cmd" class="anchor" href="#echo_cmd" aria-hidden="true"><span class="octicon octicon-link"></span></a>echo_cmd</h3>
+
+<p>Converts a bash command to a command that echoes before execution.
+Used to show commands in verbose mode. This does nothing unless verbose mode is on.</p>
+
+<p>Returns a string of the compound bash command, typically in the format of
+<code>echo xx &amp;&amp; xx</code>. However, if <code>verbose_mode?</code> is false, it returns the
+input string unharmed.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">echo_cmd</span><span class="p">(</span><span class="s2">"ln -nfs releases/2 current"</span><span class="p">)</span>
+<span class="c1">#=&gt; echo "$ ln -nfs releases/2 current" &amp;&amp; ln -nfs releases/2 current</span>
+</pre></div>
+
+<h2>
+<a name="user-content-commands" class="anchor" href="#commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Commands</h2>
+
+<h3>
+<a name="user-content-commands-1" class="anchor" href="#commands-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>commands</h3>
+
+<p>Returns an array of queued code strings.</p>
+
+<p>You may give an optional <code>aspect</code>.</p>
+
+<p>Returns an array of strings.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue</span> <span class="s2">"sudo restart"</span>
+<span class="n">queue</span> <span class="s2">"true"</span>
+<span class="n">to</span> <span class="ss">:clean</span> <span class="k">do</span>
+  <span class="n">queue</span> <span class="s2">"rm"</span>
+<span class="k">end</span>
+<span class="n">commands</span> <span class="o">==</span> <span class="o">[</span><span class="s2">"sudo restart"</span><span class="p">,</span> <span class="s2">"true"</span><span class="o">]</span>
+<span class="n">commands</span><span class="p">(</span><span class="ss">:clean</span><span class="p">)</span> <span class="o">==</span> <span class="o">[</span><span class="s2">"rm"</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-isolate" class="anchor" href="#isolate" aria-hidden="true"><span class="octicon octicon-link"></span></a>isolate</h3>
+
+<p>Starts a new block where new <code>commands</code> are collected.</p>
+
+<p>Returns nothing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue</span> <span class="s2">"sudo restart"</span>
+<span class="n">queue</span> <span class="s2">"true"</span>
+<span class="n">commands</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="o">[</span><span class="s1">'sudo restart'</span><span class="p">,</span> <span class="s1">'true'</span><span class="o">]</span>
+<span class="n">isolate</span> <span class="k">do</span>
+  <span class="n">queue</span> <span class="s2">"reload"</span>
+  <span class="n">commands</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="o">[</span><span class="s1">'reload'</span><span class="o">]</span>
+<span class="k">end</span>
+<span class="n">commands</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="o">[</span><span class="s1">'sudo restart'</span><span class="p">,</span> <span class="s1">'true'</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-in_directory" class="anchor" href="#in_directory" aria-hidden="true"><span class="octicon octicon-link"></span></a>in_directory</h3>
+
+<p>Starts a new block where #commands are collected, to be executed inside <code>path</code>.</p>
+
+<p>Returns nothing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">in_directory</span> <span class="s1">'./webapp'</span> <span class="k">do</span>
+  <span class="n">queue</span> <span class="s2">"./reload"</span>
+<span class="k">end</span>
+<span class="n">commands</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="o">[</span><span class="s1">'cd ./webapp &amp;&amp; (./reload &amp;&amp; true)'</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-to" class="anchor" href="#to" aria-hidden="true"><span class="octicon octicon-link"></span></a>to</h3>
+
+<p>Defines instructions on how to do a certain thing.
+This makes the commands that are <code>queue</code>d go into a different bucket in commands.</p>
+
+<p>Returns nothing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">to</span> <span class="ss">:prepare</span> <span class="k">do</span>
+  <span class="n">run</span> <span class="s2">"bundle install"</span>
+<span class="k">end</span>
+<span class="n">to</span> <span class="ss">:launch</span> <span class="k">do</span>
+  <span class="n">run</span> <span class="s2">"nginx -s restart"</span>
+<span class="k">end</span>
+<span class="n">commands</span><span class="p">(</span><span class="ss">:prepare</span><span class="p">)</span> <span class="o">==</span> <span class="o">[</span><span class="s2">"bundle install"</span><span class="o">]</span>
+<span class="n">commands</span><span class="p">(</span><span class="ss">:restart</span><span class="p">)</span> <span class="o">==</span> <span class="o">[</span><span class="s2">"nginx -s restart"</span><span class="o">]</span>
+</pre></div>
+
+<h2>
+<a name="user-content-settings-helpers" class="anchor" href="#settings-helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings helpers</h2>
+
+<h3>
+<a name="user-content-set" class="anchor" href="#set" aria-hidden="true"><span class="octicon octicon-link"></span></a>set</h3>
+
+<p>Sets settings.
+Sets given symbol <code>key</code> to value in <code>value</code>.</p>
+
+<p>Returns the value.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:domain</span><span class="p">,</span> <span class="s1">'kickflip.me'</span>
+</pre></div>
+
+<h3>
+<a name="user-content-set_default" class="anchor" href="#set_default" aria-hidden="true"><span class="octicon octicon-link"></span></a>set_default</h3>
+
+<p>Sets default settings.
+Sets given symbol <code>key</code> to value in <code>value</code> only if the key isn't set yet.</p>
+
+<p>Returns the value.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set_default</span> <span class="ss">:term_mode</span><span class="p">,</span> <span class="ss">:pretty</span>
+<span class="n">set</span> <span class="ss">:term_mode</span><span class="p">,</span> <span class="ss">:system</span>
+<span class="n">settings</span><span class="o">.</span><span class="n">term_mode</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="ss">:system</span>
+<span class="n">set</span> <span class="ss">:term_mode</span><span class="p">,</span> <span class="ss">:system</span>
+<span class="n">set_default</span> <span class="ss">:term_mode</span><span class="p">,</span> <span class="ss">:pretty</span>
+<span class="n">settings</span><span class="o">.</span><span class="n">term_mode</span><span class="o">.</span><span class="n">should</span> <span class="o">==</span> <span class="ss">:system</span>
+</pre></div>
+
+<h3>
+<a name="user-content-settings" class="anchor" href="#settings" aria-hidden="true"><span class="octicon octicon-link"></span></a>settings</h3>
+
+<p>Accesses the settings hash.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:domain</span><span class="p">,</span> <span class="s1">'kickflip.me'</span>
+<span class="n">settings</span><span class="o">.</span><span class="n">domain</span>  <span class="c1">#=&gt; 'kickflip.me'</span>
+<span class="n">domain</span>           <span class="c1">#=&gt; 'kickflip.me'</span>
+</pre></div>
+
+<h3>
+<a name="user-content-method_missing" class="anchor" href="#method_missing" aria-hidden="true"><span class="octicon octicon-link"></span></a>method_missing</h3>
+
+<p>Hook to get settings.
+See #settings for an explanation.</p>
+
+<p>Returns things.</p>
+
+<h2>
+<a name="user-content-command-line-mode-helpers" class="anchor" href="#command-line-mode-helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command line mode helpers</h2>
+
+<h3>
+<a name="user-content-verbose_mode" class="anchor" href="#verbose_mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>verbose_mode?</h3>
+
+<p>Checks if Rake was invoked with --verbose.</p>
+
+<p>Returns true or false.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">if</span> <span class="n">verbose_mode?</span>
+  <span class="n">queue</span> <span class="sx">%[echo "-----&gt; Starting a new process"]</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-simulate_mode" class="anchor" href="#simulate_mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>simulate_mode?</h3>
+
+<p>Checks if Rake was invoked with --simulate.</p>
+
+<p>Returns true or false.</p>
+
+<h2>
+<a name="user-content-internal-helpers" class="anchor" href="#internal-helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Internal helpers</h2>
+
+<h3>
+<a name="user-content-indent" class="anchor" href="#indent" aria-hidden="true"><span class="octicon octicon-link"></span></a>indent</h3>
+
+<p>Indents a given code block with <code>count</code> spaces before it.</p>
+
+<h3>
+<a name="user-content-unindent" class="anchor" href="#unindent" aria-hidden="true"><span class="octicon octicon-link"></span></a>unindent</h3>
+
+<p><strong>Internal:</strong> Normalizes indentation on a given string.</p>
+
+<p>Returns the normalized string without extraneous indentation.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">puts</span> <span class="n">unindent</span> <span class="sx">%{</span>
+<span class="sx">  Hello</span>
+<span class="sx">    There</span>
+<span class="sx">}</span>
+<span class="c1"># Output:</span>
+<span class="c1"># Hello</span>
+<span class="c1">#   There</span>
+</pre></div>
+
+<h3>
+<a name="user-content-reindent" class="anchor" href="#reindent" aria-hidden="true"><span class="octicon octicon-link"></span></a>reindent</h3>
+
+<p>Resets the indentation on a given code block.</p>
+
+<h3>
+<a name="user-content-capture" class="anchor" href="#capture" aria-hidden="true"><span class="octicon octicon-link"></span></a>capture</h3>
+
+<p>Returns the output of command via SSH.</p>
+
+<h1>
+<a name="user-content-helpers-deploy-helpers" class="anchor" href="#helpers-deploy-helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Helpers: Deploy helpers</h1>
+
+<p>Helpers for deployment.</p>
+
+<h3>
+<a name="user-content-deploy" class="anchor" href="#deploy" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy</h3>
+
+<p>Wraps the things inside it in a deploy script and queues it.
+This generates a script using deploy_script and queues it.</p>
+
+<p>Returns nothing.</p>
+
+<h3>
+<a name="user-content-deploy_script" class="anchor" href="#deploy_script" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy_script</h3>
+
+<p>Wraps the things inside it in a deploy script.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">script</span> <span class="o">=</span> <span class="n">deploy_script</span> <span class="k">do</span>
+  <span class="n">invoke</span> <span class="ss">:'git:checkout'</span>
+<span class="k">end</span>
+<span class="n">queue</span> <span class="n">script</span>
+</pre></div>
+
+<p>Returns the deploy script as a string, ready for <code>queue</code>ing.</p>
+
+<h1>
+<a name="user-content-modules-bundler" class="anchor" href="#modules-bundler" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: Bundler</h1>
+
+<p>Adds settings and tasks for managing Ruby Bundler.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'mina/bundler'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-settings-1" class="anchor" href="#settings-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-bundle_bin" class="anchor" href="#bundle_bin" aria-hidden="true"><span class="octicon octicon-link"></span></a>bundle_bin</h3>
+
+<p>Sets the bundle path.</p>
+
+<h3>
+<a name="user-content-bundle_path" class="anchor" href="#bundle_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>bundle_path</h3>
+
+<p>Sets the path to where the gems are expected to be.</p>
+
+<p>This path will be symlinked to <code>./shared/bundle</code> so that the gems cache will
+be shared between all releases.</p>
+
+<h3>
+<a name="user-content-bundle_options" class="anchor" href="#bundle_options" aria-hidden="true"><span class="octicon octicon-link"></span></a>bundle_options</h3>
+
+<p>Sets the options for installing gems via Bundler.</p>
+
+<h2>
+<a name="user-content-deploy-tasks" class="anchor" href="#deploy-tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploy tasks</h2>
+
+<p>These tasks are meant to be invoked inside deploy scripts, not invoked on
+their own.</p>
+
+<h3>
+<a name="user-content-bundleinstall" class="anchor" href="#bundleinstall" aria-hidden="true"><span class="octicon octicon-link"></span></a>bundle:install</h3>
+
+<p>Installs gems.</p>
+
+<h1>
+<a name="user-content-modules-default" class="anchor" href="#modules-default" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: Default</h1>
+
+<p>This module is loaded when invoking <code>mina</code> with or without a project.</p>
+
+<h2>
+<a name="user-content-settings-2" class="anchor" href="#settings-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Here are some of the common settings. All settings are optional unless
+otherwise noted.</p>
+
+<h3>
+<a name="user-content-deploy_to" class="anchor" href="#deploy_to" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy_to</h3>
+
+<p>(Required) Path to deploy to.</p>
+
+<h3>
+<a name="user-content-domain" class="anchor" href="#domain" aria-hidden="true"><span class="octicon octicon-link"></span></a>domain</h3>
+
+<p>(Required) Host name to deploy to.</p>
+
+<h3>
+<a name="user-content-port" class="anchor" href="#port" aria-hidden="true"><span class="octicon octicon-link"></span></a>port</h3>
+
+<p>SSH port number.</p>
+
+<h3>
+<a name="user-content-forward_agent" class="anchor" href="#forward_agent" aria-hidden="true"><span class="octicon octicon-link"></span></a>forward_agent</h3>
+
+<p>If set to <code>true</code>, enables SSH agent forwarding.</p>
+
+<h3>
+<a name="user-content-identity_file" class="anchor" href="#identity_file" aria-hidden="true"><span class="octicon octicon-link"></span></a>identity_file</h3>
+
+<p>The local path to the SSH private key file.</p>
+
+<h3>
+<a name="user-content-ssh_options" class="anchor" href="#ssh_options" aria-hidden="true"><span class="octicon octicon-link"></span></a>ssh_options</h3>
+
+<p>Switches to be passed to the <code>ssh</code> command.</p>
+
+<h2>
+<a name="user-content-tasks-1" class="anchor" href="#tasks-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-environment" class="anchor" href="#environment" aria-hidden="true"><span class="octicon octicon-link"></span></a>environment</h3>
+
+<p>Make the <code>:environment</code> task exist by default. This is meant to be overridden
+by users.</p>
+
+<h3>
+<a name="user-content-init" class="anchor" href="#init" aria-hidden="true"><span class="octicon octicon-link"></span></a>init</h3>
+
+<p>Initializes a new Mina project.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="n">init</span>
+</pre></div>
+
+<h3>
+<a name="user-content-help" class="anchor" href="#help" aria-hidden="true"><span class="octicon octicon-link"></span></a>help</h3>
+
+<p>Shows the help screen.</p>
+
+<h3>
+<a name="user-content-tasks-2" class="anchor" href="#tasks-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>tasks</h3>
+
+<p>Display all tasks in a nice table.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="n">tasks</span>
+</pre></div>
+
+<h1>
+<a name="user-content-modules-deployment" class="anchor" href="#modules-deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: Deployment</h1>
+
+<p>This module is automatically loaded for all Mina projects.</p>
+
+<h2>
+<a name="user-content-settings-3" class="anchor" href="#settings-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-releases_path" class="anchor" href="#releases_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>releases_path</h3>
+
+<p>(default: 'releases')</p>
+
+<h3>
+<a name="user-content-shared_path" class="anchor" href="#shared_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>shared_path</h3>
+
+<p>(default: 'shared')</p>
+
+<h3>
+<a name="user-content-current_path" class="anchor" href="#current_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>current_path</h3>
+
+<p>(default: 'current_path')</p>
+
+<h3>
+<a name="user-content-lock_file" class="anchor" href="#lock_file" aria-hidden="true"><span class="octicon octicon-link"></span></a>lock_file</h3>
+
+<p>Name of the file to generate while a deploy is currently ongoing.
+(default: 'deploy.lock')</p>
+
+<h3>
+<a name="user-content-keep_releases" class="anchor" href="#keep_releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>keep_releases</h3>
+
+<p>Number of releases to keep when doing the <code>deploy:cleanup</code> task.
+(default: 5)</p>
+
+<h2>
+<a name="user-content-tasks-3" class="anchor" href="#tasks-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h2>
+
+<h3>
+<a name="user-content-deployforce_unlock" class="anchor" href="#deployforce_unlock" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy:force_unlock</h3>
+
+<p>Forces a deploy unlock by deleting the lock file.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="ss">deploy</span><span class="p">:</span><span class="n">force_unlock</span>
+</pre></div>
+
+<p>You can also combine that task with <code>deploy</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="ss">deploy</span><span class="p">:</span><span class="n">force_unlock</span> <span class="n">deploy</span>
+</pre></div>
+
+<h3>
+<a name="user-content-deploylink_shared_paths" class="anchor" href="#deploylink_shared_paths" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy:link_shared_paths</h3>
+
+<p>Links the shared paths in the <code>shared_paths</code> setting.</p>
+
+<h3>
+<a name="user-content-deploycleanup" class="anchor" href="#deploycleanup" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy:cleanup</h3>
+
+<p>Cleans up old releases.</p>
+
+<p>By default, the last 5 releases are kept on each server (though you can
+change this with the keep_releases setting).  All other deployed revisions
+are removed from the servers."</p>
+
+<h3>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>setup</h3>
+
+<p>Sets up a site's directory structure.</p>
+
+<h3>
+<a name="user-content-run-1" class="anchor" href="#run-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>run[]</h3>
+
+<p>Runs a command on a server.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="n">run</span><span class="o">[</span><span class="n">tail</span> <span class="o">-</span><span class="n">f</span> <span class="n">logs</span><span class="o">.</span><span class="n">txt</span><span class="o">]</span>
+</pre></div>
+
+<h1>
+<a name="user-content-modules-foreman" class="anchor" href="#modules-foreman" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: Foreman</h1>
+
+<p>Adds settings and tasks for managing projects with <a href="http://rubygems.org/ddolar/foreman">foreman</a>.</p>
+
+<p>NOTE: Requires sudo privileges</p>
+
+<p>require 'mina/foreman'</p>
+
+<h2>
+<a name="user-content-common-usage" class="anchor" href="#common-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Common usage</h2>
+
+<p>set :application, "app-name"</p>
+
+<p>task :deploy =&gt; :environment do</p>
+
+<div class="highlight highlight-ruby"><pre> <span class="n">deploy</span> <span class="k">do</span>
+   <span class="c1"># ...</span>
+   <span class="n">invoke</span> <span class="s1">'foreman:export'</span>
+   <span class="c1"># ...</span>
+ <span class="k">end</span>
+ <span class="n">to</span> <span class="ss">:launch</span> <span class="k">do</span>
+   <span class="n">invoke</span> <span class="s1">'foreman:restart'</span>
+ <span class="k">end</span>
+</pre></div>
+
+<p>end</p>
+
+<h2>
+<a name="user-content-settings-4" class="anchor" href="#settings-4" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-foreman_app" class="anchor" href="#foreman_app" aria-hidden="true"><span class="octicon octicon-link"></span></a>foreman_app</h3>
+
+<p>Sets the service name that foreman will export to upstart. Uses <em>application</em>
+variable as a default. It should be set, otherwise export command will fail.</p>
+
+<h3>
+<a name="user-content-foreman_user" class="anchor" href="#foreman_user" aria-hidden="true"><span class="octicon octicon-link"></span></a>foreman_user</h3>
+
+<p>Sets the user under which foreman will execute the service. Defaults to <em>user</em></p>
+
+<h3>
+<a name="user-content-foreman_log" class="anchor" href="#foreman_log" aria-hidden="true"><span class="octicon octicon-link"></span></a>foreman_log</h3>
+
+<p>Sets the foreman log path. Defaults to <em>shared/log</em></p>
+
+<p>encoding: utf-8</p>
+
+<h1>
+<a name="user-content-modules-git" class="anchor" href="#modules-git" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: Git</h1>
+
+<p>Adds settings and tasks related to managing Git.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'mina/git'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-settings-5" class="anchor" href="#settings-5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-branch" class="anchor" href="#branch" aria-hidden="true"><span class="octicon octicon-link"></span></a>branch</h3>
+
+<p>Sets the branch to be deployed.</p>
+
+<h2>
+<a name="user-content-deploy-tasks-1" class="anchor" href="#deploy-tasks-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploy tasks</h2>
+
+<p>These tasks are meant to be invoked inside deploy scripts, not invoked on
+their own.</p>
+
+<h3>
+<a name="user-content-gitclone" class="anchor" href="#gitclone" aria-hidden="true"><span class="octicon octicon-link"></span></a>git:clone</h3>
+
+<p>Clones the Git repository. Meant to be used inside a deploy script.</p>
+
+<h1>
+<a name="user-content-modules-rails" class="anchor" href="#modules-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: Rails</h1>
+
+<p>Adds settings and tasks for managing Rails projects.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'mina/rails'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-settings-6" class="anchor" href="#settings-6" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-rails_env" class="anchor" href="#rails_env" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails_env</h3>
+
+<p>Sets the Rails environment for <code>rake</code> and <code>rails</code> commands.</p>
+
+<p>Note that changing this will NOT change the environment that your application
+is run in.</p>
+
+<h3>
+<a name="user-content-bundle_prefix" class="anchor" href="#bundle_prefix" aria-hidden="true"><span class="octicon octicon-link"></span></a>bundle_prefix</h3>
+
+<p>Prefix for Bundler commands. Often to something like <code>RAILS_ENV=production
+bundle exec</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue!</span> <span class="s2">"</span><span class="si">#{</span><span class="n">bundle_prefix</span><span class="si">}</span><span class="s2"> annotate -r"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-rake" class="anchor" href="#rake" aria-hidden="true"><span class="octicon octicon-link"></span></a>rake</h3>
+
+<p>The prefix for <code>rake</code> commands. Use like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue!</span> <span class="s2">"</span><span class="si">#{</span><span class="n">rake</span><span class="si">}</span><span class="s2"> db:migrate"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-rails" class="anchor" href="#rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails</h3>
+
+<p>The prefix for <code>rails</code> commands. Use like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">queue!</span> <span class="s2">"</span><span class="si">#{</span><span class="n">rails</span><span class="si">}</span><span class="s2"> console"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-asset_paths" class="anchor" href="#asset_paths" aria-hidden="true"><span class="octicon octicon-link"></span></a>asset_paths</h3>
+
+<p>The paths to be checked.</p>
+
+<p>Whenever assets are compiled, the asset files are checked if they have
+changed from the previous release.</p>
+
+<p>If they're unchanged, compiled assets will simply be copied over to the new
+release.</p>
+
+<p>Override this if you have custom asset paths declared in your Rails's
+<code>config.assets.paths</code> setting.</p>
+
+<h3>
+<a name="user-content-rake_assets_precompile" class="anchor" href="#rake_assets_precompile" aria-hidden="true"><span class="octicon octicon-link"></span></a>rake_assets_precompile</h3>
+
+<p>The command to invoke when precompiling assets.
+Override me if you like.</p>
+
+<hr><p>Macro used later by :rails, :rake, etc</p>
+
+<h2>
+<a name="user-content-command-line-tasks" class="anchor" href="#command-line-tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command-line tasks</h2>
+
+<p>These tasks can be invoked in the command line.</p>
+
+<h3>
+<a name="user-content-rails-1" class="anchor" href="#rails-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails[]</h3>
+
+<p>Invokes a rails command.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="n">rails</span><span class="o">[</span><span class="n">console</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-rake-1" class="anchor" href="#rake-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>rake[]</h3>
+
+<p>Invokes a rake command.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="n">rake</span> <span class="ss">db</span><span class="p">:</span><span class="n">cleanup</span>
+</pre></div>
+
+<h3>
+<a name="user-content-console" class="anchor" href="#console" aria-hidden="true"><span class="octicon octicon-link"></span></a>console</h3>
+
+<p>Opens the Ruby console for the currently-deployed version.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="err">$</span> <span class="n">mina</span> <span class="n">console</span>
+</pre></div>
+
+<h2>
+<a name="user-content-deploy-tasks-2" class="anchor" href="#deploy-tasks-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploy tasks</h2>
+
+<p>These tasks are meant to be invoked inside deploy scripts, not invoked on
+their own.</p>
+
+<h3>
+<a name="user-content-railsdb_migrate" class="anchor" href="#railsdb_migrate" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails:db_migrate</h3>
+
+<h3>
+<a name="user-content-railsdb_migrateforce" class="anchor" href="#railsdb_migrateforce" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails:db_migrate:force</h3>
+
+<h3>
+<a name="user-content-railsassets_precompileforce" class="anchor" href="#railsassets_precompileforce" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails:assets_precompile:force</h3>
+
+<h3>
+<a name="user-content-railsassets_precompile" class="anchor" href="#railsassets_precompile" aria-hidden="true"><span class="octicon octicon-link"></span></a>rails:assets_precompile</h3>
+
+<h1>
+<a name="user-content-modules-rbenv" class="anchor" href="#modules-rbenv" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: rbenv</h1>
+
+<p>Adds settings and tasks for managing <a href="https://github.com/sstephenson/rbenv">rbenv</a> installations.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'mina/rbenv'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-common-usage-1" class="anchor" href="#common-usage-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Common usage</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="n">task</span> <span class="ss">:environment</span> <span class="k">do</span>
+  <span class="n">invoke</span> <span class="ss">:'rbenv:load'</span>
+<span class="k">end</span>
+<span class="n">task</span> <span class="ss">:deploy</span> <span class="o">=&gt;</span> <span class="ss">:environment</span> <span class="k">do</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-settings-7" class="anchor" href="#settings-7" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-rbenv_path" class="anchor" href="#rbenv_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv_path</h3>
+
+<p>Sets the path where <em>rbenv</em> is installed.</p>
+
+<p>You may override this if rbenv is placed elsewhere in your setup.</p>
+
+<h2>
+<a name="user-content-tasks-4" class="anchor" href="#tasks-4" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h2>
+
+<h3>
+<a name="user-content-rbenvload" class="anchor" href="#rbenvload" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv:load</h3>
+
+<p>Loads the <em>rbenv</em> runtime.</p>
+
+<h1>
+<a name="user-content-modules-rvm" class="anchor" href="#modules-rvm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modules: RVM</h1>
+
+<p>Adds settings and tasks for managing <a href="http://rvm.io">RVM</a> installations.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'mina/rvm'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-common-usage-2" class="anchor" href="#common-usage-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Common usage</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="n">task</span> <span class="ss">:environment</span> <span class="k">do</span>
+  <span class="n">invoke</span> <span class="ss">:'rvm:use[ruby-1.9.3-p125@gemset_name]'</span>
+<span class="k">end</span>
+<span class="n">task</span> <span class="ss">:deploy</span> <span class="o">=&gt;</span> <span class="ss">:environment</span> <span class="k">do</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-settings-8" class="anchor" href="#settings-8" aria-hidden="true"><span class="octicon octicon-link"></span></a>Settings</h2>
+
+<p>Any and all of these settings can be overriden in your <code>deploy.rb</code>.</p>
+
+<h3>
+<a name="user-content-rvm_path" class="anchor" href="#rvm_path" aria-hidden="true"><span class="octicon octicon-link"></span></a>rvm_path</h3>
+
+<p>Sets the path to RVM.</p>
+
+<p>You can override this in your projects if RVM is installed in a different
+path, say, if you have a system-wide RVM install.</p>
+
+<h2>
+<a name="user-content-tasks-5" class="anchor" href="#tasks-5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h2>
+
+<h3>
+<a name="user-content-rvmuse" class="anchor" href="#rvmuse" aria-hidden="true"><span class="octicon octicon-link"></span></a>rvm:use[]</h3>
+
+<p>Uses a given RVM environment provided as an argument.</p>
+
+<p>This is usually placed in the <code>:environment</code> task.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">task</span> <span class="ss">:environment</span> <span class="k">do</span>
+  <span class="n">invoke</span> <span class="ss">:'rvm:use[ruby-1.9.3-p125@gemset_name]'</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-rvmwrapper" class="anchor" href="#rvmwrapper" aria-hidden="true"><span class="octicon octicon-link"></span></a>rvm:wrapper[]</h3>
+
+<p>Creates a rvm wrapper for a given executable.</p>
+
+<p>This is usually placed in the <code>:setup</code> task.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">task</span> <span class="o">::</span><span class="n">setup</span> <span class="o">=&gt;</span> <span class="ss">:environment</span> <span class="k">do</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+  <span class="n">invoke</span> <span class="ss">:'rvm:wrapper[ruby-1.9.3-p125@gemset_name,wrapper_name,binary_name]'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Adds settings and tasks for managing projects with <a href="http://rubygems.org/gems/whenever">whenever</a>.</p>
+
+<h2>
+<a name="user-content-acknowledgements" class="anchor" href="#acknowledgements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Acknowledgements</h2>
+
+<p>© 2012-2013, Nadarei. Released under the <a href="http://www.opensource.org/licenses/mit-license.php">MIT 
+License</a>.</p>
+
+<p>Mina is authored and maintained by <a href="http://ricostacruz.com">Rico Sta. Cruz</a> and <a href="http://devblog.michaelgalero.com/">Michael 
+Galero</a> with help from its <a href="http://github.com/nadarei/mina/contributors">contributors</a>. It is sponsored by our 
+startup, <a href="http://nadarei.co">Nadarei</a>.</p>
+
+<ul class="task-list">
+<li>
+<a href="http://nadarei.co">Nadarei</a> (nadarei.co)</li>
+<li>
+<a href="http://github.com/nadarei">Github</a> (@nadarei)</li>
+</ul><p>Rico:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://ricostacruz.com">My website</a> (ricostacruz.com)</li>
+<li>
+<a href="http://github.com/rstacruz">Github</a> (@rstacruz)</li>
+<li>
+<a href="http://twitter.com/rstacruz">Twitter</a> (@rstacruz)</li>
+</ul><p>Michael:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://devblog.michaelgalero.com/">My website</a> (michaelgalero.com)</li>
+<li>
+<a href="http://github.com/mikong">Github</a> (@mikong)</li>
+</ul></article></div>

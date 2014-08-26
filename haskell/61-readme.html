@@ -1,0 +1,363 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
+
+<p><a href="http://code.google.com/p/scion-lib/">Scion</a> is a Haskell library that aims to implement those parts
+of a Haskell IDE which are independent of the particular front-end.
+Scion is based on the GHC API and Cabal.  It provides both a Haskell
+API and a server for non-Haskell clients such as Emacs and Vim.</p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>(For developer builds see section "Hacking" below.)</p>
+
+<p>Scion requires <a href="http://haskell.org/ghc/download.html">GHC 6.10.1</a> or later.  All other dependencies
+should be on <a href="http://hackage.haskell.org/packages/hackage.html">Hackage</a> and can be installed using
+<a href="http://hackage.haskell.org/trac/hackage/wiki/CabalInstall">cabal-install</a>.  Scion consists of a library and a server which
+is used by front-ends that are not written in Haskell.</p>
+
+<p>To install the library and server use:</p>
+
+<pre><code>$ cd dir/to/scion
+$ cabal install
+</code></pre>
+
+<p>This will install the executable <code>scion_server</code> in the <code>bin</code> directory
+of <code>cabal-install</code>, typically <code>$HOME/.cabal/bin</code>.</p>
+
+<p>If you do not want to install the server (and its dependencies), turn
+off the "server" flag which is enabled by default:</p>
+
+<pre><code>$ cabal install -f-server
+</code></pre>
+
+<p>In order to use scion with your favourite front-end, see the specific
+instructions for the front-end below.  The Emacs and Vim front-ends
+are included with Scion and their installation instruction follow
+below.  The necessary files are installed with Scion by default and
+there is currently no option to turn this off.</p>
+
+<h1>
+<a name="user-content-bug-reports" class="anchor" href="#bug-reports" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bug Reports</h1>
+
+<p>Please send bug reports or feature requests to the <a href="http://code.google.com/p/scion-lib/issues/list">Issue tracker</a>.</p>
+
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>Since Scion is a library, you should consult the haddock documentation
+for how to use it.  However, you may look at the Emacs frontend for
+inspiration.</p>
+
+<h1>
+<a name="user-content-emacs" class="anchor" href="#emacs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Emacs</h1>
+
+<p>Scion's Emacs mode should be seen as complimentary to the existing
+Haskell mode.  To use it install the Scion server as described
+above. In the following we'll assume that the server has been install
+as:</p>
+
+<pre><code>$ ~/.cabal/bin/scion-server
+</code></pre>
+
+<p>Add the following to your emacs configuration (typically "~/.emacs"):</p>
+
+<pre><code>;; Substitute the desired version for &lt;version&gt;
+(add-to-list 'load-path "~/.cabal/share/scion-&lt;version&gt;/emacs")
+(require 'scion)
+
+;; if ./cabal/bin is not in your $PATH
+(setq scion-program "~/.cabal/bin/scion-server")
+
+(defun my-haskell-hook ()
+  ;; Whenever we open a file in Haskell mode, also activate Scion
+  (scion-mode 1)
+  ;; Whenever a file is saved, immediately type check it and
+  ;; highlight errors/warnings in the source.
+  (scion-flycheck-on-save 1))
+
+(add-hook 'haskell-mode-hook 'my-haskell-hook)
+
+;; Use ido-mode completion (matches anywhere, not just beginning)
+;;
+;; WARNING: This causes some versions of Emacs to fail so badly
+;; that Emacs needs to be restarted.
+(setq scion-completing-read-function 'ido-completing-read)
+</code></pre>
+
+<p>Scion mode needs to communicate with the external server.  By default
+the server will be started automatically when needed.  See "Manually
+Connecting to Scion" below for how to connect to the server manually.</p>
+
+<p>Scion uses Cabal as a library which in turn might look for external
+programs such as <a href="http://www.haskell.org/happy/">happy</a> or <a href="http://www.haskell.org/alex/">alex</a>.  In order to find these, the
+<code>PATH</code> environment variable has to be set up correctly.</p>
+
+<p>The scion server process inherits the environment variables from the
+Emacs process.  Depending on your system this may be different than
+what you would get if you started the server from the shell.  To
+adjust the <code>PATH</code> environment variable from within Emacs, add
+something like the following to your <code>.emacs</code>:</p>
+
+<pre><code>;; add ~/usr/bin to the PATH
+(setenv "PATH" "$HOME/usr/bin:$PATH" t)
+</code></pre>
+
+<p>Once you have a running and connected Scion server, you can use the
+commands provided by scion-mode:</p>
+
+<ul class="task-list">
+<li><p><code>C-c C-x C-l</code> (<code>scion-load</code>) load the current file with Scion.  If
+the file is within a Cabal project this will prompt to use the
+settings from one of the components in the package description
+file.  You can still choose to load only the current file.</p></li>
+<li><p><code>C-c C-o</code> (<code>scion-open-cabal-project</code>) configures a Cabal project
+and loads the meta-data from a Cabal file.  Note that this
+does not type check or load anything.  If you change the Cabal
+file of a project, call this function to update the session with
+the new settings.</p></li>
+</ul><p>If loading generates any errors or warnings, a buffer will appear and
+list them all.  Pressing <code>RET</code> on a note will jump to its source
+location.  Pressing <code>q</code> closes the buffer, and <code>C-c C-n</code>
+(<code>scion-list-compiler-notes</code>) brings it back.  Use <code>M-n</code>
+(<code>scion-next-note-in-buffer</code>) and <code>M-p</code>
+(<code>scion-previous-note-in-buffer</code>) to navigate within the notes of one
+buffer.</p>
+
+<h2>
+<a name="user-content-completion" class="anchor" href="#completion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Completion</h2>
+
+<p>The following commands offer completion for a few things.</p>
+
+<ul class="task-list">
+<li><p><code>C-c i l</code> (<code>haskell-insert-language</code>) asks for a <code>LANGUAGE</code> pragma
+and adds it to the top of the file.</p></li>
+<li><p><code>C-c i p</code> (<code>haskell-insert-pragma</code>) inserts a pragma at the
+current cursor position.  (At the moment this doesn't try to make
+sense of the selected pragma, however.)</p></li>
+<li><p><code>C-c i m</code> (<code>haskell-insert-module-name</code>) inserts the name of an
+external module (external), i.e., a module <em>not</em> from the current
+package.</p></li>
+<li><p><code>C-c i f</code> (<code>haskell-insert-flag</code>) insert (GHC) command line flag
+at point.  (Really only makes sense within an <code>OPTIONS_GHC</code> pragma.)</p></li>
+</ul><h2>
+<a name="user-content-experimental-features" class="anchor" href="#experimental-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Experimental features</h2>
+
+<p>The following should work most of the cases.</p>
+
+<ul class="task-list">
+<li><p><code>C-c C-.</code> (<code>scion-goto-definition</code>) jumps to the definition of the
+identifier at point.  If there is no identifier at point, offers a
+list to complete on a particular identifier.  This currently only
+works for identifiers defined within the same project.</p></li>
+<li>
+<p><code>C-c C-t</code> shows type of identifier at point.  This only works if
+the current file typechecks, but then it also works for local
+identifiers.  For polymorphic function it will show the type to
+which they are <em>instantiated</em>, e.g.,</p>
+
+<pre><code>f x = x + (1::Int)
+</code></pre>
+
+<p>Calling this command on <code>+</code> will print <code>Int -&gt; Int -&gt; Int</code> instead
+of <code>Num a =&gt; a -&gt; a -&gt; a</code>.</p>
+</li>
+</ul><h1>
+<a name="user-content-manually-connecting-to-scion" class="anchor" href="#manually-connecting-to-scion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually Connecting to Scion</h1>
+
+<p>If you set the variable <code>scion-auto-connect</code> to <code>'ask</code> (the default is
+<code>'always</code>), Scion will ask whether to start the server.  If you set it
+to <code>nil</code> you need to manually connect to the server.</p>
+
+<p>You can start the server manually on the command line and then use</p>
+
+<pre><code>M-x scion-connect
+</code></pre>
+
+<p>to connect to that server.  However, most of the time it will be more
+convenient to start the server from within Emacs:  </p>
+
+<pre><code>M-x scion
+</code></pre>
+
+<h1>
+<a name="user-content-vim" class="anchor" href="#vim" aria-hidden="true"><span class="octicon octicon-link"></span></a>Vim</h1>
+
+<h2>
+<a name="user-content-installation-1" class="anchor" href="#installation-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Vim mode requires Python support (version 2.4 or later).  Vim 7.2 or
+later have Python support enabled by default.  However, not every
+distribution of Vim includes a recent enough version of Python.
+Notably, MacVim is only linked against version 2.3.5 to be compatible
+with OS X 10.4.  You will need to build it from source, which is
+however reasonably fast.</p>
+
+<p>To check for python support the following should return <code>1</code>:</p>
+
+<pre><code>:echo has('python')
+</code></pre>
+
+<p>To find out the version use:</p>
+
+<pre><code>:py import sys
+:py print sys.version
+</code></pre>
+
+<p>Add the following to your <code>~/.vimrc</code> (or only <code>~/.gvimrc</code> if you have
+different Vim versions).  If Vim should start the Scion server itself
+(recommended):</p>
+
+<pre><code>" recommended: vim spawns a scion instance itself:
+let g:scion_connection_setting = [ 'scion', "&lt;path/to/scion-server&gt;"]
+</code></pre>
+
+<p>Note that there may be problems using "~" in the path, so better
+specify the absolute path.</p>
+
+<p>If you want to connect to a running instance of the server via TCP,
+add (where <code>4005</code> is the port number used by the scion server):</p>
+
+<pre><code>" use socket or TCP/IP connection instead:
+let g:scion_connection_setting = [ 'socket',  ["localhost", 4005] ]
+</code></pre>
+
+<p>Add the following independently of which connection mode you prefer:</p>
+
+<pre><code>set runtimepath+=&lt;home&gt;/.cabal/share/scion-&lt;version&gt;/vim_runtime_path/
+</code></pre>
+
+<p>Depending on your Vim config you will need to add the following lines
+as well:</p>
+
+<pre><code>:filetype plugin on
+:source &lt;home&gt;/.cabal/share/scion-&lt;version&gt;/vim_runtime_path/plugin/haskell_scion.vim
+</code></pre>
+
+<p>You store certain settings in a configuration file.  (Note: This
+feature is currently experimental and details may change in future
+Scion releases.)  To generate an initial configuration file run</p>
+
+<pre><code>:WriteSampleConfigScion
+</code></pre>
+
+<p>Keep only these lines:</p>
+
+<pre><code>{"type":"build-configuration", "dist-dir":"dist-scion", "extra-args": []}
+{"scion-default-cabal-config":"dist-scion"}
+</code></pre>
+
+<h2>
+<a name="user-content-usage-1" class="anchor" href="#usage-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>To load a component (a Cabal library or executable, or just a single
+file) use one of:</p>
+
+<pre><code>:LoadComponentScion library
+:LoadComponentScion executable:cabal_executable_name
+:LoadComponentScion file:cabal_executable_name
+:LoadComponentScion
+</code></pre>
+
+<p>The last one is a shortcut for <code>file:&lt;this buf&gt;</code>.  You can use completion.</p>
+
+<p>At this point you should already get some compilation errors.  After
+modifying the file, use</p>
+
+<pre><code>:BackgroundTypecheckFileScion
+</code></pre>
+
+<p>to re-typecheck just the current file.</p>
+
+<p>If the file typechecks you can move the cursor onto an identifier and
+use the command</p>
+
+<pre><code>:ThingAtPointScion
+</code></pre>
+
+<p>You should see something like this, which is the (instantiated) type
+of the identifier at the point:</p>
+
+<pre><code>  {'Just': 'print :: [Char] -&gt; IO ()'}
+</code></pre>
+
+<p>Have a look at <code>vim_runtime_path/ftplugin/haskell.vim</code> to see a list of all
+commands which are implemented yet.</p>
+
+<p><code>BackgroundTypecheckFileScion</code> should be called automatically after
+buf write.  If you don't like this set <code>g:dont_check_on_buf_write</code> or
+overwrite <code>g:haskell_qf_hook</code> to change open/close quickfix and jump to
+first <em>error</em> behaviour.</p>
+
+<h1>
+<a name="user-content-discussion" class="anchor" href="#discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion</h1>
+
+<p>For discussions about Scion use the <a href="http://groups.google.com/group/scion-lib-devel">scion-lib-devel</a> mailing list.</p>
+
+<h1>
+<a name="user-content-hacking" class="anchor" href="#hacking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hacking</h1>
+
+<p>The main repository for Scion is hosted on <a href="http://github.com">Github</a>.  Get it via</p>
+
+<pre><code>$ git clone git://github.com/nominolo/scion
+</code></pre>
+
+<p>Send patches or pull requests to nominolo (email address at googlemail
+dot com).  Note that, if you fork the project on Github your fork
+won't take up additional space on your account.</p>
+
+<h2>
+<a name="user-content-building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h2>
+
+<p>For development it is probably easier to use the GNU Make than Cabal
+directly.  The makefile includes a file called <code>config.mk</code> which is
+not present by default.  You can use the provided <code>config.mk.sample</code>
+and edit it:</p>
+
+<pre><code>$ cp config.mk.sample config.mk
+$ edit config.mk
+</code></pre>
+
+<p>After that, the makefile takes care of the rest.</p>
+
+<pre><code>$ make           # configure and build
+$ make install   # configure, build, and install
+</code></pre>
+
+<h2>
+<a name="user-content-using-an-in-place-ghc" class="anchor" href="#using-an-in-place-ghc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using an in-place GHC</h2>
+
+<p>GHC 6.10.1 has a couple of problems.  For example, not all error
+messages are reported using the GHC API but instead are printed to
+stdout/stderr.  Some parts also call <code>exitWith</code> directly.  GHC's HEAD
+branch has some of these bugs fixed and may contain new features not
+present in the stable branch.  If you want to compile against an
+inplace GHC, the following steps should work:</p>
+
+<ol class="task-list">
+<li>
+<p>On Windows, make sure that Cabal finds the inplace gcc</p>
+
+<pre><code>$ cd /path/to/ghc
+$ cp `which gcc` ghc/
+</code></pre>
+
+<p>(Adjust to version of GCC that GHC was compiled with.)</p>
+</li>
+<li><p>Set the <code>GHC_PATH</code> variable to the correct path to for your
+system.  Make sure <em>not</em> to set <code>HC</code>, <code>PKG</code>, or <code>HADDOCK</code>, they
+will automatically be set to point to the inplace versions.</p></li>
+<li><p>Use <code>make</code>.</p></li>
+</ol><h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>The parts of Scion written in Haskell are licensed under the BSD
+license.  The Emacs lisp parts are licensed under the GPL license
+version 2 or (at your option) any later version.</p>
+
+<h1>
+<a name="user-content-known-pitfalls" class="anchor" href="#known-pitfalls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Pitfalls</h1>
+
+<p>If you get an error message like this:
+  "scion_server: mkTopLevEnv: not interpreted main:Main"
+then you should rm [Ss]etup.hi [Ss]etup.o in the project directory.</p></article></div>

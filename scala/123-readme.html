@@ -1,0 +1,223 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-mongodb-salat-plugin-for-play-framework-2" class="anchor" href="#mongodb-salat-plugin-for-play-framework-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>MongoDB Salat plugin for Play Framework 2</h1>
+
+<p>Salat is a ORM for MongoDBs scala driver called Casbah.</p>
+
+<p>The plugin's functionality simpifies the use of salat by presenting a simple "play style" configuration and binders for <code>ObjectId</code></p>
+
+<ul class="task-list">
+<li><a href="https://github.com/mongodb/casbah">https://github.com/mongodb/casbah</a></li>
+<li><a href="https://github.com/novus/salat">https://github.com/novus/salat</a></li>
+</ul><p><a href="http://travis-ci.org/leon/play-salat"><img src="https://camo.githubusercontent.com/b2e238ef9cd56e77e81fd6cb49bac0dea2c4b10c/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6c656f6e2f706c61792d73616c61742e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/leon/play-salat.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Use g8 to start a new salat enabled play project</p>
+
+<h3>
+<a name="user-content-install-g8-on-osx-using-homebrew" class="anchor" href="#install-g8-on-osx-using-homebrew" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install g8 on OSX using homebrew</h3>
+
+<pre><code>brew update &amp;&amp; brew install giter8
+</code></pre>
+
+<p>Or read about the other ways to install <a href="https://github.com/n8han/giter8">giter8 here</a></p>
+
+<p>Then run</p>
+
+<pre><code>g8 leon/play-salat.g8
+</code></pre>
+
+<p>It will ask you a couple of questions, and your ready to rock 'n roll.</p>
+
+<h3>
+<a name="user-content-manual-installation" class="anchor" href="#manual-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual installation</h3>
+
+<p>Start by adding the plugin, in your <code>project/Build.scala</code></p>
+
+<pre><code>val appDependencies = Seq(
+  "se.radley" %% "play-plugins-salat" % "1.5.0"
+)
+</code></pre>
+
+<p>Then we can add the implicit converstions to and from ObjectId by adding to the routesImport and add ObjectId to all the templates</p>
+
+<pre><code>val main = PlayProject(appName, appVersion, appDependencies, mainLang = SCALA).settings(
+  routesImport += "se.radley.plugin.salat.Binders._",
+  templatesImport += "org.bson.types.ObjectId"
+)
+</code></pre>
+
+<p>We now need to register the plugin, this is done by creating(or appending) to the <code>conf/play.plugins</code> file</p>
+
+<pre><code>500:se.radley.plugin.salat.SalatPlugin
+</code></pre>
+
+<p>We continue to edit the <code>conf/application.conf</code> file. We need to disable some plugins that we don't need.
+Add these lines:</p>
+
+<pre><code>dbplugin = disabled
+evolutionplugin = disabled
+ehcacheplugin = disabled
+</code></pre>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>now we need to setup our connections. The plugin is modeled after how plays DB plugin is built.</p>
+
+<pre><code>mongodb.default.db = "mydb"
+# Optional values
+#mongodb.default.host = "127.0.0.1"
+#mongodb.default.port = 27017
+#mongodb.default.user = "leon"
+#mongodb.default.password = "123456"
+
+# MongoURI
+# ~~~~~
+# a MongoURI can also be used http://www.mongodb.org/display/DOCS/Connections
+# mongodb.default.uri = "mongodb://127.0.0.1:27017,mongodb.org:1337/salat-test"
+
+# WriteConcern
+# ~~~~~
+# Can be any of the following
+#
+# fsyncsafe - Exceptions are raised for network issues and server errors; Write operations wait for the server to flush data to disk.
+# replicassafe - Exceptions are raised for network issues and server errors; waits for at least 2 servers for the write operation.
+# safe - Exceptions are raised for network issues and server errors; waits on a server for the write operation.
+# normal - Exceptions are raised for network issues but not server errors.
+
+#mongodb.default.writeconcern = "safe"
+
+# Replica sets
+# ~~~~~
+# http://www.mongodb.org/display/DOCS/Why+Replica+Sets
+#
+# To user a replicaset instead of a single host, omit optional values and use the configuration below instead.
+# Since replica sets use public key authentication, user and password won't work together with the replicaset option.
+
+#mongodb.default.replicaset {
+#    host1.host = "10.0.0.1"
+#
+#    host2.host = "10.0.0.2"
+#    host2.port = 27018
+#}
+
+# Mongo Options
+# ~~~~~
+# http://api.mongodb.org/java/2.8.0/com/mongodb/MongoOptions.html
+#
+# For passing custom options to the MongoConnection add the properties under "options". Add just the ones which are different from defaults.
+
+#mongodb.default.options {
+#    connectionsPerHost = 100
+#    threadsAllowedToBlockForConnectionMultiplier = 1000
+#    connectTimeout = 60000
+#}
+</code></pre>
+
+<h2>
+<a name="user-content-more-that-one-db" class="anchor" href="#more-that-one-db" aria-hidden="true"><span class="octicon octicon-link"></span></a>More that one DB?</h2>
+
+<p>If you would like to connect to two databases you need to create two source names. You also can specify different options per database</p>
+
+<pre><code>mongodb.myotherdb.db = "otherdb"
+mongodb.myotherdb.options.connectionsPerHost = 80
+</code></pre>
+
+<p>Then you can call <code>mongoCollection("collectionname", "myotherdb")</code></p>
+
+<h2>
+<a name="user-content-what-a-model-looks-like" class="anchor" href="#what-a-model-looks-like" aria-hidden="true"><span class="octicon octicon-link"></span></a>What a model looks like</h2>
+
+<p>All models must be case classes otherwise salat doesn't know how to properly transform them into MongoDBObject's</p>
+
+<pre><code>package models
+
+import play.api.Play.current
+import java.util.Date
+import com.novus.salat._
+import com.novus.salat.annotations._
+import com.novus.salat.dao._
+import com.mongodb.casbah.Imports._
+import se.radley.plugin.salat._
+import mongoContext._
+
+case class User(
+  id: ObjectId = new ObjectId,
+  username: String,
+  password: String,
+  address: Option[Address] = None,
+  added: Date = new Date(),
+  updated: Option[Date] = None,
+  deleted: Option[Date] = None,
+  @Key("company_id")company: Option[ObjectId] = None
+)
+
+object User extends ModelCompanion[User, ObjectId] {
+  val dao = new SalatDAO[User, ObjectId](collection = mongoCollection("users")) {}
+
+  def findOneByUsername(username: String): Option[User] = dao.findOne(MongoDBObject("username" -&gt; username))
+  def findByCountry(country: String) = dao.find(MongoDBObject("address.country" -&gt; country))
+}
+</code></pre>
+
+<h2>
+<a name="user-content-capped-collections" class="anchor" href="#capped-collections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capped Collections</h2>
+
+<p>If you want to use capped collections check this out</p>
+
+<pre><code>package models
+
+import play.api.Play.current
+import java.util.Date
+import com.novus.salat._
+import com.novus.salat.annotations._
+import com.novus.salat.dao._
+import com.mongodb.casbah.Imports._
+import se.radley.plugin.salat._
+import mongoContext._
+
+case class LogItem(
+  id: ObjectId = new ObjectId,
+  message: String
+)
+
+object LogItem extends ModelCompanion[LogItem, ObjectId] {
+  val dao = new SalatDAO[LogItem, ObjectId](collection = mongoCappedCollection("logitems", 1000)) {}
+}
+</code></pre>
+
+<h2>
+<a name="user-content-gridfs" class="anchor" href="#gridfs" aria-hidden="true"><span class="octicon octicon-link"></span></a>GridFS</h2>
+
+<p>If you want to store things in gridfs you can do this</p>
+
+<pre><code>package models
+
+import play.api.Play.current
+import se.radley.plugin.salat._
+import mongoContext._
+
+val files = gridFS("myfiles")
+</code></pre>
+
+<h2>
+<a name="user-content-mongo-context" class="anchor" href="#mongo-context" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mongo Context</h2>
+
+<p>All models must contain an implicit salat Context. The context is somewhat like a hibernate dialect.
+You can override mapping names and configure how salat does it's type hinting. read more about it <a href="https://github.com/novus/salat/wiki/CustomContext">here</a></p>
+
+<p>In the sample there is a custom <code>mongoContext</code>, partly because we need to add plays classloader to salat so it knows when to reload it's graters,
+but also so we can override all models id fields to be serialized to MongoDB's _id.</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/leon/play-salat/tree/master/sample">Sample</a></li>
+</ul><h2>
+<a name="user-content-enums" class="anchor" href="#enums" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enums?</h2>
+
+<p>If you're using Scala Enumerations have a look at my play-enumeration project.</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/leon/play-enumeration">play-enumeration</a></li>
+</ul></article></div>

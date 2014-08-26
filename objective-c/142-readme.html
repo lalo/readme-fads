@@ -1,0 +1,463 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/DateToolsHeader.png" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/DateToolsHeader.png" alt="Banner" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-datetools" class="anchor" href="#datetools" aria-hidden="true"><span class="octicon octicon-link"></span></a>DateTools</h2>
+
+<p>DateTools was written to streamline date and time handling in Objective-C. Classes and concepts from other languages served as an inspiration for DateTools, especially the <a href="http://msdn.microsoft.com/en-us/library/system.datetime(v=vs.110).aspx">DateTime</a> structure and <a href="Time%20Period%20Library">Time Period Library</a> for .NET. Through these classes and others, DateTools removes the boilerplate required to access date components, handles more nuanced date comparisons, and serves as the foundation for entirely new concepts like Time Periods and their collections.</p>
+
+<p><a href="https://travis-ci.org/MatthewYork/DateTools"><img src="https://camo.githubusercontent.com/02d0e114372b722ab649c4cd6ff4c542164caf87/68747470733a2f2f7472617669732d63692e6f72672f4d617474686577596f726b2f44617465546f6f6c732e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/MatthewYork/DateTools.svg?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p><strong>Cocoapods</strong></p>
+
+<p><code>pod 'DateTools'</code></p>
+
+<p><strong>Manual Installation</strong></p>
+
+<p>All the classes required for DateTools are located in the DateTools folder in the root of this repository. They are listed below:</p>
+
+<ul class="task-list">
+<li><code>DateTools.h</code></li>
+<li><code>NSDate+DateTools.{h,m}</code></li>
+<li><code>DTConstants.h</code></li>
+<li><code>DTError.{h,m}</code></li>
+<li><code>DTTimePeriod.{h,m}</code></li>
+<li><code>DTTimePeriodGroup.{h,m}</code></li>
+<li><code>DTTimePeriodCollection.{h,m}</code></li>
+<li><code>DTTimePeriodChain.{h,m}</code></li>
+</ul><p>The following bundle is necessary if you would like to support internationalization. You can add localizations at the <code>Localizations</code> subheading under <code>Info</code> in the <code>Project</code> menu.</p>
+
+<ul class="task-list">
+<li><code>DateTools.bundle</code></li>
+</ul><p><code>DateTools.h</code> contains the headers for all the other files. Import this if you want to link to the entire framework.</p>
+
+<h2>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h2>
+
+<ul class="task-list">
+<li>
+<a href="#nsdate-datetools"><strong>NSDate+DateTools</strong></a>
+
+<ul class="task-list">
+<li><a href="#time-ago">Time Ago</a></li>
+<li><a href="#date-components">Date Components</a></li>
+<li><a href="#date-editing">Date Editing</a></li>
+<li><a href="#date-comparison">Date Comparison</a></li>
+<li><a href="#formatted-date-strings">Formatted Date Strings</a></li>
+</ul>
+</li>
+<li>
+<a href="#time-periods"><strong>Time Periods</strong></a>
+
+<ul class="task-list">
+<li><a href="#initialization">Initialization</a></li>
+<li><a href="#time-period-info">Time Period Info</a></li>
+<li><a href="#manipulation">Manipulation</a></li>
+<li>
+<a href="#relationships">Relationships</a> </li>
+</ul>
+</li>
+<li>
+<a href="#time-period-groups"><strong>Time Period Groups</strong></a>
+
+<ul class="task-list">
+<li><a href="#time-period-collections">Time Period Collections</a></li>
+<li><a href="#time-period-chains">Time Period Chains</a></li>
+</ul>
+</li>
+<li><a href="#unit-tests"><strong>Unit Tests</strong></a></li>
+<li><a href="#credits"><strong>Credits</strong></a></li>
+<li><a href="#license"><strong>License</strong></a></li>
+</ul><h2>
+<a name="user-content-nsdatedatetools" class="anchor" href="#nsdatedatetools" aria-hidden="true"><span class="octicon octicon-link"></span></a>NSDate+DateTools</h2>
+
+<p>One of the missions of DateTools was to make NSDate feel more complete. There are many other languages that allow direct access to information about dates from their date classes, but NSDate (sadly) does not. It safely works only in the Unix time offsets through the <code>timeIntervalSince...</code> methods for building dates and remains calendar agnostic. But that's not <i>always</i> what we want to do. Sometimes, we want to work with dates based on their date components (like year, month, day, etc) at a more abstract level. This is where DateTools comes in.</p>
+
+<h4>
+<a name="user-content-time-ago" class="anchor" href="#time-ago" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time Ago</h4>
+
+<p>No date library would be complete without the ability to quickly make an NSString based on how much earlier a date is than now. DateTools has you covered. These "time ago" strings come in a long and short form, with the latter closely resembling Twitter. You can get these strings like so:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSDate</span> <span class="o">*</span><span class="n">timeAgoDate</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSDate</span> <span class="nl">dateWithTimeIntervalSinceNow</span><span class="p">:</span><span class="o">-</span><span class="mi">4</span><span class="p">];</span>
+<span class="n">NSLog</span><span class="p">(</span><span class="s">@"Time Ago: %@"</span><span class="p">,</span> <span class="n">timeAgoDate</span><span class="p">.</span><span class="n">timeAgoSinceNow</span><span class="p">);</span>
+<span class="n">NSLog</span><span class="p">(</span><span class="s">@"Time Ago: %@"</span><span class="p">,</span> <span class="n">timeAgoDate</span><span class="p">.</span><span class="n">shortTimeAgoSinceNow</span><span class="p">);</span>
+
+<span class="c1">//Output:</span>
+<span class="c1">//Time Ago: 4 seconds ago</span>
+<span class="c1">//Time Ago: 4s</span>
+</pre></div>
+
+<p>Assuming you have added the localization to your project, <code>DateTools</code> currently supports the following languages: </p>
+
+<ul class="task-list">
+<li>en (English)</li>
+<li>es (Spanish)</li>
+<li>zh_Hans (Chinese Simplified)</li>
+<li>zh_Hant (Chinese Traditional)</li>
+<li>pt (Portuguese)</li>
+<li>fr (French)</li>
+<li>it (Italian)</li>
+<li>ru (Russian)</li>
+<li>de (German)</li>
+<li>nl (Dutch)</li>
+<li>hu (Hungarian)</li>
+<li>fi (Finnish)</li>
+<li>ja (Japanese)</li>
+<li>vi (Vietnamese)</li>
+<li>ro (Romanian)</li>
+<li>da (Danish)</li>
+<li>cs (Czech)</li>
+<li>nb (Norwegian)</li>
+<li>lv (Latvian)</li>
+<li>tr (Turkish)</li>
+<li>ko (Korean)</li>
+<li>bg (Bulgarian)</li>
+<li>he (Hebrew)</li>
+<li>ar (Arabic)</li>
+<li>gre (Greek)</li>
+<li>pl (Polish)</li>
+<li>sv (Swedish)</li>
+<li>th (Thai)</li>
+<li>uk (Ukrainian)</li>
+<li>is (Icelandic)</li>
+<li>id (Indonesian)</li>
+<li>ca (Catalan)</li>
+<li>cy (Welsh)</li>
+</ul><p>If you know a language not listed here, please consider submitting a translation. <a href="http://stackoverflow.com/questions/3040677/locale-codes-for-iphone-lproj-folders">Localization codes by language</a>.</p>
+
+<p>This project is user driven (by people like you). Pull requests close faster than issues (merged or rejected).</p>
+
+<p>Thanks to Kevin Lawler for his work on <a href="https://github.com/kevinlawler/NSDate-TimeAgo">NSDate+TimeAgo</a>, which has been officially merged into this library.</p>
+
+<h4>
+<a name="user-content-date-components" class="anchor" href="#date-components" aria-hidden="true"><span class="octicon octicon-link"></span></a>Date Components</h4>
+
+<p>There is a lot of boilerplate associated with getting date components from an NSDate. You have to set up a calendar, use the desired flags for the components you want, and finally extract them out of the calendar. </p>
+
+<p>With DateTools, this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">//Create calendar</span>
+<span class="bp">NSCalendar</span> <span class="o">*</span><span class="n">calendar</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSCalendar</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithCalendarIdentifier</span><span class="p">:</span><span class="n">NSGregorianCalendar</span><span class="p">];</span>
+<span class="n">unitFlags</span> <span class="o">=</span> <span class="n">NSYearCalendarUnit</span> <span class="o">|</span> <span class="n">NSMonthCalendarUnit</span><span class="p">;</span>
+<span class="bp">NSDateComponents</span> <span class="o">*</span><span class="n">dateComponents</span> <span class="o">=</span> <span class="p">[</span><span class="n">calendar</span> <span class="nl">components</span><span class="p">:</span><span class="n">unitFlags</span> <span class="nl">fromDate</span><span class="p">:</span><span class="n">date</span><span class="p">];</span>
+
+<span class="c1">//Get components</span>
+<span class="bp">NSInteger</span> <span class="n">year</span> <span class="o">=</span> <span class="n">dateComponents</span><span class="p">.</span><span class="n">year</span><span class="p">;</span>
+<span class="bp">NSInteger</span> <span class="n">month</span> <span class="o">=</span> <span class="n">dateComponents</span><span class="p">.</span><span class="n">month</span><span class="p">;</span>
+</pre></div>
+
+<p>...becomes this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSInteger</span> <span class="n">year</span> <span class="o">=</span> <span class="n">date</span><span class="p">.</span><span class="n">year</span><span class="p">;</span>
+<span class="bp">NSInteger</span> <span class="n">month</span> <span class="o">=</span> <span class="n">date</span><span class="p">.</span><span class="n">month</span><span class="p">;</span>
+</pre></div>
+
+<p>And if you would like to use a non-Gregorian calendar, that option is available as well.</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSInteger</span> <span class="n">day</span> <span class="o">=</span> <span class="p">[</span><span class="n">date</span> <span class="nl">dayWithCalendar</span><span class="p">:</span><span class="n">calendar</span><span class="p">];</span>
+</pre></div>
+
+<p>If you would like to override the default calendar that DateTools uses, simply change it in the <code>defaultCalendar</code> method of <code>NSDate+DateTools.m</code>.</p>
+
+<h4>
+<a name="user-content-date-editing" class="anchor" href="#date-editing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Date Editing</h4>
+
+<p>The date editing methods in NSDate+DateTools makes it easy to shift a date earlier or later by adding and subtracting date components. For instance, if you would like a date that is 1 year later from a given date, simply call the method <code>dateByAddingYears</code>.</p>
+
+<p>With DateTools, this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">//Create calendar</span>
+<span class="bp">NSCalendar</span> <span class="o">*</span><span class="n">calendar</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSCalendar</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithCalendarIdentifier</span><span class="p">:[</span><span class="bp">NSDate</span> <span class="n">defaultCalendar</span><span class="p">]];</span>
+<span class="bp">NSDateComponents</span> <span class="o">*</span><span class="n">components</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSDateComponents</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+
+<span class="c1">//Make changes</span>
+<span class="p">[</span><span class="n">components</span> <span class="nl">setYear</span><span class="p">:</span><span class="mi">1</span><span class="p">];</span>
+
+<span class="c1">//Get new date with updated year</span>
+<span class="bp">NSDate</span> <span class="o">*</span><span class="n">newDate</span> <span class="o">=</span> <span class="p">[</span><span class="n">calendar</span> <span class="nl">dateByAddingComponents</span><span class="p">:</span><span class="n">components</span> <span class="nl">toDate</span><span class="p">:</span><span class="n">date</span> <span class="nl">options</span><span class="p">:</span><span class="mi">0</span><span class="p">];</span>
+</pre></div>
+
+<p>...becomes this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSDate</span> <span class="o">*</span><span class="n">newDate</span> <span class="o">=</span> <span class="p">[</span><span class="n">date</span> <span class="nl">dateByAddingYears</span><span class="p">:</span><span class="mi">1</span><span class="p">];</span>
+</pre></div>
+
+<p>Subtraction of date components is also fully supported through the <code>dateBySubtractingYears</code></p>
+
+<h4>
+<a name="user-content-date-comparison" class="anchor" href="#date-comparison" aria-hidden="true"><span class="octicon octicon-link"></span></a>Date Comparison</h4>
+
+<p>Another mission of the DateTools category is to greatly increase the flexibility of date comparisons. NSDate gives you four basic methods:</p>
+
+<ul class="task-list">
+<li>isEqualToDate:</li>
+<li>earlierDate:</li>
+<li>laterDate:</li>
+<li>compare:</li>
+</ul><p><code>earlierDate:</code> and <code>laterDate:</code> are great, but it would be nice to have a boolean response to help when building logic in code; to easily ask "is this date earlier than that one?". DateTools has a set of proxy methods that do just that as well as a few other methods for extended flexibility. The new methods are:</p>
+
+<ul class="task-list">
+<li>isEarlierThan</li>
+<li>isEarlierThanOrEqualTo</li>
+<li>isLaterThan</li>
+<li>isLaterThanOrEqualTo</li>
+</ul><p>These methods are great for comparing dates in a boolean fashion, but what if we want to compare the dates and return some meaningful information about how far they are apart? NSDate comes with two methods <code>timeIntervalSinceDate:</code> and <code>timeIntervalSinceNow</code> which gives you a <code>double</code> offset representing the number of seconds between the two dates. This is great and all, but there are times when one wants to know how many years or days are between two dates. For this, DateTools goes back to the ever-trusty NSCalendar and abstracts out all the necessary code for you.</p>
+
+<p>With Date Tools, this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSCalendar</span> <span class="o">*</span><span class="n">calendar</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSCalendar</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithCalendarIdentifier</span><span class="p">:[</span><span class="bp">NSDate</span> <span class="n">defaultCalendar</span><span class="p">]];</span>
+<span class="bp">NSDate</span> <span class="o">*</span><span class="n">earliest</span> <span class="o">=</span> <span class="p">[</span><span class="n">firstDate</span> <span class="nl">earlierDate</span><span class="p">:</span><span class="n">secondDate</span><span class="p">];</span>
+<span class="bp">NSDate</span> <span class="o">*</span><span class="n">latest</span> <span class="o">=</span> <span class="p">(</span><span class="n">secondDate</span> <span class="o">==</span> <span class="n">firstDate</span><span class="p">)</span> <span class="o">?</span> <span class="nl">secondDate</span> <span class="p">:</span> <span class="n">firstDate</span><span class="p">;</span>
+<span class="bp">NSInteger</span> <span class="n">multiplier</span> <span class="o">=</span> <span class="p">(</span><span class="n">secondDate</span> <span class="o">==</span> <span class="n">firstDate</span><span class="p">)</span> <span class="o">?</span> <span class="o">-</span><span class="mi">1</span> <span class="o">:</span> <span class="mi">1</span><span class="p">;</span>
+<span class="bp">NSDateComponents</span> <span class="o">*</span><span class="n">components</span> <span class="o">=</span> <span class="p">[</span><span class="n">calendar</span> <span class="nl">components</span><span class="p">:</span><span class="n">allCalendarUnitFlags</span> <span class="nl">fromDate</span><span class="p">:</span><span class="n">earliest</span> <span class="nl">toDate</span><span class="p">:</span><span class="n">latest</span> <span class="nl">options</span><span class="p">:</span><span class="mi">0</span><span class="p">];</span>
+<span class="bp">NSInteger</span> <span class="n">yearsApart</span> <span class="o">=</span> <span class="n">multiplier</span><span class="o">*</span><span class="p">(</span><span class="n">components</span><span class="p">.</span><span class="n">month</span> <span class="o">+</span> <span class="mi">12</span><span class="o">*</span><span class="n">components</span><span class="p">.</span><span class="n">year</span><span class="p">);</span>
+</pre></div>
+
+<p>..becomes this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSInteger</span> <span class="n">yearsApart</span> <span class="o">=</span> <span class="p">[</span><span class="n">firstDate</span> <span class="nl">yearsFrom</span><span class="p">:</span><span class="n">secondDate</span><span class="p">];</span>
+</pre></div>
+
+<p>Methods for comparison in this category include:</p>
+
+<ul class="task-list">
+<li>
+<code>yearsFrom:</code>, <code>yearsUntil</code>, <code>yearsAgo</code>, <code>yearsEarlierThan:</code>, <code>yearsLaterThan:</code>
+</li>
+<li>
+<code>monthsFrom:</code>, <code>monthsUntil</code>, <code>monthsAgo</code>, <code>monthsEarlierThan:</code>, <code>monthsLaterThan:</code>
+</li>
+<li>
+<code>weeksFrom:</code>, <code>weeksUntil</code>, <code>weeksAgo</code>, <code>weeksEarlierThan:</code>, <code>weeksLaterThan:</code>
+</li>
+<li>
+<code>daysFrom:</code>, <code>daysUntil</code>, <code>daysAgo</code>, <code>daysEarlierThan:</code>, <code>daysLaterThan:</code>
+</li>
+<li>
+<code>hoursFrom:</code>, <code>hoursUntil</code>, <code>hoursAgo</code>, <code>hoursEarlierThan:</code>, <code>hoursLaterThan:</code>
+</li>
+<li>
+<code>minutesFrom:</code>, <code>minutesUntil</code>, <code>minutesAgo</code>, <code>minutesEarlierThan:</code>, <code>minutesLaterThan:</code>
+</li>
+<li>
+<code>secondsFrom:</code>, <code>secondsUntil</code>, <code>secondsAgo</code>, <code>secondsEarlierThan:</code>, <code>secondsLaterThan:</code>
+</li>
+</ul><h4>
+<a name="user-content-formatted-date-strings" class="anchor" href="#formatted-date-strings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Formatted Date Strings</h4>
+
+<p>Just for kicks, DateTools has a few convenience methods for quickly creating strings from dates. Those two methods are <code>formattedDateWithStyle:</code> and <code>formattedDateWithFormat:</code>. The current locale is used unless otherwise specified by additional method parameters. Again, just for kicks, really.</p>
+
+<h2>
+<a name="user-content-time-periods" class="anchor" href="#time-periods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time Periods</h2>
+
+<p>Dates are important, but the real world is a little less discrete than that. Life is made up of spans of time, like an afternoon appointment or a weeklong vacation. In DateTools, time periods are represented by the DTTimePeriod class and come with a suite of initializaiton, manipulation, and comparison methods to make working with them a breeze.</p>
+
+<h4>
+<a name="user-content-initialization" class="anchor" href="#initialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initialization</h4>
+
+<p>Time peroids consist of an NSDate start date and end date. To initialize a time period, call the init function.</p>
+
+<div class="highlight highlight-objc"><pre><span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">timePeriod</span> <span class="o">=</span> <span class="p">[[</span><span class="n">DTTimePeriod</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithStartDate</span><span class="p">:</span><span class="n">startDate</span> <span class="nl">endDate</span><span class="p">:</span><span class="n">endDate</span><span class="p">];</span>
+</pre></div>
+
+<p>or, if you would like to create a time period of a known length that starts or ends at a certain time, try out a few other init methods. The method below, for example, creates a time period starting at the current time that is exactly 5 hours long.</p>
+
+<div class="highlight highlight-objc"><pre><span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">timePeriod</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriod</span> <span class="nl">timePeriodWithSize</span><span class="p">:</span><span class="n">DTTimePeriodSizeHour</span> <span class="nl">amount</span><span class="p">:</span><span class="mi">5</span> <span class="nl">startingAt</span><span class="p">:[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">]];</span>
+</pre></div>
+
+<h4>
+<a name="user-content-time-period-info" class="anchor" href="#time-period-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time Period Info</h4>
+
+<p>A host of methods have been extended to give information about an instance of DTTimePeriod. A few are listed below</p>
+
+<ul class="task-list">
+<li>
+<code>hasStartDate</code> - Returns true if the period has a start date</li>
+<li>
+<code>hasEndDate</code> - Returns true if the period has an end date</li>
+<li>
+<code>isMoment</code> - Returns true if the period has the same start and end date</li>
+<li>
+<code>durationIn....</code> - Returns the length of the time period in the requested units</li>
+</ul><h4>
+<a name="user-content-manipulation" class="anchor" href="#manipulation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manipulation</h4>
+
+<p>Time periods may also be manipulated. They may be shifted earlier or later as well as expanded and contracted. </p>
+
+<p><strong>Shifting</strong></p>
+
+<p>When a time period is shifted, the start dates and end dates are both moved earlier or later by the amounts requested.
+To shift a time period earlier, call <code>shiftEarlierWithSize:amount:</code> and to shift it later, call <code>shiftLaterWithSize:amount:</code>. The amount field serves as a multipler, just like in the above initializaion method.</p>
+
+<p><strong>Lengthening/Shortening</strong></p>
+
+<p>When a time periods is lengthened or shortened, it does so anchoring one date of the time period and then changing the other one. There is also an option to anchor the centerpoint of the time period, changing both the start and end dates.</p>
+
+<p>An example of lengthening a time period is shown below:</p>
+
+<div class="highlight highlight-objc"><pre><span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">timePeriod</span>  <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriod</span> <span class="nl">timePeriodWithSize</span><span class="p">:</span><span class="n">DTTimePeriodSizeMinute</span> <span class="nl">endingAt</span><span class="p">:[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">]];</span>
+<span class="p">[</span><span class="n">timePeriod</span> <span class="nl">lengthenWithAnchorDate</span><span class="p">:</span><span class="n">DTTimePeriodAnchorEnd</span> <span class="nl">size</span><span class="p">:</span><span class="n">DTTimePeriodSizeMinute</span> <span class="nl">amount</span><span class="p">:</span><span class="mi">1</span><span class="p">];</span>
+</pre></div>
+
+<p>This doubles a time period of duration 1 minute to duration 2 minutes. The end date of "now" is retained and only the start date is shifted 1 minute earlier.</p>
+
+<h4>
+<a name="user-content-relationships" class="anchor" href="#relationships" aria-hidden="true"><span class="octicon octicon-link"></span></a>Relationships</h4>
+
+<p>There may come a need, say when you are making a scheduling app, when it might be good to know how two time periods relate to one another. Are they the same? Is one inside of another? All these questions may be asked using the relationship methods of DTTimePeriod.</p>
+
+<p><strong>The Basics</strong></p>
+
+<p>Below is a chart of all the possible relationships between two time periods:
+<a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/PeriodRelations.png" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/PeriodRelations.png" alt="TimePeriods" style="max-width:100%;"></a></p>
+
+<p>A suite of methods have been extended to check for the basic relationships. They are listed below:</p>
+
+<ul class="task-list">
+<li>isEqualToPeriod:</li>
+<li>isInside:</li>
+<li>contains:</li>
+<li>overlapsWith:</li>
+<li>intersects:</li>
+</ul><p>You can also check for the official relationship (like those shown in the chart) with the following method:</p>
+
+<div class="highlight highlight-objc"><pre><span class="p">-(</span><span class="n">DTTimePeriodRelation</span><span class="p">)</span><span class="nf">relationToPeriod:</span><span class="p">(</span><span class="n">DTTimePeriod</span> <span class="o">*</span><span class="p">)</span><span class="nv">period</span><span class="p">;</span>
+</pre></div>
+
+<p>All of the possible relationships have been enumerated in the DTTimePeriodRelation enum. </p>
+
+<p><strong>For a better grasp on how time periods relate to one another, check out the "Time Periods" tab in the example application. Here you can slide a few time periods around and watch their relationships change.</strong></p>
+
+<p><a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodsDemo.gif" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodsDemo.gif" alt="TimePeriods" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-time-period-groups" class="anchor" href="#time-period-groups" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time Period Groups</h2>
+
+<p>Time period groups are the final abstraction of date and time in DateTools. Here, time periods are gathered and organized into something useful. There are two main types of time period groups,  <code>DTTimePeriodCollection</code> and <code>DTTimePeriodChain</code>. At a high level, think about a collection as a loose group where overlaps may occur and a chain a more linear, tight group where overlaps are not allowed.</p>
+
+<p>Both collections and chains operate like an NSArray. You may add,insert and remove DTTimePeriod objects from them just as you would objects in an array. The difference is how these periods are handled under the hood.</p>
+
+<h3>
+<a name="user-content-time-period-collections" class="anchor" href="#time-period-collections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time Period Collections</h3>
+
+<p>Time period collections serve as loose sets of time periods. They are unorganized unless you decide to sort them, and have their own characteristics like a StartDate and EndDate that are extrapolated from the time periods within. Time period collections allow overlaps within their set of time periods. </p>
+
+<p><a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodCollection.png" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodCollection.png" alt="TimePeriodCollections" style="max-width:100%;"></a></p>
+
+<p>To make a new collection, call the class method like so:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">//Create collection</span>
+<span class="n">DTTimePeriodCollection</span> <span class="o">*</span><span class="n">collection</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriodCollection</span> <span class="n">collection</span><span class="p">];</span>
+
+<span class="c1">//Create a few time periods</span>
+ <span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">firstPeriod</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriod</span> <span class="nl">timePeriodWithStartDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2014 11 05 18:15:12.000"</span><span class="p">]</span> <span class="nl">endDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2015 11 05 18:15:12.000"</span><span class="p">]];</span>
+    <span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">secondPeriod</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriod</span> <span class="nl">timePeriodWithStartDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2015 11 05 18:15:12.000"</span><span class="p">]</span> <span class="nl">endDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2016 11 05 18:15:12.000"</span><span class="p">]];</span>
+
+<span class="c1">//Add time periods to the colleciton</span>
+<span class="p">[</span><span class="n">collection</span> <span class="nl">addTimePeriod</span><span class="p">:</span><span class="n">firstPeriod</span><span class="p">];</span>
+<span class="p">[</span><span class="n">collection</span> <span class="nl">addTimePeriod</span><span class="p">:</span><span class="n">secondPeriod</span><span class="p">];</span>
+
+<span class="c1">//Retreive collection items</span>
+<span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">firstPeriod</span> <span class="o">=</span> <span class="n">collection</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</pre></div>
+
+<p><strong>Sorting</strong>
+Sorting time periods in a collection is easy, just call one of the sort methods. There are a total of three sort options, listed below:</p>
+
+<ul class="task-list">
+<li>
+<strong>Start Date</strong> - <code>sortByStartAscending</code>, <code>sortByStartDescending</code>
+</li>
+<li>
+<strong>End Date</strong> - <code>sortByEndAscending</code>, <code>sortByEndDescending</code>
+</li>
+<li>
+<strong>Time Period Duration</strong> - <code>sortByDurationAscending</code>, <code>sortByDurationDescending</code>
+</li>
+</ul><p><strong>Operations</strong>
+It is also possible to check an NSDate's or DTTimePeriod's relationship to the collection. For instance, if you would like to see all the time periods that intersect with a certain date, you can call the periodsIntersectedByDate: method. The result is a new DTTimePeriodCollection with all those periods that intersect the provided date. There are a host of other methods to try out as well, including a full equality check between two collections.</p>
+
+<p><a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodCollectionOperations.png" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodCollectionOperations.png" alt="TimePeriodCollectionOperations" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-time-period-chains" class="anchor" href="#time-period-chains" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time Period Chains</h3>
+
+<p>Time period chains serve as a tightly coupled set of time periods. They are always organized by start and end date, and have their own characteristics like a StartDate and EndDate that are extrapolated from the time periods within. Time period chains do not allow overlaps within their set of time periods. This type of group is ideal for modeling schedules like sequential meetings or appointments.</p>
+
+<p><a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodChain.png" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodChain.png" alt="TimePeriodChains" style="max-width:100%;"></a></p>
+
+<p>To make a new chain, call the class method like so:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">//Create chain</span>
+<span class="n">DTTimePeriodChain</span> <span class="o">*</span><span class="n">chain</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriodChain</span> <span class="n">chain</span><span class="p">];</span>
+
+<span class="c1">//Create a few time periods</span>
+ <span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">firstPeriod</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriod</span> <span class="nl">timePeriodWithStartDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2014 11 05 18:15:12.000"</span><span class="p">]</span> <span class="nl">endDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2015 11 05 18:15:12.000"</span><span class="p">]];</span>
+<span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">secondPeriod</span> <span class="o">=</span> <span class="p">[</span><span class="n">DTTimePeriod</span> <span class="nl">timePeriodWithStartDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2015 11 05 18:15:12.000"</span><span class="p">]</span> <span class="nl">endDate</span><span class="p">:[</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="s">@"2016 11 05 18:15:12.000"</span><span class="p">]];</span>
+
+<span class="c1">//Add test periods</span>
+<span class="p">[</span><span class="n">chain</span> <span class="nl">addTimePeriod</span><span class="p">:</span><span class="n">firstPeriod</span><span class="p">];</span>
+<span class="p">[</span><span class="n">chain</span> <span class="nl">addTimePeriod</span><span class="p">:</span><span class="n">secondPeriod</span><span class="p">];</span>
+
+<span class="c1">//Retreive chain items</span>
+<span class="n">DTTimePeriod</span> <span class="o">*</span><span class="n">firstPeriod</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+</pre></div>
+
+<p>Any time a date is added to the time chain, it retains its duration, but is modified to have its StartDate be the same as the latest period in the chain's EndDate. This helps keep the tightly coupled structure of the chain's time periods. Inserts (besides those at index 0) shift dates after insertion index by the duration of the new time period while leaving those at indexes before untouched. Insertions at index 0 shift the start date of the collection by the duration of the new time period. A full list of operations can be seen below.</p>
+
+<p><strong>Operations</strong>
+Like collections, chains have an equality check and the ability to be shifted earlier and later. Here is a short list of other operations.</p>
+
+<p><a href="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodChainOperations.png" target="_blank"><img src="https://raw.githubusercontent.com/MatthewYork/Resources/master/DateTools/TimePeriodChainOperations.png" alt="TimePeriodChainOperations" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>All methods and variables have been documented and are available for option+click inspection, just like the SDK classes. This includes an explanation of the methods as well as what their input and output parameters are for. Please raise an issue if you ever feel documentation is confusing or misleading and we will get it fixed up!</p>
+
+<h2>
+<a name="user-content-unit-tests" class="anchor" href="#unit-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unit Tests</h2>
+
+<p>Unit tests were performed on all the major classes in the library for quality assurance. You can find theses under the "Tests" folder at the top of the library. There are over 300 test cases in all!</p>
+
+<p>If you ever find a test case that is incomplete, please open an issue so we can get it fixed.</p>
+
+<p>Continuous integration testing is performed by Travis CI: <a href="https://travis-ci.org/MatthewYork/DateTools"><img src="https://camo.githubusercontent.com/02d0e114372b722ab649c4cd6ff4c542164caf87/68747470733a2f2f7472617669732d63692e6f72672f4d617474686577596f726b2f44617465546f6f6c732e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/MatthewYork/DateTools.svg?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<p>Thanks to <a href="https://github.com/kevinlawler">Kevin Lawler</a> for his initial work on NSDate+TimeAgo. It laid the foundation for DateTools' timeAgo methods. You can find this great project <a href="https://github.com/kevinlawler/NSDate-TimeAgo">here</a>.</p>
+
+<p>Many thanks to the .NET team for their DateTime class and a major thank you to <a href="http://www.codeproject.com/Members/Jani-Giannoudis">Jani Giannoudis</a> for his work on ITimePeriod.</p>
+
+<p>Images were first published through itenso.com through <a href="http://www.codeproject.com/Articles/168662/Time-Period-Library-for-NET">Code Project</a></p>
+
+<p>I would also like to thank <strong>God</strong> through whom all things live and move and have their being. <a href="http://www.biblegateway.com/passage/?search=Acts+17%3A16-34&amp;version=NIV">Acts 17:28</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>The MIT License (MIT)</p>
+
+<p>Copyright (c) 2014 Matthew York</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p></article></div>

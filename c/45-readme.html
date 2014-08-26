@@ -1,0 +1,178 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-luvit-lua--libuv--jit--pure-awesomesauce" class="anchor" href="#luvit-lua--libuv--jit--pure-awesomesauce" aria-hidden="true"><span class="octicon octicon-link"></span></a>Luvit (Lua + libUV + jIT = pure awesomesauce)</h1>
+
+<p><a href="https://travis-ci.org/luvit/luvit"><img src="https://camo.githubusercontent.com/d0153671330104963f77519ec354194fd8e54e85/68747470733a2f2f7472617669732d63692e6f72672f6c757669742f6c757669742e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/luvit/luvit.svg?branch=master" style="max-width:100%;"></a></p>
+
+<p>Luvit is an attempt to do something crazy by taking node.js' awesome
+architecture and dependencies and seeing how it fits in the Lua language.</p>
+
+<p>This project is still under heavy development, but it's showing promise. In
+initial benchmarking with a hello world server, this is between 2 and 4 times
+faster than node.js. Version 0.5.0 is the latest release version.</p>
+
+<p>Do you have a question/want to learn more? Make sure to check out the <a href="http://groups.google.com/group/luvit/">mailing
+list</a> and drop by our IRC channel, #luvit
+on Freenode.</p>
+
+<div class="highlight highlight-lua"><pre><span class="c1">-- Load the http library</span>
+<span class="kd">local</span> <span class="n">HTTP</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s2">"</span><span class="s">http"</span><span class="p">)</span>
+
+<span class="c1">-- Create a simple nodeJS style hello-world server</span>
+<span class="n">HTTP</span><span class="p">.</span><span class="n">createServer</span><span class="p">(</span><span class="k">function</span> <span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
+  <span class="kd">local</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">"</span><span class="s">Hello World</span><span class="se">\n</span><span class="s">"</span>
+  <span class="n">res</span><span class="p">:</span><span class="n">writeHead</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="p">{</span>
+    <span class="p">[</span><span class="s2">"</span><span class="s">Content-Type"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"</span><span class="s">text/plain"</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">"</span><span class="s">Content-Length"</span><span class="p">]</span> <span class="o">=</span> <span class="o">#</span><span class="n">body</span>
+  <span class="p">})</span>
+  <span class="n">res</span><span class="p">:</span><span class="n">finish</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+<span class="k">end</span><span class="p">):</span><span class="n">listen</span><span class="p">(</span><span class="mi">8080</span><span class="p">)</span>
+
+<span class="c1">-- Give a friendly message</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="s">Server listening at http://localhost:8080/"</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-building-from-git" class="anchor" href="#building-from-git" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building from git</h3>
+
+<p>Grab a copy of the source code:</p>
+
+<p><code>git clone https://github.com/luvit/luvit.git --recursive</code></p>
+
+<p>To use the gyp build system run:</p>
+
+<pre><code>cd luvit
+git submodule update --init --recursive
+./configure
+make -C out
+tools/build.py test
+./out/Debug/luvit
+</code></pre>
+
+<p>To use the Makefile build system (for embedded systems without python)
+run:</p>
+
+<pre><code>cd luvit
+make
+make test
+./build/luvit
+</code></pre>
+
+<h2>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h2>
+
+<p>Luvit contains an extremely useful debug API. Lua contains a stack which is used
+to manipulate the virtual machine and return values to 'C'. It is often very
+useful to display this stack to aid in debugging. In fact, this API is
+accessible via C or from Lua.</p>
+
+<h3>
+<a name="user-content-stackwalk" class="anchor" href="#stackwalk" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stackwalk</h3>
+
+<div class="highlight highlight-lua"><pre><span class="nb">require</span><span class="p">(</span><span class="s1">'</span><span class="s">_debug'</span><span class="p">).</span><span class="n">stackwalk</span><span class="p">(</span><span class="n">errorString</span><span class="p">)</span>
+</pre></div>
+
+<p>Displays a backtrace of the current Lua state. Useful when an error happens and
+you want to get a call stack.</p>
+
+<p>example output:</p>
+
+<div class="highlight highlight-text"><pre>Lua stack backtrace: error
+    in Lua code at luvit/tests/test-crypto.lua:69 fn()
+    in Lua code at luvit/lib/luvit/module.lua:67 myloadfile()
+    in Lua code at luvit/lib/luvit/luvit.lua:285 (null)()
+    in native code
+    in Lua code at luvit/lib/luvit/luvit.lua:185 (null)()
+    in native code
+    in Lua code at [string "    local path = require('uv_native').execpat..."]:1 (null)()
+</pre></div>
+
+<h3>
+<a name="user-content-stackdump" class="anchor" href="#stackdump" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stackdump</h3>
+
+<div class="highlight highlight-lua"><pre><span class="nb">require</span><span class="p">(</span><span class="s1">'</span><span class="s">_debug'</span><span class="p">).</span><span class="n">stackdump</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+</pre></div>
+
+<div class="highlight highlight-c"><pre><span class="n">luv_lua_debug_stackdump</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="s">"a message"</span><span class="p">);</span>
+</pre></div>
+
+<p>Stackdump is extremly useful from within C modules.</p>
+
+<h3>
+<a name="user-content-debugger" class="anchor" href="#debugger" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugger</h3>
+
+<div class="highlight highlight-lua"><pre><span class="nb">require</span><span class="p">(</span><span class="s1">'</span><span class="s">_debug'</span><span class="p">).</span><span class="n">debugger</span><span class="p">()</span>
+</pre></div>
+
+<p>Supports the following commands:</p>
+
+<ul class="task-list">
+<li>quit</li>
+<li>exit</li>
+<li>break</li>
+<li>clear</li>
+<li>clearall</li>
+<li>trace</li>
+<li>bt</li>
+</ul><p>The debugger will execute any arbitrary Lua statement by default.</p>
+
+<h2>
+<a name="user-content-embedding" class="anchor" href="#embedding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Embedding</h2>
+
+<p>A static library is generated when compiling Luvit. This allows for easy
+embedding into other projects. LuaJIT, libuv, and all other dependencies are
+included.</p>
+
+<div class="highlight highlight-c"><pre><span class="cp">#include &lt;string.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;limits.h&gt; </span><span class="cm">/* PATH_MAX */</span><span class="cp"></span>
+
+<span class="cp">#include "lua.h"</span>
+<span class="cp">#include "lualib.h"</span>
+<span class="cp">#include "lauxlib.h"</span>
+
+<span class="cp">#ifndef WIN32</span>
+<span class="cp">#include &lt;pthread.h&gt;</span>
+<span class="cp">#endif</span>
+<span class="cp">#include "uv.h"</span>
+
+<span class="cp">#include "luvit.h"</span>
+<span class="cp">#include "luvit_init.h"</span>
+<span class="cp">#include "luv.h"</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<span class="p">{</span>
+  <span class="n">lua_State</span> <span class="o">*</span><span class="n">L</span><span class="p">;</span>
+  <span class="kt">uv_loop_t</span> <span class="o">*</span><span class="n">loop</span><span class="p">;</span>
+
+  <span class="n">argv</span> <span class="o">=</span> <span class="n">uv_setup_args</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">);</span>
+
+  <span class="n">L</span> <span class="o">=</span> <span class="n">luaL_newstate</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">L</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"luaL_newstate has failed</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">luaL_openlibs</span><span class="p">(</span><span class="n">L</span><span class="p">);</span>
+
+  <span class="n">loop</span> <span class="o">=</span> <span class="n">uv_default_loop</span><span class="p">();</span>
+
+<span class="cp">#ifdef LUV_EXPORTS</span>
+  <span class="n">luvit__suck_in_symbols</span><span class="p">();</span>
+<span class="cp">#endif</span>
+
+<span class="cp">#ifdef USE_OPENSSL</span>
+  <span class="n">luvit_init_ssl</span><span class="p">();</span>
+<span class="cp">#endif</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">luvit_init</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">loop</span><span class="p">,</span> <span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"luvit_init has failed</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="p">...</span> <span class="n">Run</span> <span class="n">a</span> <span class="n">luvit</span> <span class="n">file</span> <span class="n">from</span> <span class="n">memory</span> <span class="n">or</span> <span class="n">disk</span> <span class="p">...</span>
+  <span class="p">...</span>    <span class="n">or</span> <span class="n">call</span> <span class="n">uv_run</span> <span class="p">...</span>
+
+  <span class="n">lua_close</span><span class="p">(</span><span class="n">L</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div></article></div>

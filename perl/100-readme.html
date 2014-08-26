@@ -1,0 +1,150 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://travis-ci.org/CPAN-API/cpan-api"><img src="https://camo.githubusercontent.com/7b95f02b66e6d954cf1bb36e2733ba8eaa71832f/68747470733a2f2f7472617669732d63692e6f72672f4350414e2d4150492f6370616e2d6170692e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/CPAN-API/cpan-api.png?branch=master" style="max-width:100%;"></a>
+<a href="https://coveralls.io/r/CPAN-API/cpan-api"><img src="https://camo.githubusercontent.com/02cb5b4ed51833c560147aa01ab7f32cb0dcfdfb/68747470733a2f2f636f766572616c6c732e696f2f7265706f732f4350414e2d4150492f6370616e2d6170692f62616467652e706e67" alt="Coverage Status" data-canonical-src="https://coveralls.io/repos/CPAN-API/cpan-api/badge.png" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-a-web-service-for-the-cpan" class="anchor" href="#a-web-service-for-the-cpan" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Web Service for the CPAN</h1>
+
+<p>MetaCPAN aims to provide a free, open web service which provides metadata for
+CPAN modules.</p>
+
+<h2>
+<a name="user-content-rest-api" class="anchor" href="#rest-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>REST API</h2>
+
+<p>MetaCPAN is based on Elasticsearch, so it provides a RESTful interface as well
+as the option to create complex queries. <a href="https://github.com/CPAN-API/cpan-api/wiki/API-docs">The
+wiki</a> provides a good
+starting point for REST access to MetaCPAN.</p>
+
+<h2>
+<a name="user-content-expanding-your-author-info" class="anchor" href="#expanding-your-author-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>Expanding Your Author Info</h2>
+
+<p>MetaCPAN allows authors to add custom metadata about themselves to the index.
+<a href="https://metacpan.org/account/profile">Log in to MetaCPAN</a> to add more
+information about yourself.</p>
+
+<h2>
+<a name="user-content-installing-your-own-metacpan" class="anchor" href="#installing-your-own-metacpan" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing Your Own MetaCPAN:</h2>
+
+<p>If you want to run MetaCPAN locally, we encourage you to start with a VM: <a href="https://github.com/CPAN-API/metacpan-developer">Metacpan Developer VM</a>
+However, you may still find some info here:</p>
+
+<h2>
+<a name="user-content-troubleshooting-elasticsearch" class="anchor" href="#troubleshooting-elasticsearch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Troubleshooting Elasticsearch</h2>
+
+<p>You can restart Elasticsearch (ES) manually if you need to troubleshoot.</p>
+
+<div class="highlight highlight-sh"><pre>sudo service elasticsearch restart
+</pre></div>
+
+<p>If you are unable to access <a href="give%20it%20a%20few%20seconds">[http://localhost:9200]</a> you should kill the Elasticsearch process and run it in foreground to see the debug output</p>
+
+<div class="highlight highlight-sh"><pre>sudo service elasticsearch stop
+<span class="nb">cd</span> /opt/elasticsearch
+sudo bin/elasticsearch -f
+</pre></div>
+
+<p>If you get a "Can't start up: not enough memory" error when trying to start Elasticsearch, you likely need to update your JRE.  On Ubuntu:</p>
+
+<div class="highlight highlight-sh"><pre><span class="c"># fixes "not enough memory" errors</span>
+sudo apt-get install openjdk-6-jre
+</pre></div>
+
+<p>(Note: If you intend to try indexing a full MiniCPAN, you may find that Elasticsearch wants to use more open filehandles than your system allows by default. <a href="https://gist.github.com/3230962">This script</a> can be used to start ES with the appropriate ulimit adjustment).</p>
+
+<h2>
+<a name="user-content-run-the-test-suite" class="anchor" href="#run-the-test-suite" aria-hidden="true"><span class="octicon octicon-link"></span></a>Run the test suite</h2>
+
+<p>The test suite accesses Elasticsearch on port 9900.
+The developer VM should have a dedicated test instance running in the background already,
+but if you want to run it manually:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">cd</span> /opt/elasticsearch
+sudo bin/elasticsearch -f -Des.http.port<span class="o">=</span><span class="m">9900</span> -Des.cluster.name<span class="o">=</span>testing
+</pre></div>
+
+<p>Then run the test suite:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nb">cd</span> /home/metacpan/api.metacpan.org
+./bin/prove t
+</pre></div>
+
+<p>The test suite has to pass all tests.</p>
+
+<h2>
+<a name="user-content-create-the-elasticsearch-index" class="anchor" href="#create-the-elasticsearch-index" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create the ElasticSearch Index</h2>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec bin/metacpan mapping --delete
+</pre></div>
+
+<p><code>--delete</code> will drop all indices first to clear the index from test data.</p>
+
+<h2>
+<a name="user-content-begin-indexing-your-modules" class="anchor" href="#begin-indexing-your-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Begin Indexing Your Modules</h2>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec bin/metacpan release /path/to/cpan/authors/id/
+</pre></div>
+
+<p>You should note that you can index either your CPAN mirror or a minicpan mirror.  You can even index just parts of a mirror:</p>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec bin/metacpan release /path/to/cpan/authors/id/<span class="o">{</span>A,B<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-tag-the-latest-releases" class="anchor" href="#tag-the-latest-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tag the Latest Releases</h2>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec bin/metacpan latest --cpan /path/to/cpan/
+</pre></div>
+
+<h2>
+<a name="user-content-index-author-data" class="anchor" href="#index-author-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Index Author Data</h2>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec bin/metacpan author --cpan /path/to/cpan/
+</pre></div>
+
+<p>Note that minicpan doesn't provide the 00whois.xml file which is used to generate the index; you will have to download it manually (it is in the authors/ directory) in order to index authors.</p>
+
+<pre><code>wget -O /path/to/cpan/authors/00whois.xml cpan.cpantesters.org/authors/00whois.xml
+</code></pre>
+
+<p>It also doesn't include author.json files, so that data will also be missing unless you get it from somewhere else.</p>
+
+<h2>
+<a name="user-content-set-up-proxy-in-front-of-elasticsearch" class="anchor" href="#set-up-proxy-in-front-of-elasticsearch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Set Up Proxy in Front of ElasticSearch</h2>
+
+<p>Start API server on port 5000</p>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec plackup -p <span class="m">5000</span> -r
+</pre></div>
+
+<p>This will start a single-threaded test server. If you need extra performance, use <code>Starman</code> instead.</p>
+
+<h2>
+<a name="user-content-notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h2>
+
+<p>For a full list of options:</p>
+
+<div class="highlight highlight-sh"><pre>./bin/carton-exec bin/metacpan release --help
+</pre></div>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing:</h2>
+
+<p>If you'd like to get involved, find us at #metacpan or irc.perl.org or join
+our mailing list (see below) and let us know what you'd like to start working
+on.</p>
+
+<h2>
+<a name="user-content-irc" class="anchor" href="#irc" aria-hidden="true"><span class="octicon octicon-link"></span></a>IRC</h2>
+
+<p>You can find us at #metacpan on irc.perl.org</p>
+
+<p>IRC logs can be found here:
+<a href="http://irclog.perlgeek.de/metacpan/today">http://irclog.perlgeek.de/metacpan/today</a>
+(Thanks to <a href="http://moritz.faui2k3.org/">Moritz Lenz</a> for making this service
+available)</p>
+
+<h2>
+<a name="user-content-mailing-list" class="anchor" href="#mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mailing List</h2>
+
+<p>Our mailing list is open to all:
+<a href="http://groups.google.com/group/cpan-api">http://groups.google.com/group/cpan-api</a> </p></article></div>

@@ -1,0 +1,218 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-perftoolsrb" class="anchor" href="#perftoolsrb" aria-hidden="true"><span class="octicon octicon-link"></span></a>perftools.rb</h1>
+
+<pre><code>gperftools for ruby code
+(c) 2012 Aman Gupta (tmm1)
+http://www.ruby-lang.org/en/LICENSE.txt
+
+gperftools (formerly known as google-perftools): http://gperftools.googlecode.com
+</code></pre>
+
+<h2>
+<a name="user-content-usage-in-a-webapp" class="anchor" href="#usage-in-a-webapp" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage (in a webapp)</h2>
+
+<p>Use <a href="https://github.com/bhb/rack-perftools_profiler">rack-perftools_profiler</a>:</p>
+
+<pre><code>require 'rack/perftools_profiler'
+config.middleware.use ::Rack::PerftoolsProfiler, :default_printer =&gt; 'gif'
+</code></pre>
+
+<p>Simply add <code>profile=true</code> to profile a request:</p>
+
+<pre><code>curl -o 10_requests_to_homepage.gif "http://localhost:3000/homepage?profile=true&amp;times=10"
+</code></pre>
+
+<h2>
+<a name="user-content-usage-from-ruby" class="anchor" href="#usage-from-ruby" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage (from Ruby)</h2>
+
+<p>Run the profiler with a block:</p>
+
+<pre><code>require 'perftools'
+PerfTools::CpuProfiler.start("/tmp/add_numbers_profile") do
+  5_000_000.times{ 1+2+3+4+5 }
+end
+</code></pre>
+
+<p>Start and stop the profiler manually:</p>
+
+<pre><code>require 'perftools'
+PerfTools::CpuProfiler.start("/tmp/add_numbers_profile")
+5_000_000.times{ 1+2+3+4+5 }
+PerfTools::CpuProfiler.stop
+</code></pre>
+
+<h2>
+<a name="user-content-usage-externally" class="anchor" href="#usage-externally" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage (externally)</h2>
+
+<p>Profile an existing ruby application without modifying it:</p>
+
+<pre><code>$ CPUPROFILE=/tmp/my_app_profile \
+  RUBYOPT="-r`gem which perftools | tail -1`" \
+  ruby my_app.rb
+</code></pre>
+
+<h2>
+<a name="user-content-profiler-modes" class="anchor" href="#profiler-modes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Profiler Modes</h2>
+
+<p>The profiler can be run in one of many modes, set via an environment
+variable before the library is loaded:</p>
+
+<ul class="task-list">
+<li>
+<p><code>CPUPROFILE_REALTIME=1</code></p>
+
+<p>Use walltime instead of cputime profiling. This will capture all time spent in a method, even if it does not involve the CPU.</p>
+
+<p>For example, <code>sleep()</code> is not expensive in terms of cputime, but very expensive in walltime. walltime will also show functions spending a lot of time in network i/o.</p>
+</li>
+<li>
+<p><code>CPUPROFILE_OBJECTS=1</code></p>
+
+<p>Profile object allocations instead of cpu/wall time. Each sample represents one object created inside that function.</p>
+</li>
+<li>
+<p><code>CPUPROFILE_METHODS=1</code></p>
+
+<p>Profile method calls. Each sample represents one method call made inside that function.</p>
+</li>
+</ul><p>The sampling interval of the profiler can be adjusted to collect more
+(for better profile detail) or fewer samples (for lower overhead):</p>
+
+<ul class="task-list">
+<li>
+<p><code>CPUPROFILE_FREQUENCY=500</code></p>
+
+<p>Default sampling interval is 100 times a second. Valid range is 1-4000</p>
+</li>
+</ul><h2>
+<a name="user-content-reporting" class="anchor" href="#reporting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporting</h2>
+
+<pre><code>pprof.rb --text /tmp/add_numbers_profile
+
+pprof.rb --pdf /tmp/add_numbers_profile &gt; /tmp/add_numbers_profile.pdf
+
+pprof.rb --gif /tmp/add_numbers_profile &gt; /tmp/add_numbers_profile.gif
+
+pprof.rb --callgrind /tmp/add_numbers_profile &gt; /tmp/add_numbers_profile.grind
+kcachegrind /tmp/add_numbers_profile.grind
+
+pprof.rb --gif --focus=Integer /tmp/add_numbers_profile &gt; /tmp/add_numbers_custom.gif
+
+pprof.rb --text --ignore=Gem /tmp/my_app_profile
+</code></pre>
+
+<p>For more options, see <a href="http://gperftools.googlecode.com/svn/trunk/doc/cpuprofile.html#pprof">pprof documentation</a></p>
+
+<h3>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h3>
+
+<h4>
+<a name="user-content-pprofrb---text" class="anchor" href="#pprofrb---text" aria-hidden="true"><span class="octicon octicon-link"></span></a>pprof.rb --text</h4>
+
+<pre><code>Total: 1735 samples
+    1487  85.7%  85.7%     1735 100.0% Integer#times
+     248  14.3% 100.0%      248  14.3% Fixnum#+
+</code></pre>
+
+<h4>
+<a name="user-content-pprofrb---gif" class="anchor" href="#pprofrb---gif" aria-hidden="true"><span class="octicon octicon-link"></span></a>pprof.rb --gif</h4>
+
+<ul class="task-list">
+<li><p>Simple <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/rubygems.gif">require 'rubygems'</a> profile</p></li>
+<li><p>Comparing redis-rb <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/redis-rb.gif">with</a> and <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/redis-rb-notimeout.gif">without</a> SystemTimer based socket timeouts</p></li>
+<li><p><a href="https://raw.github.com/tmm1/perftools.rb/master/examples/sinatra.gif">Sinatra</a> vs. <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/merb.gif">Merb</a> vs. <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/rails.gif">Rails</a></p></li>
+<li><p>C-level profile of EventMachine + epoll + Ruby threads <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/eventmachine-epoll+nothreads.gif">before</a> and <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/eventmachine-epoll+threads.gif">after</a> a <a href="http://timetobleed.com/6-line-eventmachine-bugfix-2x-faster-gc-1300-requestssec/">6 line EM bugfix</a></p></li>
+<li>
+<p>C-level profile of a <a href="https://raw.github.com/tmm1/perftools.rb/master/examples/ruby_interpreter.gif">ruby/rails vm</a></p>
+
+<ul class="task-list">
+<li>12% time spent in re_match_exec because of excessive calls to rb_str_sub_bang by Date.parse</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Just install the gem, which will download, patch and compile gperftools for you:</p>
+
+<pre><code>sudo gem install perftools.rb
+</code></pre>
+
+<p>Or build your own gem:</p>
+
+<pre><code>git clone git://github.com/tmm1/perftools.rb
+cd perftools.rb
+gem build perftools.rb.gemspec
+gem install perftools.rb
+</code></pre>
+
+<p>Use via a Gemfile:</p>
+
+<pre><code>gem 'perftools.rb', :git =&gt; 'git://github.com/tmm1/perftools.rb.git'
+</code></pre>
+
+<p>You'll also need graphviz to generate call graphs using dot:</p>
+
+<pre><code>sudo brew    install graphviz ghostscript # osx
+sudo apt-get install graphviz ps2pdf      # debian/ubuntu
+</code></pre>
+
+<p>If graphviz fails to build on OSX Lion, you may need to recompile libgd, <a href="https://github.com/mxcl/homebrew/issues/6645#issuecomment-1806807">see here</a></p>
+
+<h2>
+<a name="user-content-advantages-over-ruby-prof" class="anchor" href="#advantages-over-ruby-prof" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advantages over ruby-prof</h2>
+
+<ul class="task-list">
+<li>
+<p>Sampling profiler</p>
+
+<ul class="task-list">
+<li>perftools samples your process using setitimer() so it can be used in production with minimal overhead.</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-profiling-the-ruby-vm-and-c-extensions" class="anchor" href="#profiling-the-ruby-vm-and-c-extensions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Profiling the Ruby VM and C extensions</h2>
+
+<p>To profile C code, download and build an unpatched perftools (libunwind or ./configure --enable-frame-pointers required on x86_64).</p>
+
+<p>Download:</p>
+
+<pre><code>wget http://gperftools.googlecode.com/files/gperftools-2.0.tar.gz
+tar zxvf gperftools-2.0.tar.gz
+cd gperftools-2.0
+</code></pre>
+
+<p>Compile:</p>
+
+<pre><code>./configure --prefix=/opt
+make
+sudo make install
+</code></pre>
+
+<p>Profile:</p>
+
+<pre><code>export LD_PRELOAD=/opt/lib/libprofiler.so                 # for linux
+export DYLD_INSERT_LIBRARIES=/opt/lib/libprofiler.dylib   # for osx
+CPUPROFILE=/tmp/ruby_interpreter.profile ruby -e' 5_000_000.times{ "hello world" } '
+</code></pre>
+
+<p>Report:</p>
+
+<pre><code>pprof `which ruby` --text /tmp/ruby_interpreter.profile
+</code></pre>
+
+<h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul class="task-list">
+<li>Add support for heap profiling to find memory leaks (PerfTools::HeapProfiler)</li>
+<li>Allow both C and Ruby profiling</li>
+<li>Add setter for the sampling interval</li>
+</ul><h2>
+<a name="user-content-resources" class="anchor" href="#resources" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resources</h2>
+
+<ul class="task-list">
+<li><p><a href="http://goruco2009.confreaks.com/30-may-2009-18-35-rejectconf-various-presenters.html">GoRuCo 2009 Lightning Talk on perftools.rb</a> @ 21:52</p></li>
+<li><p><a href="http://www.igvita.com/2009/06/13/profiling-ruby-with-googles-perftools/">Ilya Grigorik's introduction to perftools.rb</a></p></li>
+<li><p><a href="http://code.google.com/p/gperftools/">Google Perftools</a></p></li>
+<li><p><a href="http://gperftools.googlecode.com/svn/trunk/doc/cpuprofile.html#pprof">Analyzing profiles and interpreting different output formats</a></p></li>
+</ul></article></div>

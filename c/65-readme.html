@@ -1,0 +1,393 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-about" class="anchor" href="#about" aria-hidden="true"><span class="octicon octicon-link"></span></a>About</h1>
+
+<p>A very simple web server providing an HTTP interface to Redis. It uses <a href="https://github.com/antirez/hiredis">hiredis</a>, <a href="https://github.com/akheron/jansson">jansson</a>, <a href="http://monkey.org/%7Eprovos/libevent/">libevent</a>, and <a href="https://github.com/ry/http-parser/">http-parser</a>.</p>
+
+<p>Webdis depends on libevent-dev. You can install it on Ubuntu by typing <code>sudo apt-get install libevent-dev</code> or on OS X by typing <code>brew install libevent</code>.</p>
+
+<pre>
+make clean all
+
+./webdis &amp;
+
+curl http://127.0.0.1:7379/SET/hello/world
+→ {"SET":[true,"OK"]}
+
+curl http://127.0.0.1:7379/GET/hello
+→ {"GET":"world"}
+
+curl -d "GET/hello" http://127.0.0.1:7379/
+→ {"GET":"world"}
+
+</pre>
+
+<h1>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h1>
+
+<ul class="task-list">
+<li>
+<code>GET</code> and <code>POST</code> are supported, as well as <code>PUT</code> for file uploads.</li>
+<li>JSON output by default, optional JSONP parameter (<code>?jsonp=myFunction</code> or <code>?callback=myFunction</code>).</li>
+<li>Raw Redis 2.0 protocol output with <code>.raw</code> suffix</li>
+<li>MessagePack output with <code>.msg</code> suffix</li>
+<li>HTTP 1.1 pipelining (70,000 http requests per second on a desktop Linux machine.)</li>
+<li>Multi-threaded server, configurable number of worker threads.</li>
+<li>WebSocket support (Currently using the “hixie-76” specification).</li>
+<li>Connects to Redis using a TCP or UNIX socket.</li>
+<li>Restricted commands by IP range (CIDR subnet + mask) or HTTP Basic Auth, returning 403 errors.</li>
+<li>Possible Redis authentication in the config file.</li>
+<li>Pub/Sub using <code>Transfer-Encoding: chunked</code>, works with JSONP as well. Webdis can be used as a Comet server.</li>
+<li>Drop privileges on startup.</li>
+<li>Custom Content-Type using a pre-defined file extension, or with <code>?type=some/thing</code>.</li>
+<li>URL-encoded parameters for binary data or slashes and question marks. For instance, <code>%2f</code> is decoded as <code>/</code> but not used as a command separator.</li>
+<li>Logs, with a configurable verbosity.</li>
+<li>Cross-origin requests, usable with XMLHttpRequest2 (Cross-Origin Resource Sharing - CORS).</li>
+<li>File upload with PUT.</li>
+<li>With the JSON output, the return value of INFO is parsed and transformed into an object.</li>
+<li>Optional daemonize: set <code>"daemonize": true</code> and <code>"pidfile": "/var/run/webdis.pid"</code> in webdis.json.</li>
+<li>Default root object: Add <code>"default_root": "/GET/index.html"</code> in webdis.json to substitute the request to <code>/</code> with a Redis request.</li>
+<li>HTTP request limit with <code>http_max_request_size</code> (in bytes, set to 128MB by default).</li>
+<li>Database selection in the URL, using e.g. <code>/7/GET/key</code> to run the command on DB 7.</li>
+</ul><h1>
+<a name="user-content-ideas-todo" class="anchor" href="#ideas-todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ideas, TODO...</h1>
+
+<ul class="task-list">
+<li>Add better support for PUT, DELETE, HEAD, OPTIONS? How? For which commands?
+
+<ul class="task-list">
+<li>This could be done using a “strict mode” with a table of commands and the verbs that can/must be used with each command. Strict mode would be optional, configurable. How would webdis know of new commands remains to be determined.</li>
+</ul>
+</li>
+<li>MULTI/EXEC/DISCARD/WATCH are disabled at the moment; find a way to use them.</li>
+<li>Support POST of raw Redis protocol data, and execute the whole thing. This could be useful for MULTI/EXEC transactions.</li>
+<li>Enrich config file:
+
+<ul class="task-list">
+<li>Provide timeout (maybe for some commands only?). What should the response be? 504 Gateway Timeout? 503 Service Unavailable?</li>
+</ul>
+</li>
+<li>Multi-server support, using consistent hashing.</li>
+<li>SSL?
+
+<ul class="task-list">
+<li>Not sure if this is such a good idea.</li>
+</ul>
+</li>
+<li>SPDY?
+
+<ul class="task-list">
+<li>SPDY is mostly useful for parallel fetches. Not sure if it would make sense for Webdis.</li>
+</ul>
+</li>
+<li>Send your ideas using the github tracker, on twitter <a href="http://twitter.com/yowgi">@yowgi</a> or by mail to <a href="mailto:n.favrefelix@gmail.com">n.favrefelix@gmail.com</a>.</li>
+</ul><h1>
+<a name="user-content-http-error-codes" class="anchor" href="#http-error-codes" aria-hidden="true"><span class="octicon octicon-link"></span></a>HTTP error codes</h1>
+
+<ul class="task-list">
+<li>Unknown HTTP verb: 405 Method Not Allowed.</li>
+<li>Redis is unreachable: 503 Service Unavailable.</li>
+<li>Matching ETag sent using <code>If-None-Match</code>: 304 Not Modified.</li>
+<li>Could also be used:
+
+<ul class="task-list">
+<li>Timeout on the redis side: 503 Service Unavailable.</li>
+<li>Missing key: 404 Not Found.</li>
+<li>Unauthorized command (disabled in config file): 403 Forbidden.</li>
+</ul>
+</li>
+</ul><h1>
+<a name="user-content-command-format" class="anchor" href="#command-format" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command format</h1>
+
+<p>The URI <code>/COMMAND/arg0/arg1/.../argN.ext</code> executes the command on Redis and returns the response to the client. GET, POST, and PUT are supported:</p>
+
+<ul class="task-list">
+<li><code>GET /COMMAND/arg0/.../argN.ext</code></li>
+<li>
+<code>POST /</code> with <code>COMMAND/arg0/.../argN</code> in the HTTP body.</li>
+<li>
+<code>PUT /COMMAND/arg0.../argN-1</code> with <code>argN</code> in the HTTP body (see section on <a href="#file-upload">file uploads</a>.)</li>
+</ul><p><code>.ext</code> is an optional extension; it is not read as part of the last argument but only represents the output format. Several formats are available (see below).</p>
+
+<p>Special characters: <code>/</code> and <code>.</code> have special meanings, <code>/</code> separates arguments and <code>.</code> changes the Content-Type. They can be replaced by <code>%2f</code> and <code>%2e</code>, respectively.</p>
+
+<h1>
+<a name="user-content-acl" class="anchor" href="#acl" aria-hidden="true"><span class="octicon octicon-link"></span></a>ACL</h1>
+
+<p>Access control is configured in <code>webdis.json</code>. Each configuration tries to match a client profile according to two criterias:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://en.wikipedia.org/wiki/CIDR">CIDR</a> subnet + mask</li>
+<li>
+<a href="http://en.wikipedia.org/wiki/Basic_access_authentication">HTTP Basic Auth</a> in the format of "user:password".</li>
+</ul><p>Each ACL contains two lists of commands, <code>enabled</code> and <code>disabled</code>. All commands being enabled by default, it is up to the administrator to disable or re-enable them on a per-profile basis.
+Examples:</p>
+
+<pre>
+{
+    "disabled": ["DEBUG", "FLUSHDB", "FLUSHALL"],
+},
+
+{
+    "http_basic_auth": "user:password",
+    "disabled": ["DEBUG", "FLUSHDB", "FLUSHALL"],
+    "enabled":  ["SET"]
+},
+
+{
+    "ip":       "192.168.10.0/24",
+    "enabled":  ["SET"]
+},
+
+{
+    "http_basic_auth": "user:password",
+    "ip":       "192.168.10.0/24",
+    "enabled":  ["SET", "DEL"]
+}
+</pre>
+
+<p>ACLs are interpreted in order, later authorizations superseding earlier ones if a client matches several. The special value "*" matches all commands.</p>
+
+<h1>
+<a name="user-content-json-output" class="anchor" href="#json-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>JSON output</h1>
+
+<p>JSON is the default output format. Each command returns a JSON object with the command as a key and the result as a value.</p>
+
+<p><strong>Examples:</strong></p>
+
+<pre>
+// string
+$ curl http://127.0.0.1:7379/GET/y
+{"GET":"41"}
+
+// number
+$ curl http://127.0.0.1:7379/INCR/y
+{"INCR":42}
+
+// list
+$ curl http://127.0.0.1:7379/LRANGE/x/0/1
+{"LRANGE":["abc","def"]}
+
+// status
+$ curl http://127.0.0.1:7379/TYPE/y
+{"TYPE":[true,"string"]}
+
+// error, which is basically a status
+$ curl http://127.0.0.1:7379/MAKE-ME-COFFEE
+{"MAKE-ME-COFFEE":[false,"ERR unknown command 'MAKE-ME-COFFEE'"]}
+
+// JSONP callback:
+$ curl  "http://127.0.0.1:7379/TYPE/y?jsonp=myCustomFunction"
+myCustomFunction({"TYPE":[true,"string"]})
+</pre>
+
+<h1>
+<a name="user-content-raw-output" class="anchor" href="#raw-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>RAW output</h1>
+
+<p>This is the raw output of Redis; enable it with the <code>.raw</code> suffix.</p>
+
+<pre>
+
+// string
+$ curl http://127.0.0.1:7379/GET/z.raw
+$5
+hello
+
+// number
+curl http://127.0.0.1:7379/INCR/a.raw
+:2
+
+// list
+$ curl http://127.0.0.1:7379/LRANGE/x/0/-1.raw
+*2
+$3
+abc
+$3
+def
+
+// status
+$ curl http://127.0.0.1:7379/TYPE/y.raw
++zset
+
+// error, which is basically a status
+$ curl http://127.0.0.1:7379/MAKE-ME-COFFEE.raw
+-ERR unknown command 'MAKE-ME-COFFEE'
+</pre>
+
+<h1>
+<a name="user-content-custom-content-type" class="anchor" href="#custom-content-type" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom content-type</h1>
+
+<p>Several content-types are available:</p>
+
+<ul class="task-list">
+<li>
+<code>.json</code> for <code>application/json</code> (this is the default Content-Type).</li>
+<li>
+<code>.msg</code> for <code>application/x-msgpack</code>. See <a href="http://msgpack.org/">http://msgpack.org/</a> for the specs.</li>
+<li>
+<code>.txt</code> for <code>text/plain</code>
+</li>
+<li>
+<code>.html</code> for <code>text/html</code>
+</li>
+<li>
+<code>xhtml</code> for <code>application/xhtml+xml</code>
+</li>
+<li>
+<code>xml</code> for <code>text/xml</code>
+</li>
+<li>
+<code>.png</code> for <code>image/png</code>
+</li>
+<li>
+<code>jpg</code> or <code>jpeg</code> for <code>image/jpeg</code>
+</li>
+<li>Any other with the <code>?type=anything/youwant</code> query string.</li>
+<li>Add a custom separator for list responses with <code>?sep=,</code> query string.</li>
+</ul><pre>
+curl -v "http://127.0.0.1:7379/GET/hello.html"
+[...]
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: text/html
+&lt; Date: Mon, 03 Jan 2011 20:43:36 GMT
+&lt; Content-Length: 137
+&lt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+[...]
+&lt;/html&gt;
+
+curl -v "http://127.0.0.1:7379/GET/hello.txt"
+[...]
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: text/plain
+&lt; Date: Mon, 03 Jan 2011 20:43:36 GMT
+&lt; Content-Length: 137
+[...]
+
+curl -v "http://127.0.0.1:7379/GET/big-file?type=application/pdf"
+[...]
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: application/pdf
+&lt; Date: Mon, 03 Jan 2011 20:45:12 GMT
+[...]
+</pre>
+
+<h1>
+<a name="user-content-file-upload" class="anchor" href="#file-upload" aria-hidden="true"><span class="octicon octicon-link"></span></a>File upload</h1>
+
+<p>Webdis supports file upload using HTTP PUT. The command URI is slightly different, as the last argument is taken from the HTTP body.
+For example: instead of <code>/SET/key/value</code>, the URI becomes <code>/SET/key</code> and the value is the entirety of the body. This works for other commands such as LPUSH, etc.</p>
+
+<p><strong>Uploading a binary file to webdis</strong>:</p>
+
+<pre>
+$ file redis-logo.png
+redis-logo.png: PNG image, 513 x 197, 8-bit/color RGBA, non-interlaced
+
+$ wc -c redis-logo.png
+16744 redis-logo.png
+
+$ curl -v --upload-file redis-logo.png http://127.0.0.1:7379/SET/logo
+[...]
+&gt; PUT /SET/logo HTTP/1.1
+&gt; User-Agent: curl/7.19.7 (x86_64-pc-linux-gnu) libcurl/7.19.7 OpenSSL/0.9.8k zlib/1.2.3.3 libidn/1.15
+&gt; Host: 127.0.0.1:7379
+&gt; Accept: */*
+&gt; Content-Length: 16744
+&gt; Expect: 100-continue
+&gt;
+&lt; HTTP/1.1 100 Continue
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: application/json
+&lt; ETag: "0db1124cf79ffeb80aff6d199d5822f8"
+&lt; Date: Sun, 09 Jan 2011 16:48:19 GMT
+&lt; Content-Length: 19
+&lt;
+{"SET":[true,"OK"]}
+
+$ curl -vs http://127.0.0.1:7379/GET/logo.png -o out.png
+&gt; GET /GET/logo.png HTTP/1.1
+&gt; User-Agent: curl/7.19.7 (x86_64-pc-linux-gnu) libcurl/7.19.7 OpenSSL/0.9.8k zlib/1.2.3.3 libidn/1.15
+&gt; Host: 127.0.0.1:7379
+&gt; Accept: */*
+&gt;
+&lt; HTTP/1.1 200 OK
+&lt; Content-Type: image/png
+&lt; ETag: "1991df597267d70bf9066a7d11969da0"
+&lt; Date: Sun, 09 Jan 2011 16:50:51 GMT
+&lt; Content-Length: 16744
+
+$ md5sum redis-logo.png out.png
+1991df597267d70bf9066a7d11969da0  redis-logo.png
+1991df597267d70bf9066a7d11969da0  out.png
+</pre>
+
+<p>The file was uploaded and re-downloaded properly: it has the same hash and the content-type was set properly thanks to the <code>.png</code> extension.</p>
+
+<h1>
+<a name="user-content-websockets" class="anchor" href="#websockets" aria-hidden="true"><span class="octicon octicon-link"></span></a>WebSockets</h1>
+
+<p>Webdis supports WebSocket clients implementing <a href="http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-76">dixie-76</a>.<br>
+Web Sockets are supported with the following formats, selected by the connection URL:</p>
+
+<ul class="task-list">
+<li>JSON (on <code>/</code> or <code>/.json</code>)</li>
+<li>Raw Redis wire protocol (on <code>/.raw</code>)</li>
+</ul><p><strong>Example</strong>:</p>
+
+<pre>
+function testJSON() {
+    var jsonSocket = new WebSocket("ws://127.0.0.1:7379/.json");
+    jsonSocket.onopen = function() {
+
+        console.log("JSON socket connected!");
+        jsonSocket.send(JSON.stringify(["SET", "hello", "world"]));
+        jsonSocket.send(JSON.stringify(["GET", "hello"]));
+    };
+    jsonSocket.onmessage = function(messageEvent) {
+        console.log("JSON received:", messageEvent.data);
+    };
+}
+testJSON();
+</pre>
+
+<p>This produces the following output:</p>
+
+<pre>
+JSON socket connected!
+JSON received: {"SET":[true,"OK"]}
+JSON received: {"GET":"world"}
+</pre>
+
+<h1>
+<a name="user-content-pubsub-with-chunked-transfer-encoding" class="anchor" href="#pubsub-with-chunked-transfer-encoding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pub/Sub with chunked transfer encoding</h1>
+
+<p>Webdis exposes Redis PUB/SUB channels to HTTP clients, forwarding messages in the channel as they are published by Redis. This is done using chunked transfer encoding.</p>
+
+<p><strong>Example using XMLHttpRequest</strong>:</p>
+
+<pre>
+var previous_response_length = 0
+xhr = new XMLHttpRequest()
+xhr.open("GET", "http://127.0.0.1:7379/SUBSCRIBE/hello", true);
+xhr.onreadystatechange = checkData;
+xhr.send(null);
+
+function checkData() {
+    if(xhr.readyState == 3)  {
+        response = xhr.responseText;
+        chunk = response.slice(previous_response_length);
+        previous_response_length = response.length;
+        console.log(chunk);
+    }
+};
+</pre>
+
+<p>Publish messages to redis to see output similar to the following:</p>
+
+<pre>
+{"SUBSCRIBE":["subscribe","hello",1]}
+{"SUBSCRIBE":["message","hello","some message"]}
+{"SUBSCRIBE":["message","hello","some other message"]} 
+</pre></article></div>

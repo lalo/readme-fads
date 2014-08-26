@@ -1,0 +1,208 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h1>
+
+<p>de4dot is an open source (GPLv3) .NET deobfuscator and unpacker written in C#. It will try its best to restore a packed and obfuscated assembly to almost the original assembly. Most of the obfuscation can be completely restored (eg. string encryption), but symbol renaming is impossible to restore since the original names aren't (usually) part of the obfuscated assembly.</p>
+
+<p>It uses <a href="https://github.com/0xd4d/dnlib/">dnlib</a> to read and write assemblies so make sure you get it or it won't compile.</p>
+
+<h1>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h1>
+
+<p>Here's a pseudo random list of the things it will do depending on what obfuscator was used to obfuscate an assembly:</p>
+
+<ul class="task-list">
+<li>Inline methods. Some obfuscators move small parts of a method to another static method and calls it.</li>
+<li>Decrypt strings statically or dynamically</li>
+<li>Decrypt other constants. Some obfuscators can also encrypt other constants, such as all integers, all doubles, etc.</li>
+<li>Decrypt methods statically or dynamically</li>
+<li>Remove proxy methods. Many obfuscators replace most/all call instructions with a call to a delegate. This delegate in turn calls the real method.</li>
+<li>Rename symbols. Even though most symbols can't be restored, it will rename them to human readable strings. Sometimes, some of the original names can be restored, though.</li>
+<li>Devirtualize virtualized code</li>
+<li>Decrypt resources. Many obfuscators have an option to encrypt .NET resources.</li>
+<li>Decrypt embedded files. Many obfuscators have an option to embed and possibly encrypt/compress other assemblies.</li>
+<li>Remove tamper detection code</li>
+<li>Remove anti-debug code</li>
+<li>Control flow deobfuscation. Many obfuscators modify the IL code so it looks like spaghetti code making it very difficult to understand the code.</li>
+<li>Restore class fields. Some obfuscators can move fields from one class to some other obfuscator created class.</li>
+<li>Convert a PE exe to a .NET exe. Some obfuscators wrap a .NET assembly inside a Win32 PE so a .NET decompiler can't read the file.</li>
+<li>Removes most/all junk classes added by the obfuscator.</li>
+<li>Fixes some peverify errors. Many of the obfuscators are buggy and create unverifiable code by mistake.</li>
+<li>Restore the types of method parameters and fields</li>
+</ul><h1>
+<a name="user-content-supported-obfuscatorspackers" class="anchor" href="#supported-obfuscatorspackers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported obfuscators/packers</h1>
+
+<ul class="task-list">
+<li>Agile.NET (aka CliSecure)</li>
+<li>Babel.NET</li>
+<li>CodeFort</li>
+<li>CodeVeil</li>
+<li>CodeWall</li>
+<li>CryptoObfuscator</li>
+<li>DeepSea Obfuscator</li>
+<li>Dotfuscator</li>
+<li>.NET Reactor</li>
+<li>Eazfuscator.NET</li>
+<li>Goliath.NET</li>
+<li>ILProtector</li>
+<li>MaxtoCode</li>
+<li>MPRESS</li>
+<li>Rummage</li>
+<li>Skater.NET</li>
+<li>SmartAssembly</li>
+<li>Spices.Net</li>
+<li>Xenocode</li>
+</ul><p>Some of the above obfuscators are rarely used (eg. Goliath.NET), so they have had much less testing. Help me out by reporting bugs or problems you find.</p>
+
+<h1>
+<a name="user-content-warning" class="anchor" href="#warning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Warning</h1>
+
+<p>Sometimes the obfuscated assembly and all its dependencies are loaded into memory for execution. Use a safe sandbox environment if you suspect the assembly or assemblies to be malware.</p>
+
+<p>Even if the current version of de4dot doesn't load a certain assembly into memory for execution, a future version might.</p>
+
+<h1>
+<a name="user-content-how-to-use-de4dot" class="anchor" href="#how-to-use-de4dot" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use de4dot</h1>
+
+<h2>
+<a name="user-content-n00b-users" class="anchor" href="#n00b-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>N00b users</h2>
+
+<p>Drag and drop the file(s) onto de4dot.exe and wait a few seconds.</p>
+
+<h2>
+<a name="user-content-deobfuscate-more-than-one-file-at-a-time" class="anchor" href="#deobfuscate-more-than-one-file-at-a-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deobfuscate more than one file at a time</h2>
+
+<p>When more than one assembly has been obfuscated, it's very likely that you must deobfuscate them all at the same time unless you disable symbol renaming. The reason is that if assembly A has a reference to class C in assembly B, and you rename symbols only in assembly B, then class C could be renamed to eg. Class0 but the reference in assembly A still references a class called C in assembly B. If you deobfuscate both assemblies at the same time, all references will also be updated.</p>
+
+<h2>
+<a name="user-content-find-all-obfuscated-files-and-deobfuscate-them" class="anchor" href="#find-all-obfuscated-files-and-deobfuscate-them" aria-hidden="true"><span class="octicon octicon-link"></span></a>Find all obfuscated files and deobfuscate them</h2>
+
+<p>The following command line will deobfuscate all assemblies that have been obfuscated by a supported obfuscator and save the assemblies to <code>c:\output</code></p>
+
+<pre><code>de4dot -r c:\input -ru -ro c:\output
+</code></pre>
+
+<p><code>-r</code> means recursive search. <code>-ru</code> means it should ignore unknown files. <code>-ro</code> means it should place the output files in the following directory. Typically, you'd first copy <code>c:\input</code> to <code>c:\output</code>, and then run the command. That way all the files will be in <code>c:\output</code>, even non-assemblies and non-processed assemblies. When de4dot is finished, you'd just double click the main assembly in <code>c:\output</code> and it should hopefully start.</p>
+
+<h2>
+<a name="user-content-detect-obfuscator" class="anchor" href="#detect-obfuscator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Detect obfuscator</h2>
+
+<p>Use the <code>-d</code> option to detect the obfuscator without deobfuscating any assembly.</p>
+
+<p>Find all .NET assemblies and detect obfuscator. If it's an unsupported obfuscator or if it's not obfuscated, it will print "Unknown obfuscator".</p>
+
+<pre><code>de4dot -d -r c:\input
+</code></pre>
+
+<p>Same as above except that it will only show which files have been obfuscated by a supported obfuscator.</p>
+
+<pre><code>de4dot -d -r c:\input -ru
+</code></pre>
+
+<p>Detect obfuscator</p>
+
+<pre><code>de4dot -d file1.dll file2.dll file3.dll
+</code></pre>
+
+<h2>
+<a name="user-content-preserving-metadata-tokens" class="anchor" href="#preserving-metadata-tokens" aria-hidden="true"><span class="octicon octicon-link"></span></a>Preserving metadata tokens</h2>
+
+<p>Sometimes in rare cases, you'd want to preserve the metadata tokens. Use <code>--preserve-tokens</code> or <code>--preserve-table</code>. Also consider using <code>--keep-types</code> since it won't remove any types and methods added by the obfuscator. Another useful option is <code>--dont-create-params</code>. If used, the renamer won't create Param rows for method parameters that don't have a Param row. That way the ParamPtr table won't be added to your assemblies. Peverify has a bug and doesn't support it (you'll see lots of "errors").</p>
+
+<p>The #Strings, #US and #Blob heaps can also be preserved by using <code>--preserve-strings</code>, <code>--preserve-us</code>, and <code>--preserve-blob</code> respectively. Of these three, <code>--preserve-us</code> is the most useful one since <code>ldstr</code> instruction and <code>module.ResolveString()</code> directly reference the #US heap.</p>
+
+<p><code>--preserve-sig-data</code> should be used if the obfuscator adds extra data at the end of signatures that it uses for its own purpose, eg. as decryption keys. Confuser is one obfuscator that does this.</p>
+
+<p><code>--preserve-tokens</code> preserves all important tokens but will also enable <code>--preserve-us</code>, <code>--preserve-blob</code> and <code>--preserve-sig-data</code>.</p>
+
+<p>If it's detected as an unknown (unsupported) obfuscator (or if you force it with <code>-p un</code>), all tokens are preserved, including the #US heap and any extra data at the end of signatures. Also, no obfuscator types, fields or methods are removed.</p>
+
+<p>Preserve all important tokens, #US, #Blob, extra sig data.</p>
+
+<pre><code>de4dot --preserve-tokens file1.dll
+</code></pre>
+
+<p>Preserve all important tokens, #US, #Blob, extra sig data and don't remove types/fields added by the obfuscator</p>
+
+<pre><code>de4dot --keep-types --preserve-tokens file1.dll
+</code></pre>
+
+<p>Preserve all important tokens, #US, #Blob, extra sig data and don't create extra Param rows to prevent the ParamPtr table from being created.</p>
+
+<pre><code>de4dot --dont-create-params --preserve-tokens file1.dll
+</code></pre>
+
+<p>Preserve all important tokens except the Param tokens.</p>
+
+<pre><code>de4dot --preserve-table all,-pd file1.dll
+</code></pre>
+
+<h2>
+<a name="user-content-dynamically-decrypting-strings" class="anchor" href="#dynamically-decrypting-strings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamically decrypting strings</h2>
+
+<p>Although <code>de4dot</code> supports a lot of obfuscators, there's still some it doesn't support. To decrypt strings, you'll first need to figure out which method or methods decrypt strings. To get the method token of these string decrypters, you can use ILDASM with the 'show metadata tokens' option enabled. A method token is a 32-bit number and begins with 06, eg. 06012345.</p>
+
+<p>This command will load assembly file1.dll into memory by calling <code>Assembly.Load()</code>. When it detects calls to the two string decrypters (06012345 and 060ABCDE), it will call them by creating a dynamic method, and save the result (the decrypted string). The call to the string decrypter will be removed and the decrypted string will be in its place.</p>
+
+<pre><code>de4dot file1.dll --strtyp delegate --strtok 06012345 --strtok 060ABCDE
+</code></pre>
+
+<p>Since the assembly is loaded and executed, make sure you run this in a sandbox if you suspect the file to be malware.</p>
+
+<h2>
+<a name="user-content-forcing-detection-of-a-certain-obfuscator" class="anchor" href="#forcing-detection-of-a-certain-obfuscator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Forcing detection of a certain obfuscator</h2>
+
+<p><code>de4dot</code> isn't perfect. If it fails to detect an obfuscator, you can use the <code>-p</code> option to force it to assume it's been obfuscated by it.</p>
+
+<p>Force SmartAssembly</p>
+
+<pre><code>de4dot file1.dll -p sa
+</code></pre>
+
+<p>Force unsupported obfuscator</p>
+
+<pre><code>de4dot file1.dll -p un
+</code></pre>
+
+<p>For other obfuscator types, see the help screen.</p>
+
+<h2>
+<a name="user-content-disabling-symbol-renaming" class="anchor" href="#disabling-symbol-renaming" aria-hidden="true"><span class="octicon octicon-link"></span></a>Disabling symbol renaming</h2>
+
+<p>Renaming symbols isn't as easy as renaming A to B when reflection is involved. <code>de4dot</code> currently doesn't support renaming XAML so if you suspect that it uses WPF (or if it's a Silverlight app) you should disable renaming if the assembly fails to run.</p>
+
+<pre><code>de4dot --dont-rename file1.dll file2.dll
+</code></pre>
+
+<p><code>--keep-names</code> can also be used to tell <code>de4dot</code> not to rename certain symbols, eg. "don't rename fields".</p>
+
+<p>Rename everything that should be renamed except properties, events and methods.</p>
+
+<pre><code>de4dot --keep-names pem file1.dll
+</code></pre>
+
+<h2>
+<a name="user-content-using-a-different-rename-regex" class="anchor" href="#using-a-different-rename-regex" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using a different rename regex</h2>
+
+<p>The default regexes should be enough, except possibly the one that is used when an unsupported obfuscator is detected. To see all default regexes, start <code>de4dot</code> without any arguments and it will list all options and all default values.</p>
+
+<p>Eg., currently the following is the default regex used when Dotfuscator is detected</p>
+
+<pre><code>!^[a-z][a-z0-9]{0,2}$&amp;!^A_[0-9]+$&amp;^[\u2E80-\u9FFFa-zA-Z_&lt;{$][\u2E80-\u9FFFa-zA-Z_0-9&lt;&gt;{}$.`-]*$
+</code></pre>
+
+<p>As you can see, it's not just one regex, it's more than one. Each one is separated by <code>&amp;</code> and each regex can be negated by using <code>!</code> in front of it. To show it more clearly, these regexes are used:</p>
+
+<pre><code>(negated) ^[a-z][a-z0-9]{0,2}$
+(negated) ^A_[0-9]+$
+^[\u2E80-\u9FFFa-zA-Z_&lt;{$][\u2E80-\u9FFFa-zA-Z_0-9&lt;&gt;{}$.`-]*$
+</code></pre>
+
+<p>To change the regex(es), you must know the short type name of the obfuscator (see help screen). Eg. it's <code>sa</code> if it's SmartAssembly, and <code>un</code> if it's an unsupported/unknown obfuscator. The option to use is <code>--TYPE-name</code> (eg. <code>--sa-name</code> for SmartAssembly and <code>--un-name</code> for unknown/unsupported obfuscators):</p>
+
+<pre><code>de4dot --un-name "^[a-zA-Z]\w*$" file1.dll
+</code></pre>
+
+<h2>
+<a name="user-content-other-options" class="anchor" href="#other-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other options</h2>
+
+<p>Start <code>de4dot</code> without any arguments and it will show all options.</p></article></div>

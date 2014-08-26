@@ -1,0 +1,189 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-ethanschoonovercom-site-source" class="anchor" href="#ethanschoonovercom-site-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>ethanschoonover.com site source</h1>
+
+<p>I use <a href="http://jaspervdj.be/hakyll/">Hakyll</a> to maintain this site. See the 
+<code>bin</code> directory for the site.hs which builds the site statically.</p>
+
+<h2>
+<a name="user-content-source-structure" class="anchor" href="#source-structure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source structure</h2>
+
+<pre><code>├── bin         hakyll source code
+├── etc         nginx local config files
+├── files       downloads, global to site
+├── pages       special pages (colophon, error pages)
+│   └── errors
+├── posts       one time posts, with possible updates
+├── projects    ongoing, updated projects
+├── resources   static resources
+│   ├── css
+│   ├── img
+│   └── js
+├── src         non hakyll source files
+│   └── psd
+└── templates   templates used by hakyll
+</code></pre>
+
+<h2>
+<a name="user-content-deployment-process-overview" class="anchor" href="#deployment-process-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment process overview</h2>
+
+<p>Local site modifications are tested until correct and pushed to github for 
+offsite storage. When site updates are ready for public deployment I push to my 
+web server.</p>
+
+<p>Some subdirectories, notably the project subdirectories, are managed using 
+git-subtree. The web pages for those project are identical to the github 
+repository for those projects. The Hakyll site.hs code processes them and 
+converts the github specific absolute urls to be relative to my server's 
+webroot.</p>
+
+<p>Git subtree has the advantage of allowing me to work on the project from either 
+the main project directory on my machine or from the website directory (for 
+local site preview). Additionally, the project itself is maintained with 
+several git-subtree subdirectories, allowing me to break out the vim 
+subdirectory as it's own repository and work on it, for instance, from within 
+my personal dotfiles.</p>
+
+<p>See <a href="http://chrisdone.com/posts/2010-04-04-hakyll-and-git-for-you-blog.html">http://chrisdone.com/posts/2010-04-04-hakyll-and-git-for-you-blog.html</a> 
+for other details on a similar hakyll-github-server deployment process that 
+I took inspiration from.</p>
+
+<h2>
+<a name="user-content-key-commands" class="anchor" href="#key-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Key commands</h2>
+
+<ul class="task-list">
+<li>
+<p>Building Hakyll site.hs</p>
+
+<p><code>ghc --make bin/site</code></p>
+</li>
+<li>
+<p>Clean and preview site locally. <code>bin</code> is in my path so I can just use <code>site</code> 
+and it will source locally.</p>
+
+<p><code>site clean</code>
+  <code>site preview</code>
+  <code>site preview 8900</code> (alternate port)</p>
+</li>
+<li>
+<p>Create git-subtree repo (my own standardized naming conventions)</p>
+
+<ul class="task-list">
+<li>
+<p>Add remotes:</p>
+
+<p>git remote add remote-solarized \
+<a href="mailto:git@github.com">git@github.com</a>:altercation/solarized.git</p>
+</li>
+<li>
+<p>Add subtrees:</p>
+
+<p>git subtree add --prefix=projects/solarized \
+remote-solarized master</p>
+</li>
+<li>
+<p>Pull changes into local subtree</p>
+
+<p>git subtree pull --prefix=projects/solarized \
+remote-solarized master</p>
+</li>
+<li>
+<p>Push changes from local subtree</p>
+
+<p>git subtree push --prefix=projects/solarized \
+remote-solarized master</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Push to github</p>
+
+<p>standard commit and push</p>
+</li>
+<li>
+<p>Deploy to live site</p>
+
+<p>git push aithops</p>
+</li>
+</ul><h2>
+<a name="user-content-deployment-server" class="anchor" href="#deployment-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment Server</h2>
+
+<ul class="task-list">
+<li>
+<p>Site root and config</p>
+
+<pre><code>/srv/www
+├── commons
+│   └── errors
+│       ├── 403
+│       ├── 404
+│       └── 50x
+├── domains
+│   └── domain.tld
+├── etc
+└── logs
+</code></pre>
+</li>
+<li>
+<p>Create repository and configure on remote</p>
+
+<p>www@aithops$ mkdir ethanschoonover.com
+www@aithops$ cd ethanschoonover.com
+www@aithops$ git init
+www@aithops$ git config receive.denyCurrentBranch 'ignore'
+www@aithops$ cd ..
+www@aithops$ chmod -R g+w ethanschoonover.com</p>
+
+<p>(last command only required as I'll be commiting as a different user that
+is also a member of the www group)</p>
+</li>
+<li>
+<p>Post-receive Hook</p>
+
+<p>ethanschoonover.com/.git/hooks/post-receive file (ensure this is set to 
+executable):</p>
+
+<pre><code>#!/bin/bash
+
+export LANG=en_US.UTF-8
+
+if [ -n $GIT_DIR ]; then
+        unset GIT_DIR
+        cd ..
+fi
+
+# force checkout
+git checkout -f
+
+# build site binary (if no change it won't build)
+ghc --make bin/site
+
+#backup current state for quick recovery, just in case
+rm -rf _previous 
+cp -r _site _previous 
+
+# build site to _site directory
+# note: this is not a full rebuild, but could be
+# if we did a relink to the _previous directory prior
+# to the rebuild, then a link back to _site
+bin/site build
+
+# ensure we have the correct link on initial build
+# (commented out option force overrides)
+# ln -sfn _site _live
+if [ ! -h _live ]; then
+        ln -s _site _live;
+fi
+</code></pre>
+</li>
+<li>
+<p>Commit to server</p>
+
+<pre><code>$ git push aithops
+</code></pre>
+</li>
+</ul><h2>
+<a name="user-content-notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h2>
+
+<p>See my dotfile repository for my master gitignore file. I've added both _cache 
+and _site there (along with the standard haskell ignores) and locally I've 
+added bin/site (the compile hakyll binary).</p></article></div>

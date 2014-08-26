@@ -1,0 +1,163 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://camo.githubusercontent.com/50857cde5d79b88176a0e76acd73090aef194d4c/687474703a2f2f662e636c2e6c792f6974656d732f334b3241336b316b33703273304d3342336a31462f6c6f676f2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/50857cde5d79b88176a0e76acd73090aef194d4c/687474703a2f2f662e636c2e6c792f6974656d732f334b3241336b316b33703273304d3342336a31462f6c6f676f2e706e67" alt="Luna programming language" data-canonical-src="http://f.cl.ly/items/3K2A3k1k3p2s0M3B3j1F/logo.png" style="max-width:100%;"></a></p>
+
+<p>Luna is an expressive, minimalistic, elegant programming language implemented in C. With cooperative thread concurrency at its core, async I/O, and influences derived from languages such as Lua, io, Rust, Ruby, and C. Luna favours unification and minimalism over minor obscure conveniences, providing the true convenience of a simple effective language. This includes omitting features which facilitate magic such as getters/setters, method_missing-style delegation etc. This project is <em>very</em> much a work in progress, as I explore the wonderful world of VMs! feel free to join.</p>
+
+<h2>
+<a name="user-content-goals" class="anchor" href="#goals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Goals</h2>
+
+<ul class="task-list">
+<li>fast!</li>
+<li>small (~2000 SLOC)</li>
+<li>simple, elegant, explicit</li>
+<li>small learning curve</li>
+<li>statically typed with inference</li>
+<li>high concurrency out of the box via coroutines</li>
+<li>small embeddable / hackable core</li>
+<li>...</li>
+</ul><h2>
+<a name="user-content-build" class="anchor" href="#build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build</h2>
+
+<p>To build Luna, simply run:</p>
+
+<pre><code>$ make
+</code></pre>
+
+<p>Check out the help:</p>
+
+<pre><code>$ ./luna --help
+</code></pre>
+
+<h2>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p>Generalized status:</p>
+
+<ul class="task-list">
+<li>✔ lexer</li>
+<li>✔ parser</li>
+<li>✔ test suite</li>
+<li>✔ ast</li>
+<li>✔ linenoise integration for REPL</li>
+<li>◦ register machine</li>
+<li>◦ C public/internal apis</li>
+<li>◦ garbage collection</li>
+<li>◦ continuations</li>
+<li>◦ optimizations (TCO etc)</li>
+<li>◦ portability</li>
+<li>◦ closures</li>
+<li>◦ VIM / TM / syntaxes</li>
+<li>◦ website</li>
+<li>◦ context threading</li>
+</ul><h2>
+<a name="user-content-typing" class="anchor" href="#typing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Typing</h2>
+
+<p>Luna is statically typed, however mostly optional thanks to type inference. Some declarations such as function parameters <em>must</em> specify a type:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">greet</span><span class="p">(</span><span class="nb">name</span><span class="ss">:string</span><span class="p">)</span>
+  <span class="n">ret</span> <span class="s2">"Hello "</span> <span class="o">+</span> <span class="nb">name</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Types that can be properly inferred may be, for example function return types as seen above. When fully-qualified the same function would look like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">greet</span><span class="p">(</span><span class="nb">name</span><span class="ss">:string</span><span class="p">):</span> <span class="n">string</span>
+  <span class="n">ret</span> <span class="s2">"Hello "</span> <span class="o">+</span> <span class="nb">name</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-function-overloading" class="anchor" href="#function-overloading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Function overloading</h2>
+
+<p>Luna plans to provide multiple dispatch support. This will drastically cut down on verbosity and fragmentation. For example suppose you have a <code>vec_sum(v)</code> function, in Luna you would simply create a <code>sum(v)</code> function:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">sum</span><span class="p">(</span><span class="ss">v</span><span class="p">:</span><span class="n">vec</span><span class="p">):</span> <span class="n">int</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Thanks to the typing system Luna can choose the correct function to invoke for the given parameters. This technique addresses another fundamental problem of many languages, fragmentation and delocalization. For example it is often tempting to extend native prototypes or classes provided by the host language, such as <code>Array#sum()</code>.</p>
+
+<p>Because no such construct exists in Luna you're free to "extend" these types elsewhere simply by defining functions that act on those types, without polluting "global" classes or objects, removing a layer of indirection, as it's often not clear where these additions came from, and they regularly conflict.</p>
+
+<h2>
+<a name="user-content-method-syntactic-sugar" class="anchor" href="#method-syntactic-sugar" aria-hidden="true"><span class="octicon octicon-link"></span></a>Method syntactic sugar</h2>
+
+<p>As previously mention Luna has no concept of classes, methods, or prototypes. To increase readability you may invoke functions as if they were methods. For example the following would be equivalent:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">cat</span><span class="p">(</span><span class="s1">'urls.txt'</span><span class="p">)</span><span class="o">.</span><span class="n">grep</span><span class="p">(</span><span class="s1">'https://'</span><span class="p">)</span><span class="o">.</span><span class="n">print</span><span class="p">()</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">print</span><span class="p">(</span><span class="n">grep</span><span class="p">(</span><span class="n">cat</span><span class="p">(</span><span class="s1">'urls.txt'</span><span class="p">),</span> <span class="s1">'https://'</span><span class="p">))</span>
+</pre></div>
+
+<h2>
+<a name="user-content-fork--join" class="anchor" href="#fork--join" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fork / join</h2>
+
+<p>More often than not you want to perform several tasks in parallel, and "join" their results. For this luna provides the <code>&amp;</code> postfix operator, which is syntax sugar for wrapping the expression in a <code>fork()</code> function call:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">a</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="s1">'http://google.com'</span><span class="p">)</span><span class="o">.</span><span class="n">grep</span><span class="p">(</span><span class="s1">'&lt;title&gt;'</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="s1">'http://likeaboss.com'</span><span class="p">)</span><span class="o">.</span><span class="n">grep</span><span class="p">(</span><span class="s1">'&lt;title&gt;'</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">get</span><span class="p">(</span><span class="s1">'http://cuteoverload.com'</span><span class="p">)</span><span class="o">.</span><span class="n">grep</span><span class="p">(</span><span class="s1">'&lt;title&gt;'</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="n">res</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+</pre></div>
+
+<p>This wraps each statement in a coroutine which may run independently.</p>
+
+<h2>
+<a name="user-content-operator-precedence" class="anchor" href="#operator-precedence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Operator precedence</h2>
+
+<p>Operator precedence from highest to lowest:</p>
+
+<pre><code>operator                |  associativity
+------------------------|---------------
+[ ] ( ) .               |  left
+++ --                   |  right
+! ~ + -                 |  right
+* / %                   |  left
++ -                     |  left
+&lt;&lt; &gt;&gt;                   |  left
+&lt; &lt;= &gt; &gt;=               |  left
+== !=                   |  left
+&amp;                       |  left
+^                       |  left
+|                       |  left
+&amp;&amp;                      |  left
+||                      |  left
+?:                      |  right
+= += -= /= *= ||= &amp;&amp;=   |  right
+not                     |  right
+,                       |  left
+</code></pre>
+
+<h2>
+<a name="user-content-luna1" class="anchor" href="#luna1" aria-hidden="true"><span class="octicon octicon-link"></span></a>luna(1)</h2>
+
+<pre><code>
+  Usage: luna [options] [file]
+
+  Options:
+
+    -A, --ast       output ast to stdout
+    -T, --tokens    output tokens to stdout
+    -h, --help      output help information
+    -V, --version   output luna version
+
+  Examples:
+
+    $ luna &lt; some.luna
+    $ luna some.luna
+    $ luna some
+    $ luna
+
+</code></pre>
+
+<h2>
+<a name="user-content-community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h2>
+
+<ul class="task-list">
+<li>
+<strong>irc</strong>: #luna-lang on irc.freenode.net</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>MIT</p></article></div>

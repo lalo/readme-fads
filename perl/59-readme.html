@@ -1,0 +1,446 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a>NAME</h1>
+
+<p>ec2-consistent-snapshot - Create EBS snapshots on EC2 w/consistent filesystem/db</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>SYNOPSIS</h1>
+
+<pre><code>ec2-consistent-snapshot [opts] VOLUMEID...
+</code></pre>
+
+<h1>
+<a name="user-content-options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a>OPTIONS</h1>
+
+<ul class="task-list">
+<li>
+<p>-h --help</p>
+
+<p>Print help and exit.</p>
+</li>
+<li>
+<p>-d --debug</p>
+
+<p>Debug mode.</p>
+</li>
+<li>
+<p>-q --quiet</p>
+
+<p>Quiet mode.</p>
+</li>
+<li>
+<p>-n --noaction</p>
+
+<p>Dry run. Just say what you would have done, don't do it.</p>
+</li>
+<li><p>--aws-access-key-id KEY</p></li>
+<li>
+<p>--aws-secret-access-key SECRET</p>
+
+<p>Amazon AWS access key and secret access key.  Defaults to
+environment variables or .awssecret file contents described below.</p>
+</li>
+<li><p>--aws-access-key-id-file KEYFILE</p></li>
+<li>
+<p>--aws-secret-access-key-file SECRETFILE</p>
+
+<p>Files containing Amazon AWS access key and secret access key.
+Defaults to environment variables or .awssecret file contents
+described below.</p>
+</li>
+<li>
+<p>--aws-credentials-file CREDENTIALSFILE</p>
+
+<p>File containing both the Amazon AWS access key and secret access
+key on seprate lines and in that order.  Defaults to contents of
+$AWS_CREDENTIALS environment variable or the value $HOME/.awssecret</p>
+</li>
+<li>
+<p>--use-iam-role</p>
+
+<p>The instance is part of an IAM role that that has permission to create
+snapshots so there is no need to specify access key or secret.</p>
+</li>
+<li>
+<p>--region REGION</p>
+
+<p>Specify a different EC2 region like "eu-west-1".  Defaults to
+"us-east-1".</p>
+</li>
+<li>
+<p>--description DESCRIPTION</p>
+
+<p>Specify a description string for the EBS snapshot.  Defaults to the
+name of the program.</p>
+
+<p>You may specify this option multiple times if you need to customize
+descriptions of multiple volumes snapshots. If specified multiple
+times descriptions count has to match volumes count and they will be
+applied on the same order.</p>
+</li>
+<li><p>--freeze-filesystem MOUNTPOINT</p></li>
+<li>
+<p>--xfs-filesystem MOUNTPOINT [OBSOLESCENT form of the same option]</p>
+
+<p>Indicates that the filesystem at the specified mount point should be
+flushed and frozen during the snapshot. Requires the xfs_freeze or
+fsfreeze program. Note that xfs_freeze is equivalent to fsfreeze and
+works on any filesystems that support freezing, provided the kernel
+you are using supports it. (Linux Ext3/4, ReiserFS, JFS, XFS.)
+fsfreeze comes with newer versions of util-linux.</p>
+
+<p>You may specify this option multiple times if you need to freeze multiple
+filesystems on the the EBS volume(s).</p>
+</li>
+<li>
+<p>--mongo</p>
+
+<p>Indicates that the volume contains data files for a running Mongo
+database, which will be flushed and locked during the snapshot.</p>
+</li>
+<li><p>--mongo-host HOST</p></li>
+<li>--mongo-port PORT</li>
+<li>--mongo-username USER</li>
+<li>
+<p>--mongo-password PASS</p>
+
+<p>Mongo host, port, username, and password used to flush logs if there
+is authentication required on the admin database.</p>
+</li>
+<li>
+<p>--mongo-stop</p>
+
+<p>Indicates that the volume contains data files for a running Mongo
+instance.  The instance is shutdown before the snapshot is initiated
+and restarted afterwards. [EXPERIMENTAL]</p>
+</li>
+<li>
+<p>--mysql</p>
+
+<p>Indicates that the volume contains data files for a running MySQL
+database, which will be flushed and locked during the snapshot.</p>
+</li>
+<li>
+<p>--mysql-defaults-file FILE</p>
+
+<p>MySQL defaults file, containing host, username and password, this
+option will ignore the --mysql-host, --mysql-username,
+--mysql-password parameters</p>
+</li>
+<li><p>--mysql-host HOST</p></li>
+<li>--mysql-socket PATH</li>
+<li>--mysql-username USER</li>
+<li>
+<p>--mysql-password PASS</p>
+
+<p>MySQL host, socket path, username, and password used to flush logs and
+lock tables.  User must have appropriate permissions.  Defaults to
+$HOME/.my.cnf file contents.</p>
+</li>
+<li>
+<p>--mysql-master-status-file FILE</p>
+
+<p>Store the MASTER STATUS output in a file on the snapshot. It will be
+removed after the EBS snapshot is taken.  This option will be ignored
+with --mysql-stop</p>
+</li>
+<li>
+<p>--mysql-stop</p>
+
+<p>Indicates that the volume contains data files for a running MySQL
+database.  The database is shutdown before the snapshot is initiated
+and restarted afterwards. [EXPERIMENTAL]</p>
+</li>
+<li>
+<p>--snapshot-timeout SECONDS</p>
+
+<p>How many seconds to wait for the snapshot-create to return.  Defaults
+to 10.0</p>
+</li>
+<li>
+<p>--lock-timeout SECONDS</p>
+
+<p>How many seconds to wait for a database lock. Defaults to 0.5.
+Making this too large can force other processes to wait while this
+process waits for a lock.  Better to make it small and try lots of
+times.</p>
+</li>
+<li>
+<p>--lock-tries COUNT</p>
+
+<p>How many times to try to get a database lock before failing.  Defaults
+to 60.</p>
+</li>
+<li>
+<p>--lock-sleep SECONDS</p>
+
+<p>How many seconds to sleep between database lock tries.  Defaults
+to 5.0.</p>
+</li>
+<li>
+<p>--pre-freeze-command COMMAND</p>
+
+<p>Command to run after MySQL stop/lock and before filesystem freeze.</p>
+</li>
+<li>
+<p>--post-thaw-command COMMAND</p>
+
+<p>Command to run immediately after filesystem unfreeze and before MySQL
+start/unlock.</p>
+</li>
+</ul><h1>
+<a name="user-content-arguments" class="anchor" href="#arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>ARGUMENTS</h1>
+
+<ul class="task-list">
+<li>
+<p>VOLUMEID</p>
+
+<p>EBS volume id(s) for which a snapshot is to be created.</p>
+</li>
+</ul><h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>DESCRIPTION</h1>
+
+<p>This program creates an EBS snapshot for an Amazon EC2 EBS volume.  To
+help ensure consistent data in the snapshot, it tries to flush and
+freeze the filesystem(s) first as well as flushing and locking the
+database, if applicable.</p>
+
+<p>Filesystems can be frozen during the snapshot. Prior to Linux kernel
+2.6.29, XFS must be used for freezing support. While frozen, a filesystem
+will be consistent on disk and all writes will block.</p>
+
+<p>There are a number of timeouts to reduce the risk of interfering with
+the normal database operation while improving the chances of getting a
+consistent snapshot.</p>
+
+<p>If you have multiple EBS volumes in a RAID configuration, you can
+specify all of the volume ids on the command line and it will create
+snapshots for each while the filesystem and database are locked.  Note
+that it is your responsibility to keep track of the resulting snapshot
+ids and to figure out how to put these back together when you need to
+restore the RAID setup.</p>
+
+<p>If you have multiple EBS volumes which are hosting different file
+systems, it might be better to simply run the command once for each
+volume id.</p>
+
+<h1>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>EXAMPLES</h1>
+
+<p>Snapshot a volume with a frozen filesystem under /vol containing a
+MySQL database:</p>
+
+<pre><code>ec2-consistent-snapshot --mysql --freeze-filesystem /vol vol-VOLUMEID
+</code></pre>
+
+<p>Snapshot a volume with a frozen filesystem under /data containing a
+Mongo database:</p>
+
+<pre><code>ec2-consistent-snapshot --mongo --freeze-filesystem /data vol-VOLUMEID
+</code></pre>
+
+<p>Snapshot a volume mounted with a frozen filesystem on /var/local but
+with no MySQL database:</p>
+
+<pre><code>ec2-consistent-snapshot --freeze-filesystem /var/local vol-VOLUMEID
+</code></pre>
+
+<p>Snapshot four European volumes in a RAID configuration with MySQL,
+saving the snapshots with a description marking the current time:</p>
+
+<pre><code>ec2-consistent-snapshot                                      \
+  --mysql                                                    \
+  --freeze-filesystem /vol                                   \
+  --region eu-west-1                                         \
+  --description "RAID snapshot $(date +'%Y-%m-%d %H:%M:%S')" \
+  vol-VOL1 vol-VOL2 vol-VOL3 vol-VOL4
+</code></pre>
+
+<p>Snapshot four us-east-1 volumes in a RAID configuration with Mongo,
+saving the snapshots with a description marking the current time:</p>
+
+<pre><code>ec2-consistent-snapshot                                      \
+  --mongo                                                    \
+  --freeze-filesystem /data                                  \
+  --region us-east-1                                         \
+  --description "RAID snapshot $(date +'%Y-%m-%d %H:%M:%S')" \
+  vol-VOL1 vol-VOL2 vol-VOL3 vol-VOL4
+</code></pre>
+
+<p>Snapshot two volumes with customized descriptions:</p>
+
+<pre><code>ec2-consistent-snapshot                                      \
+  --description "Description 1st Volume"                     \
+  --description "Description 2nd Volume"                     \
+  vol-VOL1 vol-VOL2
+</code></pre>
+
+<h1>
+<a name="user-content-environment" class="anchor" href="#environment" aria-hidden="true"><span class="octicon octicon-link"></span></a>ENVIRONMENT</h1>
+
+<ul class="task-list">
+<li>
+<p>$AWS_ACCESS_KEY_ID</p>
+
+<p>Default value for access key.
+Can be overridden by command line options.</p>
+</li>
+<li>
+<p>$AWS_SECRET_ACCESS_KEY</p>
+
+<p>Default value for secret access key.  Can be overridden by command
+line options.</p>
+</li>
+<li>
+<p>$AWS_CREDENTIALS</p>
+
+<p>Default value for filename containing both access key and secret
+access key on separate lines and in that order. Can be overriden by
+the --aws-credentials command line option.</p>
+</li>
+</ul><h1>
+<a name="user-content-files" class="anchor" href="#files" aria-hidden="true"><span class="octicon octicon-link"></span></a>FILES</h1>
+
+<ul class="task-list">
+<li>
+<p>$HOME/.my.cnf</p>
+
+<p>Default values for MySQL user and password are sought here in the
+standard format.</p>
+</li>
+<li>
+<p>$HOME/.awssecret</p>
+
+<p>Default values for access key and secret access keys are sought here.
+Can be overridden by environment variables and command line options.</p>
+</li>
+</ul><h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>INSTALLATION</h1>
+
+<p>On most Ubuntu releases, the <strong>ec2-consistent-snapshot</strong> package can be
+installed directly from the Alestic.com PPA using the following
+commands:</p>
+
+<pre><code>sudo add-apt-repository ppa:alestic
+sudo apt-get update
+sudo apt-get install ec2-consistent-snapshot
+</code></pre>
+
+<p>This program may also require the installation of the Net::Amazon::EC2
+Perl package from CPAN.  On Ubuntu 10.04 Lucid and higher, this should
+happen automatically by the dependency on the libnet-amazon-ec2-perl
+package.</p>
+
+<p>On some earlier releases of Ubuntu you can install the required
+package with the following command:</p>
+
+<pre><code>sudo PERL_MM_USE_DEFAULT=1 cpan Net::Amazon::EC2
+</code></pre>
+
+<p>On Ubuntu 8.04 Hardy, use the following commands instead:</p>
+
+<pre><code>code=$(lsb_release -cs)
+echo "deb http://ppa.launchpad.net/alestic/ppa/ubuntu $code main"|
+  sudo tee /etc/apt/sources.list.d/alestic-ppa.list
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BE09C571
+sudo apt-get update
+sudo apt-get install ec2-consistent-snapshot build-essential
+sudo cpan Net::Amazon::EC2
+</code></pre>
+
+<p>The default values can be accepted for most of the prompts, though it
+is necessary to select a CPAN mirror on Hardy.</p>
+
+<p>On Amazon Linux, Use the following command. </p>
+
+<pre><code> yum --enablerepo=epel install perl-Net-Amazon-EC2 perl-File-Slurp perl-DBI perl-DBD-MySQL perl-Net-SSLeay perl-IO-Socket-SSL perl-Time-HiRes perl-Params-Validate perl-DateTime-Format-ISO8601 perl-Date-Manip perl-Moose ca-certificates
+</code></pre>
+
+<h1>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>SEE ALSO</h1>
+
+<ul class="task-list">
+<li>Amazon EC2</li>
+<li>Amazon EC2 EBS (Elastic Block Store)</li>
+<li>ec2-create-snapshot</li>
+</ul><h1>
+<a name="user-content-caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>CAVEATS</h1>
+
+<p>Freezing the root filesystem is not recommended. Be sure to test
+each filesystem you use it on before putting this into production, in
+exactly the way you would run it in production (e.g., inside cron if
+that's how you invoke it).</p>
+
+<p>ec2-consistent-snapshot can hang if its output is directed at a
+filesystem that is being frozen, leading to a dead machine.</p>
+
+<p>EBS snapshots are a critical part of protecting your valuable data.
+This program or the environment in which it is run may contain defects
+that cause snapshots to not be created.  Please test and check to make
+sure that snapshots are getting created for the volumes as you intend.</p>
+
+<p>EBS snapshots cost money to create and to store in your AWS account.
+Be aware of and monitor your expenses.</p>
+
+<p>You are responsible for what happens in your EC2 account.  This
+software is intended, but not guaranteed, to help in that effort.</p>
+
+<p>This program tries hard to figure out some values are for the AWS key
+and AWS secret access key.  In fact, it tries too hard.  This results
+in possibly using some credentials it finds that are not the correct
+ones you wish to use, especially if you are operating in an
+environment where multiple sets of credentials are in use.</p>
+
+<h1>
+<a name="user-content-bugs" class="anchor" href="#bugs" aria-hidden="true"><span class="octicon octicon-link"></span></a>BUGS</h1>
+
+<p>Please report bugs at <a href="https://bugs.launchpad.net/ec2-consistent-snapshot">https://bugs.launchpad.net/ec2-consistent-snapshot</a></p>
+
+<h1>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>CREDITS</h1>
+
+<p>Thanks to the following for performing tests on early versions,
+providing feature development, feedback, bug reports, and patches:</p>
+
+<pre><code>David Erickson
+Steve Caldwell
+Gryp
+Ken Huang
+Jefferson Noxon
+Bobb Crosbie
+Craig Tracey
+Diego Salvi
+Christian Marquardt
+Todd Roman
+Ben Tucker
+David Rogeres
+Kevin Lewis
+Eric Lubow
+Seth de l'Isle
+Peter Waller
+yalamber
+Daniel Beardsley
+</code></pre>
+
+<h1>
+<a name="user-content-authormaintainer" class="anchor" href="#authormaintainer" aria-hidden="true"><span class="octicon octicon-link"></span></a>AUTHOR/MAINTAINER</h1>
+
+<p>Eric Hammond <a href="mailto:ehammond@thinksome.com">ehammond@thinksome.com</a></p>
+
+<h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE</h1>
+
+<p>Copyright 2009-2014 Eric Hammond <a href="mailto:ehammond@thinksome.com">ehammond@thinksome.com</a></p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p></article></div>

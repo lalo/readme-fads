@@ -1,0 +1,929 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-scalarx-026" class="anchor" href="#scalarx-026" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scala.Rx 0.2.6</h1>
+
+<p>Scala.Rx is an experimental change propagation library for <a href="http://www.scala-lang.org/">Scala</a>. Scala.Rx gives you Reactive variables (<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s), which are smart variables who auto-update themselves when the values they depend on change. The underlying implementation is push-based <a href="http://en.wikipedia.org/wiki/Functional_reactive_programming">FRP</a> based on the ideas in <a href="http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf">Deprecating the Observer Pattern</a>.</p>
+
+<p>A simple example which demonstrates the behavior is:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">rx._</span>
+<span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span> <span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">())</span> <span class="c1">// 3</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">4</span>
+<span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">())</span> <span class="c1">// 6</span>
+</pre></div>
+
+<p>The idea being that 99% of the time, when you re-calculate a variable, you re-calculate it the same way you initially calculated it. Furthermore, you only re-calculate it when one of the values it depends on changes. Scala.Rx does this for you automatically, and handles all the tedious update logic for you so you can focus on other, more interesting things!</p>
+
+<p>Apart from basic change-propagation, Scala.Rx provides a host of other functionality, such as a set of combinators for easily constructing the dataflow graph, automatic parallelization of updates, and seamless interop with existing Scala code. This means it can be easily embedded in an existing Scala application.</p>
+
+<h1>
+<a name="user-content-contents" class="anchor" href="#contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contents</h1>
+
+<ul class="task-list">
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#scalajs">ScalaJS</a></li>
+<li>
+<a href="#using-scalarx">Using Scala.Rx</a>
+
+<ul class="task-list">
+<li><a href="#basic-usage">Basic Usage</a></li>
+<li><a href="#additional-operations">Additional Operations</a></li>
+<li><a href="#asynchronous-combinators">Asynchronous Combinators</a></li>
+<li><a href="#graph-inspection">Graph Inspection</a></li>
+<li><a href="#logging-and-debugging">Logging and Debugging</a></li>
+</ul>
+</li>
+<li>
+<a href="#execution-model">Execution Model</a>
+
+<ul class="task-list">
+<li><a href="#dependency-tracking">Dependency Tracking</a></li>
+<li><a href="#propagation">Propagation</a></li>
+<li><a href="#concurrency-and-asynchrony">Concurrency and Asynchrony</a></li>
+<li><a href="#garbage-collection">Garbage Collection</a></li>
+<li><a href="#internals">Internals</a></li>
+</ul>
+</li>
+<li><a href="#related-work">Related Work</a></li>
+<li><a href="https://lihaoyi.github.io/scala.rx">Scaladoc</a></li>
+</ul><h1>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h1>
+
+<p>Scala.Rx is available on <a href="http://search.maven.org/#artifactdetails%7Ccom.scalarx%7Cscalarx_2.10%7C0.1%7Cjar">Maven Central</a>. In order to get started, simply add the following to your <code>build.sbt</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.scalarx"</span> <span class="o">%%</span> <span class="s">"scalarx"</span> <span class="o">%</span> <span class="s">"0.2.6"</span>
+</pre></div>
+
+<p>After that, opening up the <code>sbt console</code> and pasting the above example into the console should work! You can proceed through the examples in the <a href="#basic-usage">Basic Usage</a> page to get a feel for what Scala.Rx can do.</p>
+
+<h1>
+<a name="user-content-scalajs" class="anchor" href="#scalajs" aria-hidden="true"><span class="octicon octicon-link"></span></a>ScalaJS</h1>
+
+<p>In addition to running on the JVM, Scala.Rx also compiles to <a href="http://www.scala-js.org/">Scala-Js</a>! This artifact is currently on <a href="http://search.maven.org/#artifactdetails%7Ccom.scalarx%7Cscalarx_2.10%7C0.2.2-JS%7Cjar">Maven Central</a> and an be used via the following SBT snippet:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.scalarx"</span> <span class="o">%%%</span> <span class="s">"scalarx"</span> <span class="o">%</span> <span class="s">"0.2.6"</span>
+</pre></div>
+
+<p>There are some minor differences between running Scala.Rx on the JVM and in Javascript particularly around <a href="#timer">asynchronous operations</a>, the <a href="#parralelism-and-scalajs">parallelism model</a> and <a href="#memory-and-scalajs">memory model</a>. In general, though, all the examples given in the documentation below will work perfectly when cross-compiled to javascript and run in the browser!</p>
+
+<p>Scala.rx 0.2.6 is only compatible with ScalaJS 0.5.3+.</p>
+
+<h1>
+<a name="user-content-using-scalarx" class="anchor" href="#using-scalarx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Scala.Rx</h1>
+
+<p>The primary operations only need a <code>import rx._</code> before being used, with addtional operations also needing a <code>import rx.ops._</code>. Some of the examples below also use various imports from <code>scala.concurrent</code> or <code>scalatest</code> aswell.</p>
+
+<h2>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">rx._</span>
+
+<span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span> <span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">())</span> <span class="c1">// 3</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">4</span>
+<span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">())</span> <span class="c1">// 6</span>
+</pre></div>
+
+<p>The above example is an executable program. In general, <code>import rx._</code> is enough to get you started with Scala.Rx, and it will be assumed in all further examples. These examples are all taken from the <a href="">unit tests</a>.</p>
+
+<p>The basic entities you have to care about are <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>, <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>: a smart variable which you can get using <code>a()</code> and set using <code>a() = ...</code>. Whenever its value changes, it pings any downstream entity which needs to be recalculated.</li>
+<li>
+<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>: a reactive definition which automatically captures any <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s or other <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s which get called in its body, flagging them as dependencies and re-calculating whenever one of them changes. Like a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>, you can use the <code>a()</code> syntax to retrieve its value, and it also pings downstream entities when the value changes.</li>
+<li>
+<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>: an observer on one or more <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> s or <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> s, performing some side-effect when the observed node changes value and sends it a ping.</li>
+</ul><p>Using these components, you can easily construct a <em>dataflow graph</em>, and have the various values within the dataflow graph be kept up to date when the inputs to the graph change:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span> <span class="c1">// 1</span>
+
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span> <span class="c1">// 2</span>
+
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span> <span class="c1">// 3</span>
+<span class="k">val</span> <span class="n">d</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">c</span><span class="o">()</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">}</span> <span class="c1">// 15</span>
+<span class="k">val</span> <span class="n">e</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">c</span><span class="o">()</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">}</span> <span class="c1">// 7</span>
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">d</span><span class="o">()</span> <span class="o">+</span> <span class="n">e</span><span class="o">()</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">}</span> <span class="c1">// 26</span>
+
+<span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">())</span> <span class="c1">// 26</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">3</span>
+<span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">())</span> <span class="c1">// 38</span>
+</pre></div>
+
+<p>The dataflow graph for this program looks like this:</p>
+
+<p><a href="media/Intro.png?raw=true" target="_blank"><img src="media/Intro.png?raw=true" alt="Dataflow Graph" style="max-width:100%;"></a></p>
+
+<p>Where the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s are represented by squares, the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s by circles and the dependencies by arrows. Each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> is labelled with its name, its body and its value.</p>
+
+<p>Modifying the value of <code>a</code> causes the changes the propagate through the dataflow graph</p>
+
+<p><a href="media/IntroProp.png?raw=true" target="_blank"><img src="media/IntroProp.png?raw=true" alt="Dataflow Graph" style="max-width:100%;"></a></p>
+
+<p>As can be seen above, changing the value of <code>a</code> causes the change to propagate all the way through <code>c</code> <code>d</code> <code>e</code> to <code>f</code>. You can use a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> anywhere you an use a normal variable.</p>
+
+<p>The changes propagate through the dataflow graph in <em>waves</em>. Each update to a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> touches off a propagation, which pushes the changes from that <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> to any <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> which is (directly or indirectly) dependent on its value. In the process, it is possible for a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> to be re-calculated more than once.</p>
+
+<h3>
+<a name="user-content-observers" class="anchor" href="#observers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Observers</h3>
+
+<p>As mentioned, <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> s can be used to observe <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> s and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> s and perform side effects when they change:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">var</span> <span class="n">count</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="k">val</span> <span class="n">o</span> <span class="k">=</span> <span class="nc">Obs</span><span class="o">(</span><span class="n">a</span><span class="o">){</span>
+  <span class="n">count</span> <span class="k">=</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 2</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">4</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 5</span>
+</pre></div>
+
+<p>This creates a dataflow graph that looks like:</p>
+
+<p><a href="media/Observer.png?raw=true" target="_blank"><img src="media/Observer.png?raw=true" alt="Dataflow Graph" style="max-width:100%;"></a></p>
+
+<p>When <code>a</code> is modified, the observer <code>o</code> will perform the side effect:</p>
+
+<p><a href="media/Observer2.png?raw=true" target="_blank"><img src="media/Observer2.png?raw=true" alt="Dataflow Graph" style="max-width:100%;"></a></p>
+
+<p>The body of <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s should be side effect free, as they may be run more than once per propagation. You should use <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s to perform your side effects, as they are guaranteed to run only once per propagation after the values for all <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s have stabilized.</p>
+
+<p>Scala.Rx provides a convenient <code>.foreach()</code> combinator, which provides an alternate way of creating an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> from an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">var</span> <span class="n">count</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="k">val</span> <span class="n">o</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">foreach</span><span class="o">{</span> <span class="n">x</span> <span class="k">=&gt;</span>
+  <span class="n">count</span> <span class="k">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 2</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">4</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 5</span>
+</pre></div>
+
+<p>This example does the same thing as the code above.</p>
+
+<p>Note that the body of the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> is run once initially when it is declared. This matches the way each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> is calculated once when it is initially declared. but it is conceivable that you want an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> which first for the first time only when the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> it is listening to <em>changes</em>. You can do this by passing the <code>skipInitial</code> flag when creating it:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">var</span> <span class="n">count</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="k">val</span> <span class="n">o</span> <span class="k">=</span> <span class="nc">Obs</span><span class="o">(</span><span class="n">a</span><span class="o">,</span> <span class="n">skipInitial</span><span class="k">=</span><span class="kc">true</span><span class="o">){</span>
+  <span class="n">count</span> <span class="k">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 0</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 1</span>
+</pre></div>
+
+<p>An <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> acts to encapsulate the callback that it runs. They can be passed around, stored in variables, etc.. When the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> gets garbage collected, the callback will stop triggering. Thus, an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> should be stored in the object it affects: if the callback only affects that object, it doesn't matter when the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> itself gets garbage collected, as it will only happen after that object holding it becomes unreachable, in which case its effects cannot be observed anyway. An <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> can also be actively shut off, if a stronger guarantee is needed:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="o">()</span> <span class="o">}</span>
+<span class="k">var</span> <span class="n">target</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="k">val</span> <span class="n">o</span> <span class="k">=</span> <span class="nc">Obs</span><span class="o">(</span><span class="n">b</span><span class="o">){</span>
+  <span class="n">target</span> <span class="k">=</span> <span class="n">b</span><span class="o">()</span>
+<span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">target</span><span class="o">)</span> <span class="c1">// 2</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">target</span><span class="o">)</span> <span class="c1">// 4</span>
+<span class="n">o</span><span class="o">.</span><span class="n">kill</span><span class="o">()</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">3</span>
+<span class="n">println</span><span class="o">(</span><span class="n">target</span><span class="o">)</span> <span class="c1">// 4</span>
+</pre></div>
+
+<p>After manually setting <code>active = false</code>, the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> no longer triggers. Apart from <code>.kill()</code>ing <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s, you can also kill <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s, which prevents further updates. <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s also have a <code>.killAll()</code> method, which kills the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> together with <em>all its descendents</em>, useful if you decide a whole section of the graph ought to be shut off.</p>
+
+<p>In general, Scala.Rx revolves around constructing dataflow graphs which automatically keep things in sync, which you can easily interact with from external, imperative code. This involves using:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s as inputs to the dataflow graph from the imperative world</li>
+<li>
+<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s as the intermediate nodes in the dataflow graphs</li>
+<li>
+<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s as the output from the dataflow graph to the imperative world</li>
+</ul><h3>
+<a name="user-content-complex-reactives" class="anchor" href="#complex-reactives" aria-hidden="true"><span class="octicon octicon-link"></span></a>Complex Reactives</h3>
+
+<p><a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s are not limited to <code>Int</code>s. <code>String</code>s, <code>Seq[Int]</code>s, <code>Seq[String]</code>s, anything can go inside an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="nc">Seq</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">))</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">3</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">b</span><span class="o">()</span> <span class="o">+:</span> <span class="n">a</span><span class="o">()</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">d</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">c</span><span class="o">().</span><span class="n">map</span><span class="o">(</span><span class="s">"omg"</span> <span class="o">*</span> <span class="k">_</span><span class="o">)</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">e</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s">"wtf"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="o">(</span><span class="n">d</span><span class="o">()</span> <span class="o">:+</span> <span class="n">e</span><span class="o">()).</span><span class="n">mkString</span> <span class="o">}</span>
+
+<span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">())</span> <span class="c1">// "omgomgomgomgomgomgomgomgomgwtf"</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="nc">Nil</span>
+<span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">())</span> <span class="c1">// "omgomgomgwtf"</span>
+<span class="n">e</span><span class="o">()</span> <span class="k">=</span> <span class="s">"wtfbbq"</span>
+<span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">())</span> <span class="c1">// "omgomgomgwtfbbq"</span>
+</pre></div>
+
+<p>As shown, you can use Scala.Rx's reactive variables to model problems of arbitrary complexity, not just trivial ones which involve primitive numbers.</p>
+
+<h3>
+<a name="user-content-error-handling" class="anchor" href="#error-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Handling</h3>
+
+<p>Since the body of an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> can be any arbitrary Scala code, it can throw exceptions. Propagating the exception up the call stack would not make much sense, as the code evaluating the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> is probably not in control of the reason it failed. Instead, any exceptions are caught by the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> itself and stored internally as a <code>Try</code>.</p>
+
+<p>This can be seen in the following unit test:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">a</span><span class="o">()</span> <span class="o">}</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 1</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">.</span><span class="n">toTry</span><span class="o">)</span> <span class="c1">// Success(1)</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="n">intercept</span><span class="o">[</span><span class="kt">ArithmeticException</span><span class="o">]{</span>
+  <span class="n">b</span><span class="o">()</span>
+<span class="o">}</span>
+<span class="n">assert</span><span class="o">(</span><span class="n">b</span><span class="o">.</span><span class="n">toTry</span><span class="o">.</span><span class="n">isInstanceOf</span><span class="o">[</span><span class="kt">Failure</span><span class="o">])</span>
+</pre></div>
+
+<p>Initially, the value of <code>a</code> is <code>1</code> and so the value of <code>b</code> also is <code>1</code>. You can also extract the internal <code>Try</code> using <code>b.toTry</code>, which at first is <code>Success(1)</code>.</p>
+
+<p>However, when the value of <code>a</code> becomes <code>0</code>, the body of <code>b</code> throws an <code>ArithmeticException</code>. This is caught by <code>b</code> and re-thrown if you try to extract the value from <code>b</code> using <code>b()</code>. You can extract the entire <code>Try</code> using <code>toTry</code> and pattern match on it to handle both the <code>Success</code> case as well as the <code>Failure</code> case.</p>
+
+<p>When you have many <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s chained together, exceptions propagate forward following the dependency graph, as you would expect. The following code:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span>
+
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">/</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">d</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">e</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="mi">5</span> <span class="o">/</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">()</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">g</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">f</span><span class="o">()</span> <span class="o">+</span> <span class="n">c</span><span class="o">()</span> <span class="o">}</span>
+
+<span class="n">inside</span><span class="o">(</span><span class="n">c</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">d</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">f</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">g</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+
+<span class="n">b</span><span class="o">()</span> <span class="k">=</span> <span class="mi">0</span>
+
+<span class="n">inside</span><span class="o">(</span><span class="n">c</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Failure</span><span class="o">(</span><span class="k">_</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">d</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Failure</span><span class="o">(</span><span class="k">_</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">f</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">3</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+<span class="n">inside</span><span class="o">(</span><span class="n">g</span><span class="o">.</span><span class="n">toTry</span><span class="o">){</span><span class="k">case</span> <span class="nc">Failure</span><span class="o">(</span><span class="k">_</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">()</span> <span class="o">}</span>
+</pre></div>
+
+<p>Creates a dependency graph that looks like the follows:</p>
+
+<p><a href="media/Errors.png?raw=true" target="_blank"><img src="media/Errors.png?raw=true" alt="Dataflow Graph" style="max-width:100%;"></a></p>
+
+<p>In this example, initially all the values for <code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>e</code>, <code>f</code> and <code>g</code> are well defined. However, when <code>b</code> is set to <code>0</code>:</p>
+
+<p><a href="media/Errors2.png?raw=true" target="_blank"><img src="media/Errors2.png?raw=true" alt="Dataflow Graph" style="max-width:100%;"></a></p>
+
+<p><code>c</code> and <code>e</code> both result in exceptions, and the exception from <code>c</code> propagates to <code>g</code>. Attempting to extract the value from <code>g</code> using <code>g()</code>, for example, will re-throw the ArithmeticException. Again, using <code>toTry</code> works too.</p>
+
+<h3>
+<a name="user-content-nesting" class="anchor" href="#nesting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nesting</h3>
+
+<p><a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s can contain other <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s, arbitrarily deeply. This example shows the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s nested two levels deep:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span>
+    <span class="o">(</span><span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">},</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">math</span><span class="o">.</span><span class="n">random</span> <span class="o">})</span>
+<span class="o">}</span>
+<span class="k">val</span> <span class="n">r</span> <span class="k">=</span> <span class="n">b</span><span class="o">().</span><span class="n">_2</span><span class="o">()</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">().</span><span class="n">_2</span><span class="o">())</span> <span class="c1">// r</span>
+</pre></div>
+
+<p>In this example, we can see that although we modified <code>a</code>, this only affects the left-inner <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, neither the right-inner <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> (which takes on a different, random value each time it gets re-calculated) or the outer <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> (which would cause the whole thing to re-calculate) are affected. A slightly less contrived example may be:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">var</span> <span class="n">fakeTime</span> <span class="k">=</span> <span class="mi">123</span>
+<span class="k">trait</span> <span class="nc">WebPage</span><span class="o">{</span>
+    <span class="k">def</span> <span class="n">fTime</span> <span class="k">=</span> <span class="n">fakeTime</span>
+    <span class="k">val</span> <span class="n">time</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="n">fTime</span><span class="o">)</span>
+    <span class="k">def</span> <span class="n">update</span><span class="o">()</span><span class="k">:</span> <span class="kt">Unit</span>  <span class="o">=</span> <span class="n">time</span><span class="o">()</span> <span class="k">=</span> <span class="n">fTime</span>
+    <span class="k">val</span> <span class="n">html</span><span class="k">:</span> <span class="kt">Rx</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span>
+<span class="o">}</span>
+<span class="k">class</span> <span class="nc">HomePage</span> <span class="k">extends</span> <span class="nc">WebPage</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">html</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span><span class="s">"Home Page! time: "</span> <span class="o">+</span> <span class="n">time</span><span class="o">()}</span>
+<span class="o">}</span>
+<span class="k">class</span> <span class="nc">AboutPage</span> <span class="k">extends</span> <span class="nc">WebPage</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">html</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span><span class="s">"About Me, time: "</span> <span class="o">+</span> <span class="n">time</span><span class="o">()}</span>
+<span class="o">}</span>
+
+<span class="k">val</span> <span class="n">url</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s">"www.mysite.com/home"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">page</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span>
+    <span class="n">url</span><span class="o">()</span> <span class="k">match</span><span class="o">{</span>
+        <span class="k">case</span> <span class="s">"www.mysite.com/home"</span> <span class="k">=&gt;</span> <span class="k">new</span> <span class="nc">HomePage</span><span class="o">()</span>
+        <span class="k">case</span> <span class="s">"www.mysite.com/about"</span> <span class="k">=&gt;</span> <span class="k">new</span> <span class="nc">AboutPage</span><span class="o">()</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="n">println</span><span class="o">(</span><span class="n">page</span><span class="o">().</span><span class="n">html</span><span class="o">())</span> <span class="c1">// "Home Page! time: 123"</span>
+
+<span class="n">fakeTime</span> <span class="k">=</span> <span class="mi">234</span>
+<span class="n">page</span><span class="o">().</span><span class="n">update</span><span class="o">()</span>
+<span class="n">println</span><span class="o">(</span><span class="n">page</span><span class="o">().</span><span class="n">html</span><span class="o">())</span> <span class="c1">// "Home Page! time: 234"</span>
+
+<span class="n">fakeTime</span> <span class="k">=</span> <span class="mi">345</span>
+<span class="n">url</span><span class="o">()</span> <span class="k">=</span> <span class="s">"www.mysite.com/about"</span>
+<span class="n">println</span><span class="o">(</span><span class="n">page</span><span class="o">().</span><span class="n">html</span><span class="o">())</span> <span class="c1">// "About Me, time: 345"</span>
+
+<span class="n">fakeTime</span> <span class="k">=</span> <span class="mi">456</span>
+<span class="n">page</span><span class="o">().</span><span class="n">update</span><span class="o">()</span>
+<span class="n">println</span><span class="o">(</span><span class="n">page</span><span class="o">().</span><span class="n">html</span><span class="o">())</span> <span class="c1">// "About Me, time: 456"</span>
+</pre></div>
+
+<p>In this case, we define a web page which has a <code>html</code> value (a <code>Rx[String]</code>). However, depending on the <code>url</code>, it could be either a <code>HomePage</code> or an <code>AboutPage</code>, and so our <code>page</code> object is a <code>Rx[WebPage]</code>.</p>
+
+<p>Having a <code>Rx[WebPage]</code>, where the <code>WebPage</code> has an <code>Rx[String]</code> inside, seems natural and obvious, and Scala.Rx lets you do it simply and naturally. This kind of objects-within-objects situation arises very naturally when modelling a problem in an object-oriented way. The ability of Scala.Rx to gracefully handle the corresponding <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s within <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s allows it to gracefully fit into this paradigm, something I found lacking in most of the <a href="#related-work">Related Work</a> I surveyed.</p>
+
+<p>Most of the examples here are taken from the <a href="shared/test/scala/rx/BasicTests.scala">unit tests</a>, which provide more examples on guidance on how to use this library.</p>
+
+<h2>
+<a name="user-content-additional-operations" class="anchor" href="#additional-operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Operations</h2>
+
+<p>Apart from the basic building blocks of <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>/<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>/<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>, Scala.Rx also provides a set of combinators which allow your to easily transform your <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s; this allows the programmer to avoid constantly re-writing logic for the common ways of constructing the dataflow graph. The three basic combinators: <code>map()</code>, <code>filter()</code> and <code>reduce()</code> are modelled after the scala collections library, and provide an easy way of transforming the values coming out of a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>.</p>
+
+<h3>
+<a name="user-content-map" class="anchor" href="#map" aria-hidden="true"><span class="octicon octicon-link"></span></a>Map</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">*</span><span class="mi">2</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">d</span> <span class="k">=</span> <span class="n">b</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">+</span><span class="mi">3</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">())</span> <span class="c1">// 20</span>
+<span class="n">println</span><span class="o">(</span><span class="n">d</span><span class="o">())</span> <span class="c1">// 15</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">1</span>
+<span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">())</span> <span class="c1">// 2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">d</span><span class="o">())</span> <span class="c1">// 6</span>
+</pre></div>
+
+<p><code>map</code> does what you would expect, creating a new <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> with the value of the old <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> transformed by some function. For example, <code>a.map(_*2)</code> is essentially equivalent to <code>Rx{ a() * 2 }</code>, but somewhat more convenient to write.</p>
+
+<h3>
+<a name="user-content-filter" class="anchor" href="#filter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Filter</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">filter</span><span class="o">(</span><span class="k">_</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="o">)</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">1</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 10</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">6</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 6</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 6</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">19</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 19</span>
+</pre></div>
+
+<p><code>filter</code> ignores changes to the value of the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> that fail the predicate.</p>
+
+<p>Note that none of the <code>filter</code> methods is able to filter out the first, initial value of a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, as there is no "older" value to fall back to. Hence this:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">filter</span><span class="o">(</span><span class="k">_</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span>
+</pre></div>
+
+<p>will print out "2".</p>
+
+<h3>
+<a name="user-content-reduce" class="anchor" href="#reduce" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reduce</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">reduce</span><span class="o">(</span><span class="k">_</span> <span class="o">*</span> <span class="k">_</span><span class="o">)</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 2</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">3</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 6</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">4</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 24</span>
+</pre></div>
+
+<p>The <code>reduce</code> operator combines subsequent values of an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> together, starting from the initial value. Every change to the original <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> is combined with the previously-stored value and becomes the new value of the reduced <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>.</p>
+
+<p>Each of these three combinators has a counterpart in <code>mapAll()</code>, <code>filterAll()</code> and <code>reduceAll()</code> which operates on <code>Try[T]</code>s rather than <code>T</code>s, in the case where you need the added flexibility to handle <code>Failure</code>s in some special way.</p>
+
+<h2>
+<a name="user-content-asynchronous-combinators" class="anchor" href="#asynchronous-combinators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous Combinators</h2>
+
+<p>These are combinators which do more than simply transforming a value from one to another. These have asynchronous effects, and can spontaneously modify the dataflow graph and begin propagation cycles without any external trigger. Although this may sound somewhat unsettling, the functionality provided by these combinators is often necessary, and manually writing the logic around something like <a href="#debounce">Debouncing</a>, for example, is far more error prone than simply using the combinators provided.</p>
+
+<p>Note that none of these combinators are doing anything that cannot be done via a combination of <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s; they simply encapsulate the common patterns, saving you manually writing them over and over, and reducing the potential for bugs.</p>
+
+<h3>
+<a name="user-content-async" class="anchor" href="#async" aria-hidden="true"><span class="octicon octicon-link"></span></a>Async</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scala.concurrent.Promise</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
+
+<span class="k">val</span> <span class="n">p</span> <span class="k">=</span> <span class="nc">Promise</span><span class="o">[</span><span class="kt">Int</span><span class="o">]()</span>
+<span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">future</span>
+<span class="o">}.</span><span class="n">async</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">a</span><span class="o">())</span> <span class="c1">// 10</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">success</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">a</span><span class="o">())</span> <span class="c1">// 5</span>
+</pre></div>
+
+<p>The <code>async</code> combinator only applies to <code>Rx[Future[_]]</code>s. It takes an initial value, which will be the value of the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> until the <code>Future</code> completes, at which point the the value will become the value of the <code>Future</code>.</p>
+
+<p><code>async</code> can create <code>Future</code>s as many times as necessary. This example shows it creating two distinct <code>Future</code>s:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scala.concurrent.Promise</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
+
+<span class="k">var</span> <span class="n">p</span> <span class="k">=</span> <span class="nc">Promise</span><span class="o">[</span><span class="kt">Int</span><span class="o">]()</span>
+<span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span>
+  <span class="k">val</span> <span class="n">A</span> <span class="k">=</span> <span class="n">a</span><span class="o">()</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">future</span><span class="o">.</span><span class="n">map</span><span class="o">{</span><span class="k">_</span> <span class="o">+</span> <span class="n">A</span><span class="o">}</span>
+<span class="o">}.</span><span class="n">async</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 10</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">success</span><span class="o">(</span><span class="mi">5</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 6</span>
+
+<span class="n">p</span> <span class="k">=</span> <span class="nc">Promise</span><span class="o">[</span><span class="kt">Int</span><span class="o">]()</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 6</span>
+
+<span class="n">p</span><span class="o">.</span><span class="n">success</span><span class="o">(</span><span class="mi">7</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 9</span>
+</pre></div>
+
+<p>The value of <code>b()</code> updates as you would expect as the series of <code>Future</code>s complete (in this case, manually using <code>Promise</code>s).</p>
+
+<p>This is handy if your dependency graph contains some asynchronous elements. For example, you could have a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> which depends on another <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, but requires an asynchronous web request to calculate its final value. With <code>async</code>, the results from the asynchronous web request will be pushed back into the dataflow graph automatically when the <code>Future</code> completes, starting off another propagation run and conveniently updating the rest of the graph which depends on the new result.</p>
+
+<p><code>async</code> optionally takes a second argument which causes out-of-order <code>Future</code>s to be dropped. This is useful if you always want to have the result of the most recently-created <code>Future</code> which completed, rather than the most-recently-completed <code>Future</code>.</p>
+
+<h3>
+<a name="user-content-timer" class="anchor" href="#timer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Timer</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">scheduler</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">AkkaScheduler</span><span class="o">(</span><span class="n">akka</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="nc">ActorSystem</span><span class="o">())</span>
+
+<span class="k">val</span> <span class="n">t</span> <span class="k">=</span> <span class="nc">Timer</span><span class="o">(</span><span class="mi">100</span> <span class="n">millis</span><span class="o">)</span>
+<span class="k">var</span> <span class="n">count</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="k">val</span> <span class="n">o</span> <span class="k">=</span> <span class="nc">Obs</span><span class="o">(</span><span class="n">t</span><span class="o">){</span>
+    <span class="n">count</span> <span class="k">=</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="o">}</span>
+
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 3</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 8</span>
+<span class="n">println</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="c1">// 13</span>
+</pre></div>
+
+<p>A <a href="https://lihaoyi.github.io/scala.rx/#rx.ops.Timer">Timer</a> is a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> that generates events on a regular basis. The events are based on the <a href="https://lihaoyi.github.io/scala.rx/#rx.ops.AkkaScheduler">AkkaScheduler</a> which wraps an <code>ActorSystem</code> when running on the JVM, or a <code>DomScheduler</code> which wraps <code>setTimeout</code> when running on ScalaJS. In the example above, the for-loop checks that the value of the timer <code>t()</code> increases over time from 0 to 5, and then checks that <code>count</code> has been incremented at least that many times.</p>
+
+<p>The scheduled task is cancelled automatically when the <a href="https://lihaoyi.github.io/scala.rx/#rx.ops.Timer">Timer</a> object becomes unreachable, so it can be garbage collected. This means you do not have to worry about managing the life-cycle of the <a href="https://lihaoyi.github.io/scala.rx/#rx.ops.Timer">Timer</a>. On the other hand, this means the programmer should ensure that the reference to the <a href="https://lihaoyi.github.io/scala.rx/#rx.ops.Timer">Timer</a> is held by the same object as that holding any <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> listening to it. This will ensure that the exact moment at which the <a href="https://lihaoyi.github.io/scala.rx/#rx.ops.Timer">Timer</a> is garbage collected will not matter, since by then the object holding it (and any <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> it could possibly affect) are both unreachable.</p>
+
+<h3>
+<a name="user-content-delay" class="anchor" href="#delay" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delay</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">scheduler</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">AkkaScheduler</span><span class="o">(</span><span class="n">akka</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="nc">ActorSystem</span><span class="o">())</span>
+
+<span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">delay</span><span class="o">(</span><span class="mi">250</span> <span class="n">millis</span><span class="o">)</span>
+
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">5</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 10</span>
+<span class="n">eventually</span><span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 5</span>
+<span class="o">}</span>
+
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">4</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 5</span>
+<span class="n">eventually</span><span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 4</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>The <code>delay(t)</code> combinator creates a delayed version of an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> whose value lags the original by a duration <code>t</code>. When the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> changes, the delayed version will not change until the delay <code>t</code> has passed.</p>
+
+<p>This example shows the delay being applied to a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>, but it could easily be applied to an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> as well.</p>
+
+<h3>
+<a name="user-content-debounce" class="anchor" href="#debounce" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debounce</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">scheduler</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">AkkaScheduler</span><span class="o">(</span><span class="n">akka</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="nc">ActorSystem</span><span class="o">())</span>
+
+<span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="n">a</span><span class="o">.</span><span class="n">debounce</span><span class="o">(</span><span class="mi">200</span> <span class="n">millis</span><span class="o">)</span>
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">5</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 5</span>
+
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 5</span>
+
+<span class="n">eventually</span><span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 2</span>
+<span class="o">}</span>
+
+<span class="n">a</span><span class="o">()</span> <span class="k">=</span> <span class="mi">1</span>
+<span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 2</span>
+
+<span class="n">eventually</span><span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">())</span> <span class="c1">// 1</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>The <code>debounce(t)</code> combinator creates a version of an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> which will not update more than once every time period <code>t</code>.</p>
+
+<p>If multiple updates happen with a short span of time (less than <code>t</code> apart), the first update will take place immediately, and a second update will take place only after the time <code>t</code> has passed. For example, this may be used to limit the rate at which an expensive result is re-calculated: you may be willing to let the calculated value be a few seconds stale if it lets you save on performing the expensive calculation more than once every few seconds.</p>
+
+<h2>
+<a name="user-content-graph-inspection" class="anchor" href="#graph-inspection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Graph Inspection</h2>
+
+<p>The fact that you can introspect the Scala.Rx dataflow graph means you can find out not just what the current value of any <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> is, but also <em>why</em> its that value. For example, if you take the following graph:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span>
+
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span> <span class="c1">// 3</span>
+<span class="k">val</span> <span class="n">d</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">c</span><span class="o">()</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">}</span> <span class="c1">// 15</span>
+<span class="k">val</span> <span class="n">e</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">c</span><span class="o">()</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">}</span> <span class="c1">// 7</span>
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">d</span><span class="o">()</span> <span class="o">+</span> <span class="n">e</span><span class="o">()</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">}</span> <span class="c1">// 26</span>
+</pre></div>
+
+<p>We know the value of <code>f</code> is 26:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">())</span> <span class="c1">// 26</span>
+</pre></div>
+
+<p>But why is it 26? We can ask it for the value of its parents:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">.</span><span class="n">parents</span><span class="o">)</span>
+<span class="c1">// List(rx.core.Dynamic@119e2f23, rx.core.Dynamic@506c0c49)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">f</span><span class="o">.</span><span class="n">parents</span><span class="o">.</span><span class="n">collect</span><span class="o">{</span><span class="k">case</span> <span class="n">r</span><span class="k">:</span> <span class="kt">Rx</span><span class="o">[</span><span class="k">_</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="n">r</span><span class="o">()})</span>
+<span class="c1">// List(7, 15)</span>
+</pre></div>
+
+<p>This is interesting, but not that helpful, since the hash of each parent is pretty opaque and the ordering of the parents is arbitrary. However, we can also assign names to these nodes:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">name</span><span class="o">=</span><span class="s">"a"</span><span class="o">)</span>
+
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="n">name</span><span class="o">=</span><span class="s">"b"</span><span class="o">)</span>
+
+<span class="k">val</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">(</span><span class="n">name</span><span class="o">=</span><span class="s">"c"</span><span class="o">){</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">()</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">d</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">(</span><span class="n">name</span><span class="o">=</span><span class="s">"d"</span><span class="o">){</span> <span class="n">c</span><span class="o">()</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">e</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">(</span><span class="n">name</span><span class="o">=</span><span class="s">"e"</span><span class="o">){</span> <span class="n">c</span><span class="o">()</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">}</span>
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">(</span><span class="n">name</span><span class="o">=</span><span class="s">"f"</span><span class="o">){</span> <span class="n">d</span><span class="o">()</span> <span class="o">+</span> <span class="n">e</span><span class="o">()</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">}</span>
+</pre></div>
+
+<p>Now we can query the graph based on human-readable names, which is a great improvement! For example, here's all the descendents of <code>c</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">println</span><span class="o">(</span><span class="n">c</span><span class="o">.</span><span class="n">descendants</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">name</span><span class="o">))</span> <span class="c1">// List(e, d, f, f)</span>
+</pre></div>
+
+<p>Or the names and values of all the nodes (ancestors) that were used in the computation of <code>f</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">f</span><span class="o">.</span><span class="n">ancestors</span>
+ <span class="o">.</span><span class="n">map</span><span class="o">{</span> <span class="k">case</span> <span class="n">r</span><span class="k">:</span> <span class="kt">Rx</span><span class="o">[</span><span class="k">_</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s">" "</span> <span class="o">+</span> <span class="n">r</span><span class="o">()</span> <span class="o">}</span>
+ <span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="n">println</span><span class="o">)</span>
+<span class="c1">// e 7</span>
+<span class="c1">// d 15</span>
+<span class="c1">// c 3</span>
+<span class="c1">// b 2</span>
+<span class="c1">// a 1</span>
+</pre></div>
+
+<p>This ability to query the dataflow graph is useful when debugging why things are going wrong and values are not what you think they are.</p>
+
+<h1>
+<a name="user-content-execution-model" class="anchor" href="#execution-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Execution Model</h1>
+
+<p>Scala.Rx is a library, and apart from a single <code>DynamicVariable</code>, maintains no global state. This means that if you use Scala.Rx to build dataflow graphs at different parts of your program, these dataflow graphs will be completely independent and there's no chance of cross-talk or interference between them.</p>
+
+<h2>
+<a name="user-content-dependency-tracking" class="anchor" href="#dependency-tracking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependency Tracking</h2>
+
+<p>Scala.Rx tracks the dependency graph between different <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s without any explicit annotation by the programmer. This means that in (almost) all cases, you can just write your code as if it wasn't being tracked, and Scala.Rx would build up the dependency graph automatically.</p>
+
+<p>Every time the body of an <code>Rx{...}</code> is evaluated (or re-evaluated), it is put into a <code>DynamicVariable</code>. Any calls to the <code>.apply()</code> methods of other <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s then inspect this <code>DynamicVariable</code> to determine who (if any) is the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> being evaluated. This is linked up with the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> whose <code>.apply()</code> is being called, creating a dependency between them. Thus a dependency graph is implicitly created without any action on the part of the programmer.</p>
+
+<p>The dependency-tracking strategy of Scala.Rx is based of a subset of the ideas in <a href="http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf">Deprecating the Observer Pattern</a>, in particular their definition of "Opaque Signals". The implementation follows it reasonably closely.</p>
+
+<h2>
+<a name="user-content-propagation" class="anchor" href="#propagation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Propagation</h2>
+
+<h3>
+<a name="user-content-weak-forward-references" class="anchor" href="#weak-forward-references" aria-hidden="true"><span class="octicon octicon-link"></span></a>Weak Forward References</h3>
+
+<p>Once we have evaluated our <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s once and have a dependency graph, how do we keep track of our children (the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s who depend on us) and tell them to update? Simply keeping a <code>List()</code> of all children will cause memory leaks, as the <code>List()</code> will prevent any child from being garbage collected even if all other references to the child have been lost and the child is otherwise unaccessible.</p>
+
+<p>Instead, Scala.Rx using a list of <a href="http://en.wikipedia.org/wiki/Weak_reference">WeakReferences</a>. These allow the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> to keep track of its children while still letting them get garbage collected when all other references to them are lost. When a child becomes unreachable and gets garbage collected, the WeakReference becomes <code>null</code>, and these null references get cleared from the list every time it is updated.</p>
+
+<h3>
+<a name="user-content-propagation-strategies" class="anchor" href="#propagation-strategies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Propagation Strategies</h3>
+
+<p>The default propagation of changes is done in a breadth-first, topologically-sorted order, similar to that described in the paper. Each propagation run occurs when a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> is set, e.g. in</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">x</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">y</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">y</span><span class="o">)</span> <span class="c1">// 2</span>
+
+<span class="n">x</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+<span class="n">println</span><span class="o">(</span><span class="n">y</span><span class="o">)</span> <span class="c1">// 4</span>
+</pre></div>
+
+<p>The propagation begins when <code>x</code> is modified via <code>x() = 2</code>, in this case ending at <code>y</code> which updates to the new value <code>4</code>.</p>
+
+<p>Nodes earlier in the dependency graph are evaluated before those down the line. However, due to the fact that the dependencies of a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> are not known until it is evaluated, it is impossible to strictly maintain this invariant at all times, since the underlying graph could change unpredictably.</p>
+
+<p>In general, Scala.Rx keeps track of the topological order dynamically, such that after initialization, if the dependency graph does not change too radically, most nodes <em>should</em> be evaluated only once per propagation, but this is not a hard guarantee.</p>
+
+<p>Hence, it is possible that an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> will get evaluated more than once, even if only a single <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> is updated. You should ensure that the body of any <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s can tolerate being run more than once without harm. If you need to perform side effects, use an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>, which only executes its side effects once per propagation run after the values for all <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s have stabilized.</p>
+
+<p>The default propagator (<a href="https://lihaoyi.github.io/scala.rx/#rx.core.Propagator.Immediate">Propagator.Immediate</a>) does this all synchronously: it performs each update one at a time, in the roughly-topological-order described above, and the <code>update</code> function</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">x</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+</pre></div>
+
+<p>only returns after all updates have completed. This can be changed by creating a new <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Propagator.ExecContext">Propagator.ExecContext</a> with a custom <code>ExecutionContext</code>. e.g.:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">implicit</span> <span class="k">val</span> <span class="n">propagator</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">BreadthFirstPropagator</span><span class="o">(</span><span class="nc">ExecutionContext</span><span class="o">.</span><span class="n">global</span><span class="o">)</span>
+
+<span class="n">x</span><span class="o">()</span> <span class="k">=</span> <span class="mi">2</span>
+</pre></div>
+
+<p>In this case, the updating of nodes is farmed out to the given <code>ExecutionContext</code>. Nodes which do not depend on each other may be updated in parallel, if the given <code>ExecutionContext</code> provides parallelism. When using a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Propagator.ExecContext">Propagator.ExecContext</a>, the update method does not block but instead returns a <code>Future[Unit]</code> which can be waited upon for the operation to complete asynchronously.</p>
+
+<p>Even with a custom <code>ExecutionContext</code>, all updates still occur in (roughly) topologically sorted order. If for some reason you do not want this, it is possible to customize this by creating a completely custom <code>Propagator</code> who is responsible for performing these updates. Custom <code>Propagator</code>s can also allow you to customize what the update method (e.g. in <code>x() = 2</code>) returns, e.g. if you want to collect additional data related to that propagation.</p>
+
+<p>Note that asynchronous <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s like those from <a href="#async">.async</a>, <a href="#delay">.delay</a> or <a href="#debounce">.debounce</a> swallow incoming pings and begin a fresh propagation cycle when their asynchronous action triggers.</p>
+
+<h2>
+<a name="user-content-concurrency-and-parallelism" class="anchor" href="#concurrency-and-parallelism" aria-hidden="true"><span class="octicon octicon-link"></span></a>Concurrency and Parallelism</h2>
+
+<p>By default, everything happens on a single-threaded execution context and there is no parallelism. By using a custom <a href="">Propagator.ExecContext</a>, it is possible to have the updates in each propagation run happen in parallel (though not on <a href="#parallelism-and-scalajs">ScalaJS</a>. For more information on ExecutionContexts, see the <a href="http://doc.akka.io/docs/akka/2.1.2/scala/futures.html#futures-scala">Akka Documentation</a>. The <a href="src/test/scala/rx/ParallelTests.scala">unit tests</a> also contain an example of a dependency graph whose evaluation is spread over multiple threads in this way to provide a performance increase.</p>
+
+<p>Even without using an explicitly parallelizing ExecutionContext, parallelism could creep into your code in subtle ways: a delayed <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, for example may happen to fire and continue its propagation just as you update a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> somewhere on the same dependency graph, resulting in two propagations proceeding in parallel.</p>
+
+<p>In general, the rules for parallel execution of an individual node in the dependency graph is as follows:</p>
+
+<ul class="task-list">
+<li>A <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> can up updated by an arbitrarily high number of parallel threads: <em>make sure your code can handle this!</em>. I will refer to each of these as a <em>parallel update</em>.</li>
+<li>A parallel update <strong>U</strong> gets committed (i.e. its result becomes the value of the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> after completion) <em>if and only if</em> the time at which <strong>U</strong>'s computation began (its <em>start time</em>) is greater than the start time of the last-committed parallel update. If another parallel update <strong>U'</strong> was started in the interim, the result of <strong>U</strong> is discarded</li>
+<li>The state of the dataflow graph may be temporarily inconsistent as a propagation is happening. This is even more true when multiple propagations are happening simultaneously. However, after all propagations complete and the system stabilizes (<em>quiescience</em>), it is guaranteed that the value of every <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> will be correct, with regard to the most up-to-date values of its dependencies.</li>
+<li>When a single propagation happens, Scala.Rx guarantees that although the dataflow graph may be transiently inconsistent, the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> which produce side effects will only fire once everything has stabilized.</li>
+<li>In the presence of multiple propagations happening in parallel, Scala.Rx guarantees that each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> will fire <em>at most</em> once per propagation that occurs. Furthermore, by the time the propagations have completed and the system has stabilized, each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> will have fired <em>at least once</em> after the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> it is observing has reached its final value.</li>
+</ul><p>This policy is implemented using the <strong>java.util.concurrent.AtomicXXX</strong> classes. The final compare-start-times-and-replace-if-timestamp-is-greater action is implemented as a STM-style retry-loop on an <strong>AtomicReference</strong>. This approach is <a href="http://en.wikipedia.org/wiki/Non-blocking_algorithm#Lock-freedom">lock free</a>, and since the time required to compute the result is probably far greater than the time spent trying to commit it, the number of retries should in practice be minimal.</p>
+
+<p>Apart from the main update loop, peripheral methods like <code>children</code>, <code>parents</code>, <code>ancestors</code> and <code>descendents</code> are also affected by parallelism. In these cases, if the system is quiescent you're guaranteed to get the correct value. If there are parallel updates and modifications going on, you're guaranteed to get a set of nodes which were part of the list some time during the duration it takes for the method to run, and any node which was part of the list for the entire duration.</p>
+
+<h3>
+<a name="user-content-weak-forward-references-1" class="anchor" href="#weak-forward-references-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Weak Forward References</h3>
+
+<p>The weak-forward-references to an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> from its dependencies is unusual in that unlike the rest of the state regarding the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, it is not kept within the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> itself! Rather, it is kept within its parents. Hence updates to these weak references cannot conveniently be serialized by encapsulating the state within that <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>'s state.</p>
+
+<h3>
+<a name="user-content-parallelism-and-scalajs" class="anchor" href="#parallelism-and-scalajs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parallelism and ScalaJS</h3>
+
+<p>Since ScalaJS runs on single threaded Javascript VMs, all these guarantees around parallel update semantics is moot since only one <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> will be updating at a time.</p>
+
+<h2>
+<a name="user-content-memory-model" class="anchor" href="#memory-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memory Model</h2>
+
+<p>As described earlier, the dataflow graph built by Scala.Rx is maintained by a network of <code>WeakReference</code>s. These allow the nodes to send updates to their children while still allowing their children to be garbage collected if necessary. Hence in this example:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+<span class="k">for</span> <span class="o">(</span><span class="n">i</span> <span class="k">&lt;-</span> <span class="mi">0</span> <span class="n">until</span> <span class="mi">10</span><span class="o">){</span>
+  <span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">}</span>
+  <span class="o">...</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>After <code>b</code> falls out of scope, it is eventually automatically cleaned up by the garbage collector. The exact timing of this is non-deterministic (since it depends on the GC) so in general, you should write code that is not affected by this non-determinism. For example, if the only data structures that <code>b</code> can affect (by triggering <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s, or via side-effects in the body of its <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>) become unreachable together with <code>b</code> (e.g. they're kept on the same object) then it doesn't matter exactly <em>when</em> <code>b</code> stops triggering, since the effect of its triggering will not be visible by that point anyway.</p>
+
+<h3>
+<a name="user-content-memory-and-scalajs" class="anchor" href="#memory-and-scalajs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memory and ScalaJS</h3>
+
+<p>In ScalaJS, <code>WeakReference</code>s are not weak, since Javascript does not have weak references. This means that the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s generated in the loop will not get cleaned up, since <code>a</code> must hold a strong reference to them in order to notify them of updates. However, in cases such as this, it may be necessary to manually <code>.kill()</code> the individual <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s once you're done with them:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+<span class="k">for</span> <span class="o">(</span><span class="n">i</span> <span class="k">&lt;-</span> <span class="mi">0</span> <span class="n">until</span> <span class="mi">10</span><span class="o">){</span>
+  <span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">}</span>
+  <span class="o">...</span>
+  <span class="n">b</span><span class="o">.</span><span class="n">kill</span><span class="o">()</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Alternatively, if you're done with <code>a</code> as well, you can perform a <code>.killAll()</code> on it, which will kill it as well as all of its children and descendents at one go:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+<span class="k">for</span> <span class="o">(</span><span class="n">i</span> <span class="k">&lt;-</span> <span class="mi">0</span> <span class="n">until</span> <span class="mi">10</span><span class="o">){</span>
+  <span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">}</span>
+  <span class="o">...</span>
+<span class="o">}</span>
+<span class="n">a</span><span class="o">.</span><span class="n">killAll</span><span class="o">()</span>
+</pre></div>
+
+<p>On the other hand, often leaking memory is acceptable: often the dataflow graph is relatively static, so even if some memory is kept around unnecessarily, the amount leaked won't grow unbounded. Furthermore, even when you are generating dataflow graphs dynamically (e.g. one for each section of a web page, which may vary) if these dataflow graphs are completely independent, then even if nodes within each graph can't be GCed, each graph can and will be GCed as a whole when all its nodes become unreachable.</p>
+
+<p>It is only when you have a dynamically changing sections of a single dataflow graph where the forward-references prevent GC and nodes need to be killed manually.</p>
+
+<h2>
+<a name="user-content-internals" class="anchor" href="#internals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Internals</h2>
+
+<h1>
+<a name="user-content-design-considerations" class="anchor" href="#design-considerations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Design Considerations</h1>
+
+<h2>
+<a name="user-content-simple-to-use" class="anchor" href="#simple-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple to Use</h2>
+
+<p>This meant that the syntax to write programs in a dependency-tracking way had to be as light weight as possible, that programs written using FRP had to <em>look</em> like their normal, old-fashioned, imperative counterparts. This meant using <code>DynamicVariable</code> instead of implicits to automatically pass arguments, sacrificing proper lexical scoping for nice syntax.</p>
+
+<p>I ruled out using a purely monadic style (like <a href="https://github.com/nafg/reactive">reactive-web</a>), as although it would be far easier to implement the library in that way, it would be a far greater pain to actually use it. I also didn't want to have to manually declare dependencies, as this violates <a href="http://en.wikipedia.org/wiki/Don't_repeat_yourself">DRY</a> when you are declaring your dependencies twice: once in the header of the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, and once more when you use it in the body.</p>
+
+<p>The goal was to be able to write code, sprinkle a few <code>Rx{}</code>s around and have the dependency tracking and change propagation <em>just work</em>. Overall, I believe it has been quite successful at that!</p>
+
+<h2>
+<a name="user-content-simple-to-reason-about" class="anchor" href="#simple-to-reason-about" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple to Reason About</h2>
+
+<p>This means many things, but most of all it means having no globals. This greatly simplifies many things for someone using the library, as you no longer need to reason about different parts of your program interacting through the library. Using Scala.Rx in different parts of a large program is completely fine; they are completely independent.</p>
+
+<p>Another design decision in this area was to have the parallelism and propagation-scheduling be left mainly to an implicit <code>ExecutionContext</code>, and have the default to simply run the propagation wave on whatever thread made the update to the dataflow graph.</p>
+
+<ul class="task-list">
+<li>The former means that anyone who is used to writing parallel programs in Scala/Akka is already familiar with how to deal with parallelizing Scala.Rx</li>
+<li>The latter makes it far easier to reason about when propagations happen, at least in the default case: it simply happens <em>right away</em>, and by the time that <code>Var.update()</code> function has returned, the propagation has completed.</li>
+</ul><p>Overall, limiting the range of side effects and removing global state makes Scala.Rx easy to reason about, and means a developer can focus on using Scala.Rx to construct dataflow graphs rather than worry about un-predictable far-reaching interactions or performance bottlenecks.</p>
+
+<h2>
+<a name="user-content-simple-to-interop" class="anchor" href="#simple-to-interop" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple to Interop</h2>
+
+<p>This meant that it had to be easy for a programmer to drop in and out of the FRP world. Many of the papers I read in preparing for Scala.Rx described systems that worked brilliantly on their own, and had some amazing properties, but required that the entire program be written in an obscure variant of an obscure language. No thought at all was given to inter-operability with existing languages or paradigms, which makes it impossible to incrementally introduce FRP into an existing codebase.</p>
+
+<p>With Scala.Rx, I resolved to do things differently. Hence, Scala.Rx:</p>
+
+<ul class="task-list">
+<li>Is written in Scala: an uncommon, but probably less-obscure language than <a href="http://www.haskell.org/haskellwiki/Haskell">Haskell</a> or <a href="http://racket-lang.org/">Scheme</a>
+</li>
+<li>Is a library: it is plain-old-scala. There is no source-to-source transformation, no special runtime necessary to use Scala.Rx. You download the source code into your Scala project, and start using it</li>
+<li>Allows you to use any programming language construct or library functionality within your <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s: Scala.Rx will figure out the dependencies without the programmer having to worry about it, without limiting yourself to some inconvenient subset of the language</li>
+<li>Allows you to use Scala.Rx within a larger project without much pain. You can easily embed dataflow graphs within a larger object-oriented universe and interact with them via setting <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>s and listening to <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s</li>
+</ul><p>Many of the papers reviewed show a beautiful new FRP universe that we could be programming in, if only you ported all your code to FRP-Haskell and limited yourself to the small set of combinators used to create dataflow graphs. On the other hand, by letting you embed FRP snippets anywhere within existing code, using FRP ideas in existing projects without full commitment, and allowing you easy interop between your FRP and non-FRP code, Scala.Rx aims to bring the benefits FRP into the dirty, messy universe which we are programming in today.</p>
+
+<h2>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h2>
+
+<p>Scala.Rx has a number of significant limitations, some of which arise from trade-offs in the design, others from the limitations of the underlying platform.</p>
+
+<h3>
+<a name="user-content-no-empty-reactives" class="anchor" href="#no-empty-reactives" aria-hidden="true"><span class="octicon octicon-link"></span></a>No "Empty" Reactives</h3>
+
+<p>The API of Rxs in Scala.Rx tries to follow the collections API as far as possible: you can map, filter and reduce over the Rxs, just as you can over collections. However, it is currently impossible to have a Rx which is empty in the way a collection can be empty: filtering out all values in a Rx will still leave at least the initial value (even if it fails the predicate) and Async Rxs need to be given an initial value to start.</p>
+
+<p>This limitation arises from the difficulty in joining together possibly empty Rxs with good user experience. For example, if I have a dataflow graph:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">a</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">()</span>
+<span class="k">val</span> <span class="n">b</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">()</span>
+<span class="k">var</span> <span class="n">c</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span>
+    <span class="o">....</span> <span class="n">a</span><span class="o">()</span> <span class="o">...</span>
+    <span class="o">...</span> <span class="n">some</span> <span class="n">computation</span> <span class="o">...</span>
+    <span class="o">...</span> <span class="n">b</span><span class="o">()</span> <span class="o">...</span>
+    <span class="n">result</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Where <code>a</code> and <code>b</code> are initially empty, I have basically two options:</p>
+
+<ul class="task-list">
+<li>Block the current thread which is computing <code>c</code>, waiting for <code>a</code> and then <code>b</code> to become available.</li>
+<li>Throw an exception when <code>a()</code> and <code>b()</code> are requested, aborting the computation of <code>c</code> but registering it to be restarted when <code>a()</code> or <code>b()</code> become available.</li>
+<li>Re-write this in a monadic style using for-comprehensions.</li>
+<li>Use the delimited continuations plugin to transform the above code to monadic code automatically.</li>
+</ul><p>The first option is a performance problem: threads are generally extremely heavy weight on most operation systems. You cannot reasonably make more than a few thousand threads, which is a tiny number compared to the amount of objects you can create. Hence, although blocking would be the easiest, it is frowned upon in many systems (e.g. in Akka, which Scala.Rx is built upon) and does not seem like a good solution.</p>
+
+<p>The second option is a performance problem in a different way: with <code>n</code> different dependencies, all of which may start off empty, the computation of <code>c</code> may need to be started and aborted <code>n</code> times even before completing even once. Although this does not block any threads, it does seem extremely expensive.</p>
+
+<p>The third option is a no-go from a user experience perspective: it would require far reaching changes in the code base and coding style in order to benefit from the change propagation, which I'm not willing to require.</p>
+
+<p>The last option is problematic due to the bugginess of the delimited continuations plugin. Although in theory it should be able to solve everything, a large number of small bugs (messing up type inferencing, interfering with implicit resolution) combined with a few fundamental problems meant that even on a small scale project (less than 1000 lines of reactive code) it was getting painful to use.</p>
+
+<h3>
+<a name="user-content-no-automatic-parallelization-at-the-start" class="anchor" href="#no-automatic-parallelization-at-the-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>No Automatic Parallelization at the Start</h3>
+
+<p>As mentioned earlier, Scala.Rx can perform automatic parallelization of updates occurring in the dataflow graph: simply provide an appropriate ExecutionContext, and independent Rxs will have their updates spread out over multiple cores.</p>
+
+<p>However, this only works for updates, and not when the dataflow graph is being initially defined: in that case, every Rx evaluates its body once in order to get its default value, and it all happens serially on the same thread. This limitation arises from the fact that we do not have a good way to work with "empty" Rxs, and we do not know what an Rxs dependencies are before the first time we evaluate it.</p>
+
+<p>Hence, we cannot start all our Rxs evaluating in parallel as some may finish before others they depend on, which would then be empty, their initial value still being computed. We also cannot choose to parallelize those which do not have dependencies on each other, as before execution we do not know what the dependencies are!</p>
+
+<p>Thus, we have no choice but to have the initial definitions of Rxs happen serially. If necessary, a programmer can manually create independent Rxs <a href="http://stackoverflow.com/questions/12923429/easy-parallel-evaluation-of-tuples-in-scala">in parallel using Futures</a>.</p>
+
+<h3>
+<a name="user-content-glitchiness-and-redundant-computation" class="anchor" href="#glitchiness-and-redundant-computation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Glitchiness and Redundant Computation</h3>
+
+<p>In the context of FRP, a glitch is a temporary inconsistency in the dataflow graph. Due to the fact that updates do not happen instantaneously, but instead take time to computer, the values within an FRP system may be transiently out of sync during the update process. Furthermore, depending on the nature of the FRP system, it is possible to have nodes be updated more than once in a propagation.</p>
+
+<p>This may or may not be a problem, depending on how tolerant the application is of occasional stale inconsistent data. In a single-threaded system, it can be avoided in a number of ways</p>
+
+<ul class="task-list">
+<li>Make the dataflow graph static, and perform a topological sort to rank nodes in the order they are to be updated. This means that a node <em>always</em> is updated <em>after</em> its dependencies, meaning they will never see any stale data</li>
+<li>Pause the updating of a node when it tries to call upon a dependency which has not been updated. This could be done by blocking the thread, for example, and only resuming after the dependency has been updated.</li>
+</ul><p>However, both of these approaches have problems. The first approach is extremely constrictive: a static dataflow graph means that a large amount of useful behavior, e.g. creating and destroying sections of the graph dynamically at run-time, is prohibited. This goes against Scala.Rx's goal of allowing the programmer to write code "normally" without limits, and letting the FRP system figure it out.</p>
+
+<p>The second case is a problem for languages which do not easily allow computations to be paused. In Java, and by extension Scala, the threads used are operating system (OS) threads which are extremely expensive. Hence, blocking an OS thread is frowned upon. Coroutines and continuations could also be used for this, but Scala lacks both of these facilities.</p>
+
+<p>The last problem is that both these models only make sense in the case of single threaded, sequential code. As mentioned on the section on Concurrency and Parallelism, Scala.Rx allows you to use multiple threads to parallelize the propagation, and allows propagations to be started by multiple threads simultaneously. That means that a strict prohibition of glitches is impossible.</p>
+
+<p>Scala.Rx maintains somewhat looser model: the body of each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> may be evaluated more than once per propagation, and Scala.Rx only promises to make a "best-effort" attempt to reduce the number of redundant updates. Assuming the body of each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a> is pure, this means that the redundant updates should only affect the time taken and computation required for the propagation to complete, but not affect the value of each node once the propagation has finished.</p>
+
+<p>In addition, Scala.Rx provides the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s, which are special terminal-nodes guaranteed to update only once per propagation, intended to produce some side effect. This means that although a propagation may cause the values of the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s within the dataflow graph to be transiently out of sync, the final side-effects of the propagation will only happen once the entire propagation is complete and the <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a>s all fire their side effects.</p>
+
+<p>If multiple propagations are happening in parallel, Scala.Rx guarantees that each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> will fire <em>at most</em> once per propagation, and <em>at least</em> once overall. Furthermore, each <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> will fire at least once after the entire dataflow graph has stabilized and the propagations are complete. This means that if you are relying on <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Obs">Obs</a> to, for example, send updates over the network to a remote client, you can be sure that you don't have any unnecessary chatter being transmitted over the network, and when the system is quiescent the remote client will have the updates representing the most up-to-date version of the dataflow graph.</p>
+
+<h1>
+<a name="user-content-related-work" class="anchor" href="#related-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related Work</h1>
+
+<p>Scala.Rx was not created in a vacuum, and borrows ideas and inspiration from a range of existing projects.</p>
+
+<h2>
+<a name="user-content-scalareact" class="anchor" href="#scalareact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scala.React</h2>
+
+<p>Scala.React, as described in <a href="http://infoscience.epfl.ch/record/176887/files/DeprecatingObservers2012.pdf">Deprecating the Observer Pattern</a>, contains a reactive change propagation portion (there called <code>Signal</code>s) which is similar to what Scala.Rx does. However, it does much more than that: It contains implementations for using event-streams, and multiple DSLs using delimited continuations in order to make it easy to write asynchronous workflows.</p>
+
+<p>I have used this library, and my experience is that it is extremely difficult to set up and get started. It requires a fair amount of global configuration, with a global engine doing the scheduling and propagation, even running its own thread pools. This made it extremely difficult to reason about interactions between parts of the programs: would completely-separate dataflow graphs be able to affect each other through this global engine? Would the performance of multithreaded code start to slow down as the number of threads rises, as the engine becomes a bottleneck? I never found answers to many of these questions, and had did not manage to contact the author.</p>
+
+<p>The global propagation engine also makes it difficult to get started. It took several days to get a basic dataflow graph (similar to the example at the top of this document) working. That is after a great deal of struggling, reading the relevant papers dozens of times and hacking the source in ways I didn't understand. Needless to say, these were not foundations that I would feel confident building upon.</p>
+
+<h2>
+<a name="user-content-reactive-web" class="anchor" href="#reactive-web" aria-hidden="true"><span class="octicon octicon-link"></span></a>reactive-web</h2>
+
+<p><a href="https://github.com/nafg/reactive">reactive-web</a> was another inspiration. It is somewhat orthogonal to Scala.Rx, focusing more on event streams and integration with the <a href="http://liftweb.net/">Lift</a> web framework, while Scala.Rx focuses purely on time-varying values.</p>
+
+<p>Nevertheless, reactive-web comes with its own time-varying values (called Signals), which are manipulated using combinators similar to those in Scala.Rx (<code>map</code>, <code>filter</code>, <code>flatMap</code>, etc.). However, reactive-web does not provide an easy way to compose these Signals: the programmer has to rely entirely on <code>map</code> and <code>flatMap</code>, possibly using Scala's for-comprehensions.</p>
+
+<p>I did not like the fact that you had to program in a monadic style (i.e. living in <code>.map()</code> and <code>.flatMap()</code> and <code>for{}</code> comprehensions all the time) in order to take advantage of the change propagation. This is particularly cumbersome in the case of <a href="Basic-Usage#nesting">nested </a><a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>s, where Scala.Rx's</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// a b and c are Rxs</span>
+<span class="n">x</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">a</span><span class="o">()</span> <span class="o">+</span> <span class="n">b</span><span class="o">().</span><span class="n">c</span><span class="o">()</span> <span class="o">}</span>
+</pre></div>
+
+<p>becomes</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">x</span> <span class="k">=</span> <span class="k">for</span> <span class="o">{</span>
+  <span class="n">va</span> <span class="k">&lt;-</span> <span class="n">a</span>
+  <span class="n">vb</span> <span class="k">&lt;-</span> <span class="n">b</span>
+  <span class="n">vc</span> <span class="k">&lt;-</span> <span class="n">vb</span><span class="o">.</span><span class="n">c</span>
+<span class="o">}</span> <span class="k">yield</span> <span class="o">(</span><span class="n">va</span> <span class="o">+</span> <span class="n">vc</span><span class="o">)</span>
+</pre></div>
+
+<p>As you can see, using for-comprehensions as in reactive-web results in the code being significantly longer and much more obfuscated.</p>
+
+<h2>
+<a name="user-content-knockoutjs" class="anchor" href="#knockoutjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Knockout.js</h2>
+
+<p><a href="http://knockoutjs.com/">Knockout.js</a> does something similar for Javascript, along with some other extra goodies like DOM-binding. In fact, the design and implementation and developer experience of the automatic-dependency-tracking is virtually identical. This:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">ko</span><span class="p">.</span><span class="nx">observable</span><span class="p">(</span><span class="s1">'Bob'</span><span class="p">);</span>
+<span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">ko</span><span class="p">.</span><span class="nx">observable</span><span class="p">(</span><span class="s1">'Smith'</span><span class="p">);</span>
+<span class="nx">fullName</span> <span class="o">=</span> <span class="nx">ko</span><span class="p">.</span><span class="nx">computed</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span><span class="p">()</span> <span class="o">+</span> <span class="s2">" "</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">();</span>
+<span class="p">},</span> <span class="k">this</span><span class="p">);</span>
+</pre></div>
+
+<p>is semantically equivalent to the following Scala.Rx code:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">firstName</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s">"Bob"</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">lastName</span> <span class="k">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s">"Smith"</span><span class="o">)</span>
+<span class="n">fullName</span> <span class="k">=</span> <span class="nc">Rx</span><span class="o">{</span> <span class="n">firstName</span><span class="o">()</span> <span class="o">+</span> <span class="s">" "</span> <span class="o">+</span> <span class="n">lastName</span><span class="o">()</span> <span class="o">}</span>
+</pre></div>
+
+<p>a <code>ko.observable</code> maps directly onto a <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a>, and a <code>kocomputed</code> maps directly onto an <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>. Apart from the longer variable names and the added verbosity of Javascript, the semantics are almost identical.</p>
+
+<p>Apart from providing an equivalent of <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Rx">Var</a> and <a href="https://lihaoyi.github.io/scala.rx/#rx.core.Var">Rx</a>, Knockout.js focuses its efforts in a different direction. It lacks the majority of the useful combinators that Scala.Rx provides, but provides a great deal of other functionality, for example integration with the browser's DOM, that Scala.Rx lacks.</p>
+
+<h2>
+<a name="user-content-others" class="anchor" href="#others" aria-hidden="true"><span class="octicon octicon-link"></span></a>Others</h2>
+
+<p>This idea of change propagation, with time-varying values which notify any value which depends on them when something changes, part of the field of <a href="http://en.wikipedia.org/wiki/Functional_reactive_programming">Functional Reactive Programming</a>. This is a well studied field with a lot of research already done. Scala.Rx builds upon this research, and incorporates ideas from the following projects:</p>
+
+<ul class="task-list">
+<li><a href="http://www.flapjax-lang.org/">FlapJax</a></li>
+<li><a href="http://www.imamu.edu.sa/dcontent/IT_Topics/java/10.1.1.80.4772.pdf">Frappe</a></li>
+<li><a href="http://conal.net/papers/icfp97/icfp97.pdf">Fran</a></li>
+</ul><p>All of these projects are filled with good ideas. However, generally they are generally very much research projects: in exchange for the benefits of FRP, they require you to write your entire program in an obscure variant of an obscure language, with little hope inter-operating with existing, non-FRP code.</p>
+
+<p>Writing production software in an unfamiliar paradigm such as FRP is already a significant risk. On top of that, writing production software in an unfamiliar language is an additional variable, and writing production software in an unfamiliar paradigm in an unfamiliar language <em>with no inter-operability with existing code</em> is downright reckless. Hence it is not surprising that these libraries have not seen significant usage. Scala.Rx aims to solve these problems by providing the benefits of FRP in a familiar language, with seamless interop between FRP and more traditional imperative or object-oriented code.</p>
+
+<h1>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h1>
+
+<p>Copyright (c) 2013, Li Haoyi (haoyi.sg at gmail.com)</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

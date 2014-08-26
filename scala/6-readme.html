@@ -1,0 +1,258 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-kestrel" class="anchor" href="#kestrel" aria-hidden="true"><span class="octicon octicon-link"></span></a>Kestrel</h1>
+
+<p>Kestrel is based on Blaine Cook's "starling" simple, distributed message
+queue, with added features and bulletproofing, as well as the scalability
+offered by actors and the JVM.</p>
+
+<p>Each server handles a set of reliable, ordered message queues. When you put a
+cluster of these servers together, <em>with no cross communication</em>, and pick a
+server at random whenever you do a <code>set</code> or <code>get</code>, you end up with a reliable,
+<em>loosely ordered</em> message queue.</p>
+
+<p>In many situations, loose ordering is sufficient. Dropping the requirement on
+cross communication makes it horizontally scale to infinity and beyond: no
+multicast, no clustering, no "elections", no coordination at all. No talking!
+Shhh!</p>
+
+<p>For more information about what it is and how to use it, check out
+the included <a href="https://github.com/robey/kestrel/blob/master/docs/guide.md">guide</a>.</p>
+
+<p>Kestrel has a mailing list here:
+<a href="http://groups.google.com/group/kestrel-talk">kestrel-talk@googlegroups.com</a></p>
+
+<p>Author's address: Robey Pointer &lt;<a href="mailto:robeypointer@gmail.com">robeypointer@gmail.com</a>&gt;</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p>Kestrel is:</p>
+
+<ul class="task-list">
+<li>
+<p>fast</p>
+
+<p>It runs on the JVM so it can take advantage of the hard work people have
+put into java performance.</p>
+</li>
+<li>
+<p>small</p>
+
+<p>Currently about 2500 lines of scala, because it relies on Netty (a rough
+equivalent of Danger's ziggurat or Ruby's EventMachine) -- and because
+Scala is extremely expressive.</p>
+</li>
+<li>
+<p>durable</p>
+
+<p>Queues are stored in memory for speed, but logged into a journal on disk
+so that servers can be shutdown or moved without losing any data.</p>
+</li>
+<li>
+<p>reliable</p>
+
+<p>A client can ask to "tentatively" fetch an item from a queue, and if that
+client disconnects from kestrel before confirming ownership of the item,
+the item is handed to another client. In this way, crashing clients don't
+cause lost messages.</p>
+</li>
+</ul><h2>
+<a name="user-content-anti-features" class="anchor" href="#anti-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Anti-Features</h2>
+
+<p>Kestrel is not:</p>
+
+<ul class="task-list">
+<li>
+<p>strongly ordered</p>
+
+<p>While each queue is strongly ordered on each machine, a cluster will
+appear "loosely ordered" because clients pick a machine at random for
+each operation. The end result should be "mostly fair".</p>
+</li>
+<li>
+<p>transactional</p>
+
+<p>This is not a database. Item ownership is transferred with acknowledgement,
+but kestrel does not support grouping multiple operations into an atomic
+unit.</p>
+</li>
+</ul><h2>
+<a name="user-content-downloading-it" class="anchor" href="#downloading-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Downloading it</h2>
+
+<p>The latest release is always on the homepage here:</p>
+
+<ul class="task-list">
+<li><a href="http://robey.github.com/kestrel">http://robey.github.com/kestrel</a></li>
+</ul><p>Or the latest development versions &amp; branches are on github:</p>
+
+<ul class="task-list">
+<li><a href="http://github.com/robey/kestrel">http://gitub.com/robey/kestrel</a></li>
+</ul><h2>
+<a name="user-content-building-it" class="anchor" href="#building-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building it</h2>
+
+<p>Kestrel requires java 6 and sbt 0.11.2. Presently some sbt plugins used by kestrel
+depend on that exact version of sbt. On OS X 10.5, you may have to hard-code
+an annoying <code>JAVA_HOME</code> to use java 6:</p>
+
+<pre><code>$ export JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home
+</code></pre>
+
+<p>Building from source is easy:</p>
+
+<pre><code>$ sbt clean update package-dist
+</code></pre>
+
+<p>Scala libraries and dependencies will be downloaded from maven repositories
+the first time you do a build. The finished distribution will be in <code>dist</code>.</p>
+
+<h2>
+<a name="user-content-running-it" class="anchor" href="#running-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running it</h2>
+
+<p>You can run kestrel by hand, in development mode, via:</p>
+
+<pre><code>$ ./dist/kestrel-VERSION/scripts/devel.sh
+</code></pre>
+
+<p>Like all ostrich-based servers, it uses the "stage" property to determine
+which config file to load, so <code>devel.sh</code> sets <code>-Dstage=development</code>.</p>
+
+<p>When running it as a server, a startup script is provided in
+<code>dist/kestrel-VERSION/scripts/kestrel.sh</code>. The script assumes you have
+<code>daemon</code>, a standard daemonizer for Linux, but also available
+<a href="http://libslack.org/daemon/">here</a> for all common unix platforms.</p>
+
+<p>The created archive <code>kestrel-VERSION.zip</code> can be expanded into a place
+like <code>/usr/local</code> (or wherever you like) and executed within its own folder as
+a self-contained package. All dependent jars are included. The current startup
+script, however, assumes that kestrel has been deployed to
+<code>/usr/local/kestrel/current</code> (e.g., as if by capistrano), and the startup
+script loads kestrel from that path.</p>
+
+<p>The default configuration puts logfiles into <code>/var/log/kestrel/</code> and queue
+journal files into <code>/var/spool/kestrel/</code>.</p>
+
+<p>The startup script logs extensive GC information to a file named <code>stdout</code> in
+the log folder. If kestrel has problems starting up (before it can initialize
+logging), it will usually appear in <code>error</code> in the same folder.</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Queue configuration is described in detail in <code>docs/guide.md</code> (an operational
+guide). Scala docs for the config variables are
+<a href="http://robey.github.com/kestrel/api/main/api/net/lag/kestrel/config/KestrelConfig.html">here</a>.</p>
+
+<h2>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h2>
+
+<p>Several performance tests are included. To run them, first start up a kestrel instance
+locally.</p>
+
+<pre><code>$ sbt clean update package-dist
+$ ./dist/kestrel-VERSION/scripts/devel.sh
+</code></pre>
+
+<h2>
+<a name="user-content-put-many" class="anchor" href="#put-many" aria-hidden="true"><span class="octicon octicon-link"></span></a>Put-many</h2>
+
+<p>This test just spams a kestrel server with "put" operations, to see how
+quickly it can absorb and journal them.</p>
+
+<p>A sample run on a 2010 MacBook Pro:</p>
+
+<pre><code>$ ./dist/kestrel/scripts/load/put-many -n 100000
+Put 100000 items of 1024 bytes to localhost:22133 in 1 queues named spam
+  using 100 clients.
+Finished in 6137 msec (61.4 usec/put throughput).
+Transactions: min=71.00; max=472279.00 472160.00 469075.00;
+  median=3355.00; average=5494.69 usec
+Transactions distribution: 5.00%=485.00 10.00%=1123.00 25.00%=2358.00
+  50.00%=3355.00 75.00%=4921.00 90.00%=7291.00 95.00%=9729.00
+  99.00%=50929.00 99.90%=384638.00 99.99%=467899.00
+</code></pre>
+
+<h2>
+<a name="user-content-many-clients" class="anchor" href="#many-clients" aria-hidden="true"><span class="octicon octicon-link"></span></a>Many-clients</h2>
+
+<p>This test has one producer that trickles out one item at a time, and a pile of
+consumers fighting for each item. It usually takes exactly as long as the
+number of items times the delay, but is useful as a validation test to make
+sure kestrel works as advertised without blowing up.</p>
+
+<p>A sample run on a 2010 MacBook Pro:</p>
+
+<pre><code>$ ./dist/kestrel/scripts/load/many-clients
+many-clients: 100 items to localhost using 100 clients, kill rate 0%,
+  at 100 msec/item
+Received 100 items in 11046 msec.
+</code></pre>
+
+<p>This test always takes about 11 seconds -- it's a load test instead of a
+speed test.</p>
+
+<h2>
+<a name="user-content-flood" class="anchor" href="#flood" aria-hidden="true"><span class="octicon octicon-link"></span></a>Flood</h2>
+
+<p>This test starts up one producer and one consumer, and just floods items
+through kestrel as fast as it can.</p>
+
+<p>A sample run on a 2010 MacBook Pro:</p>
+
+<pre><code>$ ./dist/kestrel/scripts/load/flood
+flood: 1 threads each sending 10000 items of 1kB through spam
+Finished in 1563 msec (156.3 usec/put throughput).
+Consumer(s) spun 0 times in misses.
+</code></pre>
+
+<h2>
+<a name="user-content-packing" class="anchor" href="#packing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Packing</h2>
+
+<p>This test starts up one producer and one consumer, seeds the queue with a
+bunch of items to cause it to fall behind, then does cycles of flooding items
+through the queue, separated by pauses. It's meant to test kestrel's behavior
+with a queue that's fallen behind and <em>stays</em> behind indefinitely, to make
+sure the journal files are packed periodically without affecting performance
+too badly.</p>
+
+<p>A sample run on a 2010 MacBook Pro:</p>
+
+<pre><code>$ ./dist/kestrel/scripts/load/packing -c 10 -q small
+packing: 25000 items of 1kB with 1 second pauses
+Wrote 25000 items starting at 0.
+cycle: 1
+Wrote 25000 items starting at 25000.
+Read 25000 items in 5279 msec. Consumer spun 0 times in misses.
+cycle: 2
+Wrote 25000 items starting at 50000.
+Read 25000 items in 4931 msec. Consumer spun 0 times in misses.
+...
+cycle: 10
+Wrote 25000 items starting at 250000.
+Read 25000 items in 5304 msec. Consumer spun 0 times in misses.
+Read 25000 items in 3370 msec. Consumer spun 0 times in misses.
+</code></pre>
+
+<p>You can see the journals being packed in the kestrel log. Like
+"many-clients", this test is a load test instead of a speed test.</p>
+
+<h2>
+<a name="user-content-leaky-reader" class="anchor" href="#leaky-reader" aria-hidden="true"><span class="octicon octicon-link"></span></a>Leaky-reader</h2>
+
+<p>This test starts a producer and several consumers, with the consumers
+occasionally "forgetting" to acknowledge an item that they've read. It
+verifies that the un-acknowledged items are eventually handed off to another
+consmer.</p>
+
+<p>A sample run:</p>
+
+<pre><code>$ ./dist/kestrel/scripts/load/leaky-reader -n 100000 -t 10
+leaky-reader: 10 threads each sending 100000 items through spam
+Flushing queues first.
+1000
+2000
+100000
+Finished in 40220 msec (40.2 usec/put throughput).
+Completed all reads
+</code></pre>
+
+<p>Like "many-clients", it's just a load test.</p></article></div>

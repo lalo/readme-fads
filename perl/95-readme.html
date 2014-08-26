@@ -1,0 +1,621 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-smartcd---make-your-shell-come-alive" class="anchor" href="#smartcd---make-your-shell-come-alive" aria-hidden="true"><span class="octicon octicon-link"></span></a>smartcd - make your shell come alive</h1>
+
+<h2>
+<a name="user-content-what-is-smartcd" class="anchor" href="#what-is-smartcd" aria-hidden="true"><span class="octicon octicon-link"></span></a>WHAT IS SMARTCD?</h2>
+
+<p>smartcd is a library for bash and zsh which brings transformative power
+  to your fingertips.</p>
+
+<p>The basic premise is that as you move around your computer using the shell,
+  actions can be automatically taken to provide you with the environment you
+  really want, not the one you're accustomed to putting up with.</p>
+
+<h2>
+<a name="user-content-have-you-ever" class="anchor" href="#have-you-ever" aria-hidden="true"><span class="octicon octicon-link"></span></a>Have you ever...</h2>
+
+<ul class="task-list">
+<li><p>Created a file for a project to alter your environment by setting
+variables or creating aliases so that things work correctly, one which
+you need to remember to load by hand</p></li>
+<li><p>Struggled to set up your shell's configuation to support conflicting
+needs for different uses</p></li>
+<li><p>Wished that your prompt could be made to say something or be a different
+color when you are in a sensitive directory</p></li>
+<li><p>Wanted a daemon process to run automatically when you go to work on a
+project, and shut down when you finish</p></li>
+<li><p>Wanted to automatically update your project from source control when you
+enter</p></li>
+<li><p>Needed to attach to a particular screen(1) session when working in
+a particular directory</p></li>
+</ul><p>These are just a few examples of problems people are solving with smartcd.</p>
+
+<h2>
+<a name="user-content-ok-how-do-i-use-it" class="anchor" href="#ok-how-do-i-use-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>OK, HOW DO I USE IT?</h2>
+
+<p>It's stupid easy.  If you have already downloaded the archive or checked out
+  the source, you can:</p>
+
+<pre><code>make install
+source load_smartcd
+smartcd config
+</code></pre>
+
+<p>However, if you would rather skip all that and simply have it install itself,
+  try this:</p>
+
+<pre><code>curl -L http://smartcd.org/install | bash
+</code></pre>
+
+<p>Either method will prompt you to configure a small number of settings, and
+  then help you set up your shell to load it on login.</p>
+
+<p>Once it is installed, you're ready to go.  All actions are available through
+  the <code>smartcd</code> command.</p>
+
+<pre><code>Usage: smartcd ( edit | append | show | delete | filename | helper | template | setup | config ) [args]
+</code></pre>
+
+<p>If you run <code>smartcd edit enter</code>, it will launch your editor to allow you to
+  begin creating a script for the current directory which will run when you
+  enter.  Its counterpart, <code>smartcd edit leave</code>, will create a script that runs
+  when you cd away from the current directory.</p>
+
+<p>An auxiliary library is provided with smartcd called varstash.  This provides
+  you with a powerful mechanism which saves the definitions of variables,
+  aliases, and shell functions to allow you to change or unset them temporarily.
+  Once you are finished, it will allow you to (or automatically) restore their
+  prior values.</p>
+
+<p>For example,</p>
+
+<pre><code>autostash PATH=/path/to/my/project/bin:$PATH
+autostash alias restart="apachectl restart"
+restart
+</code></pre>
+
+<p>will save the value of your $PATH, and prepend a project-specific directory
+  to it.  smartcd will automagically restore its old value when you leave the
+  directory.</p>
+
+<p>The second line creates a temporary alias which is probably something only
+  meaningful to the directory you are in, allowing you to keep concise aliases
+  that won't get in your way, and allow you to re-use them between projects.</p>
+
+<p>And these commands are immediately available, as shown by the third line,
+  which makes use of the newly defined alias to restart your server.</p>
+
+<p>You could instead create the files non-interactively</p>
+
+<pre><code>echo 'autostash PATH=__PATH__/temporary/path:$PATH' | smartcd edit enter
+</code></pre>
+
+<p>which also highlights a convenient feature that replaces <strong>PATH</strong> with the
+  directory name before the script is run.</p>
+
+<p>If you like doing things by hand, you may prefer</p>
+
+<pre><code>mkdir -p ~/.smartcd/scripts/some/directory
+echo 'autostash PATH=__PATH__/temporary/path:$PATH' &gt;&gt; ~/.smartcd/scripts/some/directory/bash_enter
+</code></pre>
+
+<h2>
+<a name="user-content-how-does-it-work" class="anchor" href="#how-does-it-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>HOW DOES IT WORK?</h2>
+
+<p>Scripts for smartcd are contained in a directory structure under your home,
+  in the .smartcd directory.  As you change directory, it will look for files
+  which correspond to where you are leaving from and going to, and run them for
+  you.</p>
+
+<p>The primary way of doing this is to create a "cd" function which calls
+  <code>smartcd cd</code>. This also works with push and popd.  The simplest way to
+  create these wrappers is to call <code>smartcd setup cd</code>, <code>smartcd setup pushd</code>,
+  and <code>smartcd setup pushd</code>.  When you <code>smartcd config</code>, this will be set up
+  for you.</p>
+
+<p>If you prefer (or in addition), you can hook the prompt command.
+  This sets PROMPT_COMMAND in bash, or precmd in zsh.  This is enabled using
+  <code>smartcd setup prompt-hook</code>.  After calling smartcd, it will call any prior
+  command for those hooks.  This feature allows users with the "autocd" option
+  set in their shell to also benefit from smartcd.</p>
+
+<p>The structure of .smartcd will mirror the filesystem hierarchy you wish to
+  configure.  For example:</p>
+
+<pre><code>  Path         Action      Script
+------------------------------------------------------------
+ /foo/bar       enter     ~/.smartcd/scripts/foo/bar/bash_enter
+ /foo/bar/baz   leave     ~/.smartcd/scripts/foo/bar/baz/bash_leave
+</code></pre>
+
+<p>You can edit and read these files with the smartcd command using the
+  "edit", "append", "show", and "filename" actions.</p>
+
+<pre><code>user@host:/usr/local/bin$ smartcd filename enter
+/home/user/.smartcd/scripts/usr/local/bin/bash_enter
+
+user@host:/usr/local/bin$ smartcd show leave
+No leave script for /usr/local/bin
+
+user@host:/usr/local/bin$ smartcd show enter
+# ---8&lt;--- begin /home/user/.smartcd/scripts/usr/local/bin/bash_enter
+smartcd inform "testing"
+# ---8&lt;--- end /home/user/.smartcd/scripts/usr/local/bin/bash_enter
+
+# edit ~/.smartcd/scripts/usr/local/bin/bash_enter
+user@host:/usr/local/bin$ smartcd edit enter
+
+# truncate ~/.smartcd/scripts/usr/local/bin/bash_enter and replaces
+# its contents with what is piped
+user@host:/usr/local/bin$ echo "some-command" | smartcd edit enter
+
+# add a line to ~/.smartcd/scripts/usr/local/bin/bash_enter
+user@host:/usr/local/bin$ echo "some-command" | smartcd edit enter
+</code></pre>
+
+<p>One thing to note is that going from a directory to its child is not
+  considered "leaving", so the bash_leave will not be run until you go to
+  another directory that doesn't contain that same directory as part of
+  its path.  The scripts are run as appropriate if they exist for each
+  level going back to the common element between the paths.</p>
+
+<p>If you cd from /foo/bar/baz to /foo/quux/biff, the following actions would
+  take place:</p>
+
+<pre><code>1) bash_leave for /foo/bar/baz
+2) bash_leave for /foo/bar
+3) bash_enter for /foo/quux
+4) bash_enter for /foo/quux/biff
+</code></pre>
+
+<p>These scripts are run in the interactive shell using eval, so any variables
+  or other environment effects will take place in the user's shell directly.</p>
+
+<h2>
+<a name="user-content-what-are-some-common-recipes" class="anchor" href="#what-are-some-common-recipes" aria-hidden="true"><span class="octicon octicon-link"></span></a>WHAT ARE SOME COMMON RECIPES?</h2>
+
+<p>Here are some examples of useful setups that have been created so far</p>
+
+<h3>
+<a name="user-content-display-a-message" class="anchor" href="#display-a-message" aria-hidden="true"><span class="octicon octicon-link"></span></a>DISPLAY A MESSAGE</h3>
+
+<p>Sometimes you may want a message to be shown when you enter or leave the
+  directory, either to remind to you do something, or simply to let you know
+  what the script has done.</p>
+
+<p>You could use <code>echo</code> for this, but the issue with that is if you are doing
+  something sophisticated with pipes, you may not want this message to
+  interfere with the command being piped.  For example, you might use the
+  following command to copy some files</p>
+
+<pre><code>( cd foo; tar -cf - sub-dir ) | ( cd bar; tar -xf - )
+</code></pre>
+
+<p>but if "foo" has an enter script which echos something, this will corrupt
+  the tar file.  By using <code>smartcd inform</code>, this will suppress the output when
+  it is detected that the output is not a terminal</p>
+
+<pre><code>smartcd inform "Reminder, don't forget to commit your code!"
+</code></pre>
+
+<h3>
+<a name="user-content-prompt-color" class="anchor" href="#prompt-color" aria-hidden="true"><span class="octicon octicon-link"></span></a>PROMPT COLOR</h3>
+
+<p>If you want a visual cue that you need to be careful, it might make sense
+  to change your prompt.  Here's one that will temporarily make your prompt
+  red while leaving its actual value alone.</p>
+
+<pre><code>autostash PS1='\[\e[1;31m\]'"$PS1"'\[\e[0m\]'
+</code></pre>
+
+<p>Note the double-quotes around $PS1.  This is not superfluous, if your
+  current value has any space characters in it, it's important to use quoting
+  because otherwise it would be seen as a second argument to autostash</p>
+
+<h3>
+<a name="user-content-screen" class="anchor" href="#screen" aria-hidden="true"><span class="octicon octicon-link"></span></a>SCREEN</h3>
+
+<p>This one can be a bit tricky since screen commands from within screen tend
+  to confuse it.  And of course, creating a new screen window will execute
+  your bash_enter scripts.</p>
+
+<p>So what we'll do is set a variable in the attaching shell which is seen
+  from within screen to prevent it from doing so.</p>
+
+<pre><code>if [[ -z $MYSCREEN ]]; then
+    autostash MYSCREEN=1
+    screen -c __PATH__/.screenrc -RRD my-special-screen-session
+fi
+</code></pre>
+
+<h3>
+<a name="user-content-perlbrew" class="anchor" href="#perlbrew" aria-hidden="true"><span class="octicon octicon-link"></span></a>PERLBREW</h3>
+
+<p>perlbrew is a system for installing multiple builds and versions of the Perl
+  language, allowing you to easily switch between them.  This is very valuable
+  for development, but probably not what you want for your whole system.</p>
+
+<p>smartcd now ships with a helper designed to integrate perlbrew and smartcd
+  seamlessly together.  Simply put this line in your enter script:</p>
+
+<pre><code>smartcd helper run perlbrew init /path/to/perlbrew/install
+</code></pre>
+
+<p>When you leave the directory, perlbrew will stop being in effect and you will
+  get your previous perl back.</p>
+
+<p>perlbrew is available at <a href="http://search.cpan.org/%7Egugod/App-perlbrew/">http://search.cpan.org/~gugod/App-perlbrew/</a></p>
+
+<h3>
+<a name="user-content-locallib" class="anchor" href="#locallib" aria-hidden="true"><span class="octicon octicon-link"></span></a>local::lib</h3>
+
+<p>Perl currently ships with a module named local::lib, which is handy for
+  installing module dependencies outside of the standard install locations.</p>
+
+<p>A helper is included for interacting with this module as well.</p>
+
+<pre><code>smartcd helper run perl-locallib activate __PATH__/perl5lib
+</code></pre>
+
+<p>If you want to explicitly remove a path (as you might do with
+  -Mlocal::lib=--deactivate), this is supported</p>
+
+<pre><code>smartcd helper run perl-locallib deactivate __PATH__/perl5lib
+</code></pre>
+
+<p>but not required.  If you don't perform this set, it will still be
+  automatically cleared when you cd away restoring any prior local::lib
+  or PERL5LIB state.</p>
+
+<h3>
+<a name="user-content-rvm" class="anchor" href="#rvm" aria-hidden="true"><span class="octicon octicon-link"></span></a>RVM</h3>
+
+<p>RVM is the Ruby Version Manager, which like perlbrew, can manage multiple
+  versions of the language being installed at once.  Because it too wants to
+  wrap the <code>cd</code> command, things are a little tricker than with perlbrew.
+  Fortunately, the RVM project has added express support for smartcd as the
+  action taken during its own cd.  If both projects are installed, RVM's cd()
+  will call smartcd's, regardless of which order the two are set up.</p>
+
+<p>RVM is available at <a href="https://rvm.io/">https://rvm.io/</a></p>
+
+<h3>
+<a name="user-content-stopstart" class="anchor" href="#stopstart" aria-hidden="true"><span class="octicon octicon-link"></span></a>STOP/START</h3>
+
+<p>If you want something to start running when you enter the directory, and
+  stop running when you leave, you can certainly use smartcd for this.  Here's
+  an example of how someone is using smartcd to start and stop a Plack service</p>
+
+<pre><code>### enter script ###
+
+# temporarily define the functions stop and start
+autostash stop start pidfile="__PATH__/.pid"
+start() {
+    if [[ ! -f "$pidfile" ]] || ! kill -0 $(cat "$pidfile") &gt;/dev/null 2&gt;&amp;1; then
+        (
+            builtin cd __PATH__/html
+            plackup &amp;&gt; /dev/null &amp;
+            local pid=$!
+            echo $pid &gt; "$pidfile"
+            smartcd inform "Started Plack with pid $pid"
+        )
+    fi
+}
+stop() {
+    if [[ -f "$pidfile" ]] &amp;&amp; kill -0 $(cat "$pidfile") &gt;/dev/null 2&gt;&amp;1; then
+        kill $(cat "$pidfile")
+        rm "$pidfile"
+    fi
+}
+
+# Create an alias that calls both functions
+autostash alias restart="stop; sleep 2; start"
+
+# And automatically start-up on enter
+start
+
+
+### leave script ###
+
+# Shut down when leaving.  Yes, this function is still available here, and
+# it will be removed by autounstash after this leave is complete
+stop
+
+# There are several things to make a note of here
+#
+#   1) The sub-shell created in the start() function is not actually necessary
+#      if `start` is _only_ run from within smartcd, since the extra `cd` command
+#      will not prevent you from ending up in the right directory.  However, since
+#      this function can be called manually, it's safer to do this in a subshell.
+#
+#   2) I used `builtin cd` instead of just `cd` in start() to avoid smartcd being
+#      called during another call, possibly causing surprising results.  However,
+#      if you actually want smartcd to be run in that situation, it's ok to do so.
+#
+#   3) Use __PATH__ liberally to ensure that files and actions are taken in the
+#      correct place, even after you've changed to a subdirectory of where the script
+#      was defined.
+</code></pre>
+
+<p>and of course, if you want to be sure that this daemon is shut down properly
+  if you simply log out or close your shell, you will want the exit hook as well</p>
+
+<pre><code># in your ~/.smartcd_config, see `smartcd config`
+smartcd setup exit-hook
+</code></pre>
+
+<h2>
+<a name="user-content-what-else-can-it-do" class="anchor" href="#what-else-can-it-do" aria-hidden="true"><span class="octicon octicon-link"></span></a>WHAT ELSE CAN IT DO?</h2>
+
+<h3>
+<a name="user-content-helpers" class="anchor" href="#helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>HELPERS</h3>
+
+<p>A system for pre-written scripts is provided which implement things that you
+  may find useful.  This system allows people to distribute and share these
+  independently of the core smartcd distribution.</p>
+
+<p>Some helpers are provided with smartcd, including:</p>
+
+<ul class="task-list">
+<li>
+<p>path:</p>
+
+<p>Simple ways to temporarily add elements to your PATH</p>
+
+<pre><code>smartcd helper run path append __PATH__/bin
+smartcd helper run path prepend __PATH__/bin
+</code></pre>
+</li>
+<li>
+<p>history:</p>
+
+<p>This keeps commands run in the current and any subdirectories
+in a separate history file specified as an argument.  The also-read
+command will prepend another history file into the shell's buffer
+when setting up, so that other history can be availble "further
+back" in your history.</p>
+
+<pre><code>smartcd helper run history also-read ~/.bash_history
+smartcd helper run history localize __PATH__/.history
+</code></pre>
+
+<p>You can also have ask it to save and/or reload this history
+file on each prompt</p>
+
+<pre><code>smartcd helper run history prompt-append
+smartcd helper run history prompt-reload
+</code></pre>
+</li>
+<li>
+<p>perlbrew:</p>
+
+<p>Automagic setup and teardown of Perlbrew</p>
+
+<pre><code>smartcd helper run perlbrew init /path/to/perlbrew/install
+</code></pre>
+</li>
+</ul><h3>
+<a name="user-content-templates" class="anchor" href="#templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>TEMPLATES</h3>
+
+<p>In addition to configuring scripts individually, smartcd supports a template
+  system, which can be set up to re-use common configuration among many
+  directories.  This is controlled with the "smartcd template" action.</p>
+
+<p>To create a new template based on the current directory, run:</p>
+
+<pre><code>smartcd template create some_template_name
+</code></pre>
+
+<p>This will create a new template named "some_template_name", and prepopulate
+  it from the bash_enter and bash_leave files corresponding to the working
+  directory, replacing any instance of your working directory with <strong>PATH</strong>.</p>
+
+<p>You can then edit the contents with <code>smartcd template edit some_template_name</code>.
+  The <code>create</code> step is optional, and if you <code>edit</code> a template that is not yet
+  created you will start with an empty one.</p>
+
+<p>Now that your template is ready, you'll want to use it somewhere.  For this,
+  there are two options:</p>
+
+<ol class="task-list">
+<li>
+<p>Run it "in-place", and all changes to the template will be dynamically
+picked up by the enter and exit scripts which execute it</p>
+
+<pre><code>  echo 'smartcd template run some_template_name' | smartcd edit enter
+</code></pre>
+
+<p>The <code>run</code> action will determine if you are in an "enter" or "leave" script,
+and execute the correct portion of the template.  This does not need to be
+the only line in your script, and in fact you can even run more than one
+template from the same script.</p>
+</li>
+<li>
+<p>Copy the current contents of the template to the scripts for a directory,
+as a one-time operation.  This will not automatically propagate changes to
+the places it is in use, and can be used as a way to quickly bootstrap
+scripts but allow them to exist independently.</p>
+
+<pre><code>  smartcd template install some_template_name
+</code></pre>
+
+<p>The other template editor actions are <code>show</code>, <code>list</code>, and <code>delete</code>.</p>
+</li>
+</ol><h3>
+<a name="user-content-nestable-prompt-commands" class="anchor" href="#nestable-prompt-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>NESTABLE PROMPT COMMANDS</h3>
+
+<p>Users can define their own actions which will be taken just before each
+  prompt is displayed.  In fact, smartcd itself can use this mechanism to
+  invoke itself.</p>
+
+<p>smartcd on-prompt takes this concept to a new level.  By specifying commands
+  to be run, they will be run on each prompt, similar to the built-in feature,
+  but only while you are in the current directory and its children.  In
+  addition to this, further on-prompt commands specified in child directories
+  will run in addition to the current ones rather than replacing them.</p>
+
+<p>For example:</p>
+
+<pre><code>~/foo$ smartcd on-prompt 'echo test 1'
+test 1
+~/foo$ cd bar
+test 1
+~/foo/bar$ smartcd on-prompt 'echo test 2'
+test 1
+test 2
+~/foo/bar$ cd ..
+test 1
+~/foo$ cd
+~$
+</code></pre>
+
+<h3>
+<a name="user-content-exit-hook" class="anchor" href="#exit-hook" aria-hidden="true"><span class="octicon octicon-link"></span></a>EXIT HOOK</h3>
+
+<p>By default, your enter scripts will be run when a shell is started.  However,
+  the opposite is not the case.  If you'd like your leave scripts to run when
+  the shell exits, smartcd is able to utilize the shell's EXIT trap hook to do
+  so, or in zsh, the zshexit hook.  This is enabled by running</p>
+
+<pre><code>smartcd setup exit-hook
+</code></pre>
+
+<h3>
+<a name="user-content-backup" class="anchor" href="#backup" aria-hidden="true"><span class="octicon octicon-link"></span></a>BACKUP</h3>
+
+<p>If you would like to back up your scripts and templates, or copy them to
+  another computer, you can use the provided export/import feature.</p>
+
+<pre><code># Export your scripts
+smartcd export &gt; my_smartcd_backup
+
+# Several methods to import them
+smartcd import my_smartcd_backup
+cat my_smartcd_backup | smartcd import
+</code></pre>
+
+<p>For more complete documentation, see the documentation in lib/core/smartcd.</p>
+
+<h2>
+<a name="user-content-other-libraries" class="anchor" href="#other-libraries" aria-hidden="true"><span class="octicon octicon-link"></span></a>OTHER LIBRARIES</h2>
+
+<h3>
+<a name="user-content-varstash" class="anchor" href="#varstash" aria-hidden="true"><span class="octicon octicon-link"></span></a>VARSTASH</h3>
+
+<p>As already discussed, the included library lib/core/varstash provides several
+  functions for saving values to a temporary location so that you can edit
+  them, and then later restore the original value.</p>
+
+<p>In addition to autostash, you could manually stash and unstash using
+  functions with those names if there is some need to do so</p>
+
+<pre><code>echo 'stash FOO=bar' | smartcd edit enter
+echo 'unstash FOO' | smartcd edit leave
+</code></pre>
+
+<p>You may also trigger autostash's restore mechanism by calling</p>
+
+<pre><code>autounstash
+</code></pre>
+
+<p>by hand.  It's safe to do so multiple times and it won't harm smartcd
+  if you do this.</p>
+
+<p>If you run stash, unstash, or autostash interactively, they will instruct
+  you on how to create files for smartcd to run those commands for you.  If
+  you do not wish to see this advice, set <code>VARSTASH_QUIET=1</code>.  The library can
+  automatically follow its own advice and configure these files if you set
+  <code>VARSTASH_AUTOCONFIG=1</code>.  It can do so, but also give you an opportunity to
+  make additional edits to the relevant file, if you set <code>VARSTASH_AUTOEDIT=1</code>.</p>
+
+<p>Alias stashing was briefly mentioned, and it is supported to do in-line
+  stashing and declaration of an alias with autostash</p>
+
+<pre><code>autostash alias mycmd="do something crazy"
+</code></pre>
+
+<p>However, stashing functions looks like this:</p>
+
+<pre><code>autostash my_func
+my_func() {
+    some_new_definition
+}
+</code></pre>
+
+<p>It's useful to autostash something even before it's set, because that
+  triggers the mechanism which will unset them upon leaving.  Since functions
+  cannot be declared inline with autostash, this is how you should do it.</p>
+
+<h3>
+<a name="user-content-arrays" class="anchor" href="#arrays" aria-hidden="true"><span class="octicon octicon-link"></span></a>ARRAYS</h3>
+
+<p>Bash added array support in version 2.0, but it doesn't have a very good
+  set of supporting built-ins.  In particular, I find myself missing the Perl
+  functions push, pop, shift, unshift, reverse.</p>
+
+<p>To provide these capabilities, another library, lib/core/arrays, is
+  included.  The provided functions are:</p>
+
+<pre><code>apush    - Add an element to the end of your array
+apop     - Remove the last element from the array and print it
+ashift   - Remove the first element from the array and print it
+aunshift - Add an element to the beginning of the array
+areverse - Reverse the order of elements in the array
+afirst   - Like ashift, but doesn't remove anything.
+alast    - Like apop, but doesn't remove anything.
+anth     - Retreive the n-th element of an array.
+alen     - Print the current number of elements in the array
+acopy    - Copy an array into a new variable
+</code></pre>
+
+<p>See documentation included in lib/core/arrays for more detail.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE</h2>
+
+<p>This code is Copyright (c) 2009,2012 Dave Olszewski <a href="mailto:cxreg@pobox.com">cxreg@pobox.com</a></p>
+
+<p>You may distribute under the terms of either the GNU General Public
+License v2 or the Artistic License.</p>
+
+<h2>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>SEE ALSO</h2>
+
+<p>As with most ideas worth doing, there are other implementations of some
+  of the things provided by smartcd.  Here are a few of them, and how they
+  differ from this library.</p>
+
+<ul class="task-list">
+<li>
+<p>ondir - <a href="http://swapoff.org/ondir.html">http://swapoff.org/ondir.html</a></p>
+
+<ul class="task-list">
+<li>Written in C, and is executed by a "cd" function</li>
+<li>Requires manual and explicit variable setting and unsetting</li>
+</ul>
+</li>
+<li>
+<p>direnv - <a href="https://github.com/zimbatm/direnv/">https://github.com/zimbatm/direnv/</a></p>
+
+<ul class="task-list">
+<li>Requires ruby</li>
+<li>Works only with PROMPT_COMMAND or precmd</li>
+<li>Does not walk directory hierarchy</li>
+<li>Does not support functions or aliases</li>
+<li>Is entirely "snapshot" based</li>
+<li>Runs files directly out of local directory, similar to "legacy mode"</li>
+</ul>
+</li>
+<li>
+<p>EnvWatcher - <a href="https://github.com/MrMasterplan/EnvWatcher">https://github.com/MrMasterplan/EnvWatcher</a></p>
+
+<ul class="task-list">
+<li>Requires python</li>
+<li>Only supports bash</li>
+<li>Is triggered manually, not automatically</li>
+<li>Does not walk directory hierarchy</li>
+<li>Is entirely "snapshot" based</li>
+<li>Does not allow other actions besides environment variable switching</li>
+</ul>
+</li>
+</ul></article></div>

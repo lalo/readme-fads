@@ -1,0 +1,662 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-pux" class="anchor" href="#pux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pux</h1>
+
+<p>Pux is a high performance PHP router.</p>
+
+<p>Pux is 48.5x faster than symfony router in static route dispatching, 31x faster in regular expression dispatching. (with pux extension installed)</p>
+
+<p>(Benchmark code and details here <a href="https://github.com/c9s/router-benchmark/blob/master/code">https://github.com/c9s/router-benchmark/blob/master/code</a>)</p>
+
+<p>Pux tries not to consume computation time to build all routes dynamically (like
+Symfony/Routing, although the RouteCompiler of Symfony/Routing caches the
+compiled patterns, but there are still a lot of function call and class
+loading from your application code. however, function calls are pretty slow in PHP). </p>
+
+<p><a href="https://travis-ci.org/c9s/Pux"><img src="https://camo.githubusercontent.com/bff0839f79e746e9a6ba844f1206869ee4ef83f5/68747470733a2f2f7472617669732d63692e6f72672f6339732f5075782e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/c9s/Pux.png?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-why-its-faster" class="anchor" href="#why-its-faster" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why It's Faster</h2>
+
+<ul class="task-list">
+<li><p>Pux uses simpler data structure (indexed array) to store the patterns and flags.
+(In PHP internals, <code>zend_hash_index_find</code> is faster than <code>zend_hash_find</code>).</p></li>
+<li>
+<p>When matching routes, symfony uses a lot of function calls for each route:</p>
+
+<p><a href="https://github.com/symfony/Routing/blob/master/Matcher/UrlMatcher.php#L124">https://github.com/symfony/Routing/blob/master/Matcher/UrlMatcher.php#L124</a></p>
+
+<p>Pux fetches the pattern from an indexed-array:</p>
+
+<p><a href="https://github.com/c9s/Pux/blob/master/src/Pux/Mux.php#L189">https://github.com/c9s/Pux/blob/master/src/Pux/Mux.php#L189</a></p>
+</li>
+<li><p>Even you enabled APC or other bytecode cache extension, you are still calling
+methods and functions in the runtime. Pux reduces the route building to one
+static method call. <code>__set_state</code>.</p></li>
+<li><p>Pux separates static routes and dynamic routes automatically, Pux uses hash
+table to look up static routes without looping the whole route array.</p></li>
+<li><p>Pux\Mux is written in C extension, method calls are faster!</p></li>
+<li><p>With C extension, there is no class loading overhead.</p></li>
+<li><p>Pux compiles your routes to plain PHP array, the compiled routes can be
+loaded very fast. you don't need to call functions to register your routes before using it.</p></li>
+</ul><h2>
+<a name="user-content-why-its-here" class="anchor" href="#why-its-here" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why It's Here</h2>
+
+<p>Most of us use a lot of machines to run our applications, however, it uses too much energy and too many resources.</p>
+
+<p>By using Pux, you can also decrease your expense of servers on cloud.</p>
+
+<p>Also we believe that running softwares on slower machines should be easy as possible.</p>
+
+<p>Some people thinks routing is not the bottleneck, the truth is this project
+does not claim routing is the bottleneck.</p>
+
+<p>Actually the bottleneck is always different in different applications, if you
+have a lot of heavy db requests, then your bottleneck is your db; if you have a
+lot of complex computation, then the bottleneck should be your algorithm.</p>
+
+<p>You might start wondering since the bottleneck is not routing, why do we
+implement route dispatcher in C extension? The answer is simple, if you put a
+pure PHP routing component with some empty callbacks and use apache benchmark
+tool to see how many requests you can handle per second, you will find out the
+routing component consumes a lot of computation time and the request number
+will decrease quite a few. (and it does nothing, all it does is ... just
+routing!)</p>
+
+<p>So Pux reduces the overheads of loading PHP classes and the runtime
+method/function calls, and you can run your application faster without the overheads.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Zero dependency.</li>
+<li>Low memory footprint (only 6KB with simple routes and extension installed) .</li>
+<li>High performance of dispatching routes.</li>
+<li>PCRE pattern path support. (Sinatra-style syntax)</li>
+<li>Request method condition support.</li>
+<li>Domain condition support.</li>
+<li>HTTPS condition support.</li>
+<li>Controller auto-mounting - you mount a controller automatically without specifying paths for each action.</li>
+<li>Controller annotation support - you may override the default path from controller through the annotations.</li>
+<li>Route with optional pattern.</li>
+</ul><h2>
+<a name="user-content-pros--cons-of-grouped-pattern-matchting-strategy" class="anchor" href="#pros--cons-of-grouped-pattern-matchting-strategy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pros &amp; Cons of Grouped Pattern Matchting Strategy</h2>
+
+<p>An idea of matching routes is to combine all patterns into one pattern and
+compare the given path with <code>pcre_match</code> in one time.</p>
+
+<p>However this approach does not work if you have optional group or named
+capturing group, the <code>pcre_match</code> can not return detailed information about
+what pattern is matched if you use one of them.</p>
+
+<p>And since you compile all patterns into one, you can't compare with other same
+patterns with different conditions, for example:</p>
+
+<pre><code>/users  # GET
+/users  # POST
+/users  # with HTTP_HOST=somedomain
+</code></pre>
+
+<p>The trade off in Pux is to compare routes in sequence because the same pattern
+might be in different HTTP method or different host name.</p>
+
+<p>The best approach is to merge &amp; compile the regexp patterns into a FSM (Finite
+state machine), complex conditions can also be merged into this FSM, and let
+this FSM to dispatch routes. And this is the long-term target of Pux.</p>
+
+<h2>
+<a name="user-content-routing-path-format" class="anchor" href="#routing-path-format" aria-hidden="true"><span class="octicon octicon-link"></span></a>Routing Path Format</h2>
+
+<p>Static route:</p>
+
+<pre><code>/post
+</code></pre>
+
+<p>PCRE route:</p>
+
+<pre><code>/post/:id                  =&gt; matches /post/33
+</code></pre>
+
+<p>PCRE route with optional pattern:</p>
+
+<pre><code>/post/:id(/:title)         =&gt; matches /post/33, /post/33/post%20title
+/post/:id(\.:format)       =&gt; matches /post/33, /post/33.json .. /post/33.xml
+</code></pre>
+
+<h2>
+<a name="user-content-requirement" class="anchor" href="#requirement" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirement</h2>
+
+<ul class="task-list">
+<li>PHP 5.4.x</li>
+<li>PHP 5.5.x</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>You can install Pux with composer by defining the following requirement in your composer.json:</p>
+
+<div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="nt">"require"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">"corneltek/pux"</span><span class="p">:</span> <span class="s2">"~1.5"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-install-extension" class="anchor" href="#install-extension" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install Extension</h3>
+
+<p>To install pux extension to boost the performance:</p>
+
+<div class="highlight highlight-sh"><pre>git clone https://github.com/c9s/Pux.git
+<span class="nb">cd </span>Pux/ext
+phpize
+./configure
+make <span class="o">&amp;&amp;</span> make install
+</pre></div>
+
+<p>Or you can configure the optimization flag to gain more when running <code>configure</code> command.:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">CFLAGS</span><span class="o">=</span><span class="s2">"-O3"</span> ./configure
+</pre></div>
+
+<p>Then setup your php.ini config to load pux extension:</p>
+
+<div class="highlight highlight-ini"><pre><span class="na">extension</span><span class="o">=</span><span class="s">pux.so</span>
+</pre></div>
+
+<h2>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h2>
+
+<p>The routing usage is dead simple:</p>
+
+<div class="highlight highlight-php"><pre><span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span> <span class="c1">// use PCRE patterns you need Pux\PatternCompiler class.</span>
+<span class="k">use</span> <span class="nx">Pux\Executor</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">ProductController</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">listAction</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s1">'product list'</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">itemAction</span><span class="p">(</span><span class="nv">$id</span><span class="p">)</span> <span class="p">{</span> 
+        <span class="k">return</span> <span class="s2">"product </span><span class="si">$id</span><span class="s2">"</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">any</span><span class="p">(</span><span class="s1">'/product'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'ProductController'</span><span class="p">,</span><span class="s1">'listAction'</span><span class="p">]);</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">(</span><span class="s1">'/product/:id'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'ProductController'</span><span class="p">,</span><span class="s1">'itemAction'</span><span class="p">]</span> <span class="p">,</span> <span class="p">[</span>
+    <span class="s1">'require'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'id'</span> <span class="o">=&gt;</span> <span class="s1">'\d+'</span><span class="p">,</span> <span class="p">],</span>
+    <span class="s1">'default'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'id'</span> <span class="o">=&gt;</span> <span class="s1">'1'</span><span class="p">,</span> <span class="p">]</span>
+<span class="p">]);</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">post</span><span class="p">(</span><span class="s1">'/product/:id'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'ProductController'</span><span class="p">,</span><span class="s1">'updateAction'</span><span class="p">]</span> <span class="p">,</span> <span class="p">[</span>
+    <span class="s1">'require'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'id'</span> <span class="o">=&gt;</span> <span class="s1">'\d+'</span><span class="p">,</span> <span class="p">],</span>
+    <span class="s1">'default'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'id'</span> <span class="o">=&gt;</span> <span class="s1">'1'</span><span class="p">,</span> <span class="p">]</span>
+<span class="p">]);</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">delete</span><span class="p">(</span><span class="s1">'/product/:id'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'ProductController'</span><span class="p">,</span><span class="s1">'deleteAction'</span><span class="p">]</span> <span class="p">,</span> <span class="p">[</span>
+    <span class="s1">'require'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'id'</span> <span class="o">=&gt;</span> <span class="s1">'\d+'</span><span class="p">,</span> <span class="p">],</span>
+    <span class="s1">'default'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'id'</span> <span class="o">=&gt;</span> <span class="s1">'1'</span><span class="p">,</span> <span class="p">]</span>
+<span class="p">]);</span>
+<span class="nv">$route</span> <span class="o">=</span> <span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/product/1'</span><span class="p">);</span>
+<span class="nx">Executor</span><span class="o">::</span><span class="na">execute</span><span class="p">(</span><span class="nv">$route</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<h3>
+<a name="user-content-basic-example" class="anchor" href="#basic-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Example</h3>
+
+<div class="highlight highlight-php"><pre><span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Pux\Executor</span><span class="p">;</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Mux</span><span class="p">;</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">(</span><span class="s1">'/get'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'HelloController'</span><span class="p">,</span><span class="s1">'helloAction'</span><span class="p">]);</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">post</span><span class="p">(</span><span class="s1">'/post'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'HelloController'</span><span class="p">,</span><span class="s1">'helloAction'</span><span class="p">]);</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">put</span><span class="p">(</span><span class="s1">'/put'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'HelloController'</span><span class="p">,</span><span class="s1">'helloAction'</span><span class="p">]);</span>
+
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">mount</span><span class="p">(</span><span class="s1">'/hello'</span><span class="p">,</span> <span class="k">new</span> <span class="nx">HelloController</span><span class="p">);</span>
+
+<span class="nv">$route</span> <span class="o">=</span> <span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span> <span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">'PATH_INFO'</span><span class="p">]</span> <span class="p">);</span>
+<span class="k">echo</span> <span class="nx">Executor</span><span class="o">::</span><span class="na">execute</span><span class="p">(</span><span class="nv">$route</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-through-compiled-mux" class="anchor" href="#through-compiled-mux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Through Compiled Mux</h3>
+
+<p>Define your routing definition in <code>routes.php</code>:</p>
+
+<div class="highlight highlight-php"><pre><span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+<span class="k">use</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Mux</span><span class="p">;</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">(</span><span class="s1">'/get'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'HelloController'</span><span class="p">,</span><span class="s1">'helloAction'</span><span class="p">]);</span>
+<span class="k">return</span> <span class="nv">$mux</span><span class="p">;</span>
+</pre></div>
+
+<p>Run pux command to compile your routing definition:</p>
+
+<div class="highlight highlight-sh"><pre>curl -O https://raw.github.com/c9s/Pux/master/pux
+chmod +x pux
+pux compile -o mux.php routes.php
+</pre></div>
+
+<p>Load the mux object from your application code:</p>
+
+<div class="highlight highlight-php"><pre><span class="k">require</span> <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">require</span> <span class="s1">'mux.php'</span><span class="p">;</span>
+<span class="nv">$route</span> <span class="o">=</span> <span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span> <span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">'PATH_INFO'</span><span class="p">]</span> <span class="p">);</span>
+<span class="k">echo</span> <span class="nx">Executor</span><span class="o">::</span><span class="na">execute</span><span class="p">(</span><span class="nv">$route</span><span class="p">);</span>
+</pre></div>
+
+<blockquote>
+<p>Please note that if you need PCRE pattern support for route, you must load <code>Pux/PatternCompiler.php</code> before you use.</p>
+</blockquote>
+
+<h2>
+<a name="user-content-mux" class="anchor" href="#mux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mux</h2>
+
+<p>Mux is where you define your routes, and you can mount multiple mux to a parent one.</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$mainMux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Mux</span><span class="p">;</span>
+<span class="nv">$mainMux</span><span class="o">-&gt;</span><span class="na">expand</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+
+<span class="nv">$pageMux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Mux</span><span class="p">;</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">add</span><span class="p">(</span><span class="s1">'/page1'</span><span class="p">,</span> <span class="p">[</span> <span class="s1">'PageController'</span><span class="p">,</span> <span class="s1">'page1'</span> <span class="p">]);</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">add</span><span class="p">(</span><span class="s1">'/page2'</span><span class="p">,</span> <span class="p">[</span> <span class="s1">'PageController'</span><span class="p">,</span> <span class="s1">'page2'</span> <span class="p">]);</span>
+
+<span class="c1">// short-hand syntax</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">add</span><span class="p">(</span><span class="s1">'/page2'</span><span class="p">,</span> <span class="s1">'PageController:page2'</span>  <span class="p">);</span>
+
+<span class="nv">$mainMux</span><span class="o">-&gt;</span><span class="na">mount</span><span class="p">(</span><span class="s1">'/sub'</span><span class="p">,</span> <span class="nv">$pageMux</span><span class="p">);</span>
+
+<span class="k">foreach</span><span class="p">(</span> <span class="p">[</span><span class="s1">'/sub/page1'</span><span class="p">,</span> <span class="s1">'/sub/page2'</span><span class="p">]</span> <span class="k">as</span> <span class="nv">$p</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$r</span> <span class="o">=</span> <span class="nv">$mainMux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="nv">$p</span><span class="p">);</span>
+    <span class="nx">ok</span><span class="p">(</span><span class="nv">$r</span><span class="p">,</span> <span class="s2">"Matched route for </span><span class="si">$p</span><span class="s2">"</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The <code>expand</code> option means whether to expand/merge submux routes to the parent mux.</p>
+
+<p>When expand is enabled, it improves dispatch performance when you
+have a lot of sub mux to dispatch.</p>
+
+<h3>
+<a name="user-content-methods" class="anchor" href="#methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Methods</h3>
+
+<ul class="task-list">
+<li><code>Mux-&gt;add( {path}, {callback array or callable object}, { route options })</code></li>
+<li><code>Mux-&gt;post( {path}, {callback array or callable object}, { route options })</code></li>
+<li><code>Mux-&gt;get( {path}, {callback array or callable object}, { route options })</code></li>
+<li><code>Mux-&gt;put( {path}, {callback array or callable object}, { route options })</code></li>
+<li><code>Mux-&gt;any( {path}, {callback array or callable object}, { route options })</code></li>
+<li><code>Mux-&gt;delete( {path}, {callback array or callable object}, { route options })</code></li>
+<li><code>Mux-&gt;mount( {path}, {mux object}, { route options })</code></li>
+<li>
+<code>Mux-&gt;length()</code> returns length of routes.</li>
+<li>
+<code>Mux-&gt;export()</code> returns Mux constructor via __set_state static method in php code.</li>
+<li>
+<code>Mux-&gt;dispatch({path})</code> dispatch path and return matched route.</li>
+<li>
+<code>Mux-&gt;getRoutes()</code> returns routes array.</li>
+<li>
+<code>Mux::__set_state({object member array})</code> constructs and returns a Mux object.</li>
+</ul><h3>
+<a name="user-content-sorting-routes" class="anchor" href="#sorting-routes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sorting routes</h3>
+
+<p>You need to sort routes when not using compiled routes, it's because pux sorts
+longer path to front:</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$pageMux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Mux</span><span class="p">;</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">add</span><span class="p">(</span><span class="s1">'/'</span><span class="p">,</span> <span class="p">[</span> <span class="s1">'PageController'</span><span class="p">,</span> <span class="s1">'page1'</span> <span class="p">]);</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">add</span><span class="p">(</span><span class="s1">'/pa'</span><span class="p">,</span> <span class="p">[</span> <span class="s1">'PageController'</span><span class="p">,</span> <span class="s1">'page1'</span> <span class="p">]);</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">add</span><span class="p">(</span><span class="s1">'/page'</span><span class="p">,</span> <span class="p">[</span> <span class="s1">'PageController'</span><span class="p">,</span> <span class="s1">'page1'</span> <span class="p">]);</span>
+<span class="nv">$pageMux</span><span class="o">-&gt;</span><span class="na">sort</span><span class="p">();</span>
+</pre></div>
+
+<p>This sorts routes to:</p>
+
+<pre><code>/page
+/pa
+/
+</code></pre>
+
+<p>So pux first compares <code>/page</code>, <code>/pa</code>, than <code>/</code>.</p>
+
+<h3>
+<a name="user-content-different-string-comparison-strategies" class="anchor" href="#different-string-comparison-strategies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Different String Comparison Strategies</h3>
+
+<p>When expand is enabled, the pattern comparison strategy for 
+strings will match the full string.</p>
+
+<p>When expand is disabled, the pattern comparison strategy for 
+strings will match the prefix.</p>
+
+<h2>
+<a name="user-content-apcdispatcher" class="anchor" href="#apcdispatcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>APCDispatcher</h2>
+
+<p>Although Pux\Mux is already fast, you can still add APCDispatcher to boost the
+performance, which is to avoid re-lookup route.</p>
+
+<p>This is pretty useful when you have a lot of PCRE routes.</p>
+
+<pre><code>use Pux\Dispatcher\APCDispatcher;
+$dispatcher = new APCDispatcher($mux, array(
+    'namespace' =&gt; 'app_',
+    'expiry' =&gt; ...,
+));
+$route = $dispatcher-&gt;dispatch('/request/uri');
+var_dump($route);
+</code></pre>
+
+<h2>
+<a name="user-content-persistent-dispatcher" class="anchor" href="#persistent-dispatcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>Persistent Dispatcher</h2>
+
+<p>Rather than reload the mux object from php file everytime (or load from APC), there still a lot of overhead. </p>
+
+<p>Pux provides a persistent way to dispatch your route and keep the routes array in the persistent memory:</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$r</span> <span class="o">=</span> <span class="nx">pux_persistent_dispatch</span><span class="p">(</span><span class="s1">'hello'</span><span class="p">,</span> <span class="s1">'hello_mux.php'</span><span class="p">,</span> <span class="s1">'/hello'</span><span class="p">);</span>
+</pre></div>
+
+<blockquote>
+<p>Please note that the <code>hello_mux.php</code> must be a compiled mux PHP file.
+The <code>pux_persistent_dispatch</code> is only available in extension.</p>
+
+<p>NOTE: persistent dispatching is still in beta status.</p>
+</blockquote>
+
+<h2>
+<a name="user-content-controller" class="anchor" href="#controller" aria-hidden="true"><span class="octicon octicon-link"></span></a>Controller</h2>
+
+<p>Pux provides the ability to map your controller methods to paths automatically, done either through a simple, fast controller in the C extension or its pure PHP counterpart:</p>
+
+<div class="highlight highlight-php"><pre><span class="k">class</span> <span class="nc">ProductController</span> <span class="k">extends</span> <span class="nx">\Pux\Controller</span>
+<span class="p">{</span>
+    <span class="c1">// translate to path ""</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">indexAction</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+
+    <span class="c1">// translate to path "/add"</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">addAction</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+
+    <span class="c1">// translate to path "/del"</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">delAction</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="nv">$submux</span> <span class="o">=</span> <span class="nv">$controller</span><span class="o">-&gt;</span><span class="na">expand</span><span class="p">();</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">mount</span><span class="p">(</span> <span class="s1">'/product'</span> <span class="p">,</span> <span class="nv">$submux</span> <span class="p">);</span>
+
+<span class="c1">// or even simpler</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">mount</span><span class="p">(</span> <span class="s1">'/product'</span> <span class="p">,</span> <span class="nv">$controller</span><span class="p">);</span>
+
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/product'</span><span class="p">);</span>       <span class="c1">// ProductController-&gt;indexAction</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/product/add'</span><span class="p">);</span>   <span class="c1">// ProductController-&gt;addAction</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/product/del'</span><span class="p">);</span>   <span class="c1">// ProductController-&gt;delAction</span>
+</pre></div>
+
+<p>You can also use <code>@Route</code> and <code>@Method</code> annotations to override the default <code>\Pux\Controller::expand()</code> functionality:</p>
+
+<div class="highlight highlight-php"><pre><span class="k">class</span> <span class="nc">ProductController</span> <span class="k">extends</span> <span class="nx">\Pux\Controller</span>
+<span class="p">{</span>
+    <span class="sd">/**</span>
+<span class="sd">     * @Route("/all")</span>
+<span class="sd">     * @Method("GET")</span>
+<span class="sd">     */</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">indexAction</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// now available via GET /all only</span>
+    <span class="p">}</span>
+
+    <span class="sd">/**</span>
+<span class="sd">     * @Route("/create")</span>
+<span class="sd">     * @Method("POST")</span>
+<span class="sd">     */</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">addAction</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// now available via POST /create only</span>
+    <span class="p">}</span>
+
+    <span class="sd">/**</span>
+<span class="sd">     * @Route("/destroy")</span>
+<span class="sd">     * @Method("DELETE")</span>
+<span class="sd">     */</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">delAction</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// now available via DELETE /destroy only</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This is especially helpful when you want to provide more specific or semantic
+(e.g., HTTP method-specific) actions.  Note that by default, expanded
+controller routes will be available via any HTTP method - specifying <code>@Method</code>
+will restrict it to the provided method.</p>
+
+<ul class="task-list">
+<li>
+<code>Pux\Controller::expand()</code> returns an instance of <code>\Pux\Mux</code> that contains
+the controller's methods mapped to URIs, intended to be mounted as a sub mux
+in another instance of <code>\Pux\Mux</code>.</li>
+</ul><h2>
+<a name="user-content-route-executor" class="anchor" href="#route-executor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Route Executor</h2>
+
+<p><code>Pux\Executor</code> executes your route by creating the controller object, and
+calling the controller action method.</p>
+
+<p>Route executor take the returned route as its parameter, you simply pass the
+route to executor the controller and get the execution result.</p>
+
+<p>Here the simplest example of the usage:</p>
+
+<div class="highlight highlight-php"><pre><span class="k">use</span> <span class="nx">Pux\Executor</span><span class="p">;</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">any</span><span class="p">(</span><span class="s1">'/product/:id'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'ProductController'</span><span class="p">,</span><span class="s1">'itemAction'</span><span class="p">]);</span>
+<span class="nv">$route</span> <span class="o">=</span> <span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/product/1'</span><span class="p">);</span>
+<span class="nv">$result</span> <span class="o">=</span> <span class="nx">Executor</span><span class="o">::</span><span class="na">execute</span><span class="p">(</span><span class="nv">$route</span><span class="p">);</span>
+</pre></div>
+
+<p>You can also define the arguments to the controller's constructor method:</p>
+
+<div class="highlight highlight-php"><pre>
+<span class="k">class</span> <span class="nc">ProductController</span> <span class="k">extends</span> <span class="nx">Pux\Controller</span> <span class="p">{</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">__construct</span><span class="p">(</span><span class="nv">$param1</span><span class="p">,</span> <span class="nv">$param2</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// do something you want</span>
+    <span class="p">}</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">itemAction</span><span class="p">(</span><span class="nv">$id</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s2">"Product </span><span class="si">$id</span><span class="s2">"</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">use</span> <span class="nx">Pux\Executor</span><span class="p">;</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">any</span><span class="p">(</span><span class="s1">'/product/:id'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'ProductController'</span><span class="p">,</span><span class="s1">'itemAction'</span><span class="p">],</span> <span class="p">[</span> 
+    <span class="s1">'constructor_args'</span> <span class="o">=&gt;</span> <span class="p">[</span> <span class="s1">'param1'</span><span class="p">,</span> <span class="s1">'param2'</span> <span class="p">],</span>
+<span class="p">]);</span>
+<span class="nv">$route</span> <span class="o">=</span> <span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/product/1'</span><span class="p">);</span>
+<span class="nv">$result</span> <span class="o">=</span> <span class="nx">Executor</span><span class="o">::</span><span class="na">execute</span><span class="p">(</span><span class="nv">$route</span><span class="p">);</span> <span class="c1">// returns "Product 1"</span>
+</pre></div>
+
+<h2>
+<a name="user-content-muxcompiler" class="anchor" href="#muxcompiler" aria-hidden="true"><span class="octicon octicon-link"></span></a>MuxCompiler</h2>
+
+<p>In your route definition file <code>hello_routes.php</code>, you simply return the Mux object at the end of file:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="c1">// load your composer autoload if it's needed</span>
+<span class="c1">// require '../vendor/autoload.php';</span>
+<span class="k">use</span> <span class="nx">Pux\Mux</span><span class="p">;</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Mux</span><span class="p">;</span>
+<span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">(</span><span class="s1">'/hello'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'HelloController'</span><span class="p">,</span><span class="s1">'helloAction'</span><span class="p">]);</span>
+<span class="k">return</span> <span class="nv">$mux</span><span class="p">;</span>
+</pre></div>
+
+<p>Pux provides a command-line tool for you to compile your route definitions.</p>
+
+<pre><code>pux compile -o hello_mux.php hello_routes.php
+</code></pre>
+
+<p>In your application, you may load the compiled mux (router) through only one line:</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$mux</span> <span class="o">=</span> <span class="k">require</span> <span class="s2">"hello_mux.php"</span><span class="p">;</span>
+<span class="nv">$route</span> <span class="o">=</span> <span class="nv">$mux</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">(</span><span class="s1">'/hello'</span><span class="p">);</span>
+</pre></div>
+
+<p>This can be very very fast if you have pux extension installed.</p>
+
+<h2>
+<a name="user-content-dispatching-strategy" class="anchor" href="#dispatching-strategy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dispatching Strategy</h2>
+
+<p>There are two route dispatching strategies in Pux while Symfony/Routing only
+provides PCRE pattern matching:</p>
+
+<ol class="task-list">
+<li>Plain string comparison.</li>
+<li>PCRE pattern comparison.</li>
+</ol><p>You've already knew that PCRE pattern matching is slower than plain string comparison, although PHP PCRE caches the compiled patterns.</p>
+
+<p>The plain string comparison is designed for static routing paths, it
+improves the performance while you have a lot of simple routes.</p>
+
+<p>The PCRE pattern comparison is used when you have some dynamic routing paths,
+for example, you can put some place holders in your routing path, and pass
+these path arguments to your controller later.</p>
+
+<p>Pux sorts and compiles your routes to single cache file, it also uses longest
+matching so it sorts patterns by pattern length in descending order before compiling the
+routes to cache.</p>
+
+<p>Pux uses indexed array as the data structure for storing route information so it's faster.</p>
+
+<h2>
+<a name="user-content-benchmarks" class="anchor" href="#benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Benchmarks</h2>
+
+<p>Testing with route dispatch only. (no controller)</p>
+
+<p>Hardware:</p>
+
+<ul class="task-list">
+<li>iMac Mid 2011</li>
+<li>Processor  2.5 GHz Intel Core i5</li>
+<li>Memory  12 GB 1333 MHz DDR3</li>
+<li>Software  OS X 10.9.1 (13B42)</li>
+</ul><p>Environment:</p>
+
+<ul class="task-list">
+<li>PHP 5.5.6 + APC</li>
+</ul><h3>
+<a name="user-content-dispatch-speed" class="anchor" href="#dispatch-speed" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dispatch Speed</h3>
+
+<p>With one static route:</p>
+
+<pre><code>n=10000
+Running pux extension (dispatch) - . 97487.768426386/s
+Running symfony/routing (dispatch) - . 2456.3512428418/s
+
+                                Rate   Mem pux extension (dispatch) symfony/routing (dispatch)
+  pux extension (dispatch)  97.49K/s    0B                       --                        -2%
+symfony/routing (dispatch)   2.46K/s  524K                    3968%                         --
+
+
+================================== Bar Chart ==================================
+
+    pux extension (dispatch)  97.49K/s | ████████████████████████████████████████████████████████████  |
+  symfony/routing (dispatch)   2.46K/s | █                                                             |
+
+
+============================== System Information ==============================
+
+PHP Version: 5.5.6
+CPU Brand String: Intel(R) Core(TM) i5-3427U CPU @ 1.80GHz
+
+With XDebug Extension.
+</code></pre>
+
+<p>With one pcre route:</p>
+
+<pre><code>n=5000
+Running pux extension (dispatch) - . 68264.888935184/s
+Running symfony/routing (dispatch) - . 2245.5539220463/s
+
+                                Rate   Mem pux extension (dispatch) symfony/routing (dispatch)
+  pux extension (dispatch)  68.26K/s    3M                       --                        -3%
+symfony/routing (dispatch)   2.25K/s  786K                    3040%                         --
+
+
+================================== Bar Chart ==================================
+
+    pux extension (dispatch)  68.26K/s | ████████████████████████████████████████████████████████████  |
+  symfony/routing (dispatch)   2.25K/s | █                                                             |
+
+
+============================== System Information ==============================
+
+PHP Version: 5.5.6
+CPU Brand String: Intel(R) Core(TM) i5-3427U CPU @ 1.80GHz
+</code></pre>
+
+<p>Compare to other PHP routers (test code: <a href="https://github.com/c9s/router-benchmark/blob/master/code/dispatch.php">https://github.com/c9s/router-benchmark/blob/master/code/dispatch.php</a> ):</p>
+
+<pre>
+n=10000
+Runing php array - . 138796.45654569/s
+Runing pux - . 124982.98519026/s
+Runing klein - . 1801.5070399717/s
+Runing ham - . 13566.734991391/s
+Runing aura - . 39657.986477172/s
+Runing symfony/routing - . 1934.2415677861/s
+
+                     Rate   Mem php array pux aura ham symfony/routing klein
+      php array  138.8K/s    0B        ---90% -28% -9%             -1%   -1%
+            pux 124.98K/s    0B      111%  -- -31%-10%             -1%   -1%
+           aura  39.66K/s    0B      349%315%   ---34%             -4%   -4%
+            ham  13.57K/s    0B     1023%921% 292%  --            -14%  -13%
+symfony/routing   1.93K/s  786K     7175%6461%2050%701%              --  -93%
+          klein    1.8K/s  262K     7704%6937%2201%753%            107%    --
+
+
+================================== Bar Chart ==================================
+
+        php array  138.8K/s | ████████████████████████████████████████████████████████████  |
+              pux 124.98K/s | ██████████████████████████████████████████████████████        |
+             aura  39.66K/s | █████████████████                                             |
+              ham  13.57K/s | █████                                                         |
+  symfony/routing   1.93K/s |                                                               |
+            klein    1.8K/s |                                                               |
+
+
+============================== System Information ==============================
+
+PHP Version: 5.5.6
+CPU Brand String: Intel(R) Core(TM) i5-3427U CPU @ 1.80GHz
+
+With XDebug Extension.
+</pre>
+
+<h3>
+<a name="user-content-through-apache" class="anchor" href="#through-apache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Through Apache</h3>
+
+<p>Please see benchmark details here: <a href="https://github.com/c9s/router-benchmark">https://github.com/c9s/router-benchmark</a></p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Hacking Pux C extension:</p>
+
+<ol class="task-list">
+<li><p>Discuss your main idea on GitHub issue page.</p></li>
+<li><p>Fork this project and open a branch for your hack.</p></li>
+<li>
+<p>Development Cycle:</p>
+
+<pre><code>cd ext
+./compile
+... hack hack hack ...
+
+# compile and run phpunit test
+./compile &amp;&amp; ./test -- --debug tests/Pux/MuxTest.php
+
+# use lldb to debug extension code
+./compile &amp;&amp; ./test -l -- tests/Pux/MuxTest.php
+
+# use gdb to debug extension code
+./compile &amp;&amp; ./test -g -- tests/Pux/MuxTest.php
+</code></pre>
+</li>
+<li><p>Commit!</p></li>
+<li><p>Send pull request and describe what you've done and what is changed.</p></li>
+</ol></article></div>

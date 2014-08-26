@@ -1,0 +1,957 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-json4s-" class="anchor" href="#json4s-" aria-hidden="true"><span class="octicon octicon-link"></span></a>JSON4S <a href="http://jenkins.backchat.io/job/json4s/"><img src="https://camo.githubusercontent.com/dca24c86a395b7ce2fbd9a0de83ec8c29cf216c9/687474703a2f2f6a656e6b696e732e6261636b636861742e696f2f6a6f622f6a736f6e34732f62616467652f69636f6e" alt="Build Status" data-canonical-src="http://jenkins.backchat.io/job/json4s/badge/icon" style="max-width:100%;"></a>
+</h1>
+
+<p>At this moment there are at least 6 json libraries for scala, not counting the java json libraries.
+All these libraries have a very similar AST. This project aims to provide a single AST to be used by other scala
+json libraries.</p>
+
+<p>At this moment the approach taken to working with the AST has been taken from lift-json and the native package
+is in fact lift-json but outside of the lift project.</p>
+
+<h2>
+<a name="user-content-lift-json" class="anchor" href="#lift-json" aria-hidden="true"><span class="octicon octicon-link"></span></a>Lift JSON</h2>
+
+<p>This project also attempts to set lift-json free from the release schedule imposed by the lift framework.
+The Lift framework carries many dependencies and as such it's typically a blocker for many other scala projects when
+a new version of scala is released.</p>
+
+<p>So the native package in this library is in fact verbatim lift-json in a different package name, this means that
+your import statements will change if you use this library.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">org.json4s._</span>
+<span class="k">import</span> <span class="nn">org.json4s.native.JsonMethods._</span>
+</pre></div>
+
+<p>After that everything works exactly the same as it would with lift-json</p>
+
+<h2>
+<a name="user-content-jackson" class="anchor" href="#jackson" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jackson</h2>
+
+<p>In addition to the native parser there is also an implementation that uses jackson for parsing to the AST.
+The jackson module includes most of the jackson-module-scala functionality and the ability to use it with the
+lift-json AST.</p>
+
+<p>To use jackson instead of the native parser:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">org.json4s._</span>
+<span class="k">import</span> <span class="nn">org.json4s.jackson.JsonMethods._</span>
+</pre></div>
+
+<p>Be aware that the default behavior of the jackson integration is to close the stream when it's done.
+If you want to change that:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.fasterxml.jackson.databind.SerializationFeature</span>
+<span class="n">org</span><span class="o">.</span><span class="n">json4s</span><span class="o">.</span><span class="n">jackson</span><span class="o">.</span><span class="nc">JsonMethods</span><span class="o">.</span><span class="n">configure</span><span class="o">(</span><span class="nc">SerializationFeature</span><span class="o">.</span><span class="nc">CLOSE_CLOSEABLE</span><span class="o">,</span> <span class="kc">false</span><span class="o">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-guide" class="anchor" href="#guide" aria-hidden="true"><span class="octicon octicon-link"></span></a>Guide</h2>
+
+<p>Parsing and formatting utilities for JSON.</p>
+
+<p>A central concept in lift-json library is Json AST which models the structure of
+a JSON document as a syntax tree.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">sealed</span> <span class="k">abstract</span> <span class="k">class</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">object</span> <span class="nc">JNothing</span> <span class="k">extends</span> <span class="nc">JValue</span> <span class="c1">// 'zero' for JValue</span>
+<span class="k">case</span> <span class="k">object</span> <span class="nc">JNull</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JString</span><span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JDouble</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">Double</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JDecimal</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">BigDecimal</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JInt</span><span class="o">(</span><span class="n">num</span><span class="k">:</span> <span class="kt">BigInt</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JBool</span><span class="o">(</span><span class="n">value</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JObject</span><span class="o">(</span><span class="n">obj</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">JField</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">JValue</span>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">JArray</span><span class="o">(</span><span class="n">arr</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">JValue</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">JValue</span>
+
+<span class="k">type</span> <span class="kt">JField</span> <span class="o">=</span> <span class="o">(</span><span class="nc">String</span><span class="o">,</span> <span class="nc">JValue</span><span class="o">)</span>
+</pre></div>
+
+<p>All features are implemented in terms of above AST. Functions are used to transform
+the AST itself, or to transform the AST between different formats. Common transformations
+are summarized in a following picture.</p>
+
+<p><a href="https://camo.githubusercontent.com/4d66bbfc5707fd46fa639820b3b425eb8a71aece/68747470733a2f2f7261772e6769746875622e636f6d2f6a736f6e34732f6a736f6e34732f6d61737465722f636f72652f6a736f6e2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/4d66bbfc5707fd46fa639820b3b425eb8a71aece/68747470733a2f2f7261772e6769746875622e636f6d2f6a736f6e34732f6a736f6e34732f6d61737465722f636f72652f6a736f6e2e706e67" alt="Json AST" data-canonical-src="https://raw.github.com/json4s/json4s/master/core/json.png" style="max-width:100%;"></a></p>
+
+<p>Summary of the features:</p>
+
+<ul class="task-list">
+<li>Fast JSON parser</li>
+<li>LINQ style queries</li>
+<li>Case classes can be used to extract values from parsed JSON</li>
+<li>Diff &amp; merge</li>
+<li>DSL to produce valid JSON</li>
+<li>XPath like expressions and HOFs to manipulate JSON</li>
+<li>Pretty and compact printing</li>
+<li>XML conversions</li>
+<li>Serialization</li>
+<li>Low level pull parser API</li>
+</ul><h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>You can add the json4s as a dependency in following ways.
+Note, replace XXX with correct Json4s version.</p>
+
+<h3>
+<a name="user-content-sbt-users" class="anchor" href="#sbt-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>SBT users</h3>
+
+<p>For the native support add the following dependency to your project description:</p>
+
+<pre><code>val json4sNative = "org.json4s" %% "json4s-native" % "3.2.10"
+</code></pre>
+
+<p>For the Jackson support add the following dependency to your project description:</p>
+
+<pre><code>val json4sJackson = "org.json4s" %% "json4s-jackson" % "3.2.10"
+</code></pre>
+
+<h3>
+<a name="user-content-maven-users" class="anchor" href="#maven-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maven users</h3>
+
+<p>For the native support add the following dependency to your pom:</p>
+
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;org.json4s&lt;/groupId&gt;
+  &lt;artifactId&gt;json4s-native_${scala.version}&lt;/artifactId&gt;
+  &lt;version&gt;3.2.10&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<p>For the jackson support add the following dependency to your pom:</p>
+
+<pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;org.json4s&lt;/groupId&gt;
+  &lt;artifactId&gt;json4s-jackson_${scala.version}&lt;/artifactId&gt;
+  &lt;version&gt;3.2.10&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<h3>
+<a name="user-content-others" class="anchor" href="#others" aria-hidden="true"><span class="octicon octicon-link"></span></a>Others</h3>
+
+<p>Download following jars:</p>
+
+<ul class="task-list">
+<li><a href="http://repo1.maven.org/maven2/org/json4s/json4s-core_2.9.2/3.2.10/json4s-core_2.9.3-3.2.10.jar">http://repo1.maven.org/maven2/org/json4s/json4s-core_2.9.2/3.2.10/json4s-core_2.9.3-3.2.10.jar</a></li>
+<li><a href="http://repo1.maven.org/maven2/org/json4s/json4s-native_2.9.2/3.2.10/json4s-native_2.9.3-3.2.10.jar">http://repo1.maven.org/maven2/org/json4s/json4s-native_2.9.2/3.2.10/json4s-native_2.9.3-3.2.10.jar</a></li>
+<li><a href="http://mirrors.ibiblio.org/pub/mirrors/maven2/com/thoughtworks/paranamer/paranamer/2.5.6/paranamer-2.5.6.jar">http://mirrors.ibiblio.org/pub/mirrors/maven2/com/thoughtworks/paranamer/paranamer/2.5.6/paranamer-2.5.6.jar</a></li>
+<li>scalap (Only for Scala-2.9 compatible versions)</li>
+</ul><h2>
+<a name="user-content-extras" class="anchor" href="#extras" aria-hidden="true"><span class="octicon octicon-link"></span></a>Extras</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/json4s/json4s/tree/master/ext">ext</a></li>
+</ul><p>Support for Enum, Joda-Time, ...</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/json4s/json4s/tree/master/scalaz">scalaz</a></li>
+</ul><p>Applicative style parsing with Scalaz</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/json4s/json4s/tree/master/native-lift">native-lift</a></li>
+</ul><p>Support for Box</p>
+
+<h1>
+<a name="user-content-migration-from-older-versions" class="anchor" href="#migration-from-older-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Migration from older versions</h1>
+
+<h2>
+<a name="user-content-330--" class="anchor" href="#330--" aria-hidden="true"><span class="octicon octicon-link"></span></a>3.3.0 -&gt;</h2>
+
+<p>The behavior of <code>.toOption</code> on JValue has changed. Now both <code>JNothing</code> and <code>JNull</code> return None.
+For the old behavior you can use <code>toSome</code> which will only turn a <code>JNothing</code> into a None.</p>
+
+<h2>
+<a name="user-content-300--" class="anchor" href="#300--" aria-hidden="true"><span class="octicon octicon-link"></span></a>3.0.0 -&gt;</h2>
+
+<p>JField is no longer a JValue. This means more type safety since it is no longer possible
+to create invalid JSON where JFields are added directly into JArrays for instance. Most
+noticeable consequence of this change is that map, transform, find and filter come in
+two versions:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">map</span><span class="o">(</span><span class="n">f</span><span class="k">:</span> <span class="kt">JValue</span> <span class="o">=&gt;</span> <span class="nc">JValue</span><span class="o">)</span><span class="k">:</span> <span class="kt">JValue</span>
+<span class="k">def</span> <span class="n">mapField</span><span class="o">(</span><span class="n">f</span><span class="k">:</span> <span class="kt">JField</span> <span class="o">=&gt;</span> <span class="nc">JField</span><span class="o">)</span><span class="k">:</span> <span class="kt">JValue</span>
+<span class="k">def</span> <span class="n">transform</span><span class="o">(</span><span class="n">f</span><span class="k">:</span> <span class="kt">PartialFunction</span><span class="o">[</span><span class="kt">JValue</span>, <span class="kt">JValue</span><span class="o">])</span><span class="k">:</span> <span class="kt">JValue</span>
+<span class="k">def</span> <span class="n">transformField</span><span class="o">(</span><span class="n">f</span><span class="k">:</span> <span class="kt">PartialFunction</span><span class="o">[</span><span class="kt">JField</span>, <span class="kt">JField</span><span class="o">])</span><span class="k">:</span> <span class="kt">JValue</span>
+<span class="k">def</span> <span class="n">find</span><span class="o">(</span><span class="n">p</span><span class="k">:</span> <span class="kt">JValue</span> <span class="o">=&gt;</span> <span class="nc">Boolean</span><span class="o">)</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">JValue</span><span class="o">]</span>
+<span class="k">def</span> <span class="n">findField</span><span class="o">(</span><span class="n">p</span><span class="k">:</span> <span class="kt">JField</span> <span class="o">=&gt;</span> <span class="nc">Boolean</span><span class="o">)</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">JField</span><span class="o">]</span>
+<span class="c1">//...</span>
+</pre></div>
+
+<p>Use *Field functions to traverse fields in the JSON, and use the functions without 'Field'
+in the name to traverse values in the JSON.</p>
+
+<h2>
+<a name="user-content-22--" class="anchor" href="#22--" aria-hidden="true"><span class="octicon octicon-link"></span></a>2.2 -&gt;</h2>
+
+<p>Path expressions were changed after 2.2 version. Previous versions returned JField which
+unnecessarily complicated the use of the expressions. If you have used path expressions
+with pattern matching like:</p>
+
+<pre><code>val JField("bar", JInt(x)) = json \ "foo" \ "bar"
+</code></pre>
+
+<p>It is now required to change that to:</p>
+
+<pre><code>val JInt(x) = json \ "foo" \ "bar"
+</code></pre>
+
+<h1>
+<a name="user-content-parsing-json" class="anchor" href="#parsing-json" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parsing JSON</h1>
+
+<p>Any valid json can be parsed into internal AST format.
+For native support:</p>
+
+<pre><code>scala&gt; import org.json4s._
+scala&gt; import org.json4s.native.JsonMethods._
+scala&gt; parse(""" { "numbers" : [1, 2, 3, 4] } """)
+res0: org.json4s.JsonAST.JValue =
+      JObject(List((numbers,JArray(List(JInt(1), JInt(2), JInt(3), JInt(4))))))
+scala&gt; parse("""{"name":"Toy","price":35.35}""", useBigDecimalForDouble = true)
+res1: org.json4s.package.JValue = 
+      JObject(List((name,JString(Toy)), (price,JDecimal(35.35))))
+</code></pre>
+
+<p>For jackson support:</p>
+
+<pre><code>scala&gt; import org.json4s._
+scala&gt; import org.json4s.jackson.JsonMethods._
+scala&gt; parse(""" { "numbers" : [1, 2, 3, 4] } """)
+res0: org.json4s.JsonAST.JValue =
+      JObject(List((numbers,JArray(List(JInt(1), JInt(2), JInt(3), JInt(4))))))
+scala&gt; parse("""{"name":"Toy","price":35.35}""", useBigDecimalForDouble = true)
+res1: org.json4s.package.JValue = 
+      JObject(List((name,JString(Toy)), (price,JDecimal(35.35))))
+</code></pre>
+
+<h1>
+<a name="user-content-producing-json" class="anchor" href="#producing-json" aria-hidden="true"><span class="octicon octicon-link"></span></a>Producing JSON</h1>
+
+<p>You can generate json in 2 modes either in <code>DoubleMode</code> or in <code>BigDecimalMode</code>; the former will map all decimal values
+into a JDouble the latter into a JDecimal.</p>
+
+<p>For the double mode dsl use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">org.json4s.JsonDSL._</span>
+<span class="c1">// or</span>
+<span class="k">import</span> <span class="nn">org.json4s.JsonDSL.WithDouble._</span>
+</pre></div>
+
+<p>For the big decimal mode dsl use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">org.json4s.JsonDSL.WithBigDecimal._</span>
+</pre></div>
+
+<h2>
+<a name="user-content-dsl-rules" class="anchor" href="#dsl-rules" aria-hidden="true"><span class="octicon octicon-link"></span></a>DSL rules</h2>
+
+<ul class="task-list">
+<li>Primitive types map to JSON primitives.</li>
+<li>
+<p>Any seq produces JSON array.</p>
+
+<p>scala&gt; val json = List(1, 2, 3)</p>
+
+<p>scala&gt; compact(render(json))</p>
+
+<p>res0: String = [1,2,3]</p>
+</li>
+<li>
+<p>Tuple2[String, A] produces field.</p>
+
+<p>scala&gt; val json = ("name" -&gt; "joe")</p>
+
+<p>scala&gt; compact(render(json))</p>
+
+<p>res1: String = {"name":"joe"}</p>
+</li>
+<li>
+<p>~ operator produces object by combining fields.</p>
+
+<p>scala&gt; val json = ("name" -&gt; "joe") ~ ("age" -&gt; 35)</p>
+
+<p>scala&gt; compact(render(json))</p>
+
+<p>res2: String = {"name":"joe","age":35}</p>
+</li>
+<li>
+<p>Any value can be optional. Field and value is completely removed when it doesn't have a value.</p>
+
+<p>scala&gt; val json = ("name" -&gt; "joe") ~ ("age" -&gt; Some(35))</p>
+
+<p>scala&gt; compact(render(json))</p>
+
+<p>res3: String = {"name":"joe","age":35}</p>
+
+<p>scala&gt; val json = ("name" -&gt; "joe") ~ ("age" -&gt; (None: Option[Int]))</p>
+
+<p>scala&gt; compact(render(json))</p>
+
+<p>res4: String = {"name":"joe"}</p>
+</li>
+<li><p>Extending the dsl
+To extend the dsl with your own classes you must have an implicit conversion in scope of signature:</p></li>
+</ul><div class="highlight highlight-scala"><pre><span class="k">type</span> <span class="kt">DslConversion</span> <span class="o">=</span> <span class="n">T</span> <span class="k">=&gt;</span> <span class="nc">JValue</span>
+</pre></div>
+
+<h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">JsonExample</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+  <span class="k">import</span> <span class="nn">org.json4s._</span>
+  <span class="k">import</span> <span class="nn">org.json4s.JsonDSL._</span>
+  <span class="k">import</span> <span class="nn">org.json4s.jackson.JsonMethods._</span>
+
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">Winner</span><span class="o">(</span><span class="n">id</span><span class="k">:</span> <span class="kt">Long</span><span class="o">,</span> <span class="n">numbers</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">Lotto</span><span class="o">(</span><span class="n">id</span><span class="k">:</span> <span class="kt">Long</span><span class="o">,</span> <span class="n">winningNumbers</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Int</span><span class="o">],</span> <span class="n">winners</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Winner</span><span class="o">],</span> <span class="n">drawDate</span><span class="k">:</span> <span class="kt">Option</span><span class="o">[</span><span class="kt">java.util.Date</span><span class="o">])</span>
+
+  <span class="k">val</span> <span class="n">winners</span> <span class="k">=</span> <span class="nc">List</span><span class="o">(</span><span class="nc">Winner</span><span class="o">(</span><span class="mi">23</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="mi">45</span><span class="o">,</span> <span class="mi">34</span><span class="o">,</span> <span class="mi">23</span><span class="o">,</span> <span class="mi">3</span><span class="o">,</span> <span class="mi">5</span><span class="o">)),</span> <span class="nc">Winner</span><span class="o">(</span><span class="mi">54</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="mi">52</span><span class="o">,</span> <span class="mi">3</span><span class="o">,</span> <span class="mi">12</span><span class="o">,</span> <span class="mi">11</span><span class="o">,</span> <span class="mi">18</span><span class="o">,</span> <span class="mi">22</span><span class="o">)))</span>
+  <span class="k">val</span> <span class="n">lotto</span> <span class="k">=</span> <span class="nc">Lotto</span><span class="o">(</span><span class="mi">5</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="mi">45</span><span class="o">,</span> <span class="mi">34</span><span class="o">,</span> <span class="mi">23</span><span class="o">,</span> <span class="mi">7</span><span class="o">,</span> <span class="mi">5</span><span class="o">,</span> <span class="mi">3</span><span class="o">),</span> <span class="n">winners</span><span class="o">,</span> <span class="nc">None</span><span class="o">)</span>
+
+  <span class="k">val</span> <span class="n">json</span> <span class="k">=</span>
+    <span class="o">(</span><span class="s">"lotto"</span> <span class="o">-&gt;</span>
+      <span class="o">(</span><span class="s">"lotto-id"</span> <span class="o">-&gt;</span> <span class="n">lotto</span><span class="o">.</span><span class="n">id</span><span class="o">)</span> <span class="o">~</span>
+      <span class="o">(</span><span class="s">"winning-numbers"</span> <span class="o">-&gt;</span> <span class="n">lotto</span><span class="o">.</span><span class="n">winningNumbers</span><span class="o">)</span> <span class="o">~</span>
+      <span class="o">(</span><span class="s">"draw-date"</span> <span class="o">-&gt;</span> <span class="n">lotto</span><span class="o">.</span><span class="n">drawDate</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">toString</span><span class="o">))</span> <span class="o">~</span>
+      <span class="o">(</span><span class="s">"winners"</span> <span class="o">-&gt;</span>
+        <span class="n">lotto</span><span class="o">.</span><span class="n">winners</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">w</span> <span class="k">=&gt;</span>
+          <span class="o">((</span><span class="s">"winner-id"</span> <span class="o">-&gt;</span> <span class="n">w</span><span class="o">.</span><span class="n">id</span><span class="o">)</span> <span class="o">~</span>
+           <span class="o">(</span><span class="s">"numbers"</span> <span class="o">-&gt;</span> <span class="n">w</span><span class="o">.</span><span class="n">numbers</span><span class="o">))}))</span>
+
+  <span class="n">println</span><span class="o">(</span><span class="n">compact</span><span class="o">(</span><span class="n">render</span><span class="o">(</span><span class="n">json</span><span class="o">)))</span>
+<span class="o">}</span>
+</pre></div>
+
+<pre><code>scala&gt; JsonExample
+{"lotto":{"lotto-id":5,"winning-numbers":[2,45,34,23,7,5,3],"winners":
+[{"winner-id":23,"numbers":[2,45,34,23,3,5]},{"winner-id":54,"numbers":[52,3,12,11,18,22]}]}}
+</code></pre>
+
+<p>Example produces following pretty printed JSON. Notice that draw-date field is not rendered since its value is None:</p>
+
+<pre><code>scala&gt; pretty(render(JsonExample.json))
+
+{
+  "lotto":{
+    "lotto-id":5,
+    "winning-numbers":[2,45,34,23,7,5,3],
+    "winners":[{
+      "winner-id":23,
+      "numbers":[2,45,34,23,3,5]
+    },{
+      "winner-id":54,
+      "numbers":[52,3,12,11,18,22]
+    }]
+  }
+}
+</code></pre>
+
+<h2>
+<a name="user-content-merging--diffing" class="anchor" href="#merging--diffing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Merging &amp; Diffing</h2>
+
+<p>Two JSONs can be merged and diffed with each other.
+Please see more examples in <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/MergeExamples.scala">MergeExamples.scala</a> and <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/DiffExamples.scala">DiffExamples.scala</a>.</p>
+
+<pre><code>scala&gt; import org.json4s._
+
+scala&gt; import org.json4s.jackson.JsonMethods._
+
+scala&gt; val lotto1 = parse("""{
+         "lotto":{
+           "lotto-id":5,
+           "winning-numbers":[2,45,34,23,7,5,3]
+           "winners":[{
+             "winner-id":23,
+             "numbers":[2,45,34,23,3,5]
+           }]
+         }
+       }""")
+
+scala&gt; val lotto2 = parse("""{
+         "lotto":{
+           "winners":[{
+             "winner-id":54,
+             "numbers":[52,3,12,11,18,22]
+           }]
+         }
+       }""")
+
+scala&gt; val mergedLotto = lotto1 merge lotto2
+scala&gt; pretty(render(mergedLotto))
+res0: String =
+{
+  "lotto":{
+    "lotto-id":5,
+    "winning-numbers":[2,45,34,23,7,5,3],
+    "winners":[{
+      "winner-id":23,
+      "numbers":[2,45,34,23,3,5]
+    },{
+      "winner-id":54,
+      "numbers":[52,3,12,11,18,22]
+    }]
+  }
+}
+
+scala&gt; val Diff(changed, added, deleted) = mergedLotto diff lotto1
+changed: org.json4s.JsonAST.JValue = JNothing
+added: org.json4s.JsonAST.JValue = JNothing
+deleted: org.json4s.JsonAST.JValue = JObject(List((lotto,JObject(List(JField(winners,
+JArray(List(JObject(List((winner-id,JInt(54)), (numbers,JArray(
+List(JInt(52), JInt(3), JInt(12), JInt(11), JInt(18), JInt(22))))))))))))))
+</code></pre>
+
+<h1>
+<a name="user-content-querying-json" class="anchor" href="#querying-json" aria-hidden="true"><span class="octicon octicon-link"></span></a>Querying JSON</h1>
+
+<h2>
+<a name="user-content-linq-style" class="anchor" href="#linq-style" aria-hidden="true"><span class="octicon octicon-link"></span></a>"LINQ" style</h2>
+
+<p>JSON values can be extracted using for-comprehensions.
+Please see more examples in <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/JsonQueryExamples.scala">JsonQueryExamples.scala</a>.</p>
+
+<pre><code>scala&gt; import org.json4s._
+scala&gt; import org.json4s.native.JsonMethods._
+scala&gt; val json = parse("""
+         { "name": "joe",
+           "children": [
+             {
+               "name": "Mary",
+               "age": 5
+             },
+             {
+               "name": "Mazy",
+               "age": 3
+             }
+           ]
+         }
+       """)
+
+scala&gt; for {
+         JObject(child) &lt;- json
+         JField("age", JInt(age))  &lt;- child
+       } yield age
+res0: List[BigInt] = List(5, 3)
+
+scala&gt; for {
+         JObject(child) &lt;- json
+         JField("name", JString(name)) &lt;- child
+         JField("age", JInt(age)) &lt;- child
+         if age &gt; 4
+       } yield (name, age)
+res1: List[(String, BigInt)] = List((Mary,5))
+</code></pre>
+
+<h2>
+<a name="user-content-xpath--hofs" class="anchor" href="#xpath--hofs" aria-hidden="true"><span class="octicon octicon-link"></span></a>XPath + HOFs</h2>
+
+<p>Json AST can be queried using XPath like functions. Following REPL session shows the usage of
+'\', '\\', 'find', 'filter', 'transform', 'remove' and 'values' functions.</p>
+
+<pre><code>The example json is:
+
+{
+  "person": {
+    "name": "Joe",
+    "age": 35,
+    "spouse": {
+      "person": {
+        "name": "Marilyn"
+        "age": 33
+      }
+    }
+  }
+}
+
+Translated to DSL syntax:
+
+scala&gt; import org.json4s._
+
+scala&gt; import org.json4s.native.JsonMethods._
+
+or 
+
+scala&gt; import org.json4s.jackson.JsonMethods._
+
+scala&gt; import org.json4s.JsonDSL._
+
+scala&gt; val json =
+  ("person" -&gt;
+    ("name" -&gt; "Joe") ~
+    ("age" -&gt; 35) ~
+    ("spouse" -&gt;
+      ("person" -&gt;
+        ("name" -&gt; "Marilyn") ~
+        ("age" -&gt; 33)
+      )
+    )
+  )
+
+scala&gt; json \\ "spouse"
+res0: org.json4s.JsonAST.JValue = JObject(List(
+      (person,JObject(List((name,JString(Marilyn)), (age,JInt(33)))))))
+
+scala&gt; compact(render(res0))
+res1: String = {"person":{"name":"Marilyn","age":33}}
+
+scala&gt; compact(render(json \\ "name"))
+res2: String = {"name":"Joe","name":"Marilyn"}
+
+scala&gt; compact(render((json removeField { _ == JField("name", JString("Marilyn")) }) \\ "name"))
+res3: String = {"name":"Joe"}
+
+scala&gt; compact(render(json \ "person" \ "name"))
+res4: String = "Joe"
+
+scala&gt; compact(render(json \ "person" \ "spouse" \ "person" \ "name"))
+res5: String = "Marilyn"
+
+scala&gt; json findField {
+         case JField("name", _) =&gt; true
+         case _ =&gt; false
+       }
+res6: Option[org.json4s.JsonAST.JValue] = Some((name,JString(Joe)))
+
+scala&gt; json filterField {
+         case JField("name", _) =&gt; true
+         case _ =&gt; false
+       }
+res7: List[org.json4s.JsonAST.JField] = List(JField(name,JString(Joe)), JField(name,JString(Marilyn)))
+
+scala&gt; json transformField {
+         case JField("name", JString(s)) =&gt; ("NAME", JString(s.toUpperCase))
+       }
+res8: org.json4s.JsonAST.JValue = JObject(List((person,JObject(List(
+(NAME,JString(JOE)), (age,JInt(35)), (spouse,JObject(List(
+(person,JObject(List((NAME,JString(MARILYN)), (age,JInt(33)))))))))))))
+
+scala&gt; json.values
+res8: scala.collection.immutable.Map[String,Any] = Map(person -&gt; Map(name -&gt; Joe, age -&gt; 35, spouse -&gt; Map(person -&gt; Map(name -&gt; Marilyn, age -&gt; 33))))
+</code></pre>
+
+<p>Indexed path expressions work too and values can be unboxed using type expressions.</p>
+
+<pre><code>scala&gt; val json = parse("""
+         { "name": "joe",
+           "children": [
+             {
+               "name": "Mary",
+               "age": 5
+             },
+             {
+               "name": "Mazy",
+               "age": 3
+             }
+           ]
+         }
+       """)
+
+scala&gt; (json \ "children")(0)
+res0: org.json4s.JsonAST.JValue = JObject(List((name,JString(Mary)), (age,JInt(5))))
+
+scala&gt; (json \ "children")(1) \ "name"
+res1: org.json4s.JsonAST.JValue = JString(Mazy)
+
+scala&gt; json \\ classOf[JInt]
+res2: List[org.json4s.JsonAST.JInt#Values] = List(5, 3)
+
+scala&gt; json \ "children" \\ classOf[JString]
+res3: List[org.json4s.JsonAST.JString#Values] = List(Mary, Mazy)
+</code></pre>
+
+<h1>
+<a name="user-content-extracting-values" class="anchor" href="#extracting-values" aria-hidden="true"><span class="octicon octicon-link"></span></a>Extracting values</h1>
+
+<p>Case classes can be used to extract values from parsed JSON. Non-existing values
+can be extracted into scala.Option and strings can be automatically converted into
+java.util.Dates.
+Please see more examples in <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/ExtractionExamplesSpec.scala">ExtractionExampleSpec.scala</a>.</p>
+
+<pre><code>scala&gt; import org.json4s._
+scala&gt; import org.json4s.jackson.JsonMethods._
+scala&gt; implicit val formats = DefaultFormats // Brings in default date formats etc.
+scala&gt; case class Child(name: String, age: Int, birthdate: Option[java.util.Date])
+scala&gt; case class Address(street: String, city: String)
+scala&gt; case class Person(name: String, address: Address, children: List[Child])
+scala&gt; val json = parse("""
+         { "name": "joe",
+           "address": {
+             "street": "Bulevard",
+             "city": "Helsinki"
+           },
+           "children": [
+             {
+               "name": "Mary",
+               "age": 5,
+               "birthdate": "2004-09-04T18:06:22Z"
+             },
+             {
+               "name": "Mazy",
+               "age": 3
+             }
+           ]
+         }
+       """)
+
+scala&gt; json.extract[Person]
+res0: Person = Person(joe,Address(Bulevard,Helsinki),List(Child(Mary,5,Some(Sat Sep 04 18:06:22 EEST 2004)), Child(Mazy,3,None)))
+</code></pre>
+
+<p>By default the constructor parameter names must match json field names. However, sometimes json
+field names contain characters which are not allowed characters in Scala identifiers. There's two
+solutions for this (see <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/LottoExample.scala">LottoExample.scala</a> for bigger example).</p>
+
+<p>Use back ticks.</p>
+
+<pre><code>scala&gt; case class Person(`first-name`: String)
+</code></pre>
+
+<p>Use transform function to postprocess AST.</p>
+
+<pre><code>scala&gt; case class Person(firstname: String)
+scala&gt; json transformField {
+         case ("first-name", x) =&gt; ("firstname", x)
+       }
+</code></pre>
+
+<p>Extraction function tries to find the best matching constructor when case class has auxiliary
+constructors. For instance extracting from JSON {"price":350} into the following case class
+will use the auxiliary constructor instead of the primary constructor.</p>
+
+<pre><code>scala&gt; case class Bike(make: String, price: Int) {
+         def this(price: Int) = this("Trek", price)
+       }
+scala&gt; parse(""" {"price":350} """).extract[Bike]
+res0: Bike = Bike(Trek,350)
+</code></pre>
+
+<p>Primitive values can be extracted from JSON primitives or fields.</p>
+
+<pre><code>scala&gt; (json \ "name").extract[String]
+res0: String = "joe"
+
+scala&gt; ((json \ "children")(0) \ "birthdate").extract[Date]
+res1: java.util.Date = Sat Sep 04 21:06:22 EEST 2004
+</code></pre>
+
+<p>DateFormat can be changed by overriding 'DefaultFormats' (or by implmenting trait 'Formats').</p>
+
+<pre><code>scala&gt; implicit val formats = new DefaultFormats {
+         override def dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+       }
+</code></pre>
+
+<p>JSON object can be extracted to Map[String, _] too. Each field becomes a key value pair
+in result Map.</p>
+
+<pre><code>scala&gt; val json = parse("""
+         {
+           "name": "joe",
+           "addresses": {
+             "address1": {
+               "street": "Bulevard",
+               "city": "Helsinki"
+             },
+             "address2": {
+               "street": "Soho",
+               "city": "London"
+             }
+           }
+         }""")
+
+scala&gt; case class PersonWithAddresses(name: String, addresses: Map[String, Address])
+scala&gt; json.extract[PersonWithAddresses]
+res0: PersonWithAddresses("joe", Map("address1" -&gt; Address("Bulevard", "Helsinki"),
+                                     "address2" -&gt; Address("Soho", "London")))
+</code></pre>
+
+<h1>
+<a name="user-content-serialization" class="anchor" href="#serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serialization</h1>
+
+<p>Case classes can be serialized and deserialized.
+Please see other examples in <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/native/SerializationExamples.scala">SerializationExamples.scala</a>.</p>
+
+<pre><code>scala&gt; import org.json4s._
+scala&gt; import org.json4s.native.Serialization
+scala&gt; import org.json4s.native.Serialization.{read, write}
+scala&gt; implicit val formats = Serialization.formats(NoTypeHints)
+scala&gt; val ser = write(Child("Mary", 5, None))
+scala&gt; read[Child](ser)
+res1: Child = Child(Mary,5,None)
+</code></pre>
+
+<p>If you're using jackson instead of the native one: </p>
+
+<pre><code>scala&gt; import org.json4s._
+scala&gt; import org.json4s.jackson.Serialization
+scala&gt; import org.json4s.jackson.Serialization.{read, write}
+scala&gt; implicit val formats = Serialization.formats(NoTypeHints)
+scala&gt; val ser = write(Child("Mary", 5, None))
+scala&gt; read[Child](ser)
+res1: Child = Child(Mary,5,None)
+</code></pre>
+
+<p>Serialization supports:</p>
+
+<ul class="task-list">
+<li>Arbitrarily deep case class graphs</li>
+<li>All primitive types, including BigInt and Symbol</li>
+<li>List, Seq, Array, Set and Map (note, keys of the Map must be strings: Map[String, _])</li>
+<li>scala.Option</li>
+<li>java.util.Date</li>
+<li>Polymorphic Lists (see below)</li>
+<li>Recursive types</li>
+<li>Serialization of fields of a class (see below)</li>
+<li>Custom serializer functions for types which are not supported (see below)</li>
+</ul><h2>
+<a name="user-content-serializing-polymorphic-lists" class="anchor" href="#serializing-polymorphic-lists" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializing polymorphic Lists</h2>
+
+<p>Type hints are required when serializing polymorphic (or heterogeneous) Lists. Serialized JSON objects
+will get an extra field named 'jsonClass' (the name can be changed by overriding 'typeHintFieldName' from Formats).</p>
+
+<pre><code>scala&gt; trait Animal
+scala&gt; case class Dog(name: String) extends Animal
+scala&gt; case class Fish(weight: Double) extends Animal
+scala&gt; case class Animals(animals: List[Animal])
+scala&gt; implicit val formats = Serialization.formats(ShortTypeHints(List(classOf[Dog], classOf[Fish])))
+scala&gt; val ser = write(Animals(Dog("pluto") :: Fish(1.2) :: Nil))
+ser: String = {"animals":[{"jsonClass":"Dog","name":"pluto"},{"jsonClass":"Fish","weight":1.2}]}
+
+scala&gt; read[Animals](ser)
+res0: Animals = Animals(List(Dog(pluto), Fish(1.2)))
+</code></pre>
+
+<p>ShortTypeHints outputs short classname for all instances of configured objects. FullTypeHints outputs full
+classname. Other strategies can be implemented by extending TypeHints trait.</p>
+
+<h2>
+<a name="user-content-serializing-fields-of-a-class" class="anchor" href="#serializing-fields-of-a-class" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializing fields of a class</h2>
+
+<p>To enable serialization of fields, a FieldSerializer can be added for some type:</p>
+
+<pre><code>implicit val formats = DefaultFormats + FieldSerializer[WildDog]()
+</code></pre>
+
+<p>Now the type WildDog (and all subtypes) gets serialized with all its fields (+ constructor parameters).
+FieldSerializer takes two optional parameters which can be used to intercept the field serialization:</p>
+
+<pre><code>case class FieldSerializer[A: Manifest](
+  serializer:   PartialFunction[(String, Any), Option[(String, Any)]] = Map(),
+  deserializer: PartialFunction[JField, JField] = Map()
+)
+</code></pre>
+
+<p>Those PartialFunctions are called just before a field is serialized or deserialized. Some useful PFs to
+rename and ignore fields are provided:</p>
+
+<pre><code>val dogSerializer = FieldSerializer[WildDog](
+  renameTo("name", "animalname") orElse ignore("owner"),
+  renameFrom("animalname", "name"))
+
+implicit val formats = DefaultFormats + dogSerializer
+</code></pre>
+
+<h2>
+<a name="user-content-serializing-classes-defined-in-traits-or-classes" class="anchor" href="#serializing-classes-defined-in-traits-or-classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializing classes defined in traits or classes</h2>
+
+<p>We've added support for case classes defined in a trait. But they do need custom formats. I'll explain why and then how.</p>
+
+<h5>
+<a name="user-content-why" class="anchor" href="#why" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why?</h5>
+
+<p>For classes defined in a trait it's a bit difficult to get to their companion object, which is needed to provide default values.  We could punt on those but that brings us to the next problem, the compiler generates an extra field in the constructor of such case classes.  The first field in the constructor of those case classes is called <code>$outer</code> and is of type of the <em>defining trait</em>.  So somehow we need to get an instance of that object, naively we could scan all classes and collect the ones that are implementing the trait, but when there are more than one: which one to take?</p>
+
+<h5>
+<a name="user-content-how" class="anchor" href="#how" aria-hidden="true"><span class="octicon octicon-link"></span></a>How?</h5>
+
+<p>I've chosen to extend the formats to include a list of companion mappings for those case classes. So you can have formats that belong to your modules and keep the mappings in there. That will then make default values work and provide the much needed <code>$outer</code> field.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">SharedModule</span> <span class="o">{</span>
+  <span class="k">case</span> <span class="k">class</span> <span class="nc">SharedObj</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">visible</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="kc">false</span><span class="o">)</span>
+<span class="o">}</span>
+
+<span class="k">object</span> <span class="nc">PingPongGame</span> <span class="k">extends</span> <span class="nc">SharedModule</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">formats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span>
+  <span class="nc">DefaultFormats</span><span class="o">.</span><span class="n">withCompanions</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">PingPongGame.SharedObj</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="nc">PingPongGame</span><span class="o">)</span>
+
+<span class="k">val</span> <span class="n">inst</span> <span class="k">=</span> <span class="nc">PingPongGame</span><span class="o">.</span><span class="nc">SharedObj</span><span class="o">(</span><span class="s">"jeff"</span><span class="o">,</span> <span class="n">visible</span> <span class="k">=</span> <span class="kc">true</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">extr</span> <span class="k">=</span> <span class="nc">Extraction</span><span class="o">.</span><span class="n">decompose</span><span class="o">(</span><span class="n">inst</span><span class="o">)</span>
+<span class="n">extr</span> <span class="n">must_==</span> <span class="nc">JObject</span><span class="o">(</span><span class="s">"name"</span> <span class="o">-&gt;</span> <span class="nc">JString</span><span class="o">(</span><span class="s">"jeff"</span><span class="o">),</span> <span class="s">"visible"</span> <span class="o">-&gt;</span> <span class="nc">JBool</span><span class="o">(</span><span class="kc">true</span><span class="o">))</span>
+<span class="n">extr</span><span class="o">.</span><span class="n">extract</span><span class="o">[</span><span class="kt">PingPongGame.SharedObj</span><span class="o">]</span> <span class="n">must_==</span> <span class="n">inst</span>
+</pre></div>
+
+<h2>
+<a name="user-content-serializing-non-supported-types" class="anchor" href="#serializing-non-supported-types" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializing non-supported types</h2>
+
+<p>It is possible to plug in custom serializer + deserializer functions for any type.
+Now, if we have a non case class Interval (thus, not supported by default), we can still serialize it
+by providing following serializer.</p>
+
+<pre><code>scala&gt; class Interval(start: Long, end: Long) {
+         val startTime = start
+         val endTime = end
+       }
+
+scala&gt; class IntervalSerializer extends CustomSerializer[Interval](format =&gt; (
+         {
+           case JObject(JField("start", JInt(s)) :: JField("end", JInt(e)) :: Nil) =&gt;
+             new Interval(s.longValue, e.longValue)
+         },
+         {
+           case x: Interval =&gt;
+             JObject(JField("start", JInt(BigInt(x.startTime))) ::
+                     JField("end",   JInt(BigInt(x.endTime))) :: Nil)
+         }
+       ))
+
+scala&gt; implicit val formats = Serialization.formats(NoTypeHints) + new IntervalSerializer
+</code></pre>
+
+<p>Custom serializer is created by providing two partial functions. The first evaluates to a value
+if it can unpack the data from JSON. The second creates the desired JSON if the type matches.</p>
+
+<h2>
+<a name="user-content-extensions" class="anchor" href="#extensions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Extensions</h2>
+
+<p>Module json4s-ext contains extensions to extraction and serialization. Following types are supported.</p>
+
+<pre><code>// Lift's box
+implicit val formats = org.json4s.DefaultFormats + new org.json4s.native.ext.JsonBoxSerializer
+
+// Scala enums
+implicit val formats = org.json4s.DefaultFormats + new org.json4s.ext.EnumSerializer(MyEnum)
+// or
+implicit val formats = org.json4s.DefaultFormats + new org.json4s.ext.EnumNameSerializer(MyEnum)
+
+// Joda Time
+implicit val formats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
+</code></pre>
+
+<h1>
+<a name="user-content-xml-support" class="anchor" href="#xml-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>XML support</h1>
+
+<p>JSON structure can be converted to XML node and vice versa.
+Please see more examples in <a href="https://github.com/json4s/json4s/blob/master/tests/src/test/scala/org/json4s/XmlExamples.scala">XmlExamples.scala</a>.</p>
+
+<pre><code>scala&gt; import org.json4s.Xml.{toJson, toXml}
+scala&gt; val xml =
+         &lt;users&gt;
+           &lt;user&gt;
+             &lt;id&gt;1&lt;/id&gt;
+             &lt;name&gt;Harry&lt;/name&gt;
+           &lt;/user&gt;
+           &lt;user&gt;
+             &lt;id&gt;2&lt;/id&gt;
+             &lt;name&gt;David&lt;/name&gt;
+           &lt;/user&gt;
+         &lt;/users&gt;
+
+scala&gt; val json = toJson(xml)
+scala&gt; pretty(render(json))
+res3: {
+  "users":{
+    "user":[{
+      "id":"1",
+      "name":"Harry"
+    },{
+      "id":"2",
+      "name":"David"
+    }]
+  }
+}
+</code></pre>
+
+<p>Now, the above example has two problems. First, the id is converted to String while we might want it as an Int. This
+is easy to fix by mapping JString(s) to JInt(s.toInt). The second problem is more subtle. The conversion function
+decides to use JSON array because there's more than one user-element in XML. Therefore a structurally equivalent
+XML document which happens to have just one user-element will generate a JSON document without JSON array. This
+is rarely a desired outcome. These both problems can be fixed by following transformation function.</p>
+
+<pre><code>scala&gt; json transformField {
+         case ("id", JString(s)) =&gt; ("id", JInt(s.toInt))
+         case ("user", x: JObject) =&gt; ("user", JArray(x :: Nil))
+       }
+</code></pre>
+
+<p>Other direction is supported too. Converting JSON to XML:</p>
+
+<pre><code> scala&gt; toXml(json)
+ res5: scala.xml.NodeSeq = &lt;users&gt;&lt;user&gt;&lt;id&gt;1&lt;/id&gt;&lt;name&gt;Harry&lt;/name&gt;&lt;/user&gt;&lt;user&gt;&lt;id&gt;2&lt;/id&gt;&lt;name&gt;David&lt;/name&gt;&lt;/user&gt;&lt;/users&gt;
+</code></pre>
+
+<h1>
+<a name="user-content-low-level-pull-parser-api" class="anchor" href="#low-level-pull-parser-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>Low level pull parser API</h1>
+
+<p>Pull parser API is provided for cases requiring extreme performance. It improves parsing
+performance by two ways. First, no intermediate AST is generated. Second, you can stop
+parsing at any time, skipping rest of the stream. Note, this parsing style is recommended
+only as an optimization. Above mentioned functional APIs are easier to use.</p>
+
+<p>Consider following example which shows how to parse one field value from a big JSON.</p>
+
+<pre><code>scala&gt; val json = """
+  {
+    ...
+    "firstName": "John",
+    "lastName": "Smith",
+    "address": {
+      "streetAddress": "21 2nd Street",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": 10021
+    },
+    "phoneNumbers": [
+      { "type": "home", "number": "212 555-1234" },
+      { "type": "fax", "number": "646 555-4567" }
+    ],
+    ...
+  }"""
+
+scala&gt; val parser = (p: Parser) =&gt; {
+         def parse: BigInt = p.nextToken match {
+           case FieldStart("postalCode") =&gt; p.nextToken match {
+             case IntVal(code) =&gt; code
+             case _ =&gt; p.fail("expected int")
+           }
+           case End =&gt; p.fail("no field named 'postalCode'")
+           case _ =&gt; parse
+         }
+
+         parse
+       }
+
+scala&gt; val postalCode = parse(json, parser)
+postalCode: BigInt = 10021
+</code></pre>
+
+<p>Pull parser is a function <code>Parser =&gt; A</code>, in this example it is concretely <code>Parser =&gt; BigInt</code>.
+Constructed parser recursively reads tokens until it finds <code>FieldStart("postalCode")</code>
+token. After that the next token must be <code>IntVal</code>, otherwise parsing fails. It returns parsed
+integer and stops parsing immediately.</p>
+
+<h1>
+<a name="user-content-faq" class="anchor" href="#faq" aria-hidden="true"><span class="octicon octicon-link"></span></a>FAQ</h1>
+
+<p>Q1: I have a JSON object and I want to extract it to a case class:</p>
+
+<pre><code>scala&gt; case class Person(name: String, age: Int)
+scala&gt; val json = """{"name":"joe","age":15}"""
+</code></pre>
+
+<p>But extraction fails:</p>
+
+<pre><code>scala&gt; parse(json).extract[Person]
+org.json4s.MappingException: Parsed JSON values do not match with class constructor
+</code></pre>
+
+<p>A1:</p>
+
+<p>Extraction does not work for classes defined in REPL. Compile the case class definitions
+with scalac and import those to REPL.</p>
+
+<h1>
+<a name="user-content-kudos" class="anchor" href="#kudos" aria-hidden="true"><span class="octicon octicon-link"></span></a>Kudos</h1>
+
+<ul class="task-list">
+<li><p>The original idea for DSL syntax was taken from Lift mailing list (<a href="http://markmail.org/message/lniven2hn22vhupu">by Marius</a>).</p></li>
+<li><p>The idea for AST and rendering was taken from <a href="http://book.realworldhaskell.org/read/writing-a-library-working-with-json-data.html">Real World Haskell book</a>.</p></li>
+</ul></article></div>

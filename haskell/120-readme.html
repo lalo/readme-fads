@@ -1,0 +1,170 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><em>Friday</em> is an image processing library for Haskell. It has been designed to be
+fast, generic and type-safe.</p>
+
+<p><em>friday</em> also provide some simple computer vision features such as edge
+detection or histogram processing.</p>
+
+<p>Except for I/Os, <em>friday</em> is entirely written in Haskell.</p>
+
+<p><a href="header.png" target="_blank"><img src="header.png" alt="Header" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h1>
+
+<p>The library uses FFI calls to the <em>DevIL</em> image library (written in C) to read
+images from a wide variety of formats, including BMP, JPG, PNG, GIF, ICO and
+PSD.</p>
+
+<p>The library currently support four color-spaces: RGB, RGBA, HSV and gray-scale
+images. Images can be converted between these color-paces.</p>
+
+<p>At this moment, the following features and algorithms have been implemented:</p>
+
+<ul class="task-list">
+<li><p>various image transformations: resizing, cropping, vertical and horizontal
+<a href="http://en.wikipedia.org/wiki/Flopped_image">flop/flipping</a> and
+<a href="http://en.wikipedia.org/wiki/Flood_filling">flood fill</a> ;</p></li>
+<li><p>filters:
+<a href="http://en.wikipedia.org/wiki/Mathematical_morphology">morphological transformations</a>
+(dilation and erosion), blurring (mean
+and <a href="http://en.wikipedia.org/wiki/Gaussian_blur">Gaussian</a> blurs) and
+derivative computation
+(<a href="http://en.wikipedia.org/wiki/Sobel_operator">Sobel</a> and
+<a href="http://en.wikipedia.org/wiki/Sobel_operator#Alternative_operators">Scharr</a>
+operators) ;</p></li>
+<li><p>support for mutable and masked images ;</p></li>
+<li><p>both adaptive and non-adaptive thresholding ;</p></li>
+<li><p>edge detection using
+<a href="http://en.wikipedia.org/wiki/Canny_edge_detector">Canny's algorithm</a> ;</p></li>
+<li><p>color histograms (including comparisons and image equalization).</p></li>
+</ul><h1>
+<a name="user-content-quick-tour" class="anchor" href="#quick-tour" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick tour</h1>
+
+<h2>
+<a name="user-content-the-image-type-class" class="anchor" href="#the-image-type-class" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Image type-class</h2>
+
+<p>Images implement the <code>Image</code> type-class.</p>
+
+<p>This type-class give you, among other things, the <code>index</code> and the <code>shape</code>
+methods to look up for pixel values and to get the image size.</p>
+
+<h2>
+<a name="user-content-manifest-and-delayed-images" class="anchor" href="#manifest-and-delayed-images" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manifest and Delayed images</h2>
+
+<p>To benefit from Haskell's purity, non-mutable images are represented in two
+ways:</p>
+
+<ul class="task-list">
+<li><p>the <code>Manifest</code> representation stores images in Haskell <code>Vector</code>s. <code>Grey</code>,
+<code>HSV</code>, <code>RGB</code> and <code>RGBA</code> are <em>manifest</em> images ;</p></li>
+<li><p>the <code>Delayed</code> representation uses a function to produce image pixels. These
+images can be efficiently chained to produce complex transformations. With some
+inlining, Haskell compilers are able to produce fast algorithms by removing
+intermediate structures when working with delayed images.
+<code>GreyDelayed</code>, <code>HSVDelayed</code>, <code>RGBDelayed</code> and <code>RGBADelayed</code> are <em>delayed</em>
+images.</p></li>
+</ul><p>The <code>convert</code> method from the <code>convertible</code> package can be used to convert
+images between color spaces and representations.</p>
+
+<p>As most functions work with both representations and all color spaces, you need
+to help the type checker to choose the correct return type.</p>
+
+<p>For example, if you want to convert an RGBA image to a greyscale image, use a
+type annotation to inform the compiler the image type you want to get:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">toGrey</span> <span class="ow">::</span> <span class="kt">RGBA</span> <span class="ow">-&gt;</span> <span class="kt">Grey</span>
+<span class="nf">toGrey</span> <span class="ow">=</span> <span class="n">convert</span>
+</pre></div>
+
+<p>When you only need to force the returned representation of a function, you can
+use the <code>delayed</code> and <code>manifest</code> functions. These functions don't do anything
+except enforcing types.</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">makeMiniature</span> <span class="ow">=</span> <span class="n">delayed</span> <span class="o">.</span> <span class="n">resize</span> <span class="kt">Bilinear</span> <span class="p">(</span><span class="n">ix2</span> <span class="mi">150</span> <span class="mi">150</span><span class="p">)</span>
+</pre></div>
+
+<p>See <a href="example/Delayed.hs">this file</a> for an example of a pipeline of delayed
+images.</p>
+
+<h2>
+<a name="user-content-storage-images" class="anchor" href="#storage-images" aria-hidden="true"><span class="octicon octicon-link"></span></a>Storage images</h2>
+
+<p>When you use the <code>load</code> function to read an image from a file, the returned
+image is a <code>StorageImage</code>:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">data</span> <span class="kt">StorageImage</span> <span class="ow">=</span> <span class="kt">GreyStorage</span> <span class="kt">Grey</span> <span class="o">|</span> <span class="kt">RGBAStorage</span> <span class="kt">RGBA</span> <span class="o">|</span> <span class="kt">RGBStorage</span> <span class="kt">RGB</span>
+</pre></div>
+
+<p>Before using an image loaded from a file, you need to convert it into an usable
+representation such as RGB:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">toRGB</span> <span class="ow">::</span> <span class="kt">StorageImage</span> <span class="ow">-&gt;</span> <span class="kt">RGB</span>
+<span class="nf">toRGB</span> <span class="ow">=</span> <span class="n">convert</span>
+</pre></div>
+
+<h2>
+<a name="user-content-masked-images" class="anchor" href="#masked-images" aria-hidden="true"><span class="octicon octicon-link"></span></a>Masked images</h2>
+
+<p>Some images are not defined for each of their pixels. These are called masked
+images and implement the <code>MaskedImage</code> type-class.</p>
+
+<p>The <code>MaskedImage</code> type-class primarily gives you a <code>maskedIndex</code> method which
+differs from <code>index</code> by its type :</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">index</span>       <span class="ow">::</span> <span class="kt">Image</span> <span class="n">i</span>       <span class="ow">=&gt;</span> <span class="n">i</span> <span class="ow">-&gt;</span> <span class="kt">Point</span> <span class="ow">-&gt;</span> <span class="kt">ImagePixel</span> <span class="n">i</span>
+<span class="nf">maskedIndex</span> <span class="ow">::</span> <span class="kt">MaskedImage</span> <span class="n">i</span> <span class="ow">=&gt;</span> <span class="n">i</span> <span class="ow">-&gt;</span> <span class="kt">Point</span> <span class="ow">-&gt;</span> <span class="kt">Maybe</span> <span class="p">(</span><span class="kt">ImagePixel</span> <span class="n">i</span><span class="p">)</span>
+</pre></div>
+
+<p>Unlike <code>index</code>, <code>maskedIndex</code> doesn't always return a value. For convenience,
+every <code>Image</code> instance is also a <code>MaskedImage</code> instance.</p>
+
+<p><code>DelayedMask</code> can be used to create a masked image.</p>
+
+<h2>
+<a name="user-content-create-images-from-functions" class="anchor" href="#create-images-from-functions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create images from functions</h2>
+
+<p>Images are instance of the <code>FromFunction</code> type-class. This class provide a
+method to create images from a function.</p>
+
+<p>For example, if you want to create a black and white image from another image,
+you could write:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">toBlackAndWhite</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Image</span> <span class="n">i</span><span class="p">,</span> <span class="kt">Convertible</span> <span class="n">i</span> <span class="kt">Grey</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="n">i</span> <span class="ow">-&gt;</span> <span class="kt">Grey</span>
+<span class="nf">toBlackAndWhite</span> <span class="n">img</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">grey</span> <span class="ow">=</span> <span class="n">convert</span> <span class="n">img</span> <span class="ow">::</span> <span class="kt">Grey</span>
+    <span class="kr">in</span> <span class="n">fromFunction</span> <span class="p">(</span><span class="n">shape</span> <span class="n">img</span><span class="p">)</span> <span class="o">$</span> <span class="nf">\</span><span class="n">pt</span> <span class="ow">-&gt;</span>
+            <span class="kr">if</span> <span class="n">grey</span> <span class="p">`</span><span class="n">index</span><span class="p">`</span> <span class="n">pt</span> <span class="o">&gt;</span> <span class="mi">127</span> <span class="kr">then</span> <span class="mi">255</span>
+                                     <span class="kr">else</span> <span class="mi">0</span>
+</pre></div>
+
+<p>However, most of the time, you will prefer to use the <code>map</code> function instead:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">toBlackAndWhite</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Image</span> <span class="n">i</span><span class="p">,</span> <span class="kt">Convertible</span> <span class="n">i</span> <span class="kt">Grey</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="n">i</span> <span class="ow">-&gt;</span> <span class="kt">Grey</span>
+<span class="nf">toBlackAndWhite</span> <span class="n">img</span> <span class="ow">=</span>
+    <span class="kr">let</span> <span class="n">grey</span> <span class="ow">=</span> <span class="n">convert</span> <span class="n">img</span> <span class="ow">::</span> <span class="kt">Grey</span>
+    <span class="kr">in</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="n">pix</span> <span class="ow">-&gt;</span> <span class="kr">if</span> <span class="n">pix</span> <span class="o">&gt;</span> <span class="mi">127</span> <span class="kr">then</span> <span class="mi">255</span> <span class="kr">else</span> <span class="mi">0</span><span class="p">)</span> <span class="n">grey</span>
+</pre></div>
+
+<h1>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h1>
+
+<ul class="task-list">
+<li><p><a href="example/GaussianBlur.hs">Apply a Gaussian blur</a> ;</p></li>
+<li><p><a href="example/Histogram.hs">Compare two images by their color histograms</a> ;</p></li>
+<li><p><a href="example/Delayed.hs">Create a pipeline of delayed images</a> ;</p></li>
+<li><p><a href="example/Canny.hs">Detect edges using Canny's edge detector</a> ;</p></li>
+<li><p><a href="example/ResizeImage.hs">Resize an image</a>.</p></li>
+</ul><h1>
+<a name="user-content-benchmarks" class="anchor" href="#benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Benchmarks</h1>
+
+<p>The library has been sightly optimized and could be moderately used for
+real-time applications.</p>
+
+<p>The following graph shows how the library compares to two other image processing
+libraries written in C. The fastest implementation for each algorithm is taken
+as reference:</p>
+
+<p><a href="bench_results.png" target="_blank"><img src="bench_results.png" alt="Benchmark results" style="max-width:100%;"></a></p>
+
+<p>The main reason that performances are currently below OpenCV is that OpenCV
+relies heavily on SIMD instructions.</p></article></div>

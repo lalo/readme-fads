@@ -1,0 +1,173 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content----an-advanced-irc-bouncer" class="anchor" href="#---an-advanced-irc-bouncer" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<a href="http://znc.in"><img src="https://camo.githubusercontent.com/ea665e3db66b3ff84aefc67066c6755e660ef4ce/687474703a2f2f77696b692e7a6e632e696e2f736b696e732f636f6d6d6f6e2f696d616765732f77696b692e706e67" alt="ZNC" data-canonical-src="http://wiki.znc.in/skins/common/images/wiki.png" style="max-width:100%;"></a> - An advanced IRC bouncer</h1>
+
+<h2>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of contents</h2>
+
+<ul class="task-list">
+<li>Minimal Requirements</li>
+<li>Optional Requirements</li>
+<li>Installing ZNC</li>
+<li>Setting up znc.conf</li>
+<li>Special config options</li>
+<li>Using ZNC</li>
+<li>File Locations</li>
+<li>ZNC's config file</li>
+<li>Writing own modules</li>
+<li>Further infos</li>
+</ul><h2>
+<a name="user-content-minimal-requirements" class="anchor" href="#minimal-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Minimal Requirements</h2>
+
+<p>Core:</p>
+
+<ul class="task-list">
+<li>GNU make (try gmake if make fails)</li>
+<li>GCC 4 or later</li>
+</ul><h2>
+<a name="user-content-optional-requirements" class="anchor" href="#optional-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optional Requirements</h2>
+
+<p>SSL support:</p>
+
+<ul class="task-list">
+<li>openssl 0.9.7d or later (try installing openssl-dev, openssl-devel or
+libssl-dev)</li>
+</ul><p>modperl:</p>
+
+<ul class="task-list">
+<li>This needs perl and its bundled libperl</li>
+</ul><p>modpython:</p>
+
+<ul class="task-list">
+<li>This needs perl(!) and python's bundled libpython</li>
+</ul><p>cyrusauth:</p>
+
+<ul class="task-list">
+<li>This module needs cyrus-sasl2</li>
+</ul><h2>
+<a name="user-content-installing-znc" class="anchor" href="#installing-znc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing ZNC</h2>
+
+<p>Installation is done with the <code>./configure ; make ; make install</code> commands.</p>
+
+<p>If you are building from git, you will need to run <code>./autogen.sh</code> first to produce the <code>configure</code> script.
+Note that this requires <code>automake</code> and <code>gettext</code> to be installed.</p>
+
+<p>You can use
+    ./configure --help
+if you want to get a list of options, though the defaults should be suiting
+most needs. After you compiled it with make (or gmake if make doesn't work) you
+can install it with
+    make install
+though you don't need to as ZNC supports in-place execution.</p>
+
+<h2>
+<a name="user-content-setting-up-zncconf" class="anchor" href="#setting-up-zncconf" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting up znc.conf</h2>
+
+<p>For setting up a configuration file in <code>~/.znc</code> you can simply do
+    znc --makeconf
+or
+    ./znc --makeconf
+for in-place execution.</p>
+
+<p>If you are using SSL you should do
+    znc --makepem</p>
+
+<h2>
+<a name="user-content-special-config-options" class="anchor" href="#special-config-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Special config options</h2>
+
+<p>When you create your ZNC configuration file via --makeconf, you are asked two
+questions which might not be easy to understand.</p>
+
+<blockquote>
+<p>Number of lines to buffer per channel</p>
+</blockquote>
+
+<p>How many messages should be buffered for each channel. When you connect to ZNC
+you get a buffer replay for each channel which shows what was said last. This
+option selects the number of lines this replay should consist of. Increasing
+this can greatly increase ZNC's memory usage if you are hosting many users.
+The default value should be fine for most setups.</p>
+
+<blockquote>
+<p>Would you like to keep buffers after replay?</p>
+</blockquote>
+
+<p>If this is disabled, you get the buffer playback only once and then it is
+deleted. If this is enabled, the buffer is not deleted. This may be useful if
+you regularly use more than one client to connect to ZNC.</p>
+
+<h2>
+<a name="user-content-using-znc" class="anchor" href="#using-znc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using ZNC</h2>
+
+<p>Once you have started ZNC you can connect with your favorite IRC-client to ZNC.
+You should use <code>username:password</code> as the server password (e.g. <code>/pass user:pass</code>).</p>
+
+<p>Once you are connected you can do <code>/msg *status help</code> for some commands.
+Every module you have loaded (<code>/msg *status listmods</code>) should additionally provide
+    /msg *modulename help</p>
+
+<h2>
+<a name="user-content-file-locations" class="anchor" href="#file-locations" aria-hidden="true"><span class="octicon octicon-link"></span></a>File Locations</h2>
+
+<p>In its data dir (<code>~/.znc</code> is default) ZNC saves most of its data. The only
+exception are modules and module data, which are saved in <code>&lt;prefix&gt;/lib/znc</code>
+and <code>&lt;prefix&gt;/share/znc</code>, and the znc binary itself.
+More modules (e.g. if you install some later) can be saved in
+<code>&lt;data dir&gt;/modules</code> (-&gt; <code>~/.znc/modules</code>).</p>
+
+<p>In the datadir are only two files:</p>
+
+<ul class="task-list">
+<li>
+<code>znc.pid</code> - The pid of the currently running ZNC instance.</li>
+<li>
+<code>znc.pem</code> - This is the server certificate ZNC uses for listening and is created
+with <code>znc --makepem</code>.</li>
+</ul><p>These directories are also in there:</p>
+
+<ul class="task-list">
+<li>configs - Contains <code>znc.conf</code> (ZNC's config file) and backups of older configs.</li>
+<li>modules - ZNC also looks in here for a module.</li>
+<li>moddata - Global modules save their settings here.
+(e.g. webadmin saves the current skin name in here)</li>
+<li>users   - This is per-user data and mainly contains just a moddata directory.</li>
+</ul><h2>
+<a name="user-content-zncs-config-file" class="anchor" href="#zncs-config-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>ZNC's config file</h2>
+
+<p>This file shouldn't be too hard too understand. An explanation of all the
+items can be found on the <a href="http://wiki.znc.in/Configuration">Configuration</a>-Page.
+Warning: better not to edit config, while ZNC is running.</p>
+
+<p>To rehash the config file, you can send ZNC SIGHUP via
+    pkill -SIGHUP znc
+or you can login to ZNC and use
+    /msg *status rehash</p>
+
+<p>If you changed some settings while ZNC is running, a simple
+    pkill -SIGUSR1 znc
+will make ZNC rewrite its config file. Alternatively you can use this:
+    /msg *status saveconfig</p>
+
+<h2>
+<a name="user-content-writing-own-modules" class="anchor" href="#writing-own-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing own modules</h2>
+
+<p>You can write your own modules in either C++, python or perl.</p>
+
+<p>C++ modules are compiled by either saving them in the modules source dir and
+running make or with the znc-buildmod shell script.</p>
+
+<p>For additional info look in the wiki:</p>
+
+<ul class="task-list">
+<li><a href="http://wiki.znc.in/Writing_modules">Writing modules</a></li>
+</ul><p>Perl modules are loaded through the global module <a href="http://wiki.znc.in/Modperl">ModPerl</a>.</p>
+
+<p>Python modules are loaded through the global module <a href="http://wiki.znc.in/Modpython">ModPython</a>.</p>
+
+<h2>
+<a name="user-content-further-infos" class="anchor" href="#further-infos" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further infos</h2>
+
+<p>Please visit <a href="http://znc.in/">http://znc.in/</a> or #znc on EFNet or freenode if you still have questions.</p>
+
+<p>You can get the latest development version with git:
+    git clone git://github.com/znc/znc.git</p></article></div>

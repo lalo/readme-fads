@@ -1,0 +1,440 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-request--simplified-http-client" class="anchor" href="#request--simplified-http-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>Request — Simplified HTTP client</h1>
+
+<p><a href="https://nodei.co/npm/request/"><img src="https://camo.githubusercontent.com/2f591bc62d19a634dd33e905244b027f2fbb8b0b/68747470733a2f2f6e6f6465692e636f2f6e706d2f726571756573742e706e67" alt="NPM" data-canonical-src="https://nodei.co/npm/request.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-super-simple-to-use" class="anchor" href="#super-simple-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>Super simple to use</h2>
+
+<p>Request is designed to be the simplest way possible to make http calls. It supports HTTPS and follows redirects by default.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'request'</span><span class="p">);</span>
+<span class="nx">request</span><span class="p">(</span><span class="s1">'http://www.google.com'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">)</span> <span class="c1">// Print the google web page.</span>
+  <span class="p">}</span>
+<span class="p">})</span>
+</pre></div>
+
+<h2>
+<a name="user-content-streaming" class="anchor" href="#streaming" aria-hidden="true"><span class="octicon octicon-link"></span></a>Streaming</h2>
+
+<p>You can stream any response to a file stream.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">(</span><span class="s1">'http://google.com/doodle.png'</span><span class="p">).</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">createWriteStream</span><span class="p">(</span><span class="s1">'doodle.png'</span><span class="p">))</span>
+</pre></div>
+
+<p>You can also stream a file to a PUT or POST request. This method will also check the file extension against a mapping of file extensions to content-types (in this case <code>application/json</code>) and use the proper <code>content-type</code> in the PUT request (if the headers don’t already provide one).</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">fs</span><span class="p">.</span><span class="nx">createReadStream</span><span class="p">(</span><span class="s1">'file.json'</span><span class="p">).</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">request</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="s1">'http://mysite.com/obj.json'</span><span class="p">))</span>
+</pre></div>
+
+<p>Request can also <code>pipe</code> to itself. When doing so, <code>content-type</code> and <code>content-length</code> are preserved in the PUT headers.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://google.com/img.png'</span><span class="p">).</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">request</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="s1">'http://mysite.com/img.png'</span><span class="p">))</span>
+</pre></div>
+
+<p>Now let’s get fancy.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">resp</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span> <span class="o">===</span> <span class="s1">'/doodle.png'</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">method</span> <span class="o">===</span> <span class="s1">'PUT'</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">req</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">request</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="s1">'http://mysite.com/doodle.png'</span><span class="p">))</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">method</span> <span class="o">===</span> <span class="s1">'GET'</span> <span class="o">||</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span> <span class="o">===</span> <span class="s1">'HEAD'</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://mysite.com/doodle.png'</span><span class="p">).</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">resp</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>You can also <code>pipe()</code> from <code>http.ServerRequest</code> instances, as well as to <code>http.ServerResponse</code> instances. The HTTP method, headers, and entity-body data will be sent. Which means that, if you don't really care about security, you can do:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">resp</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span> <span class="o">===</span> <span class="s1">'/doodle.png'</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">x</span> <span class="o">=</span> <span class="nx">request</span><span class="p">(</span><span class="s1">'http://mysite.com/doodle.png'</span><span class="p">)</span>
+    <span class="nx">req</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span>
+    <span class="nx">x</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">resp</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>And since <code>pipe()</code> returns the destination stream in ≥ Node 0.5.x you can do one line proxying. :)</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">req</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">request</span><span class="p">(</span><span class="s1">'http://mysite.com/doodle.png'</span><span class="p">)).</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">resp</span><span class="p">)</span>
+</pre></div>
+
+<p>Also, none of this new functionality conflicts with requests previous features, it just expands them.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">r</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">defaults</span><span class="p">({</span><span class="s1">'proxy'</span><span class="o">:</span><span class="s1">'http://localproxy.com'</span><span class="p">})</span>
+
+<span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">resp</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span> <span class="o">===</span> <span class="s1">'/doodle.png'</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">r</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://google.com/doodle.png'</span><span class="p">).</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">resp</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>You can still use intermediate proxies, the requests will still follow HTTP forwards, etc.</p>
+
+<h2>
+<a name="user-content-unix-socket" class="anchor" href="#unix-socket" aria-hidden="true"><span class="octicon octicon-link"></span></a>UNIX Socket</h2>
+
+<p><code>request</code> supports the <code>unix://</code> protocol for all requests. The path is assumed to be absolute to the root of the host file system. </p>
+
+<p>HTTP paths are extracted from the supplied URL by testing each level of the full URL against net.connect for a socket response.</p>
+
+<p>Thus the following request will GET <code>/httppath</code> from the HTTP server listening on <code>/tmp/unix.socket</code></p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'unix://tmp/unix.socket/httppath'</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-forms" class="anchor" href="#forms" aria-hidden="true"><span class="octicon octicon-link"></span></a>Forms</h2>
+
+<p><code>request</code> supports <code>application/x-www-form-urlencoded</code> and <code>multipart/form-data</code> form uploads. For <code>multipart/related</code> refer to the <code>multipart</code> API.</p>
+
+<p>URL-encoded forms are simple.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s1">'http://service.com/upload'</span><span class="p">,</span> <span class="p">{</span><span class="nx">form</span><span class="o">:</span><span class="p">{</span><span class="nx">key</span><span class="o">:</span><span class="s1">'value'</span><span class="p">}})</span>
+<span class="c1">// or</span>
+<span class="nx">request</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s1">'http://service.com/upload'</span><span class="p">).</span><span class="nx">form</span><span class="p">({</span><span class="nx">key</span><span class="o">:</span><span class="s1">'value'</span><span class="p">})</span>
+</pre></div>
+
+<p>For <code>multipart/form-data</code> we use the <a href="https://github.com/felixge/node-form-data">form-data</a> library by <a href="https://github.com/felixge">@felixge</a>. You don’t need to worry about piping the form object or setting the headers, <code>request</code> will handle that for you.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">r</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s1">'http://service.com/upload'</span><span class="p">,</span> <span class="kd">function</span> <span class="nx">optionalCallback</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">httpResponse</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="s1">'upload failed:'</span><span class="p">,</span> <span class="nx">err</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Upload successful!  Server responded with:'</span><span class="p">,</span> <span class="nx">body</span><span class="p">);</span>
+<span class="p">})</span>
+<span class="kd">var</span> <span class="nx">form</span> <span class="o">=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">form</span><span class="p">()</span>
+<span class="nx">form</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">'my_field'</span><span class="p">,</span> <span class="s1">'my_value'</span><span class="p">)</span>
+<span class="nx">form</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">'my_buffer'</span><span class="p">,</span> <span class="k">new</span> <span class="nx">Buffer</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+<span class="nx">form</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">'my_file'</span><span class="p">,</span> <span class="nx">fs</span><span class="p">.</span><span class="nx">createReadStream</span><span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span> <span class="s1">'doodle.png'</span><span class="p">)))</span>
+<span class="nx">form</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">'remote_file'</span><span class="p">,</span> <span class="nx">request</span><span class="p">(</span><span class="s1">'http://google.com/doodle.png'</span><span class="p">))</span>
+
+<span class="c1">// Just like always, `r` is a writable stream, and can be used as such (you have until nextTick to pipe it, etc.)</span>
+<span class="c1">// Alternatively, you can provide a callback (that's what this example does — see `optionalCallback` above).</span>
+</pre></div>
+
+<h2>
+<a name="user-content-http-authentication" class="anchor" href="#http-authentication" aria-hidden="true"><span class="octicon octicon-link"></span></a>HTTP Authentication</h2>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://some.server.com/'</span><span class="p">).</span><span class="nx">auth</span><span class="p">(</span><span class="s1">'username'</span><span class="p">,</span> <span class="s1">'password'</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+<span class="c1">// or</span>
+<span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://some.server.com/'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="s1">'auth'</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s1">'user'</span><span class="o">:</span> <span class="s1">'username'</span><span class="p">,</span>
+    <span class="s1">'pass'</span><span class="o">:</span> <span class="s1">'password'</span><span class="p">,</span>
+    <span class="s1">'sendImmediately'</span><span class="o">:</span> <span class="kc">false</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+<span class="c1">// or</span>
+<span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://some.server.com/'</span><span class="p">).</span><span class="nx">auth</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kc">null</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="s1">'bearerToken'</span><span class="p">);</span>
+<span class="c1">// or</span>
+<span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'http://some.server.com/'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="s1">'auth'</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s1">'bearer'</span><span class="o">:</span> <span class="s1">'bearerToken'</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>If passed as an option, <code>auth</code> should be a hash containing values <code>user</code> || <code>username</code>, <code>pass</code> || <code>password</code>, and <code>sendImmediately</code> (optional).  The method form takes parameters <code>auth(username, password, sendImmediately)</code>.</p>
+
+<p><code>sendImmediately</code> defaults to <code>true</code>, which causes a basic authentication header to be sent.  If <code>sendImmediately</code> is <code>false</code>, then <code>request</code> will retry with a proper authentication header after receiving a <code>401</code> response from the server (which must contain a <code>WWW-Authenticate</code> header indicating the required authentication method).</p>
+
+<p>Note that you can also use for basic authentication a trick using the URL itself, as specified in <a href="http://www.ietf.org/rfc/rfc1738.txt">RFC 1738</a>. 
+Simply pass the <code>user:password</code> before the host with an <code>@</code> sign.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">username</span> <span class="o">=</span> <span class="s1">'username'</span><span class="p">,</span>
+    <span class="nx">password</span> <span class="o">=</span> <span class="s1">'password'</span><span class="p">,</span>
+    <span class="nx">url</span> <span class="o">=</span> <span class="s1">'http://'</span> <span class="o">+</span> <span class="nx">username</span> <span class="o">+</span> <span class="s1">':'</span> <span class="o">+</span> <span class="nx">password</span> <span class="o">+</span> <span class="s1">'@some.server.com'</span><span class="p">;</span>
+
+<span class="nx">request</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span> <span class="nx">url</span><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+   <span class="c1">// Do more stuff with 'body' here</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Digest authentication is supported, but it only works with <code>sendImmediately</code> set to <code>false</code>; otherwise <code>request</code> will send basic authentication on the initial request, which will probably cause the request to fail.</p>
+
+<p>Bearer authentication is supported, and is activated when the <code>bearer</code> value is available. The value may be either a <code>String</code> or a <code>Function</code> returning a <code>String</code>. Using a function to supply the bearer token is particularly useful if used in conjuction with <code>defaults</code> to allow a single function to supply the last known token at the time or sending a request or to compute one on the fly.</p>
+
+<h2>
+<a name="user-content-oauth-signing" class="anchor" href="#oauth-signing" aria-hidden="true"><span class="octicon octicon-link"></span></a>OAuth Signing</h2>
+
+<div class="highlight highlight-javascript"><pre><span class="c1">// Twitter OAuth</span>
+<span class="kd">var</span> <span class="nx">qs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'querystring'</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">oauth</span> <span class="o">=</span>
+    <span class="p">{</span> <span class="nx">callback</span><span class="o">:</span> <span class="s1">'http://mysite.com/callback/'</span>
+    <span class="p">,</span> <span class="nx">consumer_key</span><span class="o">:</span> <span class="nx">CONSUMER_KEY</span>
+    <span class="p">,</span> <span class="nx">consumer_secret</span><span class="o">:</span> <span class="nx">CONSUMER_SECRET</span>
+    <span class="p">}</span>
+  <span class="p">,</span> <span class="nx">url</span> <span class="o">=</span> <span class="s1">'https://api.twitter.com/oauth/request_token'</span>
+  <span class="p">;</span>
+<span class="nx">request</span><span class="p">.</span><span class="nx">post</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span><span class="nx">url</span><span class="p">,</span> <span class="nx">oauth</span><span class="o">:</span><span class="nx">oauth</span><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">r</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Ideally, you would take the body in the response</span>
+  <span class="c1">// and construct a URL that a user clicks on (like a sign in button).</span>
+  <span class="c1">// The verifier is only available in the response after a user has</span>
+  <span class="c1">// verified with twitter that they are authorizing your app.</span>
+  <span class="kd">var</span> <span class="nx">access_token</span> <span class="o">=</span> <span class="nx">qs</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">body</span><span class="p">)</span>
+    <span class="p">,</span> <span class="nx">oauth</span> <span class="o">=</span>
+      <span class="p">{</span> <span class="nx">consumer_key</span><span class="o">:</span> <span class="nx">CONSUMER_KEY</span>
+      <span class="p">,</span> <span class="nx">consumer_secret</span><span class="o">:</span> <span class="nx">CONSUMER_SECRET</span>
+      <span class="p">,</span> <span class="nx">token</span><span class="o">:</span> <span class="nx">access_token</span><span class="p">.</span><span class="nx">oauth_token</span>
+      <span class="p">,</span> <span class="nx">verifier</span><span class="o">:</span> <span class="nx">access_token</span><span class="p">.</span><span class="nx">oauth_verifier</span>
+      <span class="p">}</span>
+    <span class="p">,</span> <span class="nx">url</span> <span class="o">=</span> <span class="s1">'https://api.twitter.com/oauth/access_token'</span>
+    <span class="p">;</span>
+  <span class="nx">request</span><span class="p">.</span><span class="nx">post</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span><span class="nx">url</span><span class="p">,</span> <span class="nx">oauth</span><span class="o">:</span><span class="nx">oauth</span><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">r</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">perm_token</span> <span class="o">=</span> <span class="nx">qs</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">body</span><span class="p">)</span>
+      <span class="p">,</span> <span class="nx">oauth</span> <span class="o">=</span>
+        <span class="p">{</span> <span class="nx">consumer_key</span><span class="o">:</span> <span class="nx">CONSUMER_KEY</span>
+        <span class="p">,</span> <span class="nx">consumer_secret</span><span class="o">:</span> <span class="nx">CONSUMER_SECRET</span>
+        <span class="p">,</span> <span class="nx">token</span><span class="o">:</span> <span class="nx">perm_token</span><span class="p">.</span><span class="nx">oauth_token</span>
+        <span class="p">,</span> <span class="nx">token_secret</span><span class="o">:</span> <span class="nx">perm_token</span><span class="p">.</span><span class="nx">oauth_token_secret</span>
+        <span class="p">}</span>
+      <span class="p">,</span> <span class="nx">url</span> <span class="o">=</span> <span class="s1">'https://api.twitter.com/1.1/users/show.json?'</span>
+      <span class="p">,</span> <span class="nx">params</span> <span class="o">=</span>
+        <span class="p">{</span> <span class="nx">screen_name</span><span class="o">:</span> <span class="nx">perm_token</span><span class="p">.</span><span class="nx">screen_name</span>
+        <span class="p">,</span> <span class="nx">user_id</span><span class="o">:</span> <span class="nx">perm_token</span><span class="p">.</span><span class="nx">user_id</span>
+        <span class="p">}</span>
+      <span class="p">;</span>
+    <span class="nx">url</span> <span class="o">+=</span> <span class="nx">qs</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">params</span><span class="p">)</span>
+    <span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span><span class="nx">url</span><span class="p">,</span> <span class="nx">oauth</span><span class="o">:</span><span class="nx">oauth</span><span class="p">,</span> <span class="nx">json</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">r</span><span class="p">,</span> <span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">user</span><span class="p">)</span>
+    <span class="p">})</span>
+  <span class="p">})</span>
+<span class="p">})</span>
+</pre></div>
+
+<h3>
+<a name="user-content-custom-http-headers" class="anchor" href="#custom-http-headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom HTTP Headers</h3>
+
+<p>HTTP Headers, such as <code>User-Agent</code>, can be set in the <code>options</code> object.
+In the example below, we call the github API to find out the number
+of stars and forks for the request repository. This requires a
+custom <code>User-Agent</code> header as well as https.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'request'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s1">'https://api.github.com/repos/mikeal/request'</span><span class="p">,</span>
+    <span class="nx">headers</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s1">'User-Agent'</span><span class="o">:</span> <span class="s1">'request'</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kd">function</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">info</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">body</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">info</span><span class="p">.</span><span class="nx">stargazers_count</span> <span class="o">+</span> <span class="s2">" Stars"</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">info</span><span class="p">.</span><span class="nx">forks_count</span> <span class="o">+</span> <span class="s2">" Forks"</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">request</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestoptions-callback" class="anchor" href="#requestoptions-callback" aria-hidden="true"><span class="octicon octicon-link"></span></a>request(options, callback)</h3>
+
+<p>The first argument can be either a <code>url</code> or an <code>options</code> object. The only required option is <code>uri</code>; all others are optional.</p>
+
+<ul class="task-list">
+<li>
+<code>uri</code> || <code>url</code> - fully qualified uri or a parsed url object from <code>url.parse()</code>
+</li>
+<li>
+<code>qs</code> - object containing querystring values to be appended to the <code>uri</code>
+</li>
+<li>
+<code>method</code> - http method (default: <code>"GET"</code>)</li>
+<li>
+<code>headers</code> - http headers (default: <code>{}</code>)</li>
+<li>
+<code>body</code> - entity body for PATCH, POST and PUT requests. Must be a <code>Buffer</code> or <code>String</code>.</li>
+<li>
+<code>form</code> - when passed an object or a querystring, this sets <code>body</code> to a querystring representation of value, and adds <code>Content-type: application/x-www-form-urlencoded; charset=utf-8</code> header. When passed no options, a <code>FormData</code> instance is returned (and is piped to request).</li>
+<li>
+<code>auth</code> - A hash containing values <code>user</code> || <code>username</code>, <code>pass</code> || <code>password</code>, and <code>sendImmediately</code> (optional).  See documentation above.</li>
+<li>
+<code>json</code> - sets <code>body</code> but to JSON representation of value and adds <code>Content-type: application/json</code> header.  Additionally, parses the response body as JSON.</li>
+<li>
+<code>multipart</code> - (experimental) array of objects which contains their own headers and <code>body</code> attribute. Sends <code>multipart/related</code> request. See example below.</li>
+<li>
+<code>followRedirect</code> - follow HTTP 3xx responses as redirects (default: <code>true</code>)</li>
+<li>
+<code>followAllRedirects</code> - follow non-GET HTTP 3xx responses as redirects (default: <code>false</code>)</li>
+<li>
+<code>maxRedirects</code> - the maximum number of redirects to follow (default: <code>10</code>)</li>
+<li>
+<code>encoding</code> - Encoding to be used on <code>setEncoding</code> of response data. If <code>null</code>, the <code>body</code> is returned as a <code>Buffer</code>.</li>
+<li>
+<code>pool</code> - A hash object containing the agents for these requests. If omitted, the request will use the global pool (which is set to node's default <code>maxSockets</code>)</li>
+<li>
+<code>pool.maxSockets</code> - Integer containing the maximum amount of sockets in the pool.</li>
+<li>
+<code>timeout</code> - Integer containing the number of milliseconds to wait for a request to respond before aborting the request</li>
+<li>
+<code>proxy</code> - An HTTP proxy to be used. Supports proxy Auth with Basic Auth, identical to support for the <code>url</code> parameter (by embedding the auth info in the <code>uri</code>)</li>
+<li>
+<code>oauth</code> - Options for OAuth HMAC-SHA1 signing. See documentation above.</li>
+<li>
+<code>hawk</code> - Options for <a href="https://github.com/hueniverse/hawk">Hawk signing</a>. The <code>credentials</code> key must contain the necessary signing info, <a href="https://github.com/hueniverse/hawk#usage-example">see hawk docs for details</a>.</li>
+<li>
+<code>strictSSL</code> - If <code>true</code>, requires SSL certificates be valid. <strong>Note:</strong> to use your own certificate authority, you need to specify an agent that was created with that CA as an option.</li>
+<li>
+<code>jar</code> - If <code>true</code> and <code>tough-cookie</code> is installed, remember cookies for future use (or define your custom cookie jar; see examples section)</li>
+<li>
+<code>aws</code> - <code>object</code> containing AWS signing information. Should have the properties <code>key</code>, <code>secret</code>. Also requires the property <code>bucket</code>, unless you’re specifying your <code>bucket</code> as part of the path, or the request doesn’t use a bucket (i.e. GET Services)</li>
+<li>
+<code>httpSignature</code> - Options for the <a href="https://github.com/joyent/node-http-signature/blob/master/http_signing.md">HTTP Signature Scheme</a> using <a href="https://github.com/joyent/node-http-signature">Joyent's library</a>. The <code>keyId</code> and <code>key</code> properties must be specified. See the docs for other options.</li>
+<li>
+<code>localAddress</code> - Local interface to bind for network connections.</li>
+<li>
+<code>gzip</code> - If <code>true</code>, add an <code>Accept-Encoding</code> header to request compressed content encodings from the server (if not already present) and decode supported content encodings in the response.</li>
+</ul><p>The callback argument gets 3 arguments: </p>
+
+<ol class="task-list">
+<li>An <code>error</code> when applicable (usually from <a href="http://nodejs.org/api/http.html#http_class_http_clientrequest"><code>http.ClientRequest</code></a> object)</li>
+<li>An <a href="http://nodejs.org/api/http.html#http_http_incomingmessage"><code>http.IncomingMessage</code></a> object</li>
+<li>The third is the <code>response</code> body (<code>String</code> or <code>Buffer</code>, or JSON object if the <code>json</code> option is supplied)</li>
+</ol><h2>
+<a name="user-content-convenience-methods" class="anchor" href="#convenience-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Convenience methods</h2>
+
+<p>There are also shorthand methods for different HTTP METHODs and some other conveniences.</p>
+
+<h3>
+<a name="user-content-requestdefaultsoptions" class="anchor" href="#requestdefaultsoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.defaults(options)</h3>
+
+<p>This method returns a wrapper around the normal request API that defaults to whatever options you pass in to it.</p>
+
+<h3>
+<a name="user-content-requestput" class="anchor" href="#requestput" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.put</h3>
+
+<p>Same as <code>request()</code>, but defaults to <code>method: "PUT"</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestpatch" class="anchor" href="#requestpatch" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.patch</h3>
+
+<p>Same as <code>request()</code>, but defaults to <code>method: "PATCH"</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">patch</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestpost" class="anchor" href="#requestpost" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.post</h3>
+
+<p>Same as <code>request()</code>, but defaults to <code>method: "POST"</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requesthead" class="anchor" href="#requesthead" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.head</h3>
+
+<p>Same as request() but defaults to <code>method: "HEAD"</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">head</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestdel" class="anchor" href="#requestdel" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.del</h3>
+
+<p>Same as <code>request()</code>, but defaults to <code>method: "DELETE"</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">del</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestget" class="anchor" href="#requestget" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.get</h3>
+
+<p>Same as <code>request()</code> (for uniformity).</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestcookie" class="anchor" href="#requestcookie" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.cookie</h3>
+
+<p>Function that creates a new cookie.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">cookie</span><span class="p">(</span><span class="s1">'cookie_string_here'</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-requestjar" class="anchor" href="#requestjar" aria-hidden="true"><span class="octicon octicon-link"></span></a>request.jar</h3>
+
+<p>Function that creates a new cookie jar.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">request</span><span class="p">.</span><span class="nx">jar</span><span class="p">()</span>
+</pre></div>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples:</h2>
+
+<div class="highlight highlight-javascript"><pre>  <span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'request'</span><span class="p">)</span>
+    <span class="p">,</span> <span class="nx">rand</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">100000000</span><span class="p">).</span><span class="nx">toString</span><span class="p">()</span>
+    <span class="p">;</span>
+  <span class="nx">request</span><span class="p">(</span>
+    <span class="p">{</span> <span class="nx">method</span><span class="o">:</span> <span class="s1">'PUT'</span>
+    <span class="p">,</span> <span class="nx">uri</span><span class="o">:</span> <span class="s1">'http://mikeal.iriscouch.com/testjs/'</span> <span class="o">+</span> <span class="nx">rand</span>
+    <span class="p">,</span> <span class="nx">multipart</span><span class="o">:</span>
+      <span class="p">[</span> <span class="p">{</span> <span class="s1">'content-type'</span><span class="o">:</span> <span class="s1">'application/json'</span>
+        <span class="p">,</span>  <span class="nx">body</span><span class="o">:</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="nx">foo</span><span class="o">:</span> <span class="s1">'bar'</span><span class="p">,</span> <span class="nx">_attachments</span><span class="o">:</span> <span class="p">{</span><span class="s1">'message.txt'</span><span class="o">:</span> <span class="p">{</span><span class="nx">follows</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span> <span class="nx">length</span><span class="o">:</span> <span class="mi">18</span><span class="p">,</span> <span class="s1">'content_type'</span><span class="o">:</span> <span class="s1">'text/plain'</span> <span class="p">}}})</span>
+        <span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span> <span class="nx">body</span><span class="o">:</span> <span class="s1">'I am an attachment'</span> <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">201</span><span class="p">){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'document saved as: http://mikeal.iriscouch.com/testjs/'</span><span class="o">+</span> <span class="nx">rand</span><span class="p">)</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'error: '</span><span class="o">+</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span><span class="p">)</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">body</span><span class="p">)</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">)</span>
+</pre></div>
+
+<p>Cookies are disabled by default (else, they would be used in subsequent requests). To enable cookies, set <code>jar</code> to <code>true</code> (either in <code>defaults</code> or <code>options</code>) and install <code>tough-cookie</code>.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">defaults</span><span class="p">({</span><span class="nx">jar</span><span class="o">:</span> <span class="kc">true</span><span class="p">})</span>
+<span class="nx">request</span><span class="p">(</span><span class="s1">'http://www.google.com'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="nx">request</span><span class="p">(</span><span class="s1">'http://images.google.com'</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>To use a custom cookie jar (instead of <code>request</code>’s global cookie jar), set <code>jar</code> to an instance of <code>request.jar()</code> (either in <code>defaults</code> or <code>options</code>)</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">j</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">jar</span><span class="p">()</span>
+<span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">defaults</span><span class="p">({</span><span class="nx">jar</span><span class="o">:</span><span class="nx">j</span><span class="p">})</span>
+<span class="nx">request</span><span class="p">(</span><span class="s1">'http://www.google.com'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="nx">request</span><span class="p">(</span><span class="s1">'http://images.google.com'</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>OR</p>
+
+<div class="highlight highlight-javascript"><pre><span class="c1">// `npm install --save tough-cookie` before this works</span>
+<span class="kd">var</span> <span class="nx">j</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">jar</span><span class="p">()</span>
+<span class="kd">var</span> <span class="nx">cookie</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">cookie</span><span class="p">(</span><span class="s1">'your_cookie_here'</span><span class="p">)</span>
+<span class="nx">j</span><span class="p">.</span><span class="nx">setCookie</span><span class="p">(</span><span class="nx">cookie</span><span class="p">,</span> <span class="nx">uri</span><span class="p">);</span>
+<span class="nx">request</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span> <span class="s1">'http://www.google.com'</span><span class="p">,</span> <span class="nx">jar</span><span class="o">:</span> <span class="nx">j</span><span class="p">},</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="nx">request</span><span class="p">(</span><span class="s1">'http://images.google.com'</span><span class="p">)</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>To inspect your cookie jar after a request</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">j</span> <span class="o">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">jar</span><span class="p">()</span> 
+<span class="nx">request</span><span class="p">({</span><span class="nx">url</span><span class="o">:</span> <span class="s1">'http://www.google.com'</span><span class="p">,</span> <span class="nx">jar</span><span class="o">:</span> <span class="nx">j</span><span class="p">},</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">cookie_string</span> <span class="o">=</span> <span class="nx">j</span><span class="p">.</span><span class="nx">getCookieString</span><span class="p">(</span><span class="nx">uri</span><span class="p">);</span> <span class="c1">// "key1=value1; key2=value2; ..."</span>
+  <span class="kd">var</span> <span class="nx">cookies</span> <span class="o">=</span> <span class="nx">j</span><span class="p">.</span><span class="nx">getCookies</span><span class="p">(</span><span class="nx">uri</span><span class="p">);</span> 
+  <span class="c1">// [{key: 'key1', value: 'value1', domain: "www.google.com", ...}, ...]</span>
+<span class="p">})</span>
+</pre></div></article></div>

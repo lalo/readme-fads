@@ -1,0 +1,495 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hammerjs-20-" class="anchor" href="#hammerjs-20-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.js 2.0 <a href="https://travis-ci.org/hammerjs/hammer.js/"><img src="https://camo.githubusercontent.com/3921982dcb92f27a62d48573bde8da13c7939eda/68747470733a2f2f7472617669732d63692e6f72672f68616d6d65726a732f68616d6d65722e6a732e737667" alt="Build Status" data-canonical-src="https://travis-ci.org/hammerjs/hammer.js.svg" style="max-width:100%;"></a>
+</h1>
+
+<p><strong>Completely rewritten, with reusable gesture recognizers, and better support for the recent mobile browsers by
+making use of the <code>touch-action</code> css property when possible. Also support for multiple Hammer instances the same
+time, so multi-user became possible.</strong></p>
+
+<p>You can get the pre-build versions from the <a href="http://hammerjs.github.io">Hammer.js website</a>, 
+or do this by yourself running <code>npm install -g grunt-cli &amp;&amp; npm install &amp;&amp; grunt build</code>.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>Hammer is easy to use. Just create an instance and bind the events.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">mc</span> <span class="o">=</span> <span class="nx">Hammer</span><span class="p">(</span><span class="nx">myElement</span><span class="p">);</span>
+<span class="nx">mc</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">"swipeleft swiperight"</span><span class="p">,</span> <span class="nx">mySwipeHandler</span><span class="p">);</span>
+</pre></div>
+
+<p>By default it adds the <code>tap</code>, <code>doubletap</code> and <code>press</code>, horizontal <code>pan</code> and <code>swipe</code>, and the multi-touch <code>pinch</code> and 
+<code>rotate</code> recognizers. The pinch and rotate recognizers are disabled by default because they would make the element 
+blocking, but you can enable them by calling <code>mc.get('pinch').set({enable: true})</code></p>
+
+<p>Also the viewport meta tag is recommended, it gives more control back to the webpage by disableing the 
+doubletap/pinch zoom. More recent browsers that support the touch-action property don't require this.</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;meta</span> <span class="na">name=</span><span class="s">"viewport"</span> <span class="na">content=</span><span class="s">"user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1"</span><span class="nt">&gt;</span>
+</pre></div>
+
+<h3>
+<a name="user-content-more-control" class="anchor" href="#more-control" aria-hidden="true"><span class="octicon octicon-link"></span></a>More control</h3>
+
+<p>You can setup your own set of recognizers for your instance. This requires a bit more code, but it gives you more
+control and slightly better performance.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">myOptions</span> <span class="o">=</span> <span class="p">{</span> <span class="p">};</span>
+<span class="kd">var</span> <span class="nx">mc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Manager</span><span class="p">(</span><span class="nx">myElement</span><span class="p">,</span> <span class="nx">myOptions</span><span class="p">);</span>
+
+<span class="nx">mc</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Pan</span><span class="p">({</span> <span class="nx">direction</span><span class="o">:</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">DIRECTION_ALL</span> <span class="p">}));</span>
+<span class="nx">mc</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Tap</span><span class="p">({</span> <span class="nx">event</span><span class="o">:</span> <span class="s1">'quadrupletap'</span><span class="p">,</span> <span class="nx">taps</span><span class="o">:</span> <span class="mi">4</span> <span class="p">}));</span>
+
+<span class="nx">mc</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">"pan"</span><span class="p">,</span> <span class="nx">handlePan</span><span class="p">);</span>
+<span class="nx">mc</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">"quadrupletap"</span><span class="p">,</span> <span class="nx">handleTaps</span><span class="p">);</span>
+</pre></div>
+
+<p>The example above creates an instance containing a <code>pan</code> and a <code>quadrupletap</code> gesture. The recognizer instances you
+create a being executed in the order they are added, and only one can be recognized at the time.</p>
+
+<h4>
+<a name="user-content-simultaneous-recognizing" class="anchor" href="#simultaneous-recognizing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simultaneous recognizing</h4>
+
+<p>If you want to recognize two gestures simultaneously, you can use the the <code>recognizeWith()</code> method. The example
+below does this with the pinch and rotate recognizers, which will improve usability.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">pinch</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Pinch</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">rotate</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Rotation</span><span class="p">();</span>
+
+<span class="nx">pinch</span><span class="p">.</span><span class="nx">recognizeWith</span><span class="p">(</span><span class="nx">rotate</span><span class="p">);</span> <span class="c1">// recognize the pinch-rotation recognizers simultaneous</span>
+</pre></div>
+
+<p>Now Hammer is able to run pinch and rotate the same time. You can also separate them with the <code>dropRecognizeWith()</code> method on
+the recognizer instance.</p>
+
+<h4>
+<a name="user-content-require-failure-of-an-other-recognizer" class="anchor" href="#require-failure-of-an-other-recognizer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Require failure of an other recognizer</h4>
+
+<p>With the method <code>requireFailure()</code> you can let a recognizer require the failure of an other recognizer before recognizing.
+This could become useful when you want to nest two gestures, like pan-horizontal and pan-vertical.</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">horizontal</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Pan</span><span class="p">({</span> <span class="nx">event</span><span class="o">:</span> <span class="s1">'panh'</span><span class="p">,</span> <span class="nx">direction</span><span class="o">:</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">DIRECTION_HORIZONTAL</span> <span class="p">});</span>
+<span class="kd">var</span> <span class="nx">vertical</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">Pan</span><span class="p">({</span> <span class="nx">event</span><span class="o">:</span> <span class="s1">'panv'</span><span class="p">,</span> <span class="nx">direction</span><span class="o">:</span> <span class="nx">Hammer</span><span class="p">.</span><span class="nx">DIRECTION_VERTICAL</span> <span class="p">});</span>
+
+<span class="nx">verical</span><span class="p">.</span><span class="nx">requireFailure</span><span class="p">(</span><span class="nx">horizontal</span><span class="p">);</span>
+</pre></div>
+
+<p>Removing the dependency could be done with the <code>dropRequireFailure()</code> method.</p>
+
+<h2>
+<a name="user-content-the-touch-action-property" class="anchor" href="#the-touch-action-property" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Touch-action property</h2>
+
+<p>Chrome 35+, IE10+ and soon FireFox, support the <code>touch-action</code> property. This property tells the browser how to
+handle touches on an element. It improves the detection and experience of the gestures a lot, because it can prevent
+scrolling of the page without any JavaScript has to be executed, which can be too late in some cases.
+Hammer uses a fallback for this property when needed, so it is working with older browsers too.</p>
+
+<p>By default it sets a value based on the recognizer settings. You can overwrite this by giving the option <code>touchAction</code>
+to the Manager.</p>
+
+<p>When you set the touchAction to <code>auto</code> it doesnt prevent any defaults, and Hammer would probably break. You have to 
+call <code>preventDefault</code> manually to fix this. You should only use this if you know what you're doing.</p>
+
+<h3>
+<a name="user-content-preferred-touch-action-values-per-gesture" class="anchor" href="#preferred-touch-action-values-per-gesture" aria-hidden="true"><span class="octicon octicon-link"></span></a>Preferred touch-action values per gesture</h3>
+
+<p>If you <em>do</em> want to set your own value, then the table below should help you a bit...</p>
+
+<table>
+<thead><tr>
+<th>Gesture</th>
+<th>Least restrictive touch-action value</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>press</td>
+<td>auto</td>
+</tr>
+<tr>
+<td>tap</td>
+<td>auto</td>
+</tr>
+<tr>
+<td>multitap</td>
+<td>manipulation</td>
+</tr>
+<tr>
+<td>vertical pan/swipe</td>
+<td>pan-x</td>
+</tr>
+<tr>
+<td>horizontal pan/swipe</td>
+<td>pan-y</td>
+</tr>
+<tr>
+<td>rotate</td>
+<td>pan-x pan-y</td>
+</tr>
+<tr>
+<td>pinch</td>
+<td>pan-x pan-y</td>
+</tr>
+</tbody>
+</table><h1>
+<a name="user-content-api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h1>
+
+<p>The source code is well documented (JSDoc), you could figure out the rest of the API over there!</p>
+
+<h3>
+<a name="user-content-hammerhtmlelement-options" class="anchor" href="#hammerhtmlelement-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer(HTMLElement, [options])</h3>
+
+<p>Creates a Manager instance with a default set of recognizers and returns the manager instance. The default set 
+contains <code>tap</code>, <code>doubletap</code>, <code>pan</code>, <code>swipe</code>, <code>press</code>, <code>pinch</code> and <code>rotate</code> recognizer instances.</p>
+
+<h3>
+<a name="user-content-hammermanagerhtmlelement-options" class="anchor" href="#hammermanagerhtmlelement-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Manager(HTMLElement, [options])</h3>
+
+<p>Create a Manager. This sets up the input event listeners, and sets the touch-action property for you on the element.</p>
+
+<p>The <code>touchAction</code> option accepts the <code>auto</code>, <code>pan-y</code>, <code>pan-x</code> and <code>none</code> values, just like the css property. By default
+it is set to <code>compute</code>, which computes the correct touchAction property based on the added recognizers. </p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>touchAction</td>
+<td>compute</td>
+<td>accepts the <code>compute</code>, <code>auto</code>, <code>pan-y</code>, <code>pan-x</code> and <code>none</code> values.</td>
+</tr>
+<tr>
+<td>domEvents</td>
+<td>false</td>
+<td>this let's hammer also fire domEvents.</td>
+</tr>
+<tr>
+<td>enable</td>
+<td>true</td>
+<td>boolean, or an function that should return a boolean which is.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-addrecognizer-getrecognizer-and-removerecognizer" class="anchor" href="#addrecognizer-getrecognizer-and-removerecognizer" aria-hidden="true"><span class="octicon octicon-link"></span></a>.add(Recognizer), .get(Recognizer) and .remove(Recognizer)</h5>
+
+<p>Add a new <code>Recognizer</code> instance to the Manager. The order of adding is also the order of the recognizers being
+executed. Just like the <code>get</code> method, it returns the added <code>Recognizer</code> instance.</p>
+
+<p>The <code>get</code> and <code>remove</code> methods takes the event name (from a recognizer) or a recognizer instance as an argument.</p>
+
+<h5>
+<a name="user-content-onevents-handler-and-offevents-handler" class="anchor" href="#onevents-handler-and-offevents-handler" aria-hidden="true"><span class="octicon octicon-link"></span></a>.on(events, handler) and .off(events, [handler])</h5>
+
+<p>Listen to events triggered by the added recognizers, or remove the binded events. Accepts multiple events seperated
+by a space.</p>
+
+<h5>
+<a name="user-content-stopforce" class="anchor" href="#stopforce" aria-hidden="true"><span class="octicon octicon-link"></span></a>.stop([force])</h5>
+
+<p>Stop recognizing for the current input session. When forced, the recognizer cycle is stopped immediately.</p>
+
+<h5>
+<a name="user-content-destroy" class="anchor" href="#destroy" aria-hidden="true"><span class="octicon octicon-link"></span></a>.destroy()</h5>
+
+<p>Unbinds all events and input events and makes the manager unusable. It does NOT unbind any domEvent listeners.</p>
+
+<h3>
+<a name="user-content-hammerrecognizeroptions" class="anchor" href="#hammerrecognizeroptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Recognizer(options)</h3>
+
+<p>Every Recognizer extends from this class. All recognizers also have the option <code>enable</code>, 
+which is a boolean value or a callback function to enable/disable the recognizer on the fly.</p>
+
+<h5>
+<a name="user-content-recognizewithotherrecognizer-and-droprecognizewithotherrecognizer" class="anchor" href="#recognizewithotherrecognizer-and-droprecognizewithotherrecognizer" aria-hidden="true"><span class="octicon octicon-link"></span></a>.recognizeWith(otherRecognizer) and .dropRecognizeWith(otherRecognizer)</h5>
+
+<p>Run the recognizer simultaneous with the given other recognizer, in both directions. This is usable for like 
+combining a pan with a swipe at the end, or a pinch with the ability to rotate the target as well. Dropping the
+connection only removes the link on the recognizer, not on the other recognizer.</p>
+
+<h5>
+<a name="user-content-requirefailureotherrecognizer-and-droprequirefailureotherrecognizer" class="anchor" href="#requirefailureotherrecognizer-and-droprequirefailureotherrecognizer" aria-hidden="true"><span class="octicon octicon-link"></span></a>.requireFailure(otherRecognizer) and .dropRequireFailure(otherRecognizer)</h5>
+
+<p>Run the recognizer only when the other recognizer fails. Dropping the connection only removes the link on the 
+recognizer, not on the other recognizer.</p>
+
+<h2>
+<a name="user-content-options-per-recognizer" class="anchor" href="#options-per-recognizer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Options per recognizer</h2>
+
+<h3>
+<a name="user-content-hammerpressoptions" class="anchor" href="#hammerpressoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Press(options)</h3>
+
+<p>Recognized when the pointer is down for x ms without any movement.</p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>event</td>
+<td>press</td>
+<td>Name of the event.</td>
+</tr>
+<tr>
+<td>pointers</td>
+<td>1</td>
+<td>Required pointers.</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>5</td>
+<td>Minimal movement that is allowed while pressing.</td>
+</tr>
+<tr>
+<td>time</td>
+<td>500</td>
+<td>Minimal press time in ms.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h5>
+
+<ul class="task-list">
+<li>press</li>
+</ul><h3>
+<a name="user-content-hammerpanoptions" class="anchor" href="#hammerpanoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Pan(options)</h3>
+
+<p>Recognized when the pointer is down and moved in the allowed direction.</p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>event</td>
+<td>pan</td>
+<td>Name of the event.</td>
+</tr>
+<tr>
+<td>pointers</td>
+<td>1</td>
+<td>Required pointers. 0 for all pointers.</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>10</td>
+<td>Minimal pan distance required before recognizing.</td>
+</tr>
+<tr>
+<td>direction</td>
+<td>DIRECTION_ALL</td>
+<td>Direction of the panning.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-events-1" class="anchor" href="#events-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h5>
+
+<ul class="task-list">
+<li>pan</li>
+<li>panleft</li>
+<li>panright</li>
+<li>panup</li>
+<li>pandown</li>
+<li>panstart</li>
+<li>panmove</li>
+<li>panend</li>
+<li>pancancel</li>
+</ul><h3>
+<a name="user-content-hammerpinchoptions" class="anchor" href="#hammerpinchoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Pinch(options)</h3>
+
+<p>Recognized when two or more pointers are moving toward (zoom-in) or away from each other (zoom-out).</p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>event</td>
+<td>pinch</td>
+<td>Name of the event.</td>
+</tr>
+<tr>
+<td>pointers</td>
+<td>2</td>
+<td>Required pointers, with a minimal of 2.</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>0</td>
+<td>Minimal scale before recognizing.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-events-2" class="anchor" href="#events-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h5>
+
+<ul class="task-list">
+<li>pinch</li>
+<li>pinchin</li>
+<li>pinchout</li>
+<li>pinchstart</li>
+<li>pinchmove</li>
+<li>pinchend</li>
+<li>pinchcancel</li>
+</ul><h3>
+<a name="user-content-hammerrotateoptions" class="anchor" href="#hammerrotateoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Rotate(options)</h3>
+
+<p>Recognized when two or more pointer are moving in a circular motion.</p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>event</td>
+<td>rotate</td>
+<td>Name of the event.</td>
+</tr>
+<tr>
+<td>pointers</td>
+<td>2</td>
+<td>Required pointers, with a minimal of 2.</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>0</td>
+<td>Minimal rotation before recognizing.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-events-3" class="anchor" href="#events-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h5>
+
+<ul class="task-list">
+<li>rotate</li>
+<li>rotatestart</li>
+<li>rotatemove</li>
+<li>rotateend</li>
+<li>rotatecancel</li>
+</ul><h3>
+<a name="user-content-hammerswipeoptions" class="anchor" href="#hammerswipeoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Swipe(options)</h3>
+
+<p>Recognized when the pointer is moving fast (velocity), with enough distance in the allowed direction.</p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>event</td>
+<td>swipe</td>
+<td>Name of the event.</td>
+</tr>
+<tr>
+<td>pointers</td>
+<td>1</td>
+<td>Required pointers.</td>
+</tr>
+<tr>
+<td>distance</td>
+<td>10</td>
+<td>Minimal distance required before recognizing.</td>
+</tr>
+<tr>
+<td>direction</td>
+<td>DIRECTION_ALL</td>
+<td>Direction of the panning.</td>
+</tr>
+<tr>
+<td>velocity</td>
+<td>0.65</td>
+<td>Minimal velocity required before recognizing, unit is in px per ms.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-events-4" class="anchor" href="#events-4" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h5>
+
+<ul class="task-list">
+<li>swipe</li>
+<li>swipeleft</li>
+<li>swiperight</li>
+<li>swipeup</li>
+<li>swipedown</li>
+<li>swipe</li>
+</ul><h3>
+<a name="user-content-hammertapoptions" class="anchor" href="#hammertapoptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hammer.Tap(options)</h3>
+
+<p>Recognized when the pointer is doing a small tap/click. Multiple taps are recognized if they occur between the given 
+interval and position. 
+The delay option can be used to recognize multi-taps without firing a single tap.</p>
+
+<p>The eventData from the emitted event contains the property <code>tapCount</code>, which contains the amount of multi-taps being 
+recognized.</p>
+
+<table>
+<thead><tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>event</td>
+<td>tap</td>
+<td>Name of the event.</td>
+</tr>
+<tr>
+<td>pointers</td>
+<td>1</td>
+<td>Required pointers.</td>
+</tr>
+<tr>
+<td>taps</td>
+<td>1</td>
+<td>Amount of taps required.</td>
+</tr>
+<tr>
+<td>interval</td>
+<td>300</td>
+<td>Maximum time in ms between multiple taps.</td>
+</tr>
+<tr>
+<td>time</td>
+<td>250</td>
+<td>Maximum press time in ms.</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>2</td>
+<td>While doing a tap some small movement is allowed.</td>
+</tr>
+<tr>
+<td>posThreshold</td>
+<td>10</td>
+<td>The maximum position difference between multiple taps.</td>
+</tr>
+</tbody>
+</table><h5>
+<a name="user-content-events-5" class="anchor" href="#events-5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h5>
+
+<ul class="task-list">
+<li>tap</li>
+</ul><h2>
+<a name="user-content-further-notes" class="anchor" href="#further-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Further notes</h2>
+
+<p>Developed by <a href="http://twitter.com/jorikdelaporik">Jorik Tangelder</a> in his spare time and at
+<a href="http://www.eight.nl/">Eight Media</a> in Arnhem, the Netherlands. </p>
+
+<p>Special thanks to <a href="https://github.com/ppcano">Pepe Cano</a> for his contributions.</p>
+
+<p>It's recommended to listen to <a href="http://soundcloud.com/eightmedia/hammerhammerhammer">this loop</a> while using hammer.js.</p></article></div>

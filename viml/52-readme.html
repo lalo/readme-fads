@@ -1,0 +1,130 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-fireplacevim" class="anchor" href="#fireplacevim" aria-hidden="true"><span class="octicon octicon-link"></span></a>fireplace.vim</h1>
+
+<p>There's a REPL in fireplace, but you probably wouldn't have noticed if I hadn't
+told you.  Such is the way with fireplace.vim.  By the way, this plugin is for
+Clojure.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>First, set up <a href="https://github.com/clojure-emacs/cider-nrepl">cider-nrepl</a>.  (If you skip this step, fireplace.vim will
+make do with eval, which mostly works.) Next, fireplace.vim doesn't provide
+indenting or syntax highlighting, so you'll want <a href="https://github.com/guns/vim-clojure-static">a set of Clojure runtime
+files</a> if you're on a version of
+Vim earlier than 7.4.  You might also want <a href="https://github.com/tpope/vim-leiningen">leiningen.vim</a> for assorted
+static project support.</p>
+
+<p>If you don't have a preferred installation method, I recommend
+installing <a href="https://github.com/tpope/vim-pathogen">pathogen.vim</a>, and
+then simply copy and paste:</p>
+
+<pre><code>cd ~/.vim/bundle
+git clone git://github.com/tpope/vim-fireplace.git
+</code></pre>
+
+<p>Once help tags have been generated, you can view the manual with
+<code>:help fireplace</code>.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p>This list isn't exhaustive; see the <code>:help</code> for details.</p>
+
+<h3>
+<a name="user-content-transparent-setup" class="anchor" href="#transparent-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transparent setup</h3>
+
+<p>Fireplace.vim talks to nREPL.  With Leiningen, it connects automatically based
+on <code>.nrepl-port</code>, otherwise it's just a <code>:Connect</code> away.  You can connect to
+multiple instances of nREPL for different projects, and it will use the right
+one automatically.  ClojureScript support is just as seamless with
+<a href="https://github.com/cemerick/piggieback">Piggieback</a>.</p>
+
+<p>The only external dependency is that you have either a Vim with Python support
+compiled in, or <code>python</code> in your path.</p>
+
+<p>Oh, and if you don't have an nREPL connection, installing <a href="https://github.com/tpope/vim-leiningen">leiningen.vim</a>
+lets it fall back to using <code>java clojure.main</code> for some of the basics, using a
+class path based on your Leiningen config.  It's a bit slow, but a two-second
+delay is vastly preferable to being forced out of my flow for a single
+command, in my book.</p>
+
+<h3>
+<a name="user-content-not-quite-a-repl" class="anchor" href="#not-quite-a-repl" aria-hidden="true"><span class="octicon octicon-link"></span></a>Not quite a REPL</h3>
+
+<p>You know that one plugin that provides a REPL in a split window and works
+absolutely flawlessly, never breaking just because you did something innocuous
+like backspace through part of the prompt?  No?  Such a shame, you really
+would have liked it.</p>
+
+<p>I've taken a different approach in fireplace.vim.  <code>cq</code>  (Think "Clojure
+Quasi-REPL") is the prefix for a set of commands that bring up a <em>command-line
+window</em> — the same thing you get when you hit <code>q:</code> — but set up for Clojure
+code.</p>
+
+<p><code>cqq</code> prepopulates the command-line window with the expression under the
+cursor.  <code>cqc</code> gives you a blank line in insert mode.</p>
+
+<h3>
+<a name="user-content-evaluating-from-the-buffer" class="anchor" href="#evaluating-from-the-buffer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Evaluating from the buffer</h3>
+
+<p>Standard stuff here.  <code>:Eval</code> evaluates a range (<code>:%Eval</code> gets the whole
+file), <code>:Require</code> requires a namespace with <code>:reload</code> (<code>:Require!</code> does
+<code>:reload-all</code>), either the current buffer or a given argument.  <code>:RunTests</code>
+kicks off <code>(clojure.test/run-tests)</code> and loads the results into the quickfix
+list.</p>
+
+<p>There's a <code>cp</code> operator that evaluates a given motion (<code>cpp</code> for the
+innermost form under the cursor). <code>cm</code> and <code>c1m</code> are similar, but they only
+run <code>clojure.walk/macroexpand-all</code> and <code>macroexpand-1</code> instead of evaluating
+the form entirely.</p>
+
+<p>Any failed evaluation loads the stack trace into the location list, which
+can be easily accessed with <code>:lopen</code>.</p>
+
+<h3>
+<a name="user-content-navigating-and-comprehending" class="anchor" href="#navigating-and-comprehending" aria-hidden="true"><span class="octicon octicon-link"></span></a>Navigating and Comprehending</h3>
+
+<p>I was brand new to Clojure when I started this plugin, so stuff that helped me
+understand code was a top priority.</p>
+
+<ul class="task-list">
+<li><p><code>:Source</code>, <code>:Doc</code>, and <code>:FindDoc</code>, which map to the underlying
+<code>clojure.repl</code> macro (with tab complete, of course).</p></li>
+<li><p><code>K</code> is mapped to look up the symbol under the cursor with <code>doc</code>.</p></li>
+<li><p><code>[d</code> is mapped to look up the symbol under the cursor with <code>source</code>.</p></li>
+<li><p><code>[&lt;C-D&gt;</code> jumps to the definition of a symbol (even if it's inside a jar
+file).</p></li>
+<li><p><code>gf</code>, everybody's favorite "go to file" command, works on namespaces.</p></li>
+</ul><p>Where possible, I favor enhancing built-ins over inventing a bunch of
+<code>&lt;Leader&gt;</code> maps.</p>
+
+<h3>
+<a name="user-content-omnicomplete" class="anchor" href="#omnicomplete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Omnicomplete</h3>
+
+<p>Because why not?  It works in the quasi-REPL too.</p>
+
+<h2>
+<a name="user-content-faq" class="anchor" href="#faq" aria-hidden="true"><span class="octicon octicon-link"></span></a>FAQ</h2>
+
+<blockquote>
+<p>Why does it take so long for Vim to startup?</p>
+</blockquote>
+
+<p>That's either <a href="https://github.com/tpope/vim-classpath">classpath.vim</a> or <a href="https://github.com/tpope/vim-leiningen">leiningen.vim</a>.</p>
+
+<h2>
+<a name="user-content-self-promotion" class="anchor" href="#self-promotion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Self-Promotion</h2>
+
+<p>Like fireplace.vim? Follow the repository on
+<a href="https://github.com/tpope/vim-fireplace">GitHub</a> and vote for it on
+<a href="http://www.vim.org/scripts/script.php?script_id=4978">vim.org</a>.  And if
+you're feeling especially charitable, follow <a href="http://tpo.pe/">tpope</a> on
+<a href="http://twitter.com/tpope">Twitter</a> and
+<a href="https://github.com/tpope">GitHub</a>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright © Tim Pope.  Distributed under the same terms as Vim itself.
+See <code>:help license</code>.</p></article></div>

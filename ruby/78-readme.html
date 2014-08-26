@@ -1,0 +1,79 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="http://travis-ci.org/Shopify/liquid"><img src="https://camo.githubusercontent.com/99d9d6dd85f2c5a787b0d2db697eaa8d2adb0814/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f53686f706966792f6c69717569642e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/Shopify/liquid.png?branch=master" style="max-width:100%;"></a>
+<a href="http://inch-ci.org/github/Shopify/liquid"><img src="https://camo.githubusercontent.com/ccc5f7fe1e61fca251844adbe7a814d0c28c9aaa/687474703a2f2f696e63682d63692e6f72672f6769746875622f53686f706966792f6c69717569642e706e67" alt="Inline docs" data-canonical-src="http://inch-ci.org/github/Shopify/liquid.png" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-liquid-template-engine" class="anchor" href="#liquid-template-engine" aria-hidden="true"><span class="octicon octicon-link"></span></a>Liquid template engine</h1>
+
+<ul class="task-list">
+<li><a href="CONTRIBUTING.md">Contributing guidelines</a></li>
+<li><a href="History.md">Version history</a></li>
+<li><a href="http://docs.shopify.com/themes/liquid-basics">Liquid documentation from Shopify</a></li>
+<li><a href="https://github.com/Shopify/liquid/wiki">Liquid Wiki at GitHub</a></li>
+<li><a href="http://liquidmarkup.org/">Website</a></li>
+</ul><h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>Liquid is a template engine which was written with very specific requirements:</p>
+
+<ul class="task-list">
+<li>It has to have beautiful and simple markup. Template engines which don't produce good looking markup are no fun to use.</li>
+<li>It needs to be non evaling and secure. Liquid templates are made so that users can edit them. You don't want to run code on your server which your users wrote.</li>
+<li>It has to be stateless. Compile and render steps have to be separate so that the expensive parsing and compiling can be done once and later on you can just render it passing in a hash with local variables and objects.</li>
+</ul><h2>
+<a name="user-content-why-you-should-use-liquid" class="anchor" href="#why-you-should-use-liquid" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why you should use Liquid</h2>
+
+<ul class="task-list">
+<li>You want to allow your users to edit the appearance of your application but don't want them to run <strong>insecure code on your server</strong>.</li>
+<li>You want to render templates directly from the database.</li>
+<li>You like smarty (PHP) style template engines.</li>
+<li>You need a template engine which does HTML just as well as emails.</li>
+<li>You don't like the markup of your current templating engine.</li>
+</ul><h2>
+<a name="user-content-what-does-it-look-like" class="anchor" href="#what-does-it-look-like" aria-hidden="true"><span class="octicon octicon-link"></span></a>What does it look like?</h2>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">"products"</span><span class="nt">&gt;</span>
+  {% for product in products %}
+    <span class="nt">&lt;li&gt;</span>
+      <span class="nt">&lt;h2&gt;</span>{{ product.name }}<span class="nt">&lt;/h2&gt;</span>
+      Only {{ product.price | price }}
+
+      {{ product.description | prettyprint | paragraph }}
+    <span class="nt">&lt;/li&gt;</span>
+  {% endfor %}
+<span class="nt">&lt;/ul&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-how-to-use-liquid" class="anchor" href="#how-to-use-liquid" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use Liquid</h2>
+
+<p>Liquid supports a very simple API based around the Liquid::Template class.
+For standard use you can just pass it the content of a file and call render with a parameters hash.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@template</span> <span class="o">=</span> <span class="no">Liquid</span><span class="o">::</span><span class="no">Template</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">"hi {{name}}"</span><span class="p">)</span> <span class="c1"># Parses and compiles the template</span>
+<span class="vi">@template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="s1">'name'</span> <span class="o">=&gt;</span> <span class="s1">'tobi'</span><span class="p">)</span>                <span class="c1"># =&gt; "hi tobi"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-error-modes" class="anchor" href="#error-modes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Modes</h3>
+
+<p>Setting the error mode of Liquid lets you specify how strictly you want your templates to be interpreted.
+Normally the parser is very lax and will accept almost anything without error. Unfortunately this can make
+it very hard to debug and can lead to unexpected behaviour. </p>
+
+<p>Liquid also comes with a stricter parser that can be used when editing templates to give better error messages
+when templates are invalid. You can enable this new parser like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Liquid</span><span class="o">::</span><span class="no">Template</span><span class="o">.</span><span class="n">error_mode</span> <span class="o">=</span> <span class="ss">:strict</span> <span class="c1"># Raises a SyntaxError when invalid syntax is used</span>
+<span class="no">Liquid</span><span class="o">::</span><span class="no">Template</span><span class="o">.</span><span class="n">error_mode</span> <span class="o">=</span> <span class="ss">:warn</span> <span class="c1"># Adds errors to template.errors but continues as normal</span>
+<span class="no">Liquid</span><span class="o">::</span><span class="no">Template</span><span class="o">.</span><span class="n">error_mode</span> <span class="o">=</span> <span class="ss">:lax</span> <span class="c1"># The default mode, accepts almost anything.</span>
+</pre></div>
+
+<p>If you want to set the error mode only on specific templates you can pass <code>:error_mode</code> as an option to <code>parse</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Liquid</span><span class="o">::</span><span class="no">Template</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="ss">:error_mode</span> <span class="o">=&gt;</span> <span class="ss">:strict</span><span class="p">)</span>
+</pre></div>
+
+<p>This is useful for doing things like enabling strict mode only in the theme editor.</p>
+
+<p>It is recommended that you enable <code>:strict</code> or <code>:warn</code> mode on new apps to stop invalid templates from being created.
+It is also recommended that you use it in the template editors of existing apps to give editors better error messages.</p></article></div>

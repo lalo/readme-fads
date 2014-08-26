@@ -1,0 +1,554 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-reactivecocoa" class="anchor" href="#reactivecocoa" aria-hidden="true"><span class="octicon octicon-link"></span></a>ReactiveCocoa</h1>
+
+<p>ReactiveCocoa (RAC) is an Objective-C framework inspired by <a href="http://en.wikipedia.org/wiki/Functional_reactive_programming">Functional Reactive
+Programming</a>. It provides APIs for <strong>composing and transforming streams of
+values</strong>.</p>
+
+<p>If you're already familiar with functional reactive programming or know the basic
+premise of ReactiveCocoa, check out the <a href="Documentation">Documentation</a> folder for a framework
+overview and more in-depth information about how it all works in practice.</p>
+
+<h2>
+<a name="user-content-new-to-reactivecocoa" class="anchor" href="#new-to-reactivecocoa" aria-hidden="true"><span class="octicon octicon-link"></span></a>New to ReactiveCocoa?</h2>
+
+<p>ReactiveCocoa is documented like crazy, and there's a wealth of introductory
+material available to explain what RAC is and how you can use it.</p>
+
+<p>If you want to learn more, we recommend these resources, roughly in order:</p>
+
+<ol class="task-list">
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#when-to-use-reactivecocoa">When to use ReactiveCocoa</a></li>
+<li><a href="Documentation/FrameworkOverview.md">Framework Overview</a></li>
+<li><a href="Documentation/BasicOperators.md">Basic Operators</a></li>
+<li><a href="ReactiveCocoaFramework/ReactiveCocoa">Header documentation</a></li>
+<li>Previously answered <a href="https://github.com/ReactiveCocoa/ReactiveCocoa/wiki">Stack Overflow</a>
+questions and <a href="https://github.com/ReactiveCocoa/ReactiveCocoa/issues?labels=question&amp;state=closed">GitHub issues</a>
+</li>
+<li>The rest of the <a href="Documentation">Documentation</a> folder</li>
+<li>
+<a href="https://leanpub.com/iosfrp/">Functional Reactive Programming on iOS</a> 
+(eBook)</li>
+</ol><p>If you have any further questions, please feel free to <a href="https://github.com/ReactiveCocoa/ReactiveCocoa/issues/new">file an issue</a>. </p>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>ReactiveCocoa is inspired by <a href="http://blog.maybeapps.com/post/42894317939/input-and-output">functional reactive
+programming</a>.
+Rather than using mutable variables which are replaced and modified in-place,
+RAC provides signals (represented by <code>RACSignal</code>) that capture present and
+future values.</p>
+
+<p>By chaining, combining, and reacting to signals, software can be written
+declaratively, without the need for code that continually observes and updates
+values.</p>
+
+<p>For example, a text field can be bound to the latest time, even as it changes,
+instead of using additional code that watches the clock and updates the
+text field every second.  It works much like KVO, but with blocks instead of
+overriding <code>-observeValueForKeyPath:ofObject:change:context:</code>.</p>
+
+<p>Signals can also represent asynchronous operations, much like <a href="http://en.wikipedia.org/wiki/Futures_and_promises">futures and
+promises</a>. This greatly simplifies asynchronous software, including networking
+code.</p>
+
+<p>One of the major advantages of RAC is that it provides a single, unified
+approach to dealing with asynchronous behaviors, including delegate methods,
+callback blocks, target-action mechanisms, notifications, and KVO.</p>
+
+<p>Here's a simple example:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// When self.username changes, logs the new name to the console.</span>
+<span class="c1">//</span>
+<span class="c1">// RACObserve(self, username) creates a new RACSignal that sends the current</span>
+<span class="c1">// value of self.username, then the new value whenever it changes.</span>
+<span class="c1">// -subscribeNext: will execute the block whenever the signal sends a value.</span>
+<span class="p">[</span><span class="n">RACObserve</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span> <span class="nl">subscribeNext</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"%@"</span><span class="p">,</span> <span class="n">newName</span><span class="p">);</span>
+<span class="p">}];</span>
+</pre></div>
+
+<p>But unlike KVO notifications, signals can be chained together and operated on:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Only logs names that starts with "j".</span>
+<span class="c1">//</span>
+<span class="c1">// -filter returns a new RACSignal that only sends a new value when its block</span>
+<span class="c1">// returns YES.</span>
+<span class="p">[[</span><span class="n">RACObserve</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span>
+    <span class="nl">filter</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">newName</span> <span class="nl">hasPrefix</span><span class="p">:</span><span class="s">@"j"</span><span class="p">];</span>
+    <span class="p">}]</span>
+    <span class="nl">subscribeNext</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">newName</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"%@"</span><span class="p">,</span> <span class="n">newName</span><span class="p">);</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<p>Signals can also be used to derive state. Instead of observing properties and
+setting other properties in response to the new values, RAC makes it possible to
+express properties in terms of signals and operations:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Creates a one-way binding so that self.createEnabled will be</span>
+<span class="c1">// true whenever self.password and self.passwordConfirmation</span>
+<span class="c1">// are equal.</span>
+<span class="c1">//</span>
+<span class="c1">// RAC() is a macro that makes the binding look nicer.</span>
+<span class="c1">// </span>
+<span class="c1">// +combineLatest:reduce: takes an array of signals, executes the block with the</span>
+<span class="c1">// latest value from each signal whenever any of them changes, and returns a new</span>
+<span class="c1">// RACSignal that sends the return value of that block as values.</span>
+<span class="n">RAC</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">createEnabled</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="n">RACSignal</span> 
+    <span class="nl">combineLatest</span><span class="p">:</span><span class="l">@[</span> <span class="n">RACObserve</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">password</span><span class="p">),</span> <span class="n">RACObserve</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">passwordConfirmation</span><span class="p">)</span> <span class="l">]</span> 
+    <span class="nl">reduce</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">password</span><span class="p">,</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">passwordConfirm</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="l">@(</span><span class="p">[</span><span class="n">passwordConfirm</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="n">password</span><span class="p">]</span><span class="l">)</span><span class="p">;</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<p>Signals can be built on any stream of values over time, not just KVO. For
+example, they can also represent button presses:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Logs a message whenever the button is pressed.</span>
+<span class="c1">//</span>
+<span class="c1">// RACCommand creates signals to represent UI actions. Each signal can</span>
+<span class="c1">// represent a button press, for example, and have additional work associated</span>
+<span class="c1">// with it.</span>
+<span class="c1">//</span>
+<span class="c1">// -rac_command is an addition to NSButton. The button will send itself on that</span>
+<span class="c1">// command whenever it's pressed.</span>
+<span class="nb">self</span><span class="p">.</span><span class="n">button</span><span class="p">.</span><span class="n">rac_command</span> <span class="o">=</span> <span class="p">[[</span><span class="n">RACCommand</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithSignalBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="kt">id</span> <span class="n">_</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"button was pressed!"</span><span class="p">);</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">RACSignal</span> <span class="n">empty</span><span class="p">];</span>
+<span class="p">}];</span>
+</pre></div>
+
+<p>Or asynchronous network operations:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Hooks up a "Log in" button to log in over the network.</span>
+<span class="c1">//</span>
+<span class="c1">// This block will be run whenever the login command is executed, starting</span>
+<span class="c1">// the login process.</span>
+<span class="nb">self</span><span class="p">.</span><span class="n">loginCommand</span> <span class="o">=</span> <span class="p">[[</span><span class="n">RACCommand</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithSignalBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="kt">id</span> <span class="n">sender</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// The hypothetical -logIn method returns a signal that sends a value when</span>
+    <span class="c1">// the network request finishes.</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">client</span> <span class="n">logIn</span><span class="p">];</span>
+<span class="p">}];</span>
+
+<span class="c1">// -executionSignals returns a signal that includes the signals returned from</span>
+<span class="c1">// the above block, one for each time the command is executed.</span>
+<span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">loginCommand</span><span class="p">.</span><span class="n">executionSignals</span> <span class="nl">subscribeNext</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">RACSignal</span> <span class="o">*</span><span class="n">loginSignal</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Log a message whenever we log in successfully.</span>
+    <span class="p">[</span><span class="n">loginSignal</span> <span class="nl">subscribeCompleted</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Logged in successfully!"</span><span class="p">);</span>
+    <span class="p">}];</span>
+<span class="p">}];</span>
+
+<span class="c1">// Executes the login command when the button is pressed.</span>
+<span class="nb">self</span><span class="p">.</span><span class="n">loginButton</span><span class="p">.</span><span class="n">rac_command</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">loginCommand</span><span class="p">;</span>
+</pre></div>
+
+<p>Signals can also represent timers, other UI events, or anything else that
+changes over time.</p>
+
+<p>Using signals for asynchronous operations makes it possible to build up more
+complex behavior by chaining and transforming those signals. Work can easily be
+triggered after a group of operations completes:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Performs 2 network operations and logs a message to the console when they are</span>
+<span class="c1">// both completed.</span>
+<span class="c1">//</span>
+<span class="c1">// +merge: takes an array of signals and returns a new RACSignal that passes</span>
+<span class="c1">// through the values of all of the signals and completes when all of the</span>
+<span class="c1">// signals complete.</span>
+<span class="c1">//</span>
+<span class="c1">// -subscribeCompleted: will execute the block when the signal completes.</span>
+<span class="p">[[</span><span class="n">RACSignal</span> 
+    <span class="nl">merge</span><span class="p">:</span><span class="l">@[</span> <span class="p">[</span><span class="n">client</span> <span class="n">fetchUserRepos</span><span class="p">],</span> <span class="p">[</span><span class="n">client</span> <span class="n">fetchOrgRepos</span><span class="p">]</span> <span class="l">]</span><span class="p">]</span> 
+    <span class="nl">subscribeCompleted</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"They're both done!"</span><span class="p">);</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<p>Signals can be chained to sequentially execute asynchronous operations, instead
+of nesting callbacks with blocks. This is similar to how <a href="http://en.wikipedia.org/wiki/Futures_and_promises">futures and promises</a>
+are usually used:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Logs in the user, then loads any cached messages, then fetches the remaining</span>
+<span class="c1">// messages from the server. After that's all done, logs a message to the</span>
+<span class="c1">// console.</span>
+<span class="c1">//</span>
+<span class="c1">// The hypothetical -logInUser methods returns a signal that completes after</span>
+<span class="c1">// logging in.</span>
+<span class="c1">//</span>
+<span class="c1">// -flattenMap: will execute its block whenever the signal sends a value, and</span>
+<span class="c1">// returns a new RACSignal that merges all of the signals returned from the block</span>
+<span class="c1">// into a single signal.</span>
+<span class="p">[[[[</span><span class="n">client</span> 
+    <span class="n">logInUser</span><span class="p">]</span> 
+    <span class="nl">flattenMap</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">User</span> <span class="o">*</span><span class="n">user</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Return a signal that loads cached messages for the user.</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">client</span> <span class="nl">loadCachedMessagesForUser</span><span class="p">:</span><span class="n">user</span><span class="p">];</span>
+    <span class="p">}]</span>
+    <span class="nl">flattenMap</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSArray</span> <span class="o">*</span><span class="n">messages</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Return a signal that fetches any remaining messages.</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">client</span> <span class="nl">fetchMessagesAfterMessage</span><span class="p">:</span><span class="n">messages</span><span class="p">.</span><span class="n">lastObject</span><span class="p">];</span>
+    <span class="p">}]</span>
+    <span class="nl">subscribeNext</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSArray</span> <span class="o">*</span><span class="n">newMessages</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"New messages: %@"</span><span class="p">,</span> <span class="n">newMessages</span><span class="p">);</span>
+    <span class="p">}</span> <span class="nl">completed</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Fetched all messages."</span><span class="p">);</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<p>RAC even makes it easy to bind to the result of an asynchronous operation:</p>
+
+<div class="highlight highlight-objc"><pre><span class="c1">// Creates a one-way binding so that self.imageView.image will be set the user's</span>
+<span class="c1">// avatar as soon as it's downloaded.</span>
+<span class="c1">//</span>
+<span class="c1">// The hypothetical -fetchUserWithUsername: method returns a signal which sends</span>
+<span class="c1">// the user.</span>
+<span class="c1">//</span>
+<span class="c1">// -deliverOn: creates new signals that will do their work on other queues. In</span>
+<span class="c1">// this example, it's used to move work to a background queue and then back to the main thread.</span>
+<span class="c1">//</span>
+<span class="c1">// -map: calls its block with each user that's fetched and returns a new</span>
+<span class="c1">// RACSignal that sends values returned from the block.</span>
+<span class="n">RAC</span><span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">imageView</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span> <span class="o">=</span> <span class="p">[[[[</span><span class="n">client</span> 
+    <span class="nl">fetchUserWithUsername</span><span class="p">:</span><span class="s">@"joshaber"</span><span class="p">]</span>
+    <span class="nl">deliverOn</span><span class="p">:[</span><span class="n">RACScheduler</span> <span class="n">scheduler</span><span class="p">]]</span>
+    <span class="nl">map</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">User</span> <span class="o">*</span><span class="n">user</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Download the avatar (this is done on a background queue).</span>
+        <span class="k">return</span> <span class="p">[[</span><span class="n">NSImage</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithContentsOfURL</span><span class="p">:</span><span class="n">user</span><span class="p">.</span><span class="n">avatarURL</span><span class="p">];</span>
+    <span class="p">}]</span>
+    <span class="c1">// Now the assignment will be done on the main thread.</span>
+    <span class="nl">deliverOn</span><span class="p">:</span><span class="n">RACScheduler</span><span class="p">.</span><span class="n">mainThreadScheduler</span><span class="p">];</span>
+</pre></div>
+
+<p>That demonstrates some of what RAC can do, but it doesn't demonstrate why RAC is
+so powerful. It's hard to appreciate RAC from README-sized examples, but it
+makes it possible to write code with less state, less boilerplate, better code
+locality, and better expression of intent.</p>
+
+<p>For more sample code, check out <a href="https://github.com/AshFurrow/C-41">C-41</a> or <a href="https://github.com/jspahrsummers/GroceryList">GroceryList</a>, which are real iOS
+apps written using ReactiveCocoa. Additional information about RAC can be found
+in the <a href="Documentation">Documentation</a> folder.</p>
+
+<h2>
+<a name="user-content-when-to-use-reactivecocoa" class="anchor" href="#when-to-use-reactivecocoa" aria-hidden="true"><span class="octicon octicon-link"></span></a>When to use ReactiveCocoa</h2>
+
+<p>Upon first glance, ReactiveCocoa is very abstract, and it can be difficult to
+understand how to apply it to concrete problems.</p>
+
+<p>Here are some of the use cases that RAC excels at.</p>
+
+<h3>
+<a name="user-content-handling-asynchronous-or-event-driven-data-sources" class="anchor" href="#handling-asynchronous-or-event-driven-data-sources" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling asynchronous or event-driven data sources</h3>
+
+<p>Much of Cocoa programming is focused on reacting to user events or changes in
+application state. Code that deals with such events can quickly become very
+complex and spaghetti-like, with lots of callbacks and state variables to handle
+ordering issues.</p>
+
+<p>Patterns that seem superficially different, like UI callbacks, network
+responses, and KVO notifications, actually have a lot in common. <a href="ReactiveCocoaFramework/ReactiveCocoa/RACSignal.h">RACSignal</a>
+unifies all these different APIs so that they can be composed together and
+manipulated in the same way.</p>
+
+<p>For example, the following code:</p>
+
+<div class="highlight highlight-objc"><pre>
+<span class="k">static</span> <span class="kt">void</span> <span class="o">*</span><span class="n">ObservationContext</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">ObservationContext</span><span class="p">;</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">viewDidLoad</span> <span class="p">{</span>
+    <span class="p">[</span><span class="nb">super</span> <span class="n">viewDidLoad</span><span class="p">];</span>
+
+    <span class="p">[</span><span class="n">LoginManager</span><span class="p">.</span><span class="n">sharedManager</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@"loggingIn"</span> <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionInitial</span> <span class="nl">context</span><span class="p">:</span><span class="o">&amp;</span><span class="n">ObservationContext</span><span class="p">];</span>
+    <span class="p">[</span><span class="bp">NSNotificationCenter</span><span class="p">.</span><span class="n">defaultCenter</span> <span class="nl">addObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">selector</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">loggedOut</span><span class="p">:)</span> <span class="nl">name</span><span class="p">:</span><span class="n">UserDidLogOutNotification</span> <span class="nl">object</span><span class="p">:</span><span class="n">LoginManager</span><span class="p">.</span><span class="n">sharedManager</span><span class="p">];</span>
+
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">usernameTextField</span> <span class="nl">addTarget</span><span class="p">:</span><span class="nb">self</span> <span class="nl">action</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">updateLogInButton</span><span class="p">)</span> <span class="nl">forControlEvents</span><span class="p">:</span><span class="n">UIControlEventEditingChanged</span><span class="p">];</span>
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">passwordTextField</span> <span class="nl">addTarget</span><span class="p">:</span><span class="nb">self</span> <span class="nl">action</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="n">updateLogInButton</span><span class="p">)</span> <span class="nl">forControlEvents</span><span class="p">:</span><span class="n">UIControlEventEditingChanged</span><span class="p">];</span>
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">logInButton</span> <span class="nl">addTarget</span><span class="p">:</span><span class="nb">self</span> <span class="nl">action</span><span class="p">:</span><span class="k">@selector</span><span class="p">(</span><span class="nl">logInPressed</span><span class="p">:)</span> <span class="nl">forControlEvents</span><span class="p">:</span><span class="n">UIControlEventTouchUpInside</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">dealloc</span> <span class="p">{</span>
+    <span class="p">[</span><span class="n">LoginManager</span><span class="p">.</span><span class="n">sharedManager</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span> <span class="nl">forKeyPath</span><span class="p">:</span><span class="s">@"loggingIn"</span> <span class="nl">context</span><span class="p">:</span><span class="n">ObservationContext</span><span class="p">];</span>
+    <span class="p">[</span><span class="bp">NSNotificationCenter</span><span class="p">.</span><span class="n">defaultCenter</span> <span class="nl">removeObserver</span><span class="p">:</span><span class="nb">self</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">updateLogInButton</span> <span class="p">{</span>
+    <span class="kt">BOOL</span> <span class="n">textFieldsNonEmpty</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">usernameTextField</span><span class="p">.</span><span class="n">text</span><span class="p">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="nb">self</span><span class="p">.</span><span class="n">passwordTextField</span><span class="p">.</span><span class="n">text</span><span class="p">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="kt">BOOL</span> <span class="n">readyToLogIn</span> <span class="o">=</span> <span class="o">!</span><span class="n">LoginManager</span><span class="p">.</span><span class="n">sharedManager</span><span class="p">.</span><span class="n">isLoggingIn</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nb">self</span><span class="p">.</span><span class="n">loggedIn</span><span class="p">;</span>
+    <span class="nb">self</span><span class="p">.</span><span class="n">logInButton</span><span class="p">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">textFieldsNonEmpty</span> <span class="o">&amp;&amp;</span> <span class="n">readyToLogIn</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">IBAction</span><span class="p">)</span><span class="nf">logInPressed:</span><span class="p">(</span><span class="bp">UIButton</span> <span class="o">*</span><span class="p">)</span><span class="nv">sender</span> <span class="p">{</span>
+    <span class="p">[[</span><span class="n">LoginManager</span> <span class="n">sharedManager</span><span class="p">]</span>
+        <span class="nl">logInWithUsername</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">usernameTextField</span><span class="p">.</span><span class="n">text</span>
+        <span class="nl">password</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">passwordTextField</span><span class="p">.</span><span class="n">text</span>
+        <span class="nl">success</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+            <span class="nb">self</span><span class="p">.</span><span class="n">loggedIn</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+        <span class="p">}</span> <span class="nl">failure</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+            <span class="p">[</span><span class="nb">self</span> <span class="nl">presentError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+        <span class="p">}];</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">loggedOut:</span><span class="p">(</span><span class="bp">NSNotification</span> <span class="o">*</span><span class="p">)</span><span class="nv">notification</span> <span class="p">{</span>
+    <span class="nb">self</span><span class="p">.</span><span class="n">loggedIn</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">observeValueForKeyPath:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">keyPath</span> <span class="nf">ofObject:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">object</span> <span class="nf">change:</span><span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">change</span> <span class="nf">context:</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="nv">context</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">context</span> <span class="o">==</span> <span class="n">ObservationContext</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">self</span> <span class="n">updateLogInButton</span><span class="p">];</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">super</span> <span class="nl">observeValueForKeyPath</span><span class="p">:</span><span class="n">keyPath</span> <span class="nl">ofObject</span><span class="p">:</span><span class="n">object</span> <span class="nl">change</span><span class="p">:</span><span class="n">change</span> <span class="nl">context</span><span class="p">:</span><span class="n">context</span><span class="p">];</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>… could be expressed in RAC like so:</p>
+
+<div class="highlight highlight-objc"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">viewDidLoad</span> <span class="p">{</span>
+    <span class="p">[</span><span class="nb">super</span> <span class="n">viewDidLoad</span><span class="p">];</span>
+
+    <span class="p">@</span><span class="n">weakify</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
+
+    <span class="n">RAC</span><span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">logInButton</span><span class="p">,</span> <span class="n">enabled</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="n">RACSignal</span>
+        <span class="nl">combineLatest</span><span class="p">:</span><span class="l">@[</span>
+            <span class="nb">self</span><span class="p">.</span><span class="n">usernameTextField</span><span class="p">.</span><span class="n">rac_textSignal</span><span class="p">,</span>
+            <span class="nb">self</span><span class="p">.</span><span class="n">passwordTextField</span><span class="p">.</span><span class="n">rac_textSignal</span><span class="p">,</span>
+            <span class="n">RACObserve</span><span class="p">(</span><span class="n">LoginManager</span><span class="p">.</span><span class="n">sharedManager</span><span class="p">,</span> <span class="n">loggingIn</span><span class="p">),</span>
+            <span class="n">RACObserve</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">loggedIn</span><span class="p">)</span>
+        <span class="l">]</span> <span class="nl">reduce</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">username</span><span class="p">,</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">password</span><span class="p">,</span> <span class="bp">NSNumber</span> <span class="o">*</span><span class="n">loggingIn</span><span class="p">,</span> <span class="bp">NSNumber</span> <span class="o">*</span><span class="n">loggedIn</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="l">@(</span><span class="n">username</span><span class="p">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">password</span><span class="p">.</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">loggingIn</span><span class="p">.</span><span class="n">boolValue</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">loggedIn</span><span class="p">.</span><span class="n">boolValue</span><span class="l">)</span><span class="p">;</span>
+        <span class="p">}];</span>
+
+    <span class="p">[[</span><span class="nb">self</span><span class="p">.</span><span class="n">logInButton</span> <span class="nl">rac_signalForControlEvents</span><span class="p">:</span><span class="n">UIControlEventTouchUpInside</span><span class="p">]</span> <span class="nl">subscribeNext</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">UIButton</span> <span class="o">*</span><span class="n">sender</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">@</span><span class="n">strongify</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
+
+        <span class="n">RACSignal</span> <span class="o">*</span><span class="n">loginSignal</span> <span class="o">=</span> <span class="p">[</span><span class="n">LoginManager</span><span class="p">.</span><span class="n">sharedManager</span>
+            <span class="nl">logInWithUsername</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">usernameTextField</span><span class="p">.</span><span class="n">text</span>
+            <span class="nl">password</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">passwordTextField</span><span class="p">.</span><span class="n">text</span><span class="p">];</span>
+
+            <span class="p">[</span><span class="n">loginSignal</span> <span class="nl">subscribeError</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+                <span class="p">@</span><span class="n">strongify</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
+                <span class="p">[</span><span class="nb">self</span> <span class="nl">presentError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+            <span class="p">}</span> <span class="nl">completed</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+                <span class="p">@</span><span class="n">strongify</span><span class="p">(</span><span class="nb">self</span><span class="p">);</span>
+                <span class="nb">self</span><span class="p">.</span><span class="n">loggedIn</span> <span class="o">=</span> <span class="nb">YES</span><span class="p">;</span>
+            <span class="p">}];</span>
+    <span class="p">}];</span>
+
+    <span class="n">RAC</span><span class="p">(</span><span class="nb">self</span><span class="p">,</span> <span class="n">loggedIn</span><span class="p">)</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSNotificationCenter</span><span class="p">.</span><span class="n">defaultCenter</span>
+        <span class="nl">rac_addObserverForName</span><span class="p">:</span><span class="n">UserDidLogOutNotification</span> <span class="nl">object</span><span class="p">:</span><span class="nb">nil</span><span class="p">]</span>
+        <span class="nl">mapReplace</span><span class="p">:</span><span class="m">@NO</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-chaining-dependent-operations" class="anchor" href="#chaining-dependent-operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chaining dependent operations</h3>
+
+<p>Dependencies are most often found in network requests, where a previous request
+to the server needs to complete before the next one can be constructed, and so
+on:</p>
+
+<div class="highlight highlight-objc"><pre><span class="p">[</span><span class="n">client</span> <span class="nl">logInWithSuccess</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+    <span class="p">[</span><span class="n">client</span> <span class="nl">loadCachedMessagesWithSuccess</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSArray</span> <span class="o">*</span><span class="n">messages</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="n">client</span> <span class="nl">fetchMessagesAfterMessage</span><span class="p">:</span><span class="n">messages</span><span class="p">.</span><span class="n">lastObject</span> <span class="nl">success</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSArray</span> <span class="o">*</span><span class="n">nextMessages</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Fetched all messages."</span><span class="p">);</span>
+        <span class="p">}</span> <span class="nl">failure</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+            <span class="p">[</span><span class="nb">self</span> <span class="nl">presentError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+        <span class="p">}];</span>
+    <span class="p">}</span> <span class="nl">failure</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">self</span> <span class="nl">presentError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+    <span class="p">}];</span>
+<span class="p">}</span> <span class="nl">failure</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[</span><span class="nb">self</span> <span class="nl">presentError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+<span class="p">}];</span>
+</pre></div>
+
+<p>ReactiveCocoa makes this pattern particularly easy:</p>
+
+<div class="highlight highlight-objc"><pre><span class="p">[[[[</span><span class="n">client</span> <span class="n">logIn</span><span class="p">]</span>
+    <span class="nl">then</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">client</span> <span class="n">loadCachedMessages</span><span class="p">];</span>
+    <span class="p">}]</span>
+    <span class="nl">flattenMap</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSArray</span> <span class="o">*</span><span class="n">messages</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">client</span> <span class="nl">fetchMessagesAfterMessage</span><span class="p">:</span><span class="n">messages</span><span class="p">.</span><span class="n">lastObject</span><span class="p">];</span>
+    <span class="p">}]</span>
+    <span class="nl">subscribeError</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">self</span> <span class="nl">presentError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+    <span class="p">}</span> <span class="nl">completed</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Fetched all messages."</span><span class="p">);</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<h3>
+<a name="user-content-parallelizing-independent-work" class="anchor" href="#parallelizing-independent-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parallelizing independent work</h3>
+
+<p>Working with independent data sets in parallel and then combining them into
+a final result is non-trivial in Cocoa, and often involves a lot of
+synchronization:</p>
+
+<div class="highlight highlight-objc"><pre><span class="k">__block</span> <span class="bp">NSArray</span> <span class="o">*</span><span class="n">databaseObjects</span><span class="p">;</span>
+<span class="k">__block</span> <span class="bp">NSArray</span> <span class="o">*</span><span class="n">fileContents</span><span class="p">;</span>
+
+<span class="bp">NSOperationQueue</span> <span class="o">*</span><span class="n">backgroundQueue</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSOperationQueue</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="bp">NSBlockOperation</span> <span class="o">*</span><span class="n">databaseOperation</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSBlockOperation</span> <span class="nl">blockOperationWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+    <span class="n">databaseObjects</span> <span class="o">=</span> <span class="p">[</span><span class="n">databaseClient</span> <span class="nl">fetchObjectsMatchingPredicate</span><span class="p">:</span><span class="n">predicate</span><span class="p">];</span>
+<span class="p">}];</span>
+
+<span class="bp">NSBlockOperation</span> <span class="o">*</span><span class="n">filesOperation</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSBlockOperation</span> <span class="nl">blockOperationWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+    <span class="bp">NSMutableArray</span> <span class="o">*</span><span class="n">filesInProgress</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSMutableArray</span> <span class="n">array</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">path</span> <span class="k">in</span> <span class="n">files</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="n">filesInProgress</span> <span class="nl">addObject</span><span class="p">:[</span><span class="bp">NSData</span> <span class="nl">dataWithContentsOfFile</span><span class="p">:</span><span class="n">path</span><span class="p">]];</span>
+    <span class="p">}</span>
+
+    <span class="n">fileContents</span> <span class="o">=</span> <span class="p">[</span><span class="n">filesInProgress</span> <span class="k">copy</span><span class="p">];</span>
+<span class="p">}];</span>
+
+<span class="bp">NSBlockOperation</span> <span class="o">*</span><span class="n">finishOperation</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSBlockOperation</span> <span class="nl">blockOperationWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+    <span class="p">[</span><span class="nb">self</span> <span class="nl">finishProcessingDatabaseObjects</span><span class="p">:</span><span class="n">databaseObjects</span> <span class="nl">fileContents</span><span class="p">:</span><span class="n">fileContents</span><span class="p">];</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Done processing"</span><span class="p">);</span>
+<span class="p">}];</span>
+
+<span class="p">[</span><span class="n">finishOperation</span> <span class="nl">addDependency</span><span class="p">:</span><span class="n">databaseOperation</span><span class="p">];</span>
+<span class="p">[</span><span class="n">finishOperation</span> <span class="nl">addDependency</span><span class="p">:</span><span class="n">filesOperation</span><span class="p">];</span>
+<span class="p">[</span><span class="n">backgroundQueue</span> <span class="nl">addOperation</span><span class="p">:</span><span class="n">databaseOperation</span><span class="p">];</span>
+<span class="p">[</span><span class="n">backgroundQueue</span> <span class="nl">addOperation</span><span class="p">:</span><span class="n">filesOperation</span><span class="p">];</span>
+<span class="p">[</span><span class="n">backgroundQueue</span> <span class="nl">addOperation</span><span class="p">:</span><span class="n">finishOperation</span><span class="p">];</span>
+</pre></div>
+
+<p>The above code can be cleaned up and optimized by simply composing signals:</p>
+
+<div class="highlight highlight-objc"><pre><span class="n">RACSignal</span> <span class="o">*</span><span class="n">databaseSignal</span> <span class="o">=</span> <span class="p">[[</span><span class="n">databaseClient</span>
+    <span class="nl">fetchObjectsMatchingPredicate</span><span class="p">:</span><span class="n">predicate</span><span class="p">]</span>
+    <span class="nl">subscribeOn</span><span class="p">:[</span><span class="n">RACScheduler</span> <span class="n">scheduler</span><span class="p">]];</span>
+
+<span class="n">RACSignal</span> <span class="o">*</span><span class="n">fileSignal</span> <span class="o">=</span> <span class="p">[</span><span class="n">RACSignal</span> <span class="nl">startEagerlyWithScheduler</span><span class="p">:[</span><span class="n">RACScheduler</span> <span class="n">scheduler</span><span class="p">]</span> <span class="nl">block</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="kt">id</span><span class="o">&lt;</span><span class="n">RACSubscriber</span><span class="o">&gt;</span> <span class="n">subscriber</span><span class="p">)</span> <span class="p">{</span>
+    <span class="bp">NSMutableArray</span> <span class="o">*</span><span class="n">filesInProgress</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSMutableArray</span> <span class="n">array</span><span class="p">];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">path</span> <span class="k">in</span> <span class="n">files</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="n">filesInProgress</span> <span class="nl">addObject</span><span class="p">:[</span><span class="bp">NSData</span> <span class="nl">dataWithContentsOfFile</span><span class="p">:</span><span class="n">path</span><span class="p">]];</span>
+    <span class="p">}</span>
+
+    <span class="p">[</span><span class="n">subscriber</span> <span class="nl">sendNext</span><span class="p">:[</span><span class="n">filesInProgress</span> <span class="k">copy</span><span class="p">]];</span>
+    <span class="p">[</span><span class="n">subscriber</span> <span class="n">sendCompleted</span><span class="p">];</span>
+<span class="p">}];</span>
+
+<span class="p">[[</span><span class="n">RACSignal</span>
+    <span class="nl">combineLatest</span><span class="p">:</span><span class="l">@[</span> <span class="n">databaseSignal</span><span class="p">,</span> <span class="n">fileSignal</span> <span class="l">]</span>
+    <span class="nl">reduce</span><span class="p">:</span><span class="o">^</span> <span class="kt">id</span> <span class="p">(</span><span class="bp">NSArray</span> <span class="o">*</span><span class="n">databaseObjects</span><span class="p">,</span> <span class="bp">NSArray</span> <span class="o">*</span><span class="n">fileContents</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">[</span><span class="nb">self</span> <span class="nl">finishProcessingDatabaseObjects</span><span class="p">:</span><span class="n">databaseObjects</span> <span class="nl">fileContents</span><span class="p">:</span><span class="n">fileContents</span><span class="p">];</span>
+        <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+    <span class="p">}]</span>
+    <span class="nl">subscribeCompleted</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Done processing"</span><span class="p">);</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<h3>
+<a name="user-content-simplifying-collection-transformations" class="anchor" href="#simplifying-collection-transformations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simplifying collection transformations</h3>
+
+<p>Higher-order functions like <code>map</code>, <code>filter</code>, <code>fold</code>/<code>reduce</code> are sorely missing
+from Foundation, leading to loop-focused code like this:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSMutableArray</span> <span class="o">*</span><span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSMutableArray</span> <span class="n">array</span><span class="p">];</span>
+<span class="k">for</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">str</span> <span class="k">in</span> <span class="n">strings</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">str</span><span class="p">.</span><span class="n">length</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">continue</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">newString</span> <span class="o">=</span> <span class="p">[</span><span class="n">str</span> <span class="nl">stringByAppendingString</span><span class="p">:</span><span class="s">@"foobar"</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">results</span> <span class="nl">addObject</span><span class="p">:</span><span class="n">newString</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><a href="ReactiveCocoaFramework/ReactiveCocoa/RACSequence.h">RACSequence</a> allows any Cocoa collection to be manipulated in a uniform and
+declarative way:</p>
+
+<div class="highlight highlight-objc"><pre><span class="n">RACSequence</span> <span class="o">*</span><span class="n">results</span> <span class="o">=</span> <span class="p">[[</span><span class="n">strings</span><span class="p">.</span><span class="n">rac_sequence</span>
+    <span class="nl">filter</span><span class="p">:</span><span class="o">^</span> <span class="kt">BOOL</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">str</span><span class="p">.</span><span class="n">length</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="p">}]</span>
+    <span class="nl">map</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">str</span> <span class="nl">stringByAppendingString</span><span class="p">:</span><span class="s">@"foobar"</span><span class="p">];</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<h2>
+<a name="user-content-system-requirements" class="anchor" href="#system-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>System Requirements</h2>
+
+<p>ReactiveCocoa supports OS X 10.7+ and iOS 5.0+.</p>
+
+<h2>
+<a name="user-content-importing-reactivecocoa" class="anchor" href="#importing-reactivecocoa" aria-hidden="true"><span class="octicon octicon-link"></span></a>Importing ReactiveCocoa</h2>
+
+<p>To add RAC to your application:</p>
+
+<ol class="task-list">
+<li>Add the ReactiveCocoa repository as a submodule of your application's
+repository.</li>
+<li>Run <code>script/bootstrap</code> from within the ReactiveCocoa folder.</li>
+<li>Drag and drop <code>ReactiveCocoaFramework/ReactiveCocoa.xcodeproj</code> into your
+application's Xcode project or workspace.</li>
+<li>On the "Build Phases" tab of your application target, add RAC to the "Link
+Binary With Libraries" phase.
+
+<ul class="task-list">
+<li>
+<strong>On iOS</strong>, add <code>libReactiveCocoa-iOS.a</code>.</li>
+<li>
+<strong>On OS X</strong>, add <code>ReactiveCocoa.framework</code>. RAC must also be added to any
+"Copy Frameworks" build phase. If you don't already have one, simply add
+a "Copy Files" build phase and target the "Frameworks" destination.</li>
+</ul>
+</li>
+<li>Add <code>"$(BUILD_ROOT)/../IntermediateBuildFilesPath/UninstalledProducts/include"
+$(inherited)</code> to the "Header Search Paths" build setting (this is only
+necessary for archive builds, but it has no negative effect otherwise).</li>
+<li>
+<strong>For iOS targets</strong>, add <code>-ObjC</code> to the "Other Linker Flags" build setting.</li>
+<li>
+<strong>If you added RAC to a project (not a workspace)</strong>, you will also need to
+add the appropriate RAC target to the "Target Dependencies" of your
+application.</li>
+</ol><p>If you would prefer to use <a href="http://cocoapods.org">CocoaPods</a>, there are some
+<a href="https://github.com/CocoaPods/Specs/tree/master/Specs/ReactiveCocoa">ReactiveCocoa
+podspecs</a> that
+have been generously contributed by third parties.</p>
+
+<p>To see a project already set up with RAC, check out <a href="https://github.com/AshFurrow/C-41">C-41</a> or <a href="https://github.com/jspahrsummers/GroceryList">GroceryList</a>,
+which are real iOS apps written using ReactiveCocoa.</p>
+
+<h2>
+<a name="user-content-standalone-development" class="anchor" href="#standalone-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Standalone Development</h2>
+
+<p>If you’re working on RAC in isolation instead of integrating it into another project, you’ll want to open <code>ReactiveCocoaFramework/ReactiveCocoa.xcworkspace</code> and not the <code>.xcodeproj</code>.</p>
+
+<h2>
+<a name="user-content-more-info" class="anchor" href="#more-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>More Info</h2>
+
+<p>ReactiveCocoa is based on .NET's <a href="http://msdn.microsoft.com/en-us/data/gg577609">Reactive
+Extensions</a> (Rx). Most of the
+principles of Rx apply to RAC as well. There are some really good Rx resources
+out there:</p>
+
+<ul class="task-list">
+<li><a href="http://msdn.microsoft.com/en-us/library/hh242985.aspx">Reactive Extensions MSDN entry</a></li>
+<li><a href="http://leecampbell.blogspot.com/2010/08/reactive-extensions-for-net.html">Reactive Extensions for .NET Introduction</a></li>
+<li><a href="http://channel9.msdn.com/tags/Rx/">Rx - Channel 9 videos</a></li>
+<li><a href="http://rxwiki.wikidot.com/">Reactive Extensions wiki</a></li>
+<li><a href="http://rxwiki.wikidot.com/101samples">101 Rx Samples</a></li>
+<li><a href="http://www.amazon.com/Programming-Reactive-Extensions-Jesse-Liberty/dp/1430237473">Programming Reactive Extensions and LINQ</a></li>
+</ul><p>RAC and Rx are both frameworks inspired by functional reactive programming. Here 
+are some resources related to FRP:</p>
+
+<ul class="task-list">
+<li><a href="http://elm-lang.org/learn/What-is-FRP.elm">What is FRP? - Elm Language</a></li>
+<li><a href="http://stackoverflow.com/questions/1028250/what-is-functional-reactive-programming/1030631#1030631">What is Functional Reactive Programming - Stack Overflow</a></li>
+<li><a href="http://stackoverflow.com/questions/5875929/specification-for-a-functional-reactive-programming-language#5878525">Specification for a Functional Reactive Language - Stack Overflow</a></li>
+<li><a href="http://elm-lang.org/learn/Escape-from-Callback-Hell.elm">Escape from Callback Hell</a></li>
+<li><a href="https://www.coursera.org/course/reactive">Principles of Reactive Programming on Coursera</a></li>
+</ul><p>ReactiveCocoa also has a chat room on <a href="https://slack.com/">Slack</a>. If you'd like
+to join, just <a href="https://github.com/ReactiveCocoa/ReactiveCocoa/issues/871#issuecomment-44237545">provide your email
+address</a> and we'll
+happily send you an invite!</p></article></div>

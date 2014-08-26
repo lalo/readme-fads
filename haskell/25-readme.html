@@ -1,0 +1,170 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hell-a-haskell-shell" class="anchor" href="#hell-a-haskell-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hell: A Haskell shell</h1>
+
+<p>Here lies a prototype/experiment for the following question:
+<a href="http://www.reddit.com/r/haskell/comments/1qzhce/using_haskell_to_write_deceptively_powerful/cdidvav?context=3">can the normal Haskell REPL make a passable shell if it has file
+completion and directory
+awareness?</a></p>
+
+<p>It's a simple read-eval-print loop for Haskell that has some simple
+awareness of the current directory and completion works. I whipped
+this up in a few hours, it's only a couple hundred lines of code.</p>
+
+<h2>
+<a name="user-content-whats-it-like" class="anchor" href="#whats-it-like" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's it like?</h2>
+
+<p>It looks like this:</p>
+
+<pre><code>Welcome to Hell!
+chris:~/$ ls
+Backups
+Books
+Desktop
+Documents
+Downloads
+Dropbox
+Emacs
+Hackerspace
+Mail
+Music
+Org
+Papers
+Pictures
+Projects
+Public
+</code></pre>
+
+<p>It has some UNIX basics:</p>
+
+<pre><code>chris:~/$ cd "Projects/hell/"
+chris:~/Projects/hell$ ls
+.
+..
+LICENSE
+README.md
+TAGS
+dist
+hell.cabal
+src
+chris:~/Projects/hell$ ls A
+.ghci
+.git
+.gitignore
+LICENSE
+README.md
+TAGS
+dist
+hell.cabal
+src
+chris:~/Projects/hell$ ls R
+/home/chris/Projects/hell/LICENSE
+/home/chris/Projects/hell/README.md
+/home/chris/Projects/hell/TAGS
+/home/chris/Projects/hell/dist
+…
+chris:~/Projects/hell$ cd
+chris:~/$
+</code></pre>
+
+<p>Functions like <code>cd</code> and <code>ls</code> are overloaded.</p>
+
+<h2>
+<a name="user-content-how-does-it-work" class="anchor" href="#how-does-it-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>How does it work?</h2>
+
+<p>It uses the GHC API (so please submit a pull request if it doesn't
+work with your GHC version) and the Haskeline package to make a simple
+read-eval-print loop, keeping track of any current directory
+changes. The Haskeline package does completion at the prompt built-in.</p>
+
+<p>It tries to run the line as an <code>IO a</code> statement, if that's the wrong
+type, it evaluates it as an expression, printing the result with
+<code>print</code>.</p>
+
+<p>The functions like <code>cd</code>, <code>ls</code>, etc. are defined in <code>Hell.Unix</code>
+which is imported in the default configuration (this is
+configurable). There wasn't much thinking gone into these, I'm still
+feeling my way around what I would prefer.</p>
+
+<p>The commands of GHCi like <code>:t</code> and <code>:k</code> are not supported at this
+time. Top-level bindings are not yet supported either. It does not
+support completion of function names yet.</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>It is intended to be configured like XMonad, you <code>import Hell</code> and
+then run <code>startHell</code> with the appropriate configuration.</p>
+
+<p>There is an example in <code>src/main/Main.hs</code>, which you can run as
+<code>hell-example</code> if you install this package.</p>
+
+<div class="highlight highlight-haskell"><pre><span class="c1">-- | A sample Hell configuration.</span>
+
+<span class="kr">module</span> <span class="nn">Main</span> <span class="kr">where</span>
+
+<span class="kr">import</span> <span class="nn">Hell</span>
+
+<span class="c1">-- | Main entry point.</span>
+<span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">startHell</span> <span class="n">def</span>
+</pre></div>
+
+<p>The default configuration as of writing is:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">instance</span> <span class="kt">Default</span> <span class="kt">Config</span> <span class="kr">where</span>
+  <span class="n">def</span> <span class="ow">=</span> <span class="kt">Config</span>
+    <span class="p">{</span> <span class="n">configImports</span> <span class="ow">=</span>
+        <span class="n">map</span> <span class="p">(</span><span class="s">"import "</span><span class="o">++</span><span class="p">)</span>
+            <span class="p">[</span><span class="s">"Prelude"</span>
+             <span class="p">,</span><span class="s">"GHC.Types"</span>
+             <span class="p">,</span><span class="s">"System.IO"</span>
+             <span class="p">,</span><span class="s">"Data.List"</span>
+             <span class="p">,</span><span class="s">"Control.Monad"</span>
+             <span class="p">,</span><span class="s">"Control.Monad.Fix"</span>
+             <span class="p">,</span><span class="s">"System.Directory"</span>
+             <span class="p">,</span><span class="s">"System.Process"</span>
+             <span class="p">,</span><span class="s">"System.Environment"</span>
+             <span class="p">,</span><span class="s">"Hell.Unix"</span><span class="p">]</span>
+    <span class="p">,</span> <span class="n">configWelcome</span> <span class="ow">=</span> <span class="s">"Welcome to Hell!"</span>
+    <span class="p">,</span> <span class="n">configPrompt</span> <span class="ow">=</span> <span class="nf">\</span><span class="n">username</span> <span class="n">pwd</span> <span class="ow">-&gt;</span> <span class="n">return</span> <span class="p">(</span><span class="n">username</span> <span class="o">++</span> <span class="s">":"</span> <span class="o">++</span> <span class="n">pwd</span> <span class="o">++</span> <span class="s">"$ "</span><span class="p">)</span>
+    <span class="p">,</span> <span class="n">configRun</span> <span class="ow">=</span> <span class="kt">Nothing</span>
+    <span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-using-shell-libraries" class="anchor" href="#using-shell-libraries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using shell libraries</h2>
+
+<p>Most shell libraries require running their own monad that runs ontop
+of IO. For that, you can specify the <code>configRun</code> field to the
+configuration.</p>
+
+<ul class="task-list">
+<li><p>There's an example for the
+<a href="http://hackage.haskell.org/package/shelly">shelly</a> package
+<a href="https://github.com/chrisdone/hell/blob/master/src/main/Shelly.hs">here</a>.</p></li>
+<li><p>There's an example for the
+<a href="http://hackage.haskell.org/package/shellish">shellish</a> package
+<a href="https://github.com/chrisdone/hell/blob/master/src/main/Shellish.hs">here</a>.</p></li>
+</ul><h2>
+<a name="user-content-why-hell-surely-a-haskell-shell-would-be-heaven" class="anchor" href="#why-hell-surely-a-haskell-shell-would-be-heaven" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why “Hell”? Surely a Haskell shell would be heaven!</h2>
+
+<p>It's an ironic name, like Little John. And who knows, a Haskell shell
+<em>might</em> be hell.</p>
+
+<h2>
+<a name="user-content-you-should-add-loads-of-custom-syntax" class="anchor" href="#you-should-add-loads-of-custom-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>You should add loads of custom syntax!</h2>
+
+<p>Mmm, maybe later. Please fork the project if you want to do that.</p>
+
+<h2>
+<a name="user-content-going-forward" class="anchor" href="#going-forward" aria-hidden="true"><span class="octicon octicon-link"></span></a>Going forward…</h2>
+
+<p>I do have other things to be working on. But this is the kind of
+project that you can make a start on and then start using it
+immediately, incrementally adding little tidbits over the following
+days and weeks. Getting <code>:t</code> and identifier completion would be my
+next tidbits.</p>
+
+<p>I would like to support more convenient piping, environment variables,
+and I would like to start making type-safe wrappers to all my
+favourite commands (e.g. grep, cabal, find, ghc, emacs).</p></article></div>

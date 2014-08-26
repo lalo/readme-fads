@@ -1,0 +1,213 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-dalli---" class="anchor" href="#dalli---" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dalli <a href="http://travis-ci.org/mperham/dalli"><img src="https://camo.githubusercontent.com/9e41fb98df831a5de315822198d1e97c949d684a/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6d70657268616d2f64616c6c692e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/mperham/dalli.png" style="max-width:100%;"></a> <a href="https://gemnasium.com/mperham/dalli"><img src="https://camo.githubusercontent.com/a5f4e79a31be3af41fe5e13f90f4197c033e2019/68747470733a2f2f67656d6e617369756d2e636f6d2f6d70657268616d2f64616c6c692e706e67" alt="Dependency Status" data-canonical-src="https://gemnasium.com/mperham/dalli.png" style="max-width:100%;"></a> <a href="https://codeclimate.com/github/mperham/dalli"><img src="https://camo.githubusercontent.com/380654797a7796b5bedbc39469b00657eb5a305a/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f6d70657268616d2f64616c6c692e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/mperham/dalli.png" style="max-width:100%;"></a>
+</h1>
+
+<p>Dalli is a high performance pure Ruby client for accessing memcached servers.  It works with memcached 1.4+ only as it uses the newer binary protocol.  It should be considered a replacement for the memcache-client gem.</p>
+
+<p>The name is a variant of Salvador Dali for his famous painting <a href="http://en.wikipedia.org/wiki/The_Persistence_of_Memory">The Persistence of Memory</a>.</p>
+
+<p><a href="https://camo.githubusercontent.com/f10ab4b7b4482bf0f7555aa6bc797053721eb3b2/687474703a2f2f7777772e7669727475616c64616c692e636f6d2f6173736574732f7061696e74696e67732f333150657273697374656e63654f664d656d6f72792e6a7067" target="_blank"><img src="https://camo.githubusercontent.com/f10ab4b7b4482bf0f7555aa6bc797053721eb3b2/687474703a2f2f7777772e7669727475616c64616c692e636f6d2f6173736574732f7061696e74696e67732f333150657273697374656e63654f664d656d6f72792e6a7067" alt="Persistence of Memory" data-canonical-src="http://www.virtualdali.com/assets/paintings/31PersistenceOfMemory.jpg" style="max-width:100%;"></a></p>
+
+<p>Dalli's initial development was sponsored by <a href="http://www.couchbase.com/">CouchBase</a>.  Many thanks to them!</p>
+
+<h2>
+<a name="user-content-design" class="anchor" href="#design" aria-hidden="true"><span class="octicon octicon-link"></span></a>Design</h2>
+
+<p>I decided to write Dalli after maintaining memcache-client for two years for a few specific reasons:</p>
+
+<ol class="task-list">
+<li>The code is mostly old and gross.  The bulk of the code is a single 1000 line .rb file.</li>
+<li>It has a lot of options that are infrequently used which complicate the codebase.</li>
+<li>The implementation has no single point to attach monitoring hooks.</li>
+<li>Uses the old text protocol, which hurts raw performance.</li>
+</ol><p>So a few notes.  Dalli:</p>
+
+<ol class="task-list">
+<li>uses the exact same algorithm to choose a server so existing memcached clusters with TBs of data will work identically to memcache-client.</li>
+<li>is approximately 20% faster than memcache-client (which itself was heavily optimized) in Ruby 1.9.2.</li>
+<li>contains explicit "chokepoint" methods which handle all requests; these can be hooked into by monitoring tools (NewRelic, Rack::Bug, etc) to track memcached usage.</li>
+<li>supports SASL for use in managed environments, e.g. Heroku.</li>
+<li>provides proper failover with recovery and adjustable timeouts</li>
+</ol><h2>
+<a name="user-content-supported-ruby-versions-and-implementations" class="anchor" href="#supported-ruby-versions-and-implementations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Ruby versions and implementations</h2>
+
+<p>Dalli should work identically on:</p>
+
+<ul class="task-list">
+<li>JRuby 1.6+</li>
+<li>Ruby 1.9.3+</li>
+<li>Rubinius 2.0</li>
+</ul><p>If you have problems, please enter an issue.</p>
+
+<h2>
+<a name="user-content-installation-and-usage" class="anchor" href="#installation-and-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation and Usage</h2>
+
+<p>Remember, Dalli <strong>requires</strong> memcached 1.4+. You can check the version with <code>memcached -h</code>. Please note that the memcached version that <em>Mac OS X Snow Leopard</em> ships with is 1.2.8 and it won't work. Install memcached 1.4.x using Homebrew with</p>
+
+<pre><code>brew install memcached
+</code></pre>
+
+<p>On Ubuntu you can install it by running:</p>
+
+<pre><code>apt-get install memcached
+</code></pre>
+
+<p>You can verify your installation using this piece of code:</p>
+
+<div class="highlight highlight-bash"><pre>gem install dalli
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'dalli'</span>
+<span class="n">options</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">:namespace</span> <span class="o">=&gt;</span> <span class="s2">"app_v1"</span><span class="p">,</span> <span class="ss">:compress</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="p">}</span>
+<span class="n">dc</span> <span class="o">=</span> <span class="no">Dalli</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">'localhost:11211'</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+<span class="n">dc</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">'abc'</span><span class="p">,</span> <span class="mi">123</span><span class="p">)</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">dc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'abc'</span><span class="p">)</span>
+</pre></div>
+
+<p>The test suite requires memcached 1.4.3+ with SASL enabled (brew install memcached --enable-sasl ; mv /usr/bin/memcached /usr/bin/memcached.old).  Currently only supports the PLAIN mechanism.</p>
+
+<p>Dalli has no runtime dependencies and never will.  You can optionally install the 'kgio' gem to
+give Dalli a 20-30% performance boost.</p>
+
+<h2>
+<a name="user-content-usage-with-rails-3x-and-4x" class="anchor" href="#usage-with-rails-3x-and-4x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage with Rails 3.x and 4.x</h2>
+
+<p>In your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'dalli'</span>
+</pre></div>
+
+<p>In <code>config/environments/production.rb</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">cache_store</span> <span class="o">=</span> <span class="ss">:dalli_store</span>
+</pre></div>
+
+<p>Here's a more comprehensive example that sets a reasonable default for maximum cache entry lifetime (one day), enables compression for large values and namespaces all entries for this rails app.  Remove the namespace if you have multiple apps which share cached values.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">cache_store</span> <span class="o">=</span> <span class="ss">:dalli_store</span><span class="p">,</span> <span class="s1">'cache-1.example.com'</span><span class="p">,</span> <span class="s1">'cache-2.example.com'</span><span class="p">,</span>
+  <span class="p">{</span> <span class="ss">:namespace</span> <span class="o">=&gt;</span> <span class="no">NAME_OF_RAILS_APP</span><span class="p">,</span> <span class="ss">:expires_in</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="ss">:compress</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="p">}</span>
+</pre></div>
+
+<p>If your servers are specified in <code>ENV["MEMCACHE_SERVERS"]</code> (e.g. on Heroku when using a third-party hosted addon), simply provide <code>nil</code> for the servers:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">cache_store</span> <span class="o">=</span> <span class="ss">:dalli_store</span><span class="p">,</span> <span class="kp">nil</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:namespace</span> <span class="o">=&gt;</span> <span class="no">NAME_OF_RAILS_APP</span><span class="p">,</span> <span class="ss">:expires_in</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="ss">:compress</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="p">}</span>
+</pre></div>
+
+<p>To use Dalli for Rails session storage that times out after 20 minutes, in <code>config/initializers/session_store.rb</code>:</p>
+
+<p>For Rails &gt;= 3.2.4:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rails</span><span class="o">.</span><span class="n">application</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">session_store</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">Session</span><span class="o">::</span><span class="no">CacheStore</span><span class="p">,</span> <span class="ss">:expire_after</span> <span class="o">=&gt;</span> <span class="mi">20</span><span class="o">.</span><span class="n">minutes</span>
+</pre></div>
+
+<p>For Rails 3.x:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'action_dispatch/middleware/session/dalli_store'</span>
+<span class="no">Rails</span><span class="o">.</span><span class="n">application</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">session_store</span> <span class="ss">:dalli_store</span><span class="p">,</span> <span class="ss">:memcache_server</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="s1">'host1'</span><span class="p">,</span> <span class="s1">'host2'</span><span class="o">]</span><span class="p">,</span> <span class="ss">:namespace</span> <span class="o">=&gt;</span> <span class="s1">'sessions'</span><span class="p">,</span> <span class="ss">:key</span> <span class="o">=&gt;</span> <span class="s1">'_foundation_session'</span><span class="p">,</span> <span class="ss">:expire_after</span> <span class="o">=&gt;</span> <span class="mi">20</span><span class="o">.</span><span class="n">minutes</span>
+</pre></div>
+
+<p>Dalli does not support Rails 2.x.</p>
+
+<h2>
+<a name="user-content-multithreading-and-rails" class="anchor" href="#multithreading-and-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multithreading and Rails</h2>
+
+<p>If you use Puma or another threaded app server, as of Dalli 2.7, you can use a pool
+of Dalli clients with Rails to ensure the <code>Rails.cache</code> singleton does not become a
+source of thread contention.  You must add <code>gem 'connection_pool'</code> to your Gemfile and
+add :pool_size to your <code>dalli_store</code> config:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">cache_store</span> <span class="o">=</span> <span class="ss">:dalli_store</span><span class="p">,</span> <span class="s1">'cache-1.example.com'</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:pool_size</span> <span class="o">=&gt;</span> <span class="mi">5</span> <span class="p">}</span>
+</pre></div>
+
+<p>You can then use the Rails cache as normal or check out a Dalli client directly from the pool:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Rails</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="s1">'foo'</span><span class="p">,</span> <span class="ss">:expires_in</span> <span class="o">=&gt;</span> <span class="mi">300</span><span class="p">)</span> <span class="k">do</span>
+  <span class="s1">'bar'</span>
+<span class="k">end</span>
+
+<span class="no">Rails</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">dalli</span><span class="o">.</span><span class="n">with</span> <span class="k">do</span> <span class="o">|</span><span class="n">client</span><span class="o">|</span>
+  <span class="c1"># client is a Dalli::Client instance which you can</span>
+  <span class="c1"># use ONLY within this block</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Dalli::Client accepts the following options. All times are in seconds.</p>
+
+<p><strong>expires_in</strong>: Global default for key TTL.  Default is 0, which means no expiry.</p>
+
+<p><strong>namespace</strong>: If specified, prepends each key with this value to provide simple namespacing.  Default is nil.</p>
+
+<p><strong>failover</strong>: Boolean, if true Dalli will failover to another server if the main server for a key is down.  Default is true.</p>
+
+<p><strong>threadsafe</strong>: Boolean.  If true Dalli ensures that only one thread is using a socket at a given time.  Default is true.  Set to false at your own peril.</p>
+
+<p><strong>serializer</strong>: The serializer to use for objects being stored (ex. JSON).
+Default is Marshal.</p>
+
+<p><strong>compress</strong>: Boolean, if true Dalli will gzip-compress values larger than 1K. Default is false.</p>
+
+<p><strong>compression_min_size</strong>: Minimum value byte size for which to attempt compression. Default is 1K.</p>
+
+<p><strong>compression_max_size</strong>: Maximum value byte size for which to attempt compression. Default is unlimited.</p>
+
+<p><strong>compressor</strong>: The compressor to use for objects being stored.
+Default is zlib, implemented under <code>Dalli::Compressor</code>.
+If serving compressed data using nginx's HttpMemcachedModule, set <code>memcached_gzip_flag 2</code> and use <code>Dalli::GzipCompressor</code></p>
+
+<p><strong>keepalive</strong>: Boolean. If true, Dalli will enable keep-alive for socket connections.  Default is true.</p>
+
+<p><strong>socket_timeout</strong>: Timeout for all socket operations (connect, read, write). Default is 0.5.</p>
+
+<p><strong>socket_max_failures</strong>: When a socket operation fails after socket_timeout, the same operation is retried. This is to not immediately mark a server down when there's a very slight network problem. Default is 2.</p>
+
+<p><strong>socket_failure_delay</strong>: Before retrying a socket operation, the process sleeps for this amount of time. Default is 0.01.  Set to nil for no delay.</p>
+
+<p><strong>down_retry_delay</strong>: When a server has been marked down due to many failures, the server will be checked again for being alive only after this amount of time. Don't set this value too low, otherwise each request which tries the failed server might hang for the maximum <strong>socket_timeout</strong>. Default is 1 second.</p>
+
+<p><strong>value_max_bytes</strong>: The maximum size of a value in memcached.  Defaults to 1MB, this can be increased with memcached's -I parameter.  You must also configure Dalli to allow the larger size here.</p>
+
+<p><strong>username</strong>: The username to use for authenticating this client instance against a SASL-enabled memcached server.  Heroku users should not need to use this normally.</p>
+
+<p><strong>password</strong>: The password to use for authenticating this client instance against a SASL-enabled memcached server.  Heroku users should not need to use this normally.</p>
+
+<h2>
+<a name="user-content-features-and-changes" class="anchor" href="#features-and-changes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features and Changes</h2>
+
+<p>By default, Dalli is thread-safe.  Disable thread-safety at your own peril.</p>
+
+<p>Dalli does not need anything special in Unicorn/Passenger since 2.0.4.
+It will detect sockets shared with child processes and gracefully reopen the
+socket.</p>
+
+<p>Note that Dalli does not require ActiveSupport or Rails.  You can safely use it in your own Ruby projects.</p>
+
+<p><a href="http://www.rubydoc.info/github/mperham/dalli/Dalli/Client">View the Client API</a></p>
+
+<h2>
+<a name="user-content-helping-out" class="anchor" href="#helping-out" aria-hidden="true"><span class="octicon octicon-link"></span></a>Helping Out</h2>
+
+<p>If you have a fix you wish to provide, please fork the code, fix in your local project and then send a pull request on github.  Please ensure that you include a test which verifies your fix and update History.md with a one sentence description of your fix so you get credit as a contributor.</p>
+
+<p>We're not accepting new compressors. They are trivial to add in an initializer. See #385 (LZ4), #406 (Snappy)</p>
+
+<h2>
+<a name="user-content-thanks" class="anchor" href="#thanks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thanks</h2>
+
+<p>Eric Wong - for help using his <a href="http://unicorn.bogomips.org/kgio/index.html">kgio</a> library.</p>
+
+<p>Brian Mitchell - for his remix-stash project which was helpful when implementing and testing the binary protocol support.</p>
+
+<p><a href="http://couchbase.com">CouchBase</a> - for their project sponsorship</p>
+
+<h2>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h2>
+
+<p>Mike Perham, <a href="http://mikeperham.com">mikeperham.com</a>, <a href="http://twitter.com/mperham">@mperham</a></p>
+
+<h2>
+<a name="user-content-copyright" class="anchor" href="#copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright</h2>
+
+<p>Copyright (c) Mike Perham. See LICENSE for details.</p></article></div>

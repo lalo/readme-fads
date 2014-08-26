@@ -1,0 +1,301 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-rediscala--" class="anchor" href="#rediscala--" aria-hidden="true"><span class="octicon octicon-link"></span></a>rediscala <a href="https://travis-ci.org/etaty/rediscala"><img src="https://camo.githubusercontent.com/5316b69ad3888d735044203b5b63bc29a4f995ab/68747470733a2f2f7472617669732d63692e6f72672f65746174792f726564697363616c612e706e67" alt="Build Status" data-canonical-src="https://travis-ci.org/etaty/rediscala.png" style="max-width:100%;"></a> <a href="https://coveralls.io/r/etaty/rediscala?branch=master"><img src="https://camo.githubusercontent.com/8f45f993bf749a35e5c5358b1c82265841434110/68747470733a2f2f636f766572616c6c732e696f2f7265706f732f65746174792f726564697363616c612f62616467652e706e673f6272616e63683d6d6173746572" alt="Coverage Status" data-canonical-src="https://coveralls.io/repos/etaty/rediscala/badge.png?branch=master" style="max-width:100%;"></a>
+</h1>
+
+<p>A <a href="http://redis.io/">Redis</a> client for Scala (2.10+) and (AKKA 2.2+) with non-blocking and asynchronous I/O operations.</p>
+
+<ul class="task-list">
+<li><p>Reactive : Redis requests/replies are wrapped in Futures.</p></li>
+<li><p>Typesafe : Redis types are mapped to Scala types.</p></li>
+<li><p>Fast : Rediscala uses redis pipelining. Blocking redis commands are moved into their own connection. 
+A worker actor handles I/O operations (I/O bounds), another handles decoding of Redis replies (CPU bounds).</p></li>
+</ul><h3>
+<a name="user-content-set-up-your-project-dependencies" class="anchor" href="#set-up-your-project-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Set up your project dependencies</h3>
+
+<p>If you use SBT, you just have to edit <code>build.sbt</code> and add the following:</p>
+
+<p>From version 1.3.1: </p>
+
+<ul class="task-list">
+<li>use akka 2.3</li>
+<li>released for scala 2.10 &amp; 2.11</li>
+<li>use Bintray repo: <a href="https://bintray.com/etaty/maven/rediscala/view/general">https://bintray.com/etaty/maven/rediscala/view/general</a>
+</li>
+</ul><div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"rediscala"</span> <span class="n">at</span> <span class="s">"http://dl.bintray.com/etaty/maven"</span>
+
+<span class="n">libraryDependencies</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="s">"com.etaty.rediscala"</span> <span class="o">%%</span> <span class="s">"rediscala"</span> <span class="o">%</span> <span class="s">"1.3.1"</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>For older rediscala versions (&lt;= 1.3):</p>
+
+<ul class="task-list">
+<li>use akka 2.2</li>
+<li>released for scala 2.10 only</li>
+<li>use github "repo"</li>
+</ul><div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"rediscala"</span> <span class="n">at</span> <span class="s">"https://raw.github.com/etaty/rediscala-mvn/master/releases/"</span>
+
+<span class="n">libraryDependencies</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="s">"com.etaty.rediscala"</span> <span class="o">%%</span> <span class="s">"rediscala"</span> <span class="o">%</span> <span class="s">"1.3"</span>
+<span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-connect-to-the-database" class="anchor" href="#connect-to-the-database" aria-hidden="true"><span class="octicon octicon-link"></span></a>Connect to the database</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">redis.RedisClient</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.Await</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
+
+<span class="k">object</span> <span class="nc">Main</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+  <span class="k">implicit</span> <span class="k">val</span> <span class="n">akkaSystem</span> <span class="k">=</span> <span class="n">akka</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="nc">ActorSystem</span><span class="o">()</span>
+
+  <span class="k">val</span> <span class="n">redis</span> <span class="k">=</span> <span class="nc">RedisClient</span><span class="o">()</span>
+
+  <span class="k">val</span> <span class="n">futurePong</span> <span class="k">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">ping</span><span class="o">()</span>
+  <span class="n">println</span><span class="o">(</span><span class="s">"Ping sent!"</span><span class="o">)</span>
+  <span class="n">futurePong</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">pong</span> <span class="k">=&gt;</span> <span class="o">{</span>
+    <span class="n">println</span><span class="o">(</span><span class="n">s</span><span class="s">"Redis replied with a $pong"</span><span class="o">)</span>
+  <span class="o">})</span>
+  <span class="nc">Await</span><span class="o">.</span><span class="n">result</span><span class="o">(</span><span class="n">futurePong</span><span class="o">,</span> <span class="mi">5</span> <span class="n">seconds</span><span class="o">)</span>
+
+  <span class="n">akkaSystem</span><span class="o">.</span><span class="n">shutdown</span><span class="o">()</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-basic-example" class="anchor" href="#basic-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Example</h3>
+
+<p><a href="https://github.com/etaty/rediscala-demo">https://github.com/etaty/rediscala-demo</a></p>
+
+<p>You can fork with : <code>git clone git@github.com:etaty/rediscala-demo.git</code> then run it, with <code>sbt run</code></p>
+
+<h3>
+<a name="user-content-redis-commands" class="anchor" href="#redis-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redis Commands</h3>
+
+<p>All commands are supported :</p>
+
+<ul class="task-list">
+<li>
+<a href="http://redis.io/commands#generic">Keys</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Keys">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#string">Strings</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Strings">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#hash">Hashes</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Hashes">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#list">Lists</a> 
+
+<ul class="task-list">
+<li>non-blocking (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Lists">scaladoc</a>)</li>
+<li>blocking (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.BLists">scaladoc</a>)</li>
+</ul>
+</li>
+<li>
+<a href="http://redis.io/commands#set">Sets</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Sets">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#sorted_set">Sorted Sets</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.SortedSets">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#pubsub">Pub/Sub</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Publish">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#transactions">Transactions</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Transactions">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#connection">Connection</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Connection">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#scripting">Scripting</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Scripting">scaladoc</a>)</li>
+<li>
+<a href="http://redis.io/commands#server">Server</a> (<a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.Server">scaladoc</a>)</li>
+</ul><h3>
+<a name="user-content-blocking-commands" class="anchor" href="#blocking-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Blocking commands</h3>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.RedisBlockingClient">RedisBlockingClient</a> is the instance allowing access to blocking commands :</p>
+
+<ul class="task-list">
+<li>blpop</li>
+<li>brpop</li>
+<li>brpopplush</li>
+</ul><div class="highlight highlight-scala"><pre>  <span class="n">redisBlocking</span><span class="o">.</span><span class="n">blpop</span><span class="o">(</span><span class="nc">Seq</span><span class="o">(</span><span class="s">"workList"</span><span class="o">,</span> <span class="s">"otherKeyWithWork"</span><span class="o">),</span> <span class="mi">5</span> <span class="n">seconds</span><span class="o">).</span><span class="n">map</span><span class="o">(</span><span class="n">result</span> <span class="k">=&gt;</span> <span class="o">{</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">map</span><span class="o">({</span>
+      <span class="k">case</span> <span class="o">(</span><span class="n">key</span><span class="o">,</span> <span class="n">work</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">println</span><span class="o">(</span><span class="n">s</span><span class="s">"list $key has work : ${work.utf8String}"</span><span class="o">)</span>
+    <span class="o">})</span>
+  <span class="o">})</span>
+</pre></div>
+
+<p>Full example: <a href="https://github.com/etaty/rediscala-demo/blob/master/src/main/scala/ExampleRediscalaBlocking.scala">ExampleRediscalaBlocking</a></p>
+
+<p>You can fork with: <code>git clone git@github.com:etaty/rediscala-demo.git</code> then run it, with <code>sbt run</code></p>
+
+<h3>
+<a name="user-content-transactions" class="anchor" href="#transactions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transactions</h3>
+
+<p>The idea behind transactions in Rediscala is to start a transaction outside of a redis connection.
+We use the <a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.commands.TransactionBuilder">TransactionBuilder</a> to store call to redis commands (and for each command we give back a future).
+When <code>exec</code> is called, <code>TransactionBuilder</code> will build and send all the commands together to the server. Then the futures will be completed.
+By doing that we can use a normal connection with pipelining, and avoiding to trap a command from outside, in the transaction...</p>
+
+<div class="highlight highlight-scala"><pre>  <span class="k">val</span> <span class="n">redisTransaction</span> <span class="k">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">transaction</span><span class="o">()</span> <span class="c1">// new TransactionBuilder</span>
+  <span class="n">redisTransaction</span><span class="o">.</span><span class="n">watch</span><span class="o">(</span><span class="s">"key"</span><span class="o">)</span>
+  <span class="k">val</span> <span class="n">set</span> <span class="k">=</span> <span class="n">redisTransaction</span><span class="o">.</span><span class="n">set</span><span class="o">(</span><span class="s">"key"</span><span class="o">,</span> <span class="s">"abcValue"</span><span class="o">)</span>
+  <span class="k">val</span> <span class="n">decr</span> <span class="k">=</span> <span class="n">redisTransaction</span><span class="o">.</span><span class="n">decr</span><span class="o">(</span><span class="s">"key"</span><span class="o">)</span>
+  <span class="k">val</span> <span class="n">get</span> <span class="k">=</span> <span class="n">redisTransaction</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"key"</span><span class="o">)</span>
+  <span class="n">redisTransaction</span><span class="o">.</span><span class="n">exec</span><span class="o">()</span>
+</pre></div>
+
+<p>Full example: <a href="https://github.com/etaty/rediscala-demo/blob/master/src/main/scala/ExampleTransaction.scala">ExampleTransaction</a></p>
+
+<p>You can fork with : <code>git clone git@github.com:etaty/rediscala-demo.git</code> then run it, with <code>sbt run</code></p>
+
+<p><a href="https://github.com/etaty/rediscala/blob/master/src/test/scala/redis/commands/TransactionsSpec.scala">TransactionsSpec</a> will reveal even more gems of the API.</p>
+
+<h3>
+<a name="user-content-pubsub" class="anchor" href="#pubsub" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pub/Sub</h3>
+
+<p>You can use a case class with callbacks <a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.RedisPubSub">RedisPubSub</a>
+or extend the actor <a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.actors.RedisSubscriberActor">RedisSubscriberActor</a> as shown in the example below</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">ExamplePubSub</span> <span class="k">extends</span> <span class="nc">App</span> <span class="o">{</span>
+  <span class="k">implicit</span> <span class="k">val</span> <span class="n">akkaSystem</span> <span class="k">=</span> <span class="n">akka</span><span class="o">.</span><span class="n">actor</span><span class="o">.</span><span class="nc">ActorSystem</span><span class="o">()</span>
+
+  <span class="k">val</span> <span class="n">redis</span> <span class="k">=</span> <span class="nc">RedisClient</span><span class="o">()</span>
+
+  <span class="c1">// publish after 2 seconds every 2 or 5 seconds</span>
+  <span class="n">akkaSystem</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">schedule</span><span class="o">(</span><span class="mi">2</span> <span class="n">seconds</span><span class="o">,</span> <span class="mi">2</span> <span class="n">seconds</span><span class="o">)(</span><span class="n">redis</span><span class="o">.</span><span class="n">publish</span><span class="o">(</span><span class="s">"time"</span><span class="o">,</span> <span class="nc">System</span><span class="o">.</span><span class="n">currentTimeMillis</span><span class="o">()))</span>
+  <span class="n">akkaSystem</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">schedule</span><span class="o">(</span><span class="mi">2</span> <span class="n">seconds</span><span class="o">,</span> <span class="mi">5</span> <span class="n">seconds</span><span class="o">)(</span><span class="n">redis</span><span class="o">.</span><span class="n">publish</span><span class="o">(</span><span class="s">"pattern.match"</span><span class="o">,</span> <span class="s">"pattern value"</span><span class="o">))</span>
+  <span class="c1">// shutdown Akka in 20 seconds</span>
+  <span class="n">akkaSystem</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">scheduleOnce</span><span class="o">(</span><span class="mi">20</span> <span class="n">seconds</span><span class="o">)(</span><span class="n">akkaSystem</span><span class="o">.</span><span class="n">shutdown</span><span class="o">())</span>
+
+  <span class="k">val</span> <span class="n">channels</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span><span class="s">"time"</span><span class="o">)</span>
+  <span class="k">val</span> <span class="n">patterns</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span><span class="s">"pattern.*"</span><span class="o">)</span>
+  <span class="c1">// create SubscribeActor instance</span>
+  <span class="n">akkaSystem</span><span class="o">.</span><span class="n">actorOf</span><span class="o">(</span><span class="nc">Props</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">SubscribeActor</span><span class="o">],</span> <span class="n">channels</span><span class="o">,</span> <span class="n">patterns</span><span class="o">).</span><span class="n">withDispatcher</span><span class="o">(</span><span class="s">"rediscala.rediscala-client-worker-dispatcher"</span><span class="o">))</span>
+
+<span class="o">}</span>
+
+<span class="k">class</span> <span class="nc">SubscribeActor</span><span class="o">(</span><span class="n">channels</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nil</span><span class="o">,</span> <span class="n">patterns</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nil</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">RedisSubscriberActor</span><span class="o">(</span><span class="n">channels</span><span class="o">,</span> <span class="n">patterns</span><span class="o">)</span> <span class="o">{</span>
+  <span class="k">override</span> <span class="k">val</span> <span class="n">address</span><span class="k">:</span> <span class="kt">InetSocketAddress</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">InetSocketAddress</span><span class="o">(</span><span class="s">"localhost"</span><span class="o">,</span> <span class="mi">6379</span><span class="o">)</span>
+
+  <span class="k">def</span> <span class="n">onMessage</span><span class="o">(</span><span class="n">message</span><span class="k">:</span> <span class="kt">Message</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">println</span><span class="o">(</span><span class="n">s</span><span class="s">"message received: $message"</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">onPMessage</span><span class="o">(</span><span class="n">pmessage</span><span class="k">:</span> <span class="kt">PMessage</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">println</span><span class="o">(</span><span class="n">s</span><span class="s">"pattern message received: $pmessage"</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Full example: <a href="https://github.com/etaty/rediscala-demo/blob/master/src/main/scala/ExamplePubSub.scala">ExamplePubSub</a></p>
+
+<p>You can fork with : <code>git clone git@github.com:etaty/rediscala-demo.git</code> then run it, with <code>sbt run</code></p>
+
+<p><a href="https://github.com/etaty/rediscala/blob/master/src/test/scala/redis/RedisPubSubSpec.scala.scala">RedisPubSubSpec</a> will reveal even more gems of the API.</p>
+
+<h3>
+<a name="user-content-scripting" class="anchor" href="#scripting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scripting</h3>
+
+<p><code>RedisScript</code> is a helper, you can put your LUA script inside and it will compute the hash. 
+You can use it with <code>evalshaOrEval</code> which run your script even if it wasn't already loaded.</p>
+
+<div class="highlight highlight-scala"><pre>  <span class="k">val</span> <span class="n">redis</span> <span class="k">=</span> <span class="nc">RedisClient</span><span class="o">()</span>
+
+  <span class="k">val</span> <span class="n">redisScript</span> <span class="k">=</span> <span class="nc">RedisScript</span><span class="o">(</span><span class="s">"return 'rediscala'"</span><span class="o">)</span>
+
+  <span class="k">val</span> <span class="n">r</span> <span class="k">=</span> <span class="n">redis</span><span class="o">.</span><span class="n">evalshaOrEval</span><span class="o">(</span><span class="n">redisScript</span><span class="o">).</span><span class="n">map</span><span class="o">({</span>
+    <span class="k">case</span> <span class="n">b</span><span class="k">:</span> <span class="kt">Bulk</span> <span class="o">=&gt;</span> <span class="n">println</span><span class="o">(</span><span class="n">b</span><span class="o">.</span><span class="n">toString</span><span class="o">())</span>
+  <span class="o">})</span>
+  <span class="nc">Await</span><span class="o">.</span><span class="n">result</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="mi">5</span> <span class="n">seconds</span><span class="o">)</span>
+</pre></div>
+
+<p>Full example: <a href="https://github.com/etaty/rediscala-demo/blob/master/src/main/scala/ExampleScripting.scala">ExampleScripting</a></p>
+
+<h3>
+<a name="user-content-redis-sentinel" class="anchor" href="#redis-sentinel" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redis Sentinel</h3>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.SentinelClient">SentinelClient</a> connect to a redis sentinel server.</p>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.SentinelMonitoredRedisClient">SentinelMonitoredRedisClient</a> connect to a sentinel server to find the master addresse then start a connection. In case the master change your RedisClient connection will automatically connect to the new master server.
+If you are using a blocking client, you can use <a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.SentinelMonitoredRedisBlockingClient">SentinelMonitoredRedisBlockingClient</a></p>
+
+<h3>
+<a name="user-content-pool" class="anchor" href="#pool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pool</h3>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.RedisClientPool">RedisClientPool</a> connect to a pool of redis servers.
+Redis commands are dispatched to redis connection in a round robin way.</p>
+
+<h3>
+<a name="user-content-master-slave" class="anchor" href="#master-slave" aria-hidden="true"><span class="octicon octicon-link"></span></a>Master Slave</h3>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.RedisClientMasterSlaves">RedisClientMasterSlaves</a> connect to a master and a pool of slaves.
+The <code>write</code> commands are sent to the master, while the read commands are sent to the slaves in the <a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.RedisClientPool">RedisClientPool</a></p>
+
+<h3>
+<a name="user-content-bytestringserializer-bytestringdeserializer-bytestringformatter" class="anchor" href="#bytestringserializer-bytestringdeserializer-bytestringformatter" aria-hidden="true"><span class="octicon octicon-link"></span></a>ByteStringSerializer ByteStringDeserializer ByteStringFormatter</h3>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.ByteStringSerializer">ByteStringSerializer</a></p>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.ByteStringDeserializer">ByteStringDeserializer</a></p>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#redis.ByteStringFormatter">ByteStringFormatter</a></p>
+
+<div class="highlight highlight-scala"><pre><span class="k">case</span> <span class="k">class</span> <span class="nc">DumbClass</span><span class="o">(</span><span class="n">s1</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">s2</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
+
+<span class="k">object</span> <span class="nc">DumbClass</span> <span class="o">{</span>
+  <span class="k">implicit</span> <span class="k">val</span> <span class="n">byteStringFormatter</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">ByteStringFormatter</span><span class="o">[</span><span class="kt">DumbClass</span><span class="o">]</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">serialize</span><span class="o">(</span><span class="n">data</span><span class="k">:</span> <span class="kt">DumbClass</span><span class="o">)</span><span class="k">:</span> <span class="kt">ByteString</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="c1">//...</span>
+    <span class="o">}</span>
+
+    <span class="k">def</span> <span class="n">deserialize</span><span class="o">(</span><span class="n">bs</span><span class="k">:</span> <span class="kt">ByteString</span><span class="o">)</span><span class="k">:</span> <span class="kt">DumbClass</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="c1">//...</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+<span class="c1">//...</span>
+
+  <span class="k">val</span> <span class="n">dumb</span> <span class="k">=</span> <span class="nc">DumbClass</span><span class="o">(</span><span class="s">"s1"</span><span class="o">,</span> <span class="s">"s2"</span><span class="o">)</span>
+
+  <span class="k">val</span> <span class="n">r</span> <span class="k">=</span> <span class="k">for</span> <span class="o">{</span>
+    <span class="n">set</span> <span class="k">&lt;-</span> <span class="n">redis</span><span class="o">.</span><span class="n">set</span><span class="o">(</span><span class="s">"dumbKey"</span><span class="o">,</span> <span class="n">dumb</span><span class="o">)</span>
+    <span class="n">getDumbOpt</span> <span class="k">&lt;-</span> <span class="n">redis</span><span class="o">.</span><span class="n">get</span><span class="o">[</span><span class="kt">DumbClass</span><span class="o">](</span><span class="s">"dumbKey"</span><span class="o">)</span>
+  <span class="o">}</span> <span class="k">yield</span> <span class="o">{</span>
+    <span class="n">getDumbOpt</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">getDumb</span> <span class="k">=&gt;</span> <span class="o">{</span>
+      <span class="n">assert</span><span class="o">(</span><span class="n">getDumb</span> <span class="o">==</span> <span class="n">dumb</span><span class="o">)</span>
+      <span class="n">println</span><span class="o">(</span><span class="n">getDumb</span><span class="o">)</span>
+    <span class="o">})</span>
+  <span class="o">}</span>
+</pre></div>
+
+<p>Full example: <a href="https://github.com/etaty/rediscala-demo/blob/master/src/main/scala/ExampleByteStringFormatter.scala">ExampleByteStringFormatter</a></p>
+
+<h3>
+<a name="user-content-scaladoc" class="anchor" href="#scaladoc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scaladoc</h3>
+
+<p><a href="http://etaty.github.io/rediscala/latest/api/index.html#package">Rediscala scaladoc API (latest version 1.3)</a></p>
+
+<p><a href="http://etaty.github.io/rediscala/1.2/api/index.html#package">Rediscala scaladoc API (version 1.2)</a></p>
+
+<p><a href="http://etaty.github.io/rediscala/1.1/api/index.html#package">Rediscala scaladoc API (version 1.1)</a></p>
+
+<p><a href="http://etaty.github.io/rediscala/1.0/api/index.html#package">Rediscala scaladoc API (version 1.0)</a></p>
+
+<h3>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h3>
+
+<p>More than 250 000 requests/second</p>
+
+<ul class="task-list">
+<li><a href="http://bit.ly/rediscalabench-1-1">benchmark result from scalameter</a></li>
+<li><a href="https://github.com/etaty/rediscala/tree/master/src/benchmark/scala/redis/bench">sources directory</a></li>
+</ul><p>The hardware used is a macbook retina (Intel Core i7, 2.6 GHz, 4 cores, 8 threads, 8GB) running the sun/oracle jvm 1.6</p>
+
+<p>You can run the bench with :</p>
+
+<ol class="task-list">
+<li>clone the repo <code>git clone git@github.com:etaty/rediscala.git</code>
+</li>
+<li>run <code>sbt bench:test</code>
+</li>
+<li>open the bench report <code>rediscala/tmp/report/index.html</code>
+</li>
+</ol></article></div>

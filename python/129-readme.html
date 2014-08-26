@@ -1,0 +1,743 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-a-minimal-ubuntu-base-image-modified-for-docker-friendliness" class="anchor" href="#a-minimal-ubuntu-base-image-modified-for-docker-friendliness" aria-hidden="true"><span class="octicon octicon-link"></span></a>A minimal Ubuntu base image modified for Docker-friendliness</h1>
+
+<p>Baseimage-docker is a special <a href="http://www.docker.io">Docker</a> image that is configured for correct use within Docker containers. It is Ubuntu, plus:</p>
+
+<ul class="task-list">
+<li>Modifications for Docker-friendliness.</li>
+<li>Workarounds for <a href="#workaroud_modifying_etc_hosts">some Docker bugs</a>.</li>
+<li>Useful administration tools.</li>
+</ul><p>You can use it as a base for your own Docker images.</p>
+
+<p>Baseimage-docker is available for pulling from <a href="https://index.docker.io/u/phusion/baseimage/">the Docker registry</a>!</p>
+
+<h3>
+<a name="user-content-what-are-the-problems-with-the-stock-ubuntu-base-image" class="anchor" href="#what-are-the-problems-with-the-stock-ubuntu-base-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>What are the problems with the stock Ubuntu base image?</h3>
+
+<p>Ubuntu is not designed to be run inside Docker. Its init system, Upstart, assumes that it's running on either real hardware or virtualized hardware, but not inside a Docker container. But inside a container you don't want a full system anyway, you want a minimal system. But configuring that minimal system for use within a container has many strange corner cases that are hard to get right if you are not intimately familiar with the Unix system model. This can cause a lot of strange problems.</p>
+
+<p>Baseimage-docker gets everything right. The "Contents" section describes all the things that it modifies.</p>
+
+<p><a name="user-content-why_use" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-why-use-baseimage-docker" class="anchor" href="#why-use-baseimage-docker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why use baseimage-docker?</h3>
+
+<p>You can configure the stock <code>ubuntu</code> image yourself from your Dockerfile, so why bother using baseimage-docker?</p>
+
+<ul class="task-list">
+<li>Configuring the base system for Docker-friendliness is no easy task. As stated before, there are many corner cases. By the time that you've gotten all that right, you've reinvented baseimage-docker. Using baseimage-docker will save you from this effort.</li>
+<li>It reduces the time needed to write a correct Dockerfile. You won't have to worry about the base system and can focus on your stack and your app.</li>
+<li>It reduces the time needed to run <code>docker build</code>, allowing you to iterate your Dockerfile more quickly.</li>
+<li>It reduces download time during redeploys. Docker only needs to download the base image once: during the first deploy. On every subsequent deploys, only the changes you make on top of the base image are downloaded.</li>
+</ul><hr><p><strong>Related resources</strong>:
+  <a href="http://phusion.github.io/baseimage-docker/">Website</a> |
+  <a href="https://github.com/phusion/baseimage-docker">Github</a> |
+  <a href="https://index.docker.io/u/phusion/baseimage/">Docker registry</a> |
+  <a href="https://groups.google.com/d/forum/passenger-docker">Discussion forum</a> |
+  <a href="https://twitter.com/phusion_nl">Twitter</a> |
+  <a href="http://blog.phusion.nl/">Blog</a></p>
+
+<p><strong>Table of contents</strong></p>
+
+<ul class="task-list">
+<li>
+<a href="#whats_inside">What's inside the image?</a>
+
+<ul class="task-list">
+<li><a href="#whats_inside_overview">Overview</a></li>
+<li><a href="#docker_single_process">Wait, I thought Docker is about running a single process in a container?</a></li>
+</ul>
+</li>
+<li><a href="#inspecting">Inspecting baseimage-docker</a></li>
+<li>
+<a href="#using">Using baseimage-docker as base image</a>
+
+<ul class="task-list">
+<li><a href="#getting_started">Getting started</a></li>
+<li><a href="#adding_additional_daemons">Adding additional daemons</a></li>
+<li><a href="#running_startup_scripts">Running scripts during container startup</a></li>
+<li>
+<a href="#environment_variables">Environment variables</a>
+
+<ul class="task-list">
+<li><a href="#envvar_central_definition">Centrally defining your own environment variables</a></li>
+<li><a href="#envvar_dumps">Environment variable dumps</a></li>
+<li><a href="#modifying_envvars">Modifying environment variables</a></li>
+<li><a href="#envvar_security">Security</a></li>
+</ul>
+</li>
+<li><a href="#workaroud_modifying_etc_hosts">Working around Docker's inability to modify /etc/hosts</a></li>
+<li><a href="#disabling_ssh">Disabling SSH</a></li>
+</ul>
+</li>
+<li>
+<a href="#container_administration">Container administration</a>
+
+<ul class="task-list">
+<li><a href="#oneshot">Running a one-shot command in a new container</a></li>
+<li><a href="#run_inside_existing_container">Running a command in an existing, running container</a></li>
+<li>
+<a href="#login_nsenter">Login to the container via nsenter</a>
+
+<ul class="task-list">
+<li><a href="#nsenter_usage">Usage</a></li>
+<li><a href="#docker_bash">The <code>docker-bash</code> tool</a></li>
+</ul>
+</li>
+<li>
+<a href="#login_ssh">Login to the container via SSH</a>
+
+<ul class="task-list">
+<li><a href="#using_the_insecure_key_for_one_container_only">Using the insecure key for one container only</a></li>
+<li><a href="#enabling_the_insecure_key_permanently">Enabling the insecure key permanently</a></li>
+<li><a href="#using_your_own_key">Using your own key</a></li>
+<li><a href="#docker_ssh">The <code>docker-ssh</code> tool</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#building">Building the image yourself</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul><hr><p><a name="user-content-whats_inside" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-whats-inside-the-image" class="anchor" href="#whats-inside-the-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's inside the image?</h2>
+
+<p><a name="user-content-whats_inside_overview" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h3>
+
+<p><em>Looking for a more complete base image, one that is ideal for Ruby, Python, Node.js and Meteor web apps? Take a look at <a href="https://github.com/phusion/passenger-docker">passenger-docker</a>.</em></p>
+
+<table>
+<thead><tr>
+<th>Component</th>
+<th>Why is it included? / Remarks</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Ubuntu 14.04 LTS</td>
+<td>The base system.</td>
+</tr>
+<tr>
+<td>A <strong>correct</strong> init process</td>
+<td>According to the Unix process model, <a href="https://en.wikipedia.org/wiki/Init">the init process</a> -- PID 1 -- inherits all <a href="https://en.wikipedia.org/wiki/Orphan_process">orphaned child processes</a> and must <a href="https://en.wikipedia.org/wiki/Wait_(system_call)">reap them</a>. Most Docker containers do not have an init process that does this correctly, and as a result their containers become filled with <a href="https://en.wikipedia.org/wiki/Zombie_process">zombie processes</a> over time. <br><br>Furthermore, <code>docker stop</code> sends SIGTERM to the init process, which is then supposed to stop all services. Unfortunately most init systems don't do this correctly within Docker since they're built for hardware shutdowns instead. This causes processes to be hard killed with SIGKILL, which doesn't give them a chance to correctly deinitialize things. This can cause file corruption. <br><br>Baseimage-docker comes with an init process <code>/sbin/my_init</code> that performs both of these tasks correctly.</td>
+</tr>
+<tr>
+<td>Fixes APT incompatibilities with Docker</td>
+<td>See <a href="https://github.com/dotcloud/docker/issues/1024">https://github.com/dotcloud/docker/issues/1024</a>.</td>
+</tr>
+<tr>
+<td>Workarounds for Docker bugs</td>
+<td><a href="#workaroud_modifying_etc_hosts">Learn more.</a></td>
+</tr>
+<tr>
+<td>syslog-ng</td>
+<td>A syslog daemon is necessary so that many services - including the kernel itself - can correctly log to /var/log/syslog. If no syslog daemon is running, a lot of important messages are silently swallowed. <br><br>Only listens locally.</td>
+</tr>
+<tr>
+<td>logrotate</td>
+<td>Rotates and compresses logs on a regular basis.</td>
+</tr>
+<tr>
+<td>SSH server</td>
+<td>Allows you to easily login to your container to <a href="#login_ssh">inspect or administer</a> things. <br><br><em>SSH is only one of the methods provided by baseimage-docker for this purpose. The other method is through <a href="#login_nsenter">the nsenter tool</a>. SSH is also provided as an option because nsenter has many issues.</em><br><br>Password and challenge-response authentication are disabled by default. Only key authentication is allowed.<br><br>SSH access can be easily disabled if you so wish. Read on for instructions.</td>
+</tr>
+<tr>
+<td>cron</td>
+<td>The cron daemon must be running for cron jobs to work.</td>
+</tr>
+<tr>
+<td><a href="http://smarden.org/runit/">runit</a></td>
+<td>Replaces Ubuntu's Upstart. Used for service supervision and management. Much easier to use than SysV init and supports restarting daemons when they crash. Much easier to use and more lightweight than Upstart.</td>
+</tr>
+<tr>
+<td><code>setuser</code></td>
+<td>A tool for running a command as another user. Easier to use than <code>su</code>, has a smaller attack vector than <code>sudo</code>, and unlike <code>chpst</code> this tool sets <code>$HOME</code> correctly. Available as <code>/sbin/setuser</code>.</td>
+</tr>
+</tbody>
+</table><p>Baseimage-docker is very lightweight: it only consumes 6 MB of memory.</p>
+
+<p><a name="user-content-docker_single_process" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-wait-i-thought-docker-is-about-running-a-single-process-in-a-container" class="anchor" href="#wait-i-thought-docker-is-about-running-a-single-process-in-a-container" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wait, I thought Docker is about running a single process in a container?</h3>
+
+<p>Absolutely not true. Docker runs fine with multiple processes in a container. In fact, there is no technical reason why you should limit yourself to one process - it only makes things harder for you and breaks all kinds of essential system functionality, e.g. syslog.</p>
+
+<p>Baseimage-docker <em>encourages</em> multiple processes through the use of runit.</p>
+
+<p><a name="user-content-inspecting" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-inspecting-baseimage-docker" class="anchor" href="#inspecting-baseimage-docker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inspecting baseimage-docker</h2>
+
+<p>To look around in the image, run:</p>
+
+<pre><code>docker run --rm -t -i phusion/baseimage:&lt;VERSION&gt; /sbin/my_init -- bash -l
+</code></pre>
+
+<p>where <code>&lt;VERSION&gt;</code> is <a href="https://github.com/phusion/baseimage-docker/blob/nsenter/Changelog.md">one of the baseimage-docker version numbers</a>.</p>
+
+<p>You don't have to download anything manually. The above command will automatically pull the baseimage-docker image from the Docker registry.</p>
+
+<p><a name="user-content-using" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-using-baseimage-docker-as-base-image" class="anchor" href="#using-baseimage-docker-as-base-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using baseimage-docker as base image</h2>
+
+<p><a name="user-content-getting_started" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h3>
+
+<p>The image is called <code>phusion/baseimage</code>, and is available on the Docker registry.</p>
+
+<pre><code># Use phusion/baseimage as base image. To make your builds reproducible, make
+# sure you lock down to a specific version, not to `latest`!
+# See https://github.com/phusion/baseimage-docker/blob/master/Changelog.md for
+# a list of version numbers.
+FROM phusion/baseimage:&lt;VERSION&gt;
+
+# Set correct environment variables.
+ENV HOME /root
+
+# Regenerate SSH host keys. baseimage-docker does not contain any, so you
+# have to do that yourself. You may also comment out this instruction; the
+# init system will auto-generate one during boot.
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
+
+# Use baseimage-docker's init system.
+CMD ["/sbin/my_init"]
+
+# ...put your own build instructions here...
+
+# Clean up APT when done.
+RUN apt-get clean &amp;&amp; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+</code></pre>
+
+<p><a name="user-content-adding_additional_daemons" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-adding-additional-daemons" class="anchor" href="#adding-additional-daemons" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding additional daemons</h3>
+
+<p>You can add additional daemons (e.g. your own app) to the image by creating runit entries. You only have to write a small shell script which runs your daemon, and runit will keep it up and running for you, restarting it when it crashes, etc.</p>
+
+<p>The shell script must be called <code>run</code>, must be executable, and is to be placed in the directory <code>/etc/service/&lt;NAME&gt;</code>.</p>
+
+<p>Here's an example showing you how a memcached server runit entry can be made.</p>
+
+<pre><code>### In memcached.sh (make sure this file is chmod +x):
+#!/bin/sh
+# `/sbin/setuser memcache` runs the given command as the user `memcache`.
+# If you omit that part, the command will be run as root.
+exec /sbin/setuser memcache /usr/bin/memcached &gt;&gt;/var/log/memcached.log 2&gt;&amp;1
+
+### In Dockerfile:
+RUN mkdir /etc/service/memcached
+ADD memcached.sh /etc/service/memcached/run
+</code></pre>
+
+<p>Note that the shell script must run the daemon <strong>without letting it daemonize/fork it</strong>. Usually, daemons provide a command line flag or a config file option for that.</p>
+
+<p><a name="user-content-running_startup_scripts" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-running-scripts-during-container-startup" class="anchor" href="#running-scripts-during-container-startup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running scripts during container startup</h3>
+
+<p>The baseimage-docker init system, <code>/sbin/my_init</code>, runs the following scripts during startup, in the following order:</p>
+
+<ul class="task-list">
+<li>All executable scripts in <code>/etc/my_init.d</code>, if this directory exists. The scripts are run in lexicographic order.</li>
+<li>The script <code>/etc/rc.local</code>, if this file exists.</li>
+</ul><p>All scripts must exit correctly, e.g. with exit code 0. If any script exits with a non-zero exit code, the booting will fail.</p>
+
+<p>The following example shows how you can add a startup script. This script simply logs the time of boot to the file /tmp/boottime.txt.</p>
+
+<pre><code>### In logtime.sh (make sure this file is chmod +x):
+#!/bin/sh
+date &gt; /tmp/boottime.txt
+
+### In Dockerfile:
+RUN mkdir -p /etc/my_init.d
+ADD logtime.sh /etc/my_init.d/logtime.sh
+</code></pre>
+
+<p><a name="user-content-environment_variables" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-environment-variables" class="anchor" href="#environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Environment variables</h3>
+
+<p>If you use <code>/sbin/my_init</code> as the main container command, then any environment variables set with <code>docker run --env</code> or with the <code>ENV</code> command in the Dockerfile, will be picked up by <code>my_init</code>. These variables will also be passed to all child processes, including <code>/etc/my_init.d</code> startup scripts, Runit and Runit-managed services. There are however a few caveats you should be aware of:</p>
+
+<ul class="task-list">
+<li>Environment variables on Unix are inherited on a per-process basis. This means that it is generally not possible for a child process to change the environment variables of other processes.</li>
+<li>Because of the aforementioned point, there is no good central place for defining environment variables for all applications and services. Debian has the <code>/etc/environment</code> file but it only works in some situations.</li>
+<li>Some services change environment variables for child processes. Nginx is one such example: it removes all environment variables unless you explicitly instruct it to retain them through the <code>env</code> configuration option. If you host any applications on Nginx (e.g. using the <a href="https://github.com/phusion/passenger-docker">passenger-docker</a> image, or using Phusion Passenger in your own image) then they will not see the environment variables that were originally passed by Docker.</li>
+</ul><p><code>my_init</code> provides a solution for all these caveats.</p>
+
+<p><a name="user-content-envvar_central_definition" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-centrally-defining-your-own-environment-variables" class="anchor" href="#centrally-defining-your-own-environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Centrally defining your own environment variables</h4>
+
+<p>During startup, before running any <a href="#running_startup_scripts">startup scripts</a>, <code>my_init</code> imports environment variables from the directory <code>/etc/container_environment</code>. This directory contains files who are named after the environment variable names. The file contents contain the environment variable values. This directory is therefore a good place to centrally define your own environment variables, which will be inherited by all startup scripts and Runit services.</p>
+
+<p>For example, here's how you can define an environment variable from your Dockerfile:</p>
+
+<pre><code>RUN echo Apachai Hopachai &gt; /etc/container_environment/MY_NAME
+</code></pre>
+
+<p>You can verify that it works, as follows:</p>
+
+<pre><code>$ docker run -t -i &lt;YOUR_NAME_IMAGE&gt; /sbin/my_init -- bash -l
+...
+*** Running bash -l...
+# echo $MY_NAME
+Apachai Hopachai
+</code></pre>
+
+<p><strong>Handling newlines</strong></p>
+
+<p>If you've looked carefully, you'll notice that the 'echo' command actually prints a newline. Why does $MY_NAME not contain a newline then? It's because <code>my_init</code> strips the trailing newline, if any. If you intended on the value having a newline, you should add <em>another</em> newline, like this:</p>
+
+<pre><code>RUN echo -e "Apachai Hopachai\n" &gt; /etc/container_environment/MY_NAME
+</code></pre>
+
+<p><a name="user-content-envvar_dumps" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-environment-variable-dumps" class="anchor" href="#environment-variable-dumps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Environment variable dumps</h4>
+
+<p>While the previously mentioned mechanism is good for centrally defining environment variables, it by itself does not prevent services (e.g. Nginx) from changing and resetting environment variables from child processes. However, the <code>my_init</code> mechanism does make it easy for you to query what the original environment variables are.</p>
+
+<p>During startup, right after importing environment variables from <code>/etc/container_environment</code>, <code>my_init</code> will dump all its environment variables (that is, all variables imported from <code>container_environment</code>, as well as all variables it picked up from <code>docker run --env</code>) to the following locations, in the following formats:</p>
+
+<ul class="task-list">
+<li><code>/etc/container_environment</code></li>
+<li>
+<code>/etc/container_environment.sh</code> - a dump of the environment variables in Bash format. You can source the file directly from a Bash shell script.</li>
+<li>
+<code>/etc/container_environment.json</code> - a dump of the environment variables in JSON format.</li>
+</ul><p>The multiple formats makes it easy for you to query the original environment variables no matter which language your scripts/apps are written in.</p>
+
+<p>Here is an example shell session showing you how the dumps look like:</p>
+
+<pre><code>$ docker run -t -i \
+  --env FOO=bar --env HELLO='my beautiful world' \
+  phusion/baseimage:&lt;VERSION&gt; /sbin/my_init -- \
+  bash -l
+...
+*** Running bash -l...
+# ls /etc/container_environment
+FOO  HELLO  HOME  HOSTNAME  PATH  TERM  container
+# cat /etc/container_environment/HELLO; echo
+my beautiful world
+# cat /etc/container_environment.json; echo
+{"TERM": "xterm", "container": "lxc", "HOSTNAME": "f45449f06950", "HOME": "/root", "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "FOO": "bar", "HELLO": "my beautiful world"}
+# source /etc/container_environment.sh
+# echo $HELLO
+my beautiful world
+</code></pre>
+
+<p><a name="user-content-modifying_envvars" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-modifying-environment-variables" class="anchor" href="#modifying-environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modifying environment variables</h4>
+
+<p>It is even possible to modify the environment variables in <code>my_init</code> (and therefore the environment variables in all child processes that are spawned after that point in time), by altering the files in <code>/etc/container_environment</code>. After each time <code>my_init</code> runs a <a href="#running_startup_scripts">startup script</a>, it resets its own environment variables to the state in <code>/etc/container_environment</code>, and re-dumps the new environment variables to <code>container_environment.sh</code> and <code>container_environment.json</code>.</p>
+
+<p>But note that:</p>
+
+<ul class="task-list">
+<li>modifying <code>container_environment.sh</code> and <code>container_environment.json</code> has no effect.</li>
+<li>Runit services cannot modify the environment like that. <code>my_init</code> only activates changes in <code>/etc/container_environment</code> when running startup scripts.</li>
+</ul><p><a name="user-content-envvar_security" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-security" class="anchor" href="#security" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h4>
+
+<p>Because environment variables can potentially contain sensitive information, <code>/etc/container_environment</code> and its Bash and JSON dumps are by default owned by root, and accessible only by the <code>docker_env</code> group (so that any user added this group will have these variables automatically loaded).</p>
+
+<p>If you are sure that your environment variables don't contain sensitive data, then you can also relax the permissions on that directory and those files by making them world-readable:</p>
+
+<pre><code>RUN chmod 755 /etc/container_environment
+RUN chmod 644 /etc/container_environment.sh /etc/container_environment.json
+</code></pre>
+
+<p><a name="user-content-workaroud_modifying_etc_hosts" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-working-around-dockers-inability-to-modify-etchosts" class="anchor" href="#working-around-dockers-inability-to-modify-etchosts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working around Docker's inability to modify /etc/hosts</h3>
+
+<p>It is currently not possible to modify /etc/hosts inside a Docker container because of <a href="https://github.com/dotcloud/docker/issues/2267">Docker bug 2267</a>. Baseimage-docker includes a workaround for this. You have to be explicitly opt-in for the workaround.</p>
+
+<p>The workaround involves modifying a system library, libnss_files.so.2, so that it looks for the host file in /etc/workaround-docker-2267/hosts instead of /etc/hosts. Instead of modifying /etc/hosts, you modify /etc/workaround-docker-2267/hosts instead.</p>
+
+<p>Add this to your Dockerfile to opt-in for the workaround. This command modifies libnss_files.so.2 as described above.</p>
+
+<pre><code>RUN /usr/bin/workaround-docker-2267
+</code></pre>
+
+<p>(You don't necessarily have to run this command from the Dockerfile. You can also run it from a shell inside the container.)</p>
+
+<p>To verify that it works, <a href="#inspecting">open a bash shell in your container</a>, modify /etc/workaround-docker-2267/hosts, and check whether it had any effect:</p>
+
+<pre><code>bash# echo 127.0.0.1 my-test-domain.com &gt;&gt; /etc/workaround-docker-2267/hosts
+bash# ping my-test-domain.com
+...should ping 127.0.0.1...
+</code></pre>
+
+<p><strong>Note on apt-get upgrading:</strong> if any Ubuntu updates overwrite libnss_files.so.2, then the workaround is removed. You have to re-enable it by running <code>/usr/bin/workaround-docker-2267</code>. To be safe, you should run this command every time after running <code>apt-get upgrade</code>.</p>
+
+<p><a name="user-content-disabling_ssh" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-disabling-ssh" class="anchor" href="#disabling-ssh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Disabling SSH</h3>
+
+<p>Baseimage-docker enables an SSH server by default, so that you can <a href="#login_ssh">use SSH</a> to <a href="#container_administration">administer your container</a>. In case you do not want to enable SSH, here's how you can disable it:</p>
+
+<pre><code>RUN rm -rf /etc/service/sshd /etc/my_init.d/00_regen_ssh_host_keys.sh
+</code></pre>
+
+<p><a name="user-content-container_administration" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-container-administration" class="anchor" href="#container-administration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Container administration</h2>
+
+<p>One of the ideas behind Docker is that containers should be stateless, easily restartable, and behave like a black box. However, you may occasionally encounter situations where you want to login to a container, or to run a command inside a container, for development, inspection and debugging purposes. This section describes how you can administer the container for those purposes.</p>
+
+<p><a name="user-content-oneshot" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-running-a-one-shot-command-in-a-new-container" class="anchor" href="#running-a-one-shot-command-in-a-new-container" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running a one-shot command in a new container</h3>
+
+<p><em><strong>Note:</strong> This section describes how to run a command insider a -new- container. To run a command inside an existing running container, see <a href="#run_inside_existing_container">Running a command in an existing, running container</a>.</em></p>
+
+<p>Normally, when you want to create a new container in order to run a single command inside it, and immediately exit after the command exits, you invoke Docker like this:</p>
+
+<pre><code>docker run YOUR_IMAGE COMMAND ARGUMENTS...
+</code></pre>
+
+<p>However the downside of this approach is that the init system is not started. That is, while invoking <code>COMMAND</code>, important daemons such as cron and syslog are not running. Also, orphaned child processes are not properly reaped, because <code>COMMAND</code> is PID 1.</p>
+
+<p>Baseimage-docker provides a facility to run a single one-shot command, while solving all of the aforementioned problems. Run a single command in the following manner:</p>
+
+<pre><code>docker run YOUR_IMAGE /sbin/my_init -- COMMAND ARGUMENTS ...
+</code></pre>
+
+<p>This will perform the following:</p>
+
+<ul class="task-list">
+<li>Runs all system startup files, such as /etc/my_init.d/* and /etc/rc.local.</li>
+<li>Starts all runit services.</li>
+<li>Runs the specified command.</li>
+<li>When the specified command exits, stops all runit services.</li>
+</ul><p>For example:</p>
+
+<pre><code>$ docker run phusion/baseimage:&lt;VERSION&gt; /sbin/my_init -- ls
+*** Running /etc/my_init.d/00_regen_ssh_host_keys.sh...
+No SSH host key available. Generating one...
+Creating SSH2 RSA key; this may take some time ...
+Creating SSH2 DSA key; this may take some time ...
+Creating SSH2 ECDSA key; this may take some time ...
+*** Running /etc/rc.local...
+*** Booting runit daemon...
+*** Runit started as PID 80
+*** Running ls...
+bin  boot  dev  etc  home  image  lib  lib64  media  mnt  opt  proc  root  run  sbin  selinux  srv  sys  tmp  usr  var
+*** ls exited with exit code 0.
+*** Shutting down runit daemon (PID 80)...
+*** Killing all processes...
+</code></pre>
+
+<p>You may find that the default invocation is too noisy. Or perhaps you don't want to run the startup files. You can customize all this by passing arguments to <code>my_init</code>. Invoke <code>docker run YOUR_IMAGE /sbin/my_init --help</code> for more information.</p>
+
+<p>The following example runs <code>ls</code> without running the startup files and with less messages, while running all runit services:</p>
+
+<pre><code>$ docker run phusion/baseimage:&lt;VERSION&gt; /sbin/my_init --skip-startup-files --quiet -- ls
+bin  boot  dev  etc  home  image  lib  lib64  media  mnt  opt  proc  root  run  sbin  selinux  srv  sys  tmp  usr  var
+</code></pre>
+
+<p><a name="user-content-run_inside_existing_container" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-running-a-command-in-an-existing-running-container" class="anchor" href="#running-a-command-in-an-existing-running-container" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running a command in an existing, running container</h3>
+
+<p>There are two ways to run a command inside an existing, running container.</p>
+
+<ul class="task-list">
+<li>Through the <code>nsenter</code> tool. This tool uses Linux kernel system calls in order to execute a command within the context of a container. Learn more in <a href="#login_nsenter">Login to the container, or running a command inside it, via nsenter</a>.</li>
+<li>Through SSH. This approach requires running an SSH daemon inside the container, and requires you to setup SSH keys. Learn more in <a href="#login_ssh">Login to the container, or running a command inside it, via SSH</a>.</li>
+</ul><p>Both way have their own pros and cons, which you can learn in their respective subsections.</p>
+
+<p><a name="user-content-login_nsenter" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-login-to-the-container-or-running-a-command-inside-it-via-nsenter" class="anchor" href="#login-to-the-container-or-running-a-command-inside-it-via-nsenter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Login to the container, or running a command inside it, via nsenter</h3>
+
+<p>You can use the <code>nsenter</code> tool on the Docker host OS to login to any container that is based on baseimage-docker. You can also use it to run a command inside a running container. <code>nsenter</code> works by using Linux kernel system calls.</p>
+
+<p>Here's how it compares to <a href="#login_ssh">using SSH to login to the container or to run a command inside it</a>:</p>
+
+<ul class="task-list">
+<li>Pros
+
+<ul class="task-list">
+<li>Does not require running an SSH daemon inside the container.</li>
+<li>Does not require setting up SSH keys.</li>
+<li>Works on any container, even containers not based on baseimage-docker.</li>
+</ul>
+</li>
+<li>Cons
+
+<ul class="task-list">
+<li>Processes executed by <code>nsenter</code> behave in a slightly different manner than normal. For example, they cannot be killed by any normal processes inside the container. This applies to all child processes as well.</li>
+<li>If the <code>nsenter</code> process is terminated by a signal (e.g. with the <code>kill</code> command), then the command that is executed by nsenter is <em>not</em> killed and cleaned up. You will have to do that manually. (Note that terminal control commands like Ctrl-C <em>do</em> clean up all child processes, because terminal signals are sent to all processes in the terminal session.)</li>
+<li>Requires learning another tool.</li>
+<li>Requires root privileges on the Docker host.</li>
+<li>Requires the <code>nsenter</code> tool to be available on the Docker host. At the time of writing (July 2014), most Linux distributions do not ship it. However, baseimage-docker provides a precompiled binary, and allows you to easily use it, through its <a href="#docker_bash">docker-bash</a> tool.</li>
+<li>Not possible to allow users to login to the container without also letting them login to the Docker host.</li>
+</ul>
+</li>
+</ul><p><a name="user-content-nsenter_usage" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h4>
+
+<p>First, ensure that <code>nsenter</code> is installed. At the time of writing (July 2014), almost no Linux distribution ships the <code>nsenter</code> tool. However, we provide <a href="#docker_bash">a precompiled binary</a> that anybody can use.</p>
+
+<p>Anyway, start a container:</p>
+
+<pre><code>docker run YOUR_IMAGE
+</code></pre>
+
+<p>Find out the ID of the container that you just ran:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Once you have the ID, look for the PID of the main process inside the container.</p>
+
+<pre><code>docker inspect -f "{{ .State.Pid }}" &lt;ID&gt;
+</code></pre>
+
+<p>Now that you have the container's main process PID, you can use <code>nsenter</code> to login to the container, or to execute a command inside it:</p>
+
+<pre><code># Login to the container
+nsenter --target &lt;MAIN PROCESS PID&gt; --mount --uts --ipc --net --pid bash -l
+
+# Running a command inside the container
+nsenter --target &lt;MAIN PROCESS PID&gt; --mount --uts --ipc --net --pid -- echo hello world
+</code></pre>
+
+<p><a name="user-content-docker_bash" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-the-docker-bash-tool" class="anchor" href="#the-docker-bash-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>docker-bash</code> tool</h4>
+
+<p>Looking up the main process PID of a container and typing the long nsenter command quickly becomes tedious. Luckily, we provide the <code>docker-bash</code> tool which automates this process. This tool is to be run on the <em>Docker host</em>, not inside a Docker container.</p>
+
+<p>This tool also comes with a precompiled <code>nsenter</code> binary, so that you don't have to install <code>nsenter</code> yourself. <code>docker-bash</code> works out-of-the-box!</p>
+
+<p>First, install the tool on the Docker host:</p>
+
+<pre><code>curl --fail -L -O https://github.com/phusion/baseimage-docker/archive/master.tar.gz &amp;&amp; \
+tar xzf master.tar.gz &amp;&amp; \
+sudo ./baseimage-docker-master/install-tools.sh
+</code></pre>
+
+<p>Then run the tool as follows to login to a container:</p>
+
+<pre><code>docker-bash YOUR-CONTAINER-ID
+</code></pre>
+
+<p>You can lookup <code>YOUR-CONTAINER-ID</code> by running <code>docker ps</code>.</p>
+
+<p>By default, <code>docker-bash</code> will open a Bash session. You can also tell it to run a command, and then exit:</p>
+
+<pre><code>docker-bash YOUR-CONTAINER-ID echo hello world
+</code></pre>
+
+<p><a name="user-content-login_ssh" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-login-to-the-container-or-running-a-command-inside-it-via-ssh" class="anchor" href="#login-to-the-container-or-running-a-command-inside-it-via-ssh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Login to the container, or running a command inside it, via SSH</h3>
+
+<p>You can use SSH to login to any container that is based on baseimage-docker. You can also use it to run a command inside a running container.</p>
+
+<p>Here's how it compares to <a href="#login_nsenter">using nsenter to login to the container or to run a command inside it</a>:</p>
+
+<ul class="task-list">
+<li>Pros
+
+<ul class="task-list">
+<li>Does not require a tool like <code>nsenter</code> to be available on the Docker host. Virtually everybody already has an SSH client installed.</li>
+<li>There no surprises with processes behaving slightly differently than normal, as is the case when using <code>nsenter</code>.</li>
+<li>Does not require root privileges on the Docker host.</li>
+<li>Allows you to let users login to the container, without letting them login to the Docker host. However, this is not enabled by default because baseimage-docker does not expose the SSH server to the public Internet by default.</li>
+</ul>
+</li>
+<li>Cons
+
+<ul class="task-list">
+<li>Requires setting up SSH keys. However, baseimage-docker makes this easy for many cases through a pregenerated, insecure key. Read on to learn more.</li>
+</ul>
+</li>
+</ul><p>The first thing that you need to do is to ensure that you have the right SSH keys installed inside the container. By default, no keys are installed, so you can't login. For convenience reasons, we provide <a href="https://github.com/phusion/baseimage-docker/blob/master/image/insecure_key">a pregenerated, insecure key</a> <a href="https://github.com/phusion/baseimage-docker/blob/master/image/insecure_key.ppk">(PuTTY format)</a> that you can easily enable. However, please be aware that using this key is for convenience only. It does not provide any security because this key (both the public and the private side) is publicly available. <strong>In production environments, you should use your own keys</strong>.</p>
+
+<p><a name="user-content-using_the_insecure_key_for_one_container_only" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-using-the-insecure-key-for-one-container-only" class="anchor" href="#using-the-insecure-key-for-one-container-only" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the insecure key for one container only</h4>
+
+<p>You can temporarily enable the insecure key for one container only. This means that the insecure key is installed at container boot. If you <code>docker stop</code> and <code>docker start</code> the container, the insecure key will still be there, but if you use <code>docker run</code> to start a new container then that container will not contain the insecure key.</p>
+
+<p>Start a container with <code>--enable-insecure-key</code>:</p>
+
+<pre><code>docker run YOUR_IMAGE /sbin/my_init --enable-insecure-key
+</code></pre>
+
+<p>Find out the ID of the container that you just ran:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Once you have the ID, look for its IP address with:</p>
+
+<pre><code>docker inspect -f "{{ .NetworkSettings.IPAddress }}" &lt;ID&gt;
+</code></pre>
+
+<p>Now that you have the IP address, you can use SSH to login to the container, or to execute a command inside it:</p>
+
+<pre><code># Download the insecure private key
+curl -o insecure_key -fSL https://github.com/phusion/baseimage-docker/raw/master/image/insecure_key
+chmod 600 insecure_key
+
+# Login to the container
+ssh -i insecure_key root@&lt;IP address&gt;
+
+# Running a command inside the container
+ssh -i insecure_key root@&lt;IP address&gt; echo hello world
+</code></pre>
+
+<p><a name="user-content-enabling_the_insecure_key_permanently" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-enabling-the-insecure-key-permanently" class="anchor" href="#enabling-the-insecure-key-permanently" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enabling the insecure key permanently</h4>
+
+<p>It is also possible to enable the insecure key in the image permanently. This is not generally recommended, but it suitable for e.g. temporary development or demo environments where security does not matter.</p>
+
+<p>Edit your Dockerfile to install the insecure key permanently:</p>
+
+<pre><code>RUN /usr/sbin/enable_insecure_key
+</code></pre>
+
+<p>Instructions for logging in the container is the same as in section <a href="#using_the_insecure_key_for_one_container_only">Using the insecure key for one container only</a>.</p>
+
+<p><a name="user-content-using_your_own_key" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-using-your-own-key" class="anchor" href="#using-your-own-key" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using your own key</h4>
+
+<p>Edit your Dockerfile to install an SSH public key:</p>
+
+<pre><code>## Install an SSH of your choice.
+ADD your_key.pub /tmp/your_key.pub
+RUN cat /tmp/your_key.pub &gt;&gt; /root/.ssh/authorized_keys &amp;&amp; rm -f /tmp/your_key.pub
+</code></pre>
+
+<p>Then rebuild your image. Once you have that, start a container based on that image:</p>
+
+<pre><code>docker run your-image-name
+</code></pre>
+
+<p>Find out the ID of the container that you just ran:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Once you have the ID, look for its IP address with:</p>
+
+<pre><code>docker inspect -f "{{ .NetworkSettings.IPAddress }}" &lt;ID&gt;
+</code></pre>
+
+<p>Now that you have the IP address, you can use SSH to login to the container, or to execute a command inside it:</p>
+
+<pre><code># Login to the container
+ssh -i /path-to/your_key root@&lt;IP address&gt;
+
+# Running a command inside the container
+ssh -i /path-to/your_key root@&lt;IP address&gt; echo hello world
+</code></pre>
+
+<p><a name="user-content-docker_ssh" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-the-docker-ssh-tool" class="anchor" href="#the-docker-ssh-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>docker-ssh</code> tool</h4>
+
+<p>Looking up the IP of a container and running an SSH command quickly becomes tedious. Luckily, we provide the <code>docker-ssh</code> tool which automates this process. This tool is to be run on the <em>Docker host</em>, not inside a Docker container.</p>
+
+<p>First, install the tool on the Docker host:</p>
+
+<pre><code>curl --fail -L -O https://github.com/phusion/baseimage-docker/archive/master.tar.gz &amp;&amp; \
+tar xzf master.tar.gz &amp;&amp; \
+sudo ./baseimage-docker-master/install-tools.sh
+</code></pre>
+
+<p>Then run the tool as follows to login to a container using SSH:</p>
+
+<pre><code>docker-ssh YOUR-CONTAINER-ID
+</code></pre>
+
+<p>You can lookup <code>YOUR-CONTAINER-ID</code> by running <code>docker ps</code>.</p>
+
+<p>By default, <code>docker-ssh</code> will open a Bash session. You can also tell it to run a command, and then exit:</p>
+
+<pre><code>docker-ssh YOUR-CONTAINER-ID echo hello world
+</code></pre>
+
+<p><a name="user-content-building" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-building-the-image-yourself" class="anchor" href="#building-the-image-yourself" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building the image yourself</h2>
+
+<p>If for whatever reason you want to build the image yourself instead of downloading it from the Docker registry, follow these instructions.</p>
+
+<p>Clone this repository:</p>
+
+<pre><code>git clone https://github.com/phusion/baseimage-docker.git
+cd baseimage-docker
+</code></pre>
+
+<p>Start a virtual machine with Docker in it. You can use the Vagrantfile that we've already provided.</p>
+
+<pre><code>vagrant up
+vagrant ssh
+cd /vagrant
+</code></pre>
+
+<p>Build the image:</p>
+
+<pre><code>make build
+</code></pre>
+
+<p>If you want to call the resulting image something else, pass the NAME variable, like this:</p>
+
+<pre><code>make build NAME=joe/baseimage
+</code></pre>
+
+<p><a name="user-content-conclusion" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusion</h2>
+
+<ul class="task-list">
+<li>Using baseimage-docker? <a href="https://twitter.com/share">Tweet about us</a> or <a href="https://twitter.com/phusion_nl">follow us on Twitter</a>.</li>
+<li>Having problems? Want to participate in development? Please post a message at <a href="https://groups.google.com/d/forum/passenger-docker">the discussion forum</a>.</li>
+<li>Looking for a more complete base image, one that is ideal for Ruby, Python, Node.js and Meteor web apps? Take a look at <a href="https://github.com/phusion/passenger-docker">passenger-docker</a>.</li>
+</ul><p><a href="http://www.phusion.nl/"><img src="https://camo.githubusercontent.com/4b39a2ed35659162772e2dfadc1005ab953d9839/687474703a2f2f7777772e70687573696f6e2e6e6c2f6173736574732f6c6f676f2e706e67" data-canonical-src="http://www.phusion.nl/assets/logo.png" style="max-width:100%;"></a></p>
+
+<p>Please enjoy baseimage-docker, a product by <a href="http://www.phusion.nl/">Phusion</a>. :-)</p></article></div>

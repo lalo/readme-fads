@@ -1,0 +1,103 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-nsenter-in-a-can" class="anchor" href="#nsenter-in-a-can" aria-hidden="true"><span class="octicon octicon-link"></span></a>nsenter in a can</h1>
+
+<p>This is a small Docker recipe to build <code>nsenter</code> easily and install it in your
+system.</p>
+
+<h2>
+<a name="user-content-what-is-nsenter" class="anchor" href="#what-is-nsenter" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is <code>nsenter</code>?</h2>
+
+<p>It is a small tool allowing to <code>enter</code> into <code>n</code>ame<code>s</code>paces. Technically,
+it can enter existing namespaces, or spawn a process into a new set of
+namespaces. "What are those namespaces you're blabbering about?"
+We are talking about <a href="http://blog.dotcloud.com/under-the-hood-linux-kernels-on-dotcloud-part">container namespaces</a>.</p>
+
+<p><code>nsenter</code> can do many useful things, but the main reason why I'm so
+excited about it is because it lets you <a href="http://jpetazzo.github.io/2014/03/23/lxc-attach-nsinit-nsenter-docker-0-9/">enter into a Docker container</a>.</p>
+
+<h2>
+<a name="user-content-why-build-nsenter-in-a-container" class="anchor" href="#why-build-nsenter-in-a-container" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why build <code>nsenter</code> in a container?</h2>
+
+<p>This is because my preferred distros (Debian and Ubuntu) ship with an
+outdated version of <code>util-linux</code> (the package that should contain <code>nsenter</code>).
+Therefore, if you need <code>nsenter</code> on those distros, you have to juggle with
+APT repository, or compile from source, or… Ain't nobody got time for that.</p>
+
+<p>I'm going to make a very bold assumption: if you landed here, it's because
+you want to enter a Docker container. Therefore, you won't mind if my
+method to build <code>nsenter</code> uses Docker itself.</p>
+
+<h2>
+<a name="user-content-how-do-i-install-nsenter-with-this" class="anchor" href="#how-do-i-install-nsenter-with-this" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I install <code>nsenter</code> with this?</h2>
+
+<p>If you want to install <code>nsenter</code> into <code>/usr/local/bin</code>, just do this:</p>
+
+<pre><code>docker run --rm -v /usr/local/bin:/target jpetazzo/nsenter
+</code></pre>
+
+<p>The <code>jpetazzo/nsenter</code> container will detect that <code>/target</code> is a
+mountpoint, and it will copy the <code>nsenter</code> binary into it.</p>
+
+<p>If you don't trust me, and prefer to extract the <code>nsenter</code> binary,
+rather than allowing my container to potentially wreak havoc into
+your system's <code>$PATH</code>, you can also do this:</p>
+
+<pre><code>docker run --rm jpetazzo/nsenter cat /nsenter &gt; /tmp/nsenter
+</code></pre>
+
+<p>Then do whatever you want with the binary in <code>/tmp/nsenter</code>.</p>
+
+<h2>
+<a name="user-content-how-do-i-use-nsenter" class="anchor" href="#how-do-i-use-nsenter" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I <em>use</em> <code>nsenter</code>?</h2>
+
+<p>First, figure out the PID of the container you want to enter:</p>
+
+<pre><code>PID=$(docker inspect --format {{.State.Pid}} &lt;container_name_or_ID&gt;)
+</code></pre>
+
+<p>Then enter the container:</p>
+
+<pre><code>nsenter --target $PID --mount --uts --ipc --net --pid
+</code></pre>
+
+<h2>
+<a name="user-content-whats-that-docker-enter-thing" class="anchor" href="#whats-that-docker-enter-thing" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's that docker-enter thing?</h2>
+
+<p>It's just a small shell script that wraps up the steps described above into
+a tiny helper. It takes the name or ID of a container and optionally the name
+of a program to execute inside the namespace. If no command is specified a
+shell will be invoked instead.</p>
+
+<pre><code># list the root filesystem
+docker-enter my_awesome_container ls -la
+</code></pre>
+
+<h2>
+<a name="user-content-docker-enter-with-boot2docker" class="anchor" href="#docker-enter-with-boot2docker" aria-hidden="true"><span class="octicon octicon-link"></span></a>docker-enter with boot2docker</h2>
+
+<p>If you are using boot2docker, you can use the function below, to:</p>
+
+<ul class="task-list">
+<li>install <code>nsenter</code> and <code>docker-enter</code> into boot2docker's /var/lib/boot2docker/ directory,
+so they survive restarts.</li>
+<li>execute <code>docker-enter</code> inside of boot2docker combined with ssh</li>
+</ul><pre><code>docker-enter() {
+  boot2docker ssh '[ -f /var/lib/boot2docker/nsenter ] || docker run --rm -v /var/lib/boot2docker/:/target jpetazzo/nsenter'
+  boot2docker ssh sudo /var/lib/boot2docker/docker-enter "$@"
+}
+</code></pre>
+
+<p>You can use it directly from your host (OS X/Windows), no need to ssh into boot2docker.</p>
+
+<h2>
+<a name="user-content-caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
+
+<ul class="task-list">
+<li>This only works on Intel 64 bits platforms. Arguably, this is the
+only officially supported platform for Docker; so it's not a big deal.
+As soon as the Docker registry supports other architectures, I will
+see how to build <code>nsenter</code> for those!</li>
+<li>
+<code>nsenter</code> still needs to run from the host; it cannot run inside a
+container (yet).</li>
+</ul></article></div>

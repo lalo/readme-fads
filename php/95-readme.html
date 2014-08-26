@@ -1,0 +1,443 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-kleinphp" class="anchor" href="#kleinphp" aria-hidden="true"><span class="octicon octicon-link"></span></a>Klein.php</h1>
+
+<p><a href="https://travis-ci.org/chriso/klein.php"><img src="https://camo.githubusercontent.com/36f38f00d43db593e079772f78b8a4c7bbeb41ac/68747470733a2f2f7472617669732d63692e6f72672f63687269736f2f6b6c65696e2e7068702e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/chriso/klein.php.png?branch=master" style="max-width:100%;"></a></p>
+
+<p><strong>klein.php</strong> is a lightning fast router for PHP 5.3+</p>
+
+<ul class="task-list">
+<li>Flexible regular expression routing (inspired by <a href="http://www.sinatrarb.com/">Sinatra</a>)</li>
+<li>A set of <a href="#api">boilerplate methods</a> for rapidly building web apps</li>
+<li>Almost no overhead =&gt; <a href="https://gist.github.com/878833">2500+ requests/second</a>
+</li>
+</ul><h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<ol class="task-list">
+<li>PHP 5.3.x is required</li>
+<li>Install Klein using <a href="#composer-installation">Composer</a> (recommended) or manually</li>
+<li>Setup <a href="https://gist.github.com/874000">URL rewriting</a> so that all requests are handled by <strong>index.php</strong>
+</li>
+<li>(Optional) Throw in some <a href="http://pecl.php.net/package/APC">APC</a> for good measure</li>
+</ol><h2>
+<a name="user-content-composer-installation" class="anchor" href="#composer-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Composer Installation</h2>
+
+<ol class="task-list">
+<li>Get <a href="http://getcomposer.org/">Composer</a>
+</li>
+<li>Require Klein with <code>php composer.phar require klein/klein v2.0.x</code>
+</li>
+<li>Install dependencies with <code>php composer.phar install</code>
+</li>
+</ol><h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p><em>Hello World</em> - Obligatory hello world example</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="k">require_once</span> <span class="nx">__DIR__</span> <span class="o">.</span> <span class="s1">'/vendor/autoload.php'</span><span class="p">;</span>
+
+<span class="nv">$klein</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">\Klein\Klein</span><span class="p">();</span>
+
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'/hello-world'</span><span class="p">,</span> <span class="k">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="s1">'Hello World!'</span><span class="p">;</span>
+<span class="p">});</span>
+
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">dispatch</span><span class="p">();</span>
+</pre></div>
+
+<p><em>Example 1</em> - Respond to all requests</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="k">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="s1">'All the things'</span><span class="p">;</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><em>Example 2</em> - Named parameters</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'/[:name]'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="s1">'Hello '</span> <span class="o">.</span> <span class="nv">$request</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">;</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><em>Example 3</em> - <a href="http://bit.ly/g93B1s">So RESTful</a></p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'/posts'</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">);</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'POST'</span><span class="p">,</span> <span class="s1">'/posts'</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">);</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'PUT'</span><span class="p">,</span> <span class="s1">'/posts/[i:id]'</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">);</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'DELETE'</span><span class="p">,</span> <span class="s1">'/posts/[i:id]'</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">);</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'OPTIONS'</span><span class="p">,</span> <span class="k">null</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">);</span>
+
+<span class="c1">// To match multiple request methods:</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="s1">'POST'</span><span class="p">,</span><span class="s1">'GET'</span><span class="p">),</span> <span class="nv">$route</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">);</span>
+
+<span class="c1">// Or you might want to handle the requests in the same place</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'/posts/[create|edit:action]?/[i:id]?'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span><span class="nv">$request</span><span class="o">-&gt;</span><span class="na">action</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">//</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><em>Example 4</em> - Sending objects / files</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">xml</span> <span class="o">=</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$object</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Custom xml output function</span>
+    <span class="p">}</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">csv</span> <span class="o">=</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$object</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Custom csv output function</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'/report.[xml|csv|json:format]?'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Get the format or fallback to JSON as the default</span>
+    <span class="nv">$send</span> <span class="o">=</span> <span class="nv">$request</span><span class="o">-&gt;</span><span class="na">param</span><span class="p">(</span><span class="s1">'format'</span><span class="p">,</span> <span class="s1">'json'</span><span class="p">);</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="nv">$send</span><span class="p">(</span><span class="nv">$report</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'/report/latest'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$response</span><span class="o">-&gt;</span><span class="na">file</span><span class="p">(</span><span class="s1">'/tmp/cached_report.zip'</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><em>Example 5</em> - All together</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">,</span> <span class="nv">$app</span><span class="p">)</span> <span class="k">use</span> <span class="p">(</span><span class="nv">$klein</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Handle exceptions =&gt; flash the message and redirect to the referrer</span>
+    <span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">onError</span><span class="p">(</span><span class="k">function</span> <span class="p">(</span><span class="nv">$klein</span><span class="p">,</span> <span class="nv">$err_msg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">service</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">flash</span><span class="p">(</span><span class="nv">$err_msg</span><span class="p">);</span>
+        <span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">service</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">back</span><span class="p">();</span>
+    <span class="p">});</span>
+
+    <span class="c1">// The fourth parameter can be used to share scope and global objects</span>
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">db</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">PDO</span><span class="p">(</span><span class="o">...</span><span class="p">);</span>
+
+    <span class="c1">// $app also can store lazy services, e.g. if you don't want to</span>
+    <span class="c1">// instantiate a database connection on every response</span>
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">register</span><span class="p">(</span><span class="s1">'db'</span><span class="p">,</span> <span class="k">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nx">PDO</span><span class="p">(</span><span class="o">...</span><span class="p">);</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'POST'</span><span class="p">,</span> <span class="s1">'/users/[i:id]/edit'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">,</span> <span class="nv">$app</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Quickly validate input parameters</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">validateParam</span><span class="p">(</span><span class="s1">'username'</span><span class="p">,</span> <span class="s1">'Please enter a valid username'</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">isLen</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">isChars</span><span class="p">(</span><span class="s1">'a-zA-Z0-9-'</span><span class="p">);</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">validateParam</span><span class="p">(</span><span class="s1">'password'</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">notNull</span><span class="p">();</span>
+
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">db</span><span class="o">-&gt;</span><span class="na">query</span><span class="p">(</span><span class="o">...</span><span class="p">);</span> <span class="c1">// etc.</span>
+
+    <span class="c1">// Add view properties and helper methods</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">title</span> <span class="o">=</span> <span class="s1">'foo'</span><span class="p">;</span>
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">escape</span> <span class="o">=</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nb">htmlentities</span><span class="p">(</span><span class="nv">$str</span><span class="p">);</span> <span class="c1">// Assign view helpers</span>
+    <span class="p">};</span>
+
+    <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="s1">'myview.phtml'</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="c1">// myview.phtml:</span>
+<span class="o">&lt;</span><span class="nx">title</span><span class="o">&gt;&lt;?</span><span class="nx">php</span> <span class="k">echo</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">escape</span><span class="p">(</span><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">title</span><span class="p">)</span> <span class="cp">?&gt;</span><span class="x">&lt;/title&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-route-namespaces" class="anchor" href="#route-namespaces" aria-hidden="true"><span class="octicon octicon-link"></span></a>Route namespaces</h2>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">with</span><span class="p">(</span><span class="s1">'/users'</span><span class="p">,</span> <span class="k">function</span> <span class="p">()</span> <span class="k">use</span> <span class="p">(</span><span class="nv">$klein</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'/?'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Show all users</span>
+    <span class="p">});</span>
+
+    <span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'/[:id]'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Show a single user</span>
+    <span class="p">});</span>
+
+<span class="p">});</span>
+
+<span class="k">foreach</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="s1">'projects'</span><span class="p">,</span> <span class="s1">'posts'</span><span class="p">)</span> <span class="k">as</span> <span class="nv">$controller</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Include all routes defined in a file under a given namespace</span>
+    <span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">with</span><span class="p">(</span><span class="s2">"/</span><span class="si">$controller</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"controllers/</span><span class="si">$controller</span><span class="s2">.php"</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Included files are run in the scope of Klein (<code>$klein</code>) so all Klein
+methods/properties can be accessed with <code>$this</code></p>
+
+<p><em>Example file for: "controllers/projects.php"</em></p>
+
+<div class="highlight highlight-php"><pre><span class="c1">// Routes to "/projects/?"</span>
+<span class="nv">$this</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'/?'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Show all projects</span>
+<span class="p">});</span>
+</pre></div>
+
+<h2>
+<a name="user-content-lazy-services" class="anchor" href="#lazy-services" aria-hidden="true"><span class="octicon octicon-link"></span></a>Lazy services</h2>
+
+<p>Services can be stored <strong>lazily</strong>, meaning that they are only instantiated on
+first use.</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">,</span> <span class="nv">$app</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">register</span><span class="p">(</span><span class="s1">'lazyDb'</span><span class="p">,</span> <span class="k">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nv">$db</span> <span class="o">=</span> <span class="k">new</span> <span class="k">stdClass</span><span class="p">();</span>
+        <span class="nv">$db</span><span class="o">-&gt;</span><span class="na">name</span> <span class="o">=</span> <span class="s1">'foo'</span><span class="p">;</span>
+        <span class="k">return</span> <span class="nv">$db</span><span class="p">;</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+
+<span class="c1">//Later</span>
+
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'GET'</span><span class="p">,</span> <span class="s1">'/posts'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">,</span> <span class="nv">$app</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// $db is initialised on first request</span>
+    <span class="c1">// all subsequent calls will use the same instance</span>
+    <span class="k">return</span> <span class="nv">$app</span><span class="o">-&gt;</span><span class="na">lazyDb</span><span class="o">-&gt;</span><span class="na">name</span><span class="p">;</span>
+<span class="p">});</span>
+</pre></div>
+
+<h2>
+<a name="user-content-validators" class="anchor" href="#validators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Validators</h2>
+
+<p>To add a custom validator use <code>addValidator($method, $callback)</code></p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$service</span><span class="o">-&gt;</span><span class="na">addValidator</span><span class="p">(</span><span class="s1">'hex'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nb">preg_match</span><span class="p">(</span><span class="s1">'/^[0-9a-f]++$/i'</span><span class="p">,</span> <span class="nv">$str</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>You can validate parameters using <code>is&lt;$method&gt;()</code> or <code>not&lt;$method&gt;()</code>, e.g.</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$service</span><span class="o">-&gt;</span><span class="na">validateParam</span><span class="p">(</span><span class="s1">'key'</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">isHex</span><span class="p">();</span>
+</pre></div>
+
+<p>Or you can validate any string using the same flow..</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$service</span><span class="o">-&gt;</span><span class="na">validate</span><span class="p">(</span><span class="nv">$username</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">isLen</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">16</span><span class="p">);</span>
+</pre></div>
+
+<p>Validation methods are chainable, and a custom exception message can be specified for if/when validation fails</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$service</span><span class="o">-&gt;</span><span class="na">validateParam</span><span class="p">(</span><span class="s1">'key'</span><span class="p">,</span> <span class="s1">'The key was invalid'</span><span class="p">)</span><span class="o">-&gt;</span><span class="na">isHex</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">isLen</span><span class="p">(</span><span class="mi">32</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-routing" class="anchor" href="#routing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Routing</h2>
+
+<p><strong>[</strong> <em>match_type</em> <strong>:</strong> <em>param_name</em> <strong>]</strong></p>
+
+<p>Some examples</p>
+
+<pre><code>*                    // Match all request URIs
+[i]                  // Match an integer
+[i:id]               // Match an integer as 'id'
+[a:action]           // Match alphanumeric characters as 'action'
+[h:key]              // Match hexadecimal characters as 'key'
+[:action]            // Match anything up to the next / or end of the URI as 'action'
+[create|edit:action] // Match either 'create' or 'edit' as 'action'
+[*]                  // Catch all (lazy)
+[*:trailing]         // Catch all as 'trailing' (lazy)
+[**:trailing]        // Catch all (possessive - will match the rest of the URI)
+.[:format]?          // Match an optional parameter 'format' - a / or . before the block is also optional
+</code></pre>
+
+<p>Some more complicated examples</p>
+
+<pre><code>/posts/[*:title][i:id]     // Matches "/posts/this-is-a-title-123"
+/output.[xml|json:format]? // Matches "/output", "output.xml", "output.json"
+/[:controller]?/[:action]? // Matches the typical /controller/action format
+</code></pre>
+
+<p><strong>Note</strong> - <em>all</em> routes that match the request URI are called - this
+allows you to incorporate complex conditional logic such as user
+authentication or view layouts. e.g. as a basic example, the following
+code will wrap other routes with a header and footer</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'*'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">)</span> <span class="p">{</span> <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="s1">'header.phtml'</span><span class="p">);</span> <span class="p">});</span>
+<span class="c1">//other routes</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'*'</span><span class="p">,</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$request</span><span class="p">,</span> <span class="nv">$response</span><span class="p">,</span> <span class="nv">$service</span><span class="p">)</span> <span class="p">{</span> <span class="nv">$service</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="s1">'footer.phtml'</span><span class="p">);</span> <span class="p">});</span>
+</pre></div>
+
+<p>Routes automatically match the entire request URI. If you need to match
+only a part of the request URI or use a custom regular expression, use the <code>@</code> operator. If you need to
+negate a route, use the <code>!</code> operator</p>
+
+<div class="highlight highlight-php"><pre><span class="c1">// Match all requests that end with '.json' or '.csv'</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'@\.(json|csv)$'</span><span class="p">,</span> <span class="o">...</span>
+
+<span class="c1">// Match all requests that _don't_ start with /admin</span>
+<span class="nv">$klein</span><span class="o">-&gt;</span><span class="na">respond</span><span class="p">(</span><span class="s1">'!@^/admin/'</span><span class="p">,</span> <span class="o">...</span>
+</pre></div>
+
+<h2>
+<a name="user-content-views" class="anchor" href="#views" aria-hidden="true"><span class="octicon octicon-link"></span></a>Views</h2>
+
+<p>You can send properties or helpers to the view by assigning them
+to the <code>$service</code> object, or by using the second arg of <code>$service-&gt;render()</code></p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$service</span><span class="o">-&gt;</span><span class="na">escape</span> <span class="o">=</span> <span class="k">function</span> <span class="p">(</span><span class="nv">$str</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nb">htmlentities</span><span class="p">(</span><span class="nv">$str</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="nv">$service</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="s1">'myview.phtml'</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">'title'</span> <span class="o">=&gt;</span> <span class="s1">'My View'</span><span class="p">));</span>
+
+<span class="c1">// Or just: $service-&gt;title = 'My View';</span>
+</pre></div>
+
+<p><em>myview.phtml</em></p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;title&gt;</span><span class="cp">&lt;?php echo $this-&gt;escape($this-&gt;title) ?&gt;</span><span class="nt">&lt;/title&gt;</span>
+</pre></div>
+
+<p>Views are compiled and run in the scope of <code>$service</code> so all service methods can be accessed with <code>$this</code></p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$this</span><span class="o">-&gt;</span><span class="na">render</span><span class="p">(</span><span class="s1">'partial.html'</span><span class="p">)</span>           <span class="c1">// Render partials</span>
+<span class="nv">$this</span><span class="o">-&gt;</span><span class="na">sharedData</span><span class="p">()</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">(</span><span class="s1">'myvar'</span><span class="p">)</span>       <span class="c1">// Access stored service variables</span>
+<span class="k">echo</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">query</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="s1">'page'</span> <span class="o">=&gt;</span> <span class="mi">2</span><span class="p">))</span>   <span class="c1">// Modify the current query string</span>
+</pre></div>
+
+<h2>
+<a name="user-content-api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h2>
+
+<p>Below is a list of the public methods in the common classes you will most likely use. For a more formal source
+of class/method documentation, please see the <a href="http://chriso.github.io/klein.php/docs/">PHPdoc generated documentation</a>.</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$request</span><span class="o">-&gt;</span>
+    <span class="na">id</span><span class="p">(</span><span class="nv">$hash</span> <span class="o">=</span> <span class="k">true</span><span class="p">)</span>                    <span class="c1">// Get a unique ID for the request</span>
+    <span class="nx">paramsGet</span><span class="p">()</span>                         <span class="c1">// Return the GET parameter collection</span>
+    <span class="nx">paramsPost</span><span class="p">()</span>                        <span class="c1">// Return the POST parameter collection</span>
+    <span class="nx">paramsNamed</span><span class="p">()</span>                       <span class="c1">// Return the named parameter collection</span>
+    <span class="nx">cookies</span><span class="p">()</span>                           <span class="c1">// Return the cookies collection</span>
+    <span class="nx">server</span><span class="p">()</span>                            <span class="c1">// Return the server collection</span>
+    <span class="nx">headers</span><span class="p">()</span>                           <span class="c1">// Return the headers collection</span>
+    <span class="nx">files</span><span class="p">()</span>                             <span class="c1">// Return the files collection</span>
+    <span class="nx">body</span><span class="p">()</span>                              <span class="c1">// Get the request body</span>
+    <span class="nx">params</span><span class="p">()</span>                            <span class="c1">// Return all parameters</span>
+    <span class="nx">params</span><span class="p">(</span><span class="nv">$mask</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                <span class="c1">// Return all parameters that match the mask array - extract() friendly</span>
+    <span class="nx">param</span><span class="p">(</span><span class="nv">$key</span><span class="p">,</span> <span class="nv">$default</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>        <span class="c1">// Get a request parameter (get, post, named)</span>
+    <span class="nx">isSecure</span><span class="p">()</span>                          <span class="c1">// Was the request sent via HTTPS?</span>
+    <span class="nx">ip</span><span class="p">()</span>                                <span class="c1">// Get the request IP</span>
+    <span class="nx">userAgent</span><span class="p">()</span>                         <span class="c1">// Get the request user agent</span>
+    <span class="nx">uri</span><span class="p">()</span>                               <span class="c1">// Get the request URI</span>
+    <span class="nx">pathname</span><span class="p">()</span>                          <span class="c1">// Get the request pathname</span>
+    <span class="nx">method</span><span class="p">()</span>                            <span class="c1">// Get the request method</span>
+    <span class="nx">method</span><span class="p">(</span><span class="nv">$method</span><span class="p">)</span>                     <span class="c1">// Check if the request method is $method, i.e. method('post') =&gt; true</span>
+    <span class="nx">query</span><span class="p">(</span><span class="nv">$key</span><span class="p">,</span> <span class="nv">$value</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>          <span class="c1">// Get, add to, or modify the current query string</span>
+    <span class="o">&lt;</span><span class="nx">param</span><span class="o">&gt;</span>                             <span class="c1">// Get / Set (if assigned a value) a request parameter</span>
+
+<span class="nv">$response</span><span class="o">-&gt;</span>
+    <span class="na">protocolVersion</span><span class="p">(</span><span class="nv">$protocol_version</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>       <span class="c1">// Get the protocol version, or set it to the passed value</span>
+    <span class="nx">body</span><span class="p">(</span><span class="nv">$body</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                              <span class="c1">// Get the response body's content, or set it to the passed value</span>
+    <span class="nx">status</span><span class="p">()</span>                                        <span class="c1">// Get the response's status object</span>
+    <span class="nx">headers</span><span class="p">()</span>                                       <span class="c1">// Return the headers collection</span>
+    <span class="nx">cookies</span><span class="p">()</span>                                       <span class="c1">// Return the cookies collection</span>
+    <span class="nx">code</span><span class="p">(</span><span class="nv">$code</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                              <span class="c1">// Return the HTTP response code, or set it to the passed value</span>
+    <span class="nx">prepend</span><span class="p">(</span><span class="nv">$content</span><span class="p">)</span>                               <span class="c1">// Prepend a string to the response body</span>
+    <span class="nx">append</span><span class="p">(</span><span class="nv">$content</span><span class="p">)</span>                                <span class="c1">// Append a string to the response body</span>
+    <span class="nx">isLocked</span><span class="p">()</span>                                      <span class="c1">// Check if the response is locked</span>
+    <span class="nx">requireUnlocked</span><span class="p">()</span>                               <span class="c1">// Require that a response is unlocked</span>
+    <span class="nx">lock</span><span class="p">()</span>                                          <span class="c1">// Lock the response from further modification</span>
+    <span class="nx">unlock</span><span class="p">()</span>                                        <span class="c1">// Unlock the response</span>
+    <span class="nx">sendHeaders</span><span class="p">(</span><span class="nv">$override</span> <span class="o">=</span> <span class="k">false</span><span class="p">)</span>                  <span class="c1">// Send the HTTP response headers</span>
+    <span class="nx">sendCookies</span><span class="p">(</span><span class="nv">$override</span> <span class="o">=</span> <span class="k">false</span><span class="p">)</span>                  <span class="c1">// Send the HTTP response cookies</span>
+    <span class="nx">sendBody</span><span class="p">()</span>                                      <span class="c1">// Send the response body's content</span>
+    <span class="nx">send</span><span class="p">()</span>                                          <span class="c1">// Send the response and lock it</span>
+    <span class="nx">isSent</span><span class="p">()</span>                                        <span class="c1">// Check if the response has been sent</span>
+    <span class="nx">chunk</span><span class="p">(</span><span class="nv">$str</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                              <span class="c1">// Enable response chunking (see the wiki)</span>
+    <span class="nb">header</span><span class="p">(</span><span class="nv">$key</span><span class="p">,</span> <span class="nv">$value</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                     <span class="c1">// Set a response header</span>
+    <span class="nx">cookie</span><span class="p">(</span><span class="nv">$key</span><span class="p">,</span> <span class="nv">$value</span> <span class="o">=</span> <span class="k">null</span><span class="p">,</span> <span class="nv">$expiry</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>     <span class="c1">// Set a cookie</span>
+    <span class="nx">cookie</span><span class="p">(</span><span class="nv">$key</span><span class="p">,</span> <span class="k">null</span><span class="p">)</span>                              <span class="c1">// Remove a cookie</span>
+    <span class="nx">noCache</span><span class="p">()</span>                                       <span class="c1">// Tell the browser not to cache the response</span>
+    <span class="nx">redirect</span><span class="p">(</span><span class="nv">$url</span><span class="p">,</span> <span class="nv">$code</span> <span class="o">=</span> <span class="mi">302</span><span class="p">)</span>                     <span class="c1">// Redirect to the specified URL</span>
+    <span class="nx">dump</span><span class="p">(</span><span class="nv">$obj</span><span class="p">)</span>                                      <span class="c1">// Dump an object</span>
+    <span class="nb">file</span><span class="p">(</span><span class="nv">$path</span><span class="p">,</span> <span class="nv">$filename</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                   <span class="c1">// Send a file</span>
+    <span class="nx">json</span><span class="p">(</span><span class="nv">$object</span><span class="p">,</span> <span class="nv">$jsonp_prefix</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>             <span class="c1">// Send an object as JSON or JSONP by providing padding prefix</span>
+
+<span class="nv">$service</span><span class="o">-&gt;</span>
+    <span class="na">sharedData</span><span class="p">()</span>                                    <span class="c1">// Return the shared data collection</span>
+    <span class="nx">startSession</span><span class="p">()</span>                                  <span class="c1">// Start a session and return its ID</span>
+    <span class="nx">flash</span><span class="p">(</span><span class="nv">$msg</span><span class="p">,</span> <span class="nv">$type</span> <span class="o">=</span> <span class="s1">'info'</span><span class="p">,</span> <span class="nv">$params</span> <span class="o">=</span> <span class="k">array</span><span class="p">()</span>   <span class="c1">// Set a flash message</span>
+    <span class="nx">flashes</span><span class="p">(</span><span class="nv">$type</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                           <span class="c1">// Retrieve and clears all flashes of $type</span>
+    <span class="nx">markdown</span><span class="p">(</span><span class="nv">$str</span><span class="p">,</span> <span class="nv">$args</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>                      <span class="c1">// Return a string formatted with markdown</span>
+    <span class="nx">escape</span><span class="p">(</span><span class="nv">$str</span><span class="p">)</span>                                    <span class="c1">// Escape a string</span>
+    <span class="nx">refresh</span><span class="p">()</span>                                       <span class="c1">// Redirect to the current URL</span>
+    <span class="nx">back</span><span class="p">()</span>                                          <span class="c1">// Redirect to the referer</span>
+    <span class="nx">query</span><span class="p">(</span><span class="nv">$key</span><span class="p">,</span> <span class="nv">$value</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                      <span class="c1">// Modify the current query string</span>
+    <span class="nx">query</span><span class="p">(</span><span class="nv">$arr</span><span class="p">)</span>
+    <span class="nx">layout</span><span class="p">(</span><span class="nv">$layout</span><span class="p">)</span>                                 <span class="c1">// Set the view layout</span>
+    <span class="nx">yieldView</span><span class="p">()</span>                                     <span class="c1">// Call inside the layout to render the view content</span>
+    <span class="nx">render</span><span class="p">(</span><span class="nv">$view</span><span class="p">,</span> <span class="nv">$data</span> <span class="o">=</span> <span class="k">array</span><span class="p">())</span>                  <span class="c1">// Render a view or partial (in the scope of $response)</span>
+    <span class="nx">partial</span><span class="p">(</span><span class="nv">$view</span><span class="p">,</span> <span class="nv">$data</span> <span class="o">=</span> <span class="k">array</span><span class="p">())</span>                 <span class="c1">// Render a partial without a layout (in the scope of $response)</span>
+    <span class="nx">addValidator</span><span class="p">(</span><span class="nv">$method</span><span class="p">,</span> <span class="nv">$callback</span><span class="p">)</span>                <span class="c1">// Add a custom validator method</span>
+    <span class="nx">validate</span><span class="p">(</span><span class="nv">$string</span><span class="p">,</span> <span class="nv">$err</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                  <span class="c1">// Validate a string (with a custom error message)</span>
+    <span class="nx">validateParam</span><span class="p">(</span><span class="nv">$param</span><span class="p">,</span> <span class="nv">$err</span> <span class="o">=</span> <span class="k">null</span><span class="p">)</span>                  <span class="c1">// Validate a param</span>
+    <span class="o">&lt;</span><span class="nx">callback</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">$arg1</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>                          <span class="c1">// Call a user-defined helper</span>
+    <span class="o">&lt;</span><span class="nx">property</span><span class="o">&gt;</span>                                      <span class="c1">// Get a user-defined property</span>
+
+<span class="nv">$app</span><span class="o">-&gt;</span>
+    <span class="o">&lt;</span><span class="nx">callback</span><span class="o">&gt;</span><span class="p">(</span><span class="nv">$arg1</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>                          <span class="c1">//Call a user-defined helper</span>
+
+<span class="nv">$validator</span><span class="o">-&gt;</span>
+    <span class="na">notNull</span><span class="p">()</span>                           <span class="c1">// The string must not be null</span>
+    <span class="nx">isLen</span><span class="p">(</span><span class="nv">$length</span><span class="p">)</span>                      <span class="c1">// The string must be the exact length</span>
+    <span class="nx">isLen</span><span class="p">(</span><span class="nv">$min</span><span class="p">,</span> <span class="nv">$max</span><span class="p">)</span>                   <span class="c1">// The string must be between $min and $max length (inclusive)</span>
+    <span class="nx">isInt</span><span class="p">()</span>                             <span class="c1">// Check for a valid integer</span>
+    <span class="nx">isFloat</span><span class="p">()</span>                           <span class="c1">// Check for a valid float/decimal</span>
+    <span class="nx">isEmail</span><span class="p">()</span>                           <span class="c1">// Check for a valid email</span>
+    <span class="nx">isUrl</span><span class="p">()</span>                             <span class="c1">// Check for a valid URL</span>
+    <span class="nx">isIp</span><span class="p">()</span>                              <span class="c1">// Check for a valid IP</span>
+    <span class="nx">isAlpha</span><span class="p">()</span>                           <span class="c1">// Check for a-z (case insensitive)</span>
+    <span class="nx">isAlnum</span><span class="p">()</span>                           <span class="c1">// Check for alphanumeric characters</span>
+    <span class="nx">contains</span><span class="p">(</span><span class="nv">$needle</span><span class="p">)</span>                   <span class="c1">// Check if the string contains $needle</span>
+    <span class="nx">isChars</span><span class="p">(</span><span class="nv">$chars</span><span class="p">)</span>                     <span class="c1">// Validate against a character list</span>
+    <span class="nx">isRegex</span><span class="p">(</span><span class="nv">$pattern</span><span class="p">,</span> <span class="nv">$modifiers</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span>  <span class="c1">// Validate against a regular expression</span>
+    <span class="nx">notRegex</span><span class="p">(</span><span class="nv">$pattern</span><span class="p">,</span> <span class="nv">$modifiers</span> <span class="o">=</span><span class="s1">''</span><span class="p">)</span>
+    <span class="nx">is</span><span class="o">&lt;</span><span class="nx">Validator</span><span class="o">&gt;</span><span class="p">()</span>                     <span class="c1">// Validate against a custom validator</span>
+    <span class="k">not</span><span class="o">&lt;</span><span class="nx">Validator</span><span class="o">&gt;</span><span class="p">()</span>                    <span class="c1">// The validator can't match</span>
+    <span class="o">&lt;</span><span class="nx">Validator</span><span class="o">&gt;</span><span class="p">()</span>                       <span class="c1">// Alias for is&lt;Validator&gt;()</span>
+</pre></div>
+
+<h2>
+<a name="user-content-unit-testing" class="anchor" href="#unit-testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unit Testing</h2>
+
+<p>Unit tests are a crucial part of developing a routing engine such as Klein.
+Added features or bug-fixes can have adverse effects that are hard to find
+without a lot of testing, hence the importance of unit testing.</p>
+
+<p>This project uses <a href="https://github.com/sebastianbergmann/phpunit/">PHPUnit</a> as
+its unit testing framework.</p>
+
+<p>The tests all live in <code>/tests</code> and each test extends an abstract class
+<code>AbstractKleinTest</code></p>
+
+<p>To test the project, simply run <code>php composer.phar install --dev</code> to download
+a common version of PHPUnit with composer and run the tests from the main
+directory with <code>./vendor/bin/phpunit</code></p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>See the <a href="CONTRIBUTING.md">contributing guide</a> for more info</p>
+
+<h2>
+<a name="user-content-more-information" class="anchor" href="#more-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>More information</h2>
+
+<p>See the <a href="https://github.com/chriso/klein.php/wiki">wiki</a> for more information</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/Rican7">Trevor N. Suarez</a></li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>(MIT License)</p>
+
+<p>Copyright (c) 2010 Chris O'Hara <a href="mailto:cohara87@gmail.com">cohara87@gmail.com</a></p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

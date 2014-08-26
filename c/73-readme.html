@@ -1,0 +1,104 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-reptyr---a-tool-for-re-ptying-programs" class="anchor" href="#reptyr---a-tool-for-re-ptying-programs" aria-hidden="true"><span class="octicon octicon-link"></span></a>reptyr - A tool for "re-ptying" programs.</h1>
+
+<p>reptyr is a utility for taking an existing running program and
+attaching it to a new terminal. Started a long-running process over
+ssh, but have to leave and don't want to interrupt it? Just start a
+screen, use reptyr to grab it, and then kill the ssh session and head
+on home.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>USAGE</h2>
+
+<pre><code>reptyr PID
+</code></pre>
+
+<p>"reptyr PID" will grab the process with id PID and attach it to your
+current terminal.</p>
+
+<p>After attaching, the process will take input from and write output to
+the new terminal, including ^C and ^Z. (Unfortunately, if you
+background it, you will still have to run "bg" or "fg" in the old
+terminal. This is likely impossible to fix in a reasonable way without
+patching your shell.)</p>
+
+<h2>
+<a name="user-content-but-wait-isnt-this-just-screenify" class="anchor" href="#but-wait-isnt-this-just-screenify" aria-hidden="true"><span class="octicon octicon-link"></span></a>"But wait, isn't this just screenify?"</h2>
+
+<p>There's a shell script called "screenify" that's been going around the
+internet for nigh on 10 years now that uses gdb to (supposedly)
+accomplish the same thing. The difference is that reptyr works much,
+much, better.</p>
+
+<p>If you attach a "less" using screenify, it will still take input from
+the old terminal. If you attach an ncurses program using screenify,
+and resize the window, your program won't notice. If you attach a
+process with screenify, ^C in the new terminal won't work.</p>
+
+<p>reptyr fixes all of these problems, and is the only such tool I know
+of that does so. See below for some more details on how it
+accomplishes this.</p>
+
+<h2>
+<a name="user-content-portability" class="anchor" href="#portability" aria-hidden="true"><span class="octicon octicon-link"></span></a>PORTABILITY</h2>
+
+<p>reptyr is Linux-only. It uses ptrace to attach to the target and control it at
+the syscall level, so it is highly dependent on Linux's particular syscall API,
+syscalls, and terminal ioctl()s. A port to Solaris or BSD may be technically
+feasible, but would probably require significant re-architecting to abstract out
+the platform-specific bits.</p>
+
+<p>reptyr works on i386, x86_64, and ARM. Ports to other architectures should be
+straightforward, and should in most cases be as simple as adding an arch/ARCH.h
+file and adding a clause to the ifdef ladder in ptrace.c.</p>
+
+<h2>
+<a name="user-content-ptrace_scope-on-ubuntu-maverick-and-up" class="anchor" href="#ptrace_scope-on-ubuntu-maverick-and-up" aria-hidden="true"><span class="octicon octicon-link"></span></a>ptrace_scope on Ubuntu Maverick and up</h2>
+
+<p><code>reptyr</code> depends on the <code>ptrace</code> system call to attach to the remote program. On
+Ubuntu Maverick and higher, this ability is disabled by default for security
+reasons. You can enable it temporarily by doing</p>
+
+<pre><code># echo 0 &gt; /proc/sys/kernel/yama/ptrace_scope
+</code></pre>
+
+<p>as root, or permanently by editing the file /etc/sysctl.d/10-ptrace.conf, which
+also contains more information about exactly what this setting accomplishes.</p>
+
+<h2>
+<a name="user-content-reptyr--l" class="anchor" href="#reptyr--l" aria-hidden="true"><span class="octicon octicon-link"></span></a>reptyr -l</h2>
+
+<p>As a bonus feature, if you run "reptyr -l", reptyr will create a new
+pseudo-terminal pair with nothing attached to the slave end, and print
+its name out.</p>
+
+<p>If you are debugging a program in gdb, you can pass that name to "set
+inferior-pty". Because there is no existing program listening to that
+tty, this will work much better than passing an existing shell's
+terminal.</p>
+
+<h2>
+<a name="user-content-how-does-it-work" class="anchor" href="#how-does-it-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>How does it work?</h2>
+
+<p>The main thing that reptyr does that no one else does is that it
+actually changes the controlling terminal of the process you are
+attaching. I wrote a
+<a href="https://blog.nelhage.com/2011/02/changing-ctty/">blog post</a>
+explaining just what the shenanigans involved are.</p>
+
+<h2>
+<a name="user-content-pronunciation" class="anchor" href="#pronunciation" aria-hidden="true"><span class="octicon octicon-link"></span></a>PRONUNCIATION</h2>
+
+<p>I pronounce it like "repeater", but since that's easily ambiguous,
+"re-P-T-Y-er" is also acceptable.</p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>CREDITS</h2>
+
+<p>reptyr was written by Nelson Elhage <a href="mailto:nelhage@nelhage.com">nelhage@nelhage.com</a>. Contact him
+with any questions or bug reports.</p>
+
+<h2>
+<a name="user-content-url" class="anchor" href="#url" aria-hidden="true"><span class="octicon octicon-link"></span></a>URL</h2>
+
+<p><a href="">http://github.com/nelhage/reptyr</a></p></article></div>

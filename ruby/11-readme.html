@@ -1,0 +1,811 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-paperclip" class="anchor" href="#paperclip" aria-hidden="true"><span class="octicon octicon-link"></span></a>Paperclip</h1>
+
+<p><a href="http://travis-ci.org/thoughtbot/paperclip"><img src="https://camo.githubusercontent.com/bdf1b2df51210ade4f018f7ec6b26075f76d7f6a/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f74686f75676874626f742f7061706572636c69702e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/thoughtbot/paperclip.png?branch=master" style="max-width:100%;"></a> <a href="https://gemnasium.com/thoughtbot/paperclip"><img src="https://camo.githubusercontent.com/357746f24554aea09c973347ee07e24dbe9a329d/68747470733a2f2f67656d6e617369756d2e636f6d2f74686f75676874626f742f7061706572636c69702e706e673f747261766973" alt="Dependency Status" data-canonical-src="https://gemnasium.com/thoughtbot/paperclip.png?travis" style="max-width:100%;"></a> <a href="https://codeclimate.com/github/thoughtbot/paperclip"><img src="https://camo.githubusercontent.com/088e435f5ebc8446d977f48240aeca37bdaac2a6/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f74686f75676874626f742f7061706572636c69702e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/thoughtbot/paperclip.png" style="max-width:100%;"></a> <a href="http://inch-ci.org/github/thoughtbot/paperclip"><img src="https://camo.githubusercontent.com/928e3a1e46b4893c1f76226a0b70aa38ca9920ad/687474703a2f2f696e63682d63692e6f72672f6769746875622f74686f75676874626f742f7061706572636c69702e706e67" alt="Inline docs" data-canonical-src="http://inch-ci.org/github/thoughtbot/paperclip.png" style="max-width:100%;"></a></p>
+
+<p>Paperclip is intended as an easy file attachment library for Active Record. The
+intent behind it was to keep setup as easy as possible and to treat files as
+much like other attributes as possible. This means they aren't saved to their
+final locations on disk, nor are they deleted if set to nil, until
+ActiveRecord::Base#save is called. It manages validations based on size and
+presence, if required. It can transform its assigned image into thumbnails if
+needed, and the prerequisites are as simple as installing ImageMagick (which,
+for most modern Unix-based systems, is as easy as installing the right
+packages). Attached files are saved to the filesystem and referenced in the
+browser by an easily understandable specification, which has sensible and
+useful defaults.</p>
+
+<p>See the documentation for <code>has_attached_file</code> in <a href="http://rubydoc.info/gems/paperclip/Paperclip/ClassMethods"><code>Paperclip::ClassMethods</code></a> for
+more detailed options.</p>
+
+<p>The complete <a href="http://rdoc.info/gems/paperclip">RDoc</a> is online.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<h3>
+<a name="user-content-ruby-and-rails" class="anchor" href="#ruby-and-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ruby and Rails</h3>
+
+<p>Paperclip now requires Ruby version <strong>&gt;= 1.9.2</strong> and Rails version <strong>&gt;= 3.0</strong> (Only if you're going to use Paperclip with Ruby on Rails.)</p>
+
+<p>If you're still on Ruby 1.8.7 or Ruby on Rails 2.3.x, you can still use Paperclip 2.7.x with your project. Also, everything in this README might not apply to your version of Paperclip, and you should read <a href="http://rubydoc.info/gems/paperclip/2.7.0">the README for version 2.7</a> instead.</p>
+
+<h3>
+<a name="user-content-image-processor" class="anchor" href="#image-processor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Image Processor</h3>
+
+<p><a href="http://www.imagemagick.org">ImageMagick</a> must be installed and Paperclip must have access to it. To ensure
+that it does, on your command line, run <code>which convert</code> (one of the ImageMagick
+utilities). This will give you the path where that utility is installed. For
+example, it might return <code>/usr/local/bin/convert</code>.</p>
+
+<p>Then, in your environment config file, let Paperclip know to look there by adding that
+directory to its path.</p>
+
+<p>In development mode, you might add this line to <code>config/environments/development.rb)</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Paperclip</span><span class="o">.</span><span class="n">options</span><span class="o">[</span><span class="ss">:command_path</span><span class="o">]</span> <span class="o">=</span> <span class="s2">"/usr/local/bin/"</span>
+</pre></div>
+
+<p>If you're on Mac OS X, you'll want to run the following with Homebrew:</p>
+
+<pre><code>brew install imagemagick
+</code></pre>
+
+<p>If you are dealing with pdf uploads or running the test suite, you'll also need
+GhostScript to be installed. On Mac OS X, you can also install that using Homebrew:</p>
+
+<pre><code>brew install gs
+</code></pre>
+
+<h3>
+<a name="user-content-file-command" class="anchor" href="#file-command" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>file</code> command</h3>
+
+<p>The Unix <a href="http://en.wikipedia.org/wiki/File_(command)"><code>file</code> command</a> is required for content type checking.
+This utility isn't available in Windows, but comes bundled with Ruby <a href="https://github.com/oneclick/rubyinstaller/wiki/Development-Kit">Devkit</a>, 
+so Windows users must make sure that the devkit is installed and added to system <code>PATH</code>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Paperclip is distributed as a gem, which is how it should be used in your app.</p>
+
+<p>Include the gem in your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"paperclip"</span><span class="p">,</span> <span class="s2">"~&gt; 4.1"</span>
+</pre></div>
+
+<p>If you're still using Rails 2.3.x, you should do this instead:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"paperclip"</span><span class="p">,</span> <span class="s2">"~&gt; 2.7"</span>
+</pre></div>
+
+<p>Or, if you want to get the latest, you can get master from the main paperclip repository:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"paperclip"</span><span class="p">,</span> <span class="ss">:git</span> <span class="o">=&gt;</span> <span class="s2">"git://github.com/thoughtbot/paperclip.git"</span>
+</pre></div>
+
+<p>If you're trying to use features that don't seem to be in the latest released gem, but are
+mentioned in this README, then you probably need to specify the master branch if you want to
+use them. This README is probably ahead of the latest released version, if you're reading it
+on GitHub.</p>
+
+<p>For Non-Rails usage:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ModuleName</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">Paperclip</span><span class="o">::</span><span class="no">Glue</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start</h2>
+
+<h3>
+<a name="user-content-models" class="anchor" href="#models" aria-hidden="true"><span class="octicon octicon-link"></span></a>Models</h3>
+
+<p><strong>Rails 3</strong></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">attr_accessible</span> <span class="ss">:avatar</span>
+  <span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:medium</span> <span class="o">=&gt;</span> <span class="s2">"300x300&gt;"</span><span class="p">,</span> <span class="ss">:thumb</span> <span class="o">=&gt;</span> <span class="s2">"100x100&gt;"</span> <span class="p">},</span> <span class="ss">:default_url</span> <span class="o">=&gt;</span> <span class="s2">"/images/:style/missing.png"</span>
+  <span class="n">validates_attachment_content_type</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="sr">/\Aimage\/.*\Z/</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><strong>Rails 4</strong></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:medium</span> <span class="o">=&gt;</span> <span class="s2">"300x300&gt;"</span><span class="p">,</span> <span class="ss">:thumb</span> <span class="o">=&gt;</span> <span class="s2">"100x100&gt;"</span> <span class="p">},</span> <span class="ss">:default_url</span> <span class="o">=&gt;</span> <span class="s2">"/images/:style/missing.png"</span>
+  <span class="n">validates_attachment_content_type</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="sr">/\Aimage\/.*\Z/</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-migrations" class="anchor" href="#migrations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Migrations</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AddAvatarColumnsToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+    <span class="n">add_attachment</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+    <span class="n">remove_attachment</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>(Or you can use migration generator: <code>rails generate paperclip user avatar</code>)</p>
+
+<h3>
+<a name="user-content-edit-and-new-views" class="anchor" href="#edit-and-new-views" aria-hidden="true"><span class="octicon octicon-link"></span></a>Edit and New Views</h3>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="n">form_for</span> <span class="vi">@user</span><span class="p">,</span> <span class="ss">:url</span> <span class="o">=&gt;</span> <span class="n">users_path</span><span class="p">,</span> <span class="ss">:html</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:multipart</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="p">}</span> <span class="k">do</span> <span class="o">|</span><span class="n">form</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  </span><span class="cp">&lt;%=</span> <span class="n">form</span><span class="o">.</span><span class="n">file_field</span> <span class="ss">:avatar</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<h3>
+<a name="user-content-controller" class="anchor" href="#controller" aria-hidden="true"><span class="octicon octicon-link"></span></a>Controller</h3>
+
+<p><strong>Rails 3</strong></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">create</span>
+  <span class="vi">@user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">create</span><span class="p">(</span> <span class="n">params</span><span class="o">[</span><span class="ss">:user</span><span class="o">]</span> <span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><strong>Rails 4</strong></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">create</span>
+  <span class="vi">@user</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">create</span><span class="p">(</span> <span class="n">user_params</span> <span class="p">)</span>
+<span class="k">end</span>
+
+<span class="kp">private</span>
+
+<span class="c1"># Use strong_parameters for attribute whitelisting</span>
+<span class="c1"># Be sure to update your create() and update() controller methods.</span>
+
+<span class="k">def</span> <span class="nf">user_params</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:user</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:avatar</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-show-view" class="anchor" href="#show-view" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show View</h3>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="n">image_tag</span> <span class="vi">@user</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">url</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="cp">&lt;%=</span> <span class="n">image_tag</span> <span class="vi">@user</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="ss">:medium</span><span class="p">)</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="cp">&lt;%=</span> <span class="n">image_tag</span> <span class="vi">@user</span><span class="o">.</span><span class="n">avatar</span><span class="o">.</span><span class="n">url</span><span class="p">(</span><span class="ss">:thumb</span><span class="p">)</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<h3>
+<a name="user-content-deleting-an-attachment" class="anchor" href="#deleting-an-attachment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deleting an Attachment</h3>
+
+<p>Set the attribute to <code>nil</code> and save.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@user</span><span class="o">.</span><span class="n">avatar</span> <span class="o">=</span> <span class="kp">nil</span>
+<span class="vi">@user</span><span class="o">.</span><span class="n">save</span>
+</pre></div>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The basics of paperclip are quite simple: Declare that your model has an
+attachment with the <code>has_attached_file</code> method, and give it a name.</p>
+
+<p>Paperclip will wrap up to four attributes (all prefixed with that attachment's name,
+so you can have multiple attachments per model if you wish) and give them a
+friendly front end. These attributes are:</p>
+
+<ul class="task-list">
+<li><code>&lt;attachment&gt;_file_name</code></li>
+<li><code>&lt;attachment&gt;_file_size</code></li>
+<li><code>&lt;attachment&gt;_content_type</code></li>
+<li><code>&lt;attachment&gt;_updated_at</code></li>
+</ul><p>By default, only <code>&lt;attachment&gt;_file_name</code> is required for paperclip to operate.
+You'll need to add <code>&lt;attachment&gt;_content_type</code> in case you want to use content type
+validation.</p>
+
+<p>More information about the options to <code>has_attached_file</code> is available in the
+documentation of <a href="http://rubydoc.info/gems/paperclip/Paperclip/ClassMethods"><code>Paperclip::ClassMethods</code></a>.</p>
+
+<h2>
+<a name="user-content-validations" class="anchor" href="#validations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Validations</h2>
+
+<p>For validations, Paperclip introduces several validators to validate your attachment:</p>
+
+<ul class="task-list">
+<li><code>AttachmentContentTypeValidator</code></li>
+<li><code>AttachmentPresenceValidator</code></li>
+<li><code>AttachmentSizeValidator</code></li>
+</ul><p>Example Usage:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">validates</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:attachment_presence</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+<span class="n">validates_with</span> <span class="no">AttachmentPresenceValidator</span><span class="p">,</span> <span class="ss">:attributes</span> <span class="o">=&gt;</span> <span class="ss">:avatar</span>
+<span class="n">validates_with</span> <span class="no">AttachmentSizeValidator</span><span class="p">,</span> <span class="ss">:attributes</span> <span class="o">=&gt;</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:less_than</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="o">.</span><span class="n">megabytes</span>
+
+</pre></div>
+
+<p>Validators can also be defined using the old helper style:</p>
+
+<ul class="task-list">
+<li><code>validates_attachment_presence</code></li>
+<li><code>validates_attachment_content_type</code></li>
+<li><code>validates_attachment_size</code></li>
+</ul><p>Example Usage:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">validates_attachment_presence</span> <span class="ss">:avatar</span>
+</pre></div>
+
+<p>Lastly, you can also define multiple validations on a single attachment using <code>validates_attachment</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">validates_attachment</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:presence</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">,</span>
+  <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="s2">"image/jpeg"</span> <span class="p">},</span>
+  <span class="ss">:size</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:in</span> <span class="o">=&gt;</span> <span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">10</span><span class="o">.</span><span class="n">kilobytes</span> <span class="p">}</span>
+</pre></div>
+
+<p><em>NOTE: Post processing will not even <em>start</em> if the attachment is not valid
+according to the validations. Your callbacks and processors will <em>only</em> be
+called with valid attachments.</em></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Message</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:asset</span><span class="p">,</span> <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span><span class="ss">thumb</span><span class="p">:</span> <span class="s2">"100x100#"</span><span class="p">}</span>
+
+  <span class="n">before_post_process</span> <span class="ss">:skip_for_audio</span>
+
+  <span class="k">def</span> <span class="nf">skip_for_audio</span>
+    <span class="o">!</span> <span class="sx">%w(audio/ogg application/ogg)</span><span class="o">.</span><span class="n">include?</span><span class="p">(</span><span class="n">asset_content_type</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you have other validations that depend on assignment order, the recommended
+course of action is to prevent the assignment of the attachment until
+afterwards, then assign manually:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:document</span><span class="p">,</span> <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span><span class="ss">thumbnail</span><span class="p">:</span> <span class="s2">"60x60#"</span><span class="p">}</span>
+  <span class="n">validates_attachment</span> <span class="ss">:document</span><span class="p">,</span> <span class="ss">content_type</span><span class="p">:</span> <span class="p">{</span> <span class="ss">content_type</span><span class="p">:</span> <span class="s2">"application/pdf"</span> <span class="p">}</span>
+  <span class="n">validates_something_else</span> <span class="c1"># Other validations that conflict with Paperclip's</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">BooksController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">create</span>
+    <span class="vi">@book</span> <span class="o">=</span> <span class="no">Book</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">book_params</span><span class="p">)</span>
+    <span class="vi">@book</span><span class="o">.</span><span class="n">document</span> <span class="o">=</span> <span class="n">params</span><span class="o">[</span><span class="ss">:book</span><span class="o">][</span><span class="ss">:document</span><span class="o">]</span>
+    <span class="vi">@book</span><span class="o">.</span><span class="n">save</span>
+    <span class="n">respond_with</span> <span class="vi">@book</span>
+  <span class="k">end</span>
+
+  <span class="kp">private</span>
+
+  <span class="k">def</span> <span class="nf">book_params</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:book</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="ss">:title</span><span class="p">,</span> <span class="ss">:author</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><strong>A note on content_type validations and security</strong></p>
+
+<p>You should ensure that you validate files to be only those MIME types you
+explicitly want to support.  If you don't, you could be open to
+<a href="https://www.owasp.org/index.php/Testing_for_Stored_Cross_site_scripting_(OWASP-DV-002)">XSS attacks</a>
+if a user uploads a file with a malicious HTML payload.</p>
+
+<p>If you're only interested in images, restrict your allowed content_types to
+image-y ones:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">validates_attachment</span> <span class="ss">:avatar</span><span class="p">,</span>
+  <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">"image/jpeg"</span><span class="p">,</span> <span class="s2">"image/gif"</span><span class="p">,</span> <span class="s2">"image/png"</span><span class="o">]</span> <span class="p">}</span>
+</pre></div>
+
+<p><code>Paperclip::ContentTypeDetector</code> will attempt to match a file's extension to an
+inferred content_type, regardless of the actual contents of the file.</p>
+
+<h1>
+<a name="user-content-security-validations" class="anchor" href="#security-validations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security Validations</h1>
+
+<p>Thanks to a report from <a href="http://homakov.blogspot.com/">Egor Homakov</a> we have
+taken steps to prevent people from spoofing Content-Types and getting data
+you weren't expecting onto your server.</p>
+
+<p>NOTE: Starting at version 4.0.0, all attachments are <em>required</em> to include a
+content_type validation, a file_name validation, or to explicitly state that
+they're not going to have either. <em>Paperclip will raise an error</em> if you do not
+do this.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:avatar</span>
+  <span class="c1"># Validate content type</span>
+  <span class="n">validates_attachment_content_type</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:content_type</span> <span class="o">=&gt;</span> <span class="sr">/\Aimage/</span>
+  <span class="c1"># Validate filename</span>
+  <span class="n">validates_attachment_file_name</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:matches</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="sr">/png\Z/</span><span class="p">,</span> <span class="sr">/jpe?g\Z/</span><span class="o">]</span>
+  <span class="c1"># Explicitly do not validate</span>
+  <span class="n">do_not_validate_attachment_file_type</span> <span class="ss">:avatar</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This keeps Paperclip secure-by-default, and will prevent people trying to mess
+with your filesystem.</p>
+
+<p>NOTE: Also starting at version 4.0.0, Paperclip has another validation that
+cannot be turned off. This validation will prevent content type spoofing. That
+is, uploading a PHP document (for example) as part of the EXIF tags of a
+well-formed JPEG. This check is limited to the media type (the first part of the
+MIME type, so, 'text' in 'text/plain'). This will prevent HTML documents from
+being uploaded as JPEGs, but will not prevent GIFs from being uploaded with a
+.jpg extension. This validation will only add validation errors to the form. It
+will not cause Errors to be raised.</p>
+
+<h2>
+<a name="user-content-defaults" class="anchor" href="#defaults" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defaults</h2>
+
+<p>Global defaults for all your paperclip attachments can be defined by changing the Paperclip::Attachment.default_options Hash, this can be useful for setting your default storage settings per example so you won't have to define them in every has_attached_file definition.</p>
+
+<p>If you're using Rails you can define a Hash with default options in config/application.rb or in any of the config/environments/*.rb files on config.paperclip_defaults, these will get merged into Paperclip::Attachment.default_options as your Rails app boots. An example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">module</span> <span class="nn">YourApp</span>
+  <span class="k">class</span> <span class="nc">Application</span> <span class="o">&lt;</span> <span class="no">Rails</span><span class="o">::</span><span class="no">Application</span>
+    <span class="c1"># Other code...</span>
+
+    <span class="n">config</span><span class="o">.</span><span class="n">paperclip_defaults</span> <span class="o">=</span> <span class="p">{</span><span class="ss">:storage</span> <span class="o">=&gt;</span> <span class="ss">:fog</span><span class="p">,</span> <span class="ss">:fog_credentials</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:provider</span> <span class="o">=&gt;</span> <span class="s2">"Local"</span><span class="p">,</span> <span class="ss">:local_root</span> <span class="o">=&gt;</span> <span class="s2">"</span><span class="si">#{</span><span class="no">Rails</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">/public"</span><span class="p">},</span> <span class="ss">:fog_directory</span> <span class="o">=&gt;</span> <span class="s2">""</span><span class="p">,</span> <span class="ss">:fog_host</span> <span class="o">=&gt;</span> <span class="s2">"localhost"</span><span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Another option is to directly modify the Paperclip::Attachment.default_options Hash, this method works for non-Rails applications or is an option if you prefer to place the Paperclip default settings in an initializer.</p>
+
+<p>An example Rails initializer would look something like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:storage</span><span class="o">]</span> <span class="o">=</span> <span class="ss">:fog</span>
+<span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:fog_credentials</span><span class="o">]</span> <span class="o">=</span> <span class="p">{</span><span class="ss">:provider</span> <span class="o">=&gt;</span> <span class="s2">"Local"</span><span class="p">,</span> <span class="ss">:local_root</span> <span class="o">=&gt;</span> <span class="s2">"</span><span class="si">#{</span><span class="no">Rails</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">/public"</span><span class="p">}</span>
+<span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:fog_directory</span><span class="o">]</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:fog_host</span><span class="o">]</span> <span class="o">=</span> <span class="s2">"http://localhost:3000"</span>
+</pre></div>
+
+<h2>
+<a name="user-content-migrations-1" class="anchor" href="#migrations-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Migrations</h2>
+
+<p>Paperclip defines several migration methods which can be used to create necessary columns in your
+model. There are two types of method:</p>
+
+<h3>
+<a name="user-content-table-definition" class="anchor" href="#table-definition" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table Definition</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AddAttachmentToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+    <span class="n">create_table</span> <span class="ss">:users</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+      <span class="n">t</span><span class="o">.</span><span class="n">attachment</span> <span class="ss">:avatar</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you're using Rails 3.2 or newer, this method works in <code>change</code> method as well:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AddAttachmentToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+  <span class="k">def</span> <span class="nf">change</span>
+    <span class="n">create_table</span> <span class="ss">:users</span> <span class="k">do</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span>
+      <span class="n">t</span><span class="o">.</span><span class="n">attachment</span> <span class="ss">:avatar</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-schema-definition" class="anchor" href="#schema-definition" aria-hidden="true"><span class="octicon octicon-link"></span></a>Schema Definition</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AddAttachmentToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+    <span class="n">add_attachment</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+    <span class="n">remove_attachment</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you're using Rails 3.2 or newer, you only need <code>add_attachment</code> in your <code>change</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AddAttachmentToUsers</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+  <span class="k">def</span> <span class="nf">change</span>
+    <span class="n">add_attachment</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-vintage-syntax" class="anchor" href="#vintage-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Vintage syntax</h3>
+
+<p>Vintage syntax (such as <code>t.has_attached_file</code> and <code>drop_attached_file</code>) are still supported in
+Paperclip 3.x, but you're advised to update those migration files to use this new syntax.</p>
+
+<h2>
+<a name="user-content-storage" class="anchor" href="#storage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Storage</h2>
+
+<p>Paperclip ships with 3 storage adapters:</p>
+
+<ul class="task-list">
+<li>File Storage</li>
+<li>S3 Storage (via <code>aws-sdk</code>)</li>
+<li>Fog Storage</li>
+</ul><p>If you would like to use Paperclip with another storage, you can install these
+gems along side with Paperclip:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/gmontard/paperclip-azure-storage">paperclip-azure-storage</a></li>
+<li><a href="https://github.com/janko-m/paperclip-dropbox">paperclip-dropbox</a></li>
+</ul><h3>
+<a name="user-content-understanding-storage" class="anchor" href="#understanding-storage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding Storage</h3>
+
+<p>The files that are assigned as attachments are, by default, placed in the
+directory specified by the <code>:path</code> option to <code>has_attached_file</code>. By default, this
+location is <code>:rails_root/public/system/:class/:attachment/:id_partition/:style/:filename</code>.
+This location was chosen because on standard Capistrano deployments, the
+<code>public/system</code> directory is symlinked to the app's shared directory, meaning it
+will survive between deployments. For example, using that <code>:path</code>, you may have a
+file at</p>
+
+<pre><code>/data/myapp/releases/20081229172410/public/system/users/avatar/000/000/013/small/my_pic.png
+</code></pre>
+
+<p><em><strong>NOTE</strong>: This is a change from previous versions of Paperclip, but is overall a
+safer choice for the default file store.</em></p>
+
+<p>You may also choose to store your files using Amazon's S3 service. To do so, include
+the <code>aws-sdk</code> gem in your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'aws-sdk'</span><span class="p">,</span> <span class="s1">'~&gt; 1.5.7'</span>
+</pre></div>
+
+<p>And then you can specify using S3 from <code>has_attached_file</code>.
+You can find more information about configuring and using S3 storage in
+<a href="http://rubydoc.info/gems/paperclip/Paperclip/Storage/S3">the <code>Paperclip::Storage::S3</code> documentation</a>.</p>
+
+<p>Files on the local filesystem (and in the Rails app's public directory) will be
+available to the internet at large. If you require access control, it's
+possible to place your files in a different location. You will need to change
+both the <code>:path</code> and <code>:url</code> options in order to make sure the files are unavailable
+to the public. Both <code>:path</code> and <code>:url</code> allow the same set of interpolated
+variables.</p>
+
+<h2>
+<a name="user-content-post-processing" class="anchor" href="#post-processing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Post Processing</h2>
+
+<p>Paperclip supports an extensible selection of post-processors. When you define
+a set of styles for an attachment, by default it is expected that those
+"styles" are actually "thumbnails". However, you can do much more than just
+thumbnail images. By defining a subclass of Paperclip::Processor, you can
+perform any processing you want on the files that are attached. Any file in
+your Rails app's lib/paperclip_processors directory is automatically loaded by
+paperclip, allowing you to easily define custom processors. You can specify a
+processor with the :processors option to <code>has_attached_file</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">has_attached_file</span> <span class="ss">:scan</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:text</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:quality</span> <span class="o">=&gt;</span> <span class="ss">:better</span> <span class="p">}</span> <span class="p">},</span>
+                         <span class="ss">:processors</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:ocr</span><span class="o">]</span>
+</pre></div>
+
+<p>This would load the hypothetical class Paperclip::Ocr, which would have the
+hash "{ :quality =&gt; :better }" passed to it along with the uploaded file. For
+more information about defining processors, see Paperclip::Processor.</p>
+
+<p>The default processor is Paperclip::Thumbnail. For backwards compatibility
+reasons, you can pass a single geometry string or an array containing a
+geometry and a format, which the file will be converted to, like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:thumb</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="s2">"32x32#"</span><span class="p">,</span> <span class="ss">:png</span><span class="o">]</span> <span class="p">}</span>
+</pre></div>
+
+<p>This will convert the "thumb" style to a 32x32 square in png format, regardless
+of what was uploaded. If the format is not specified, it is kept the same (i.e.
+jpgs will remain jpgs). For more information on the accepted style formats, see
+<a href="http://www.imagemagick.org/script/command-line-processing.php#geometry">here</a>.</p>
+
+<p>Multiple processors can be specified, and they will be invoked in the order
+they are defined in the :processors array. Each successive processor will
+be given the result of the previous processor's execution. All processors will
+receive the same parameters, which are what you define in the :styles hash.
+For example, assuming we had this definition:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">has_attached_file</span> <span class="ss">:scan</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:text</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:quality</span> <span class="o">=&gt;</span> <span class="ss">:better</span> <span class="p">}</span> <span class="p">},</span>
+                         <span class="ss">:processors</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:rotator</span><span class="p">,</span> <span class="ss">:ocr</span><span class="o">]</span>
+</pre></div>
+
+<p>then both the :rotator processor and the :ocr processor would receive the
+options "{ :quality =&gt; :better }". This parameter may not mean anything to one
+or more or the processors, and they are expected to ignore it.</p>
+
+<p><em>NOTE: Because processors operate by turning the original attachment into the
+styles, no processors will be run if there are no styles defined.</em></p>
+
+<p>If you're interested in caching your thumbnail's width, height and size in the
+database, take a look at the <a href="https://github.com/teeparham/paperclip-meta">paperclip-meta</a> gem.</p>
+
+<p>Also, if you're interested in generating the thumbnail on-the-fly, you might want
+to look into the <a href="https://github.com/drpentode/Attachment-on-the-Fly">attachment_on_the_fly</a> gem.</p>
+
+<h2>
+<a name="user-content-events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h2>
+
+<p>Before and after the Post Processing step, Paperclip calls back to the model
+with a few callbacks, allowing the model to change or cancel the processing
+step. The callbacks are <code>before_post_process</code> and <code>after_post_process</code> (which
+are called before and after the processing of each attachment), and the
+attachment-specific <code>before_&lt;attachment&gt;_post_process</code> and
+<code>after_&lt;attachment&gt;_post_process</code>. The callbacks are intended to be as close to
+normal ActiveRecord callbacks as possible, so if you return false (specifically
+- returning nil is not the same) in a <code>before_filter</code>, the post processing step
+will halt. Returning false in an <code>after_filter</code> will not halt anything, but you
+can access the model and the attachment if necessary.</p>
+
+<p><em>NOTE: Post processing will not even <em>start</em> if the attachment is not valid
+according to the validations. Your callbacks and processors will <em>only</em> be
+called with valid attachments.</em></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Message</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:asset</span><span class="p">,</span> <span class="ss">styles</span><span class="p">:</span> <span class="p">{</span><span class="ss">thumb</span><span class="p">:</span> <span class="s2">"100x100#"</span><span class="p">}</span>
+
+  <span class="n">before_post_process</span> <span class="ss">:skip_for_audio</span>
+
+  <span class="k">def</span> <span class="nf">skip_for_audio</span>
+    <span class="o">!</span> <span class="sx">%w(audio/ogg application/ogg)</span><span class="o">.</span><span class="n">include?</span><span class="p">(</span><span class="n">asset_content_type</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-uri-obfuscation" class="anchor" href="#uri-obfuscation" aria-hidden="true"><span class="octicon octicon-link"></span></a>URI Obfuscation</h2>
+
+<p>Paperclip has an interpolation called <code>:hash</code> for obfuscating filenames of
+publicly-available files.</p>
+
+<p>Example Usage:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="p">{</span>
+    <span class="ss">:url</span> <span class="o">=&gt;</span> <span class="s2">"/system/:hash.:extension"</span><span class="p">,</span>
+    <span class="ss">:hash_secret</span> <span class="o">=&gt;</span> <span class="s2">"longSecretString"</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The <code>:hash</code> interpolation will be replaced with a unique hash made up of whatever
+is specified in <code>:hash_data</code>. The default value for <code>:hash_data</code> is <code>":class/:attachment/:id/:style/:updated_at"</code>.</p>
+
+<p><code>:hash_secret</code> is required, an exception will be raised if <code>:hash</code> is used without <code>:hash_secret</code> present.</p>
+
+<p>For more on this feature read the author's own explanation. <a href="https://github.com/thoughtbot/paperclip/pull/416">https://github.com/thoughtbot/paperclip/pull/416</a></p>
+
+<h2>
+<a name="user-content-md5-checksum--fingerprint" class="anchor" href="#md5-checksum--fingerprint" aria-hidden="true"><span class="octicon octicon-link"></span></a>MD5 Checksum / Fingerprint</h2>
+
+<p>A MD5 checksum of the original file assigned will be placed in the model if it
+has an attribute named fingerprint.  Following the user model migration example
+above, the migration would look like the following.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">AddAvatarFingerprintColumnToUser</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Migration</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">up</span>
+    <span class="n">add_column</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar_fingerprint</span><span class="p">,</span> <span class="ss">:string</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">down</span>
+    <span class="n">remove_column</span> <span class="ss">:users</span><span class="p">,</span> <span class="ss">:avatar_fingerprint</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-file-preservation-for-soft-delete" class="anchor" href="#file-preservation-for-soft-delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>File Preservation for Soft-Delete</h2>
+
+<p>An option is available to preserve attachments in order to play nicely with soft-deleted models. (acts_as_paranoid, paranoia, etc.)</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">has_attached_file</span> <span class="ss">:some_attachment</span><span class="p">,</span> <span class="p">{</span>
+    <span class="ss">:preserve_files</span> <span class="o">=&gt;</span> <span class="s2">"true"</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This will prevent <code>some_attachment</code> from being wiped out when the model gets destroyed, so it will still exist when the object is restored later.</p>
+
+<h2>
+<a name="user-content-custom-attachment-processors" class="anchor" href="#custom-attachment-processors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Attachment Processors</h2>
+
+<p>Custom attachment processors can be implemented and their only requirement is
+to inherit from <code>Paperclip::Processor</code> (see <code>lib/paperclip/processor.rb</code>).
+For example, when <code>:styles</code> are specified for an image attachment, the
+thumbnail processor (see <code>lib/paperclip/thumbnail.rb</code>) is loaded without having
+to specify it as a <code>:processor</code> parameter to <code>has_attached_file</code>.  When any
+other processor is defined it must be called out in the <code>:processors</code>
+parameter if it is to be applied to the attachment.  The thumbnail processor
+uses the imagemagick <code>convert</code> command to do the work of resizing image
+thumbnails.  It would be easy to create a custom processor that watermarks
+an image using imagemagick's <code>composite</code> command.  Following the
+implementation pattern of the thumbnail processor would be a way to implement a
+watermark processor.  All kinds of attachment processors can be created;
+a few utility examples would be compression and encryption processors.</p>
+
+<h2>
+<a name="user-content-dynamic-configuration" class="anchor" href="#dynamic-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Configuration</h2>
+
+<p>Callable objects (lambdas, Procs) can be used in a number of places for dynamic
+configuration throughout Paperclip.  This strategy exists in a number of
+components of the library but is most significant in the possibilities for
+allowing custom styles and processors to be applied for specific model
+instances, rather than applying defined styles and processors across all
+instances.</p>
+
+<h3>
+<a name="user-content-dynamic-styles" class="anchor" href="#dynamic-styles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Styles:</h3>
+
+<p>Imagine a user model that had different styles based on the role of the user.
+Perhaps some users are bosses (e.g. a User model instance responds to #boss?)
+and merit a bigger avatar thumbnail than regular users. The configuration to
+determine what style parameters are to be used based on the user role might
+look as follows where a boss will receive a <code>300x300</code> thumbnail otherwise a
+<code>100x100</code> thumbnail will be created.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">attachment</span><span class="o">|</span> <span class="p">{</span> <span class="ss">:thumb</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="n">attachment</span><span class="o">.</span><span class="n">instance</span><span class="o">.</span><span class="n">boss?</span> <span class="p">?</span> <span class="s2">"300x300&gt;"</span> <span class="p">:</span> <span class="s2">"100x100&gt;"</span><span class="p">)</span> <span class="p">}</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-dynamic-processors" class="anchor" href="#dynamic-processors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Processors:</h3>
+
+<p>Another contrived example is a user model that is aware of which file processors
+should be applied to it (beyond the implied <code>thumbnail</code> processor invoked when
+<code>:styles</code> are defined). Perhaps we have a watermark processor available and it is
+only used on the avatars of certain models.  The configuration for this might be
+where the instance is queried for which processors should be applied to it.
+Presumably some users might return <code>[:thumbnail, :watermark]</code> for its
+processors, where a defined <code>watermark</code> processor is invoked after the
+<code>thumbnail</code> processor already defined by Paperclip.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:processors</span> <span class="o">=&gt;</span> <span class="nb">lambda</span> <span class="p">{</span> <span class="o">|</span><span class="n">instance</span><span class="o">|</span> <span class="n">instance</span><span class="o">.</span><span class="n">processors</span> <span class="p">}</span>
+  <span class="kp">attr_accessor</span> <span class="ss">:watermark</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h2>
+
+<p>By default Paperclip outputs logging according to your logger level. If you want to disable logging (e.g. during testing) add this in to your environment's configuration:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Your</span><span class="o">::</span><span class="no">Application</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span>
+<span class="o">.</span><span class="n">.</span><span class="o">.</span>
+  <span class="no">Paperclip</span><span class="o">.</span><span class="n">options</span><span class="o">[</span><span class="ss">:log</span><span class="o">]</span> <span class="o">=</span> <span class="kp">false</span>
+<span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>More information in the <a href="http://rdoc.info/github/thoughtbot/paperclip/Paperclip.options">rdocs</a></p>
+
+<h2>
+<a name="user-content-deployment" class="anchor" href="#deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment</h2>
+
+<p>Paperclip is aware of new attachment styles you have added in previous deploys. The only thing you should do after each deployment is to call
+<code>rake paperclip:refresh:missing_styles</code>.  It will store current attachment styles in <code>RAILS_ROOT/public/system/paperclip_attachments.yml</code>
+by default. You can change it by:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Paperclip</span><span class="o">.</span><span class="n">registered_attachments_styles_path</span> <span class="o">=</span> <span class="s1">'/tmp/config/paperclip_attachments.yml'</span>
+</pre></div>
+
+<p>Here is an example for Capistrano:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">namespace</span> <span class="ss">:deploy</span> <span class="k">do</span>
+  <span class="n">desc</span> <span class="s2">"build missing paperclip styles"</span>
+  <span class="n">task</span> <span class="ss">:build_missing_paperclip_styles</span> <span class="k">do</span>
+    <span class="n">on</span> <span class="n">roles</span><span class="p">(</span><span class="ss">:app</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">execute</span> <span class="s2">"cd </span><span class="si">#{</span><span class="n">current_path</span><span class="si">}</span><span class="s2">; RAILS_ENV=production bundle exec rake paperclip:refresh:missing_styles"</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">after</span><span class="p">(</span><span class="s2">"deploy:compile_assets"</span><span class="p">,</span> <span class="s2">"deploy:build_missing_paperclip_styles"</span><span class="p">)</span>
+</pre></div>
+
+<p>Now you don't have to remember to refresh thumbnails in production every time you add a new style.
+Unfortunately it does not work with dynamic styles - it just ignores them.</p>
+
+<p>If you already have a working app and don't want <code>rake paperclip:refresh:missing_styles</code> to refresh old pictures, you need to tell
+Paperclip about existing styles. Simply create a <code>paperclip_attachments.yml</code> file by hand. For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">User</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:avatar</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:thumb</span> <span class="o">=&gt;</span> <span class="s1">'x100'</span><span class="p">,</span> <span class="ss">:croppable</span> <span class="o">=&gt;</span> <span class="s1">'600x600&gt;'</span><span class="p">,</span> <span class="ss">:big</span> <span class="o">=&gt;</span> <span class="s1">'1000x1000&gt;'</span><span class="p">}</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_attached_file</span> <span class="ss">:cover</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:small</span> <span class="o">=&gt;</span> <span class="s1">'x100'</span><span class="p">,</span> <span class="ss">:large</span> <span class="o">=&gt;</span> <span class="s1">'1000x1000&gt;'</span><span class="p">}</span>
+  <span class="n">has_attached_file</span> <span class="ss">:sample</span><span class="p">,</span> <span class="ss">:styles</span> <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:thumb</span> <span class="o">=&gt;</span> <span class="s1">'x100'</span><span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then in <code>RAILS_ROOT/public/system/paperclip_attachments.yml</code>:</p>
+
+<div class="highlight highlight-yml"><pre><span class="nn">---</span>
+<span class="l-Scalar-Plain">:User</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">:avatar</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">:thumb</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">:croppable</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">:big</span>
+<span class="l-Scalar-Plain">:Book</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">:cover</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">:small</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">:large</span>
+  <span class="l-Scalar-Plain">:sample</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">:thumb</span>
+</pre></div>
+
+<h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>Paperclip provides rspec-compatible matchers for testing attachments. See the
+documentation on <a href="http://rubydoc.info/gems/paperclip/Paperclip/Shoulda/Matchers">Paperclip::Shoulda::Matchers</a>
+for more information.</p>
+
+<p><strong>Parallel Tests</strong></p>
+
+<p>Because of the default <code>path</code> for Paperclip storage, if you try to run tests in
+parallel, you may find that files get overwritten because the same path is being
+calculated for them in each test process. While this fix works for
+parallel_tests, a similar concept should be used for any other mechanism for
+running tests concurrently.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">if</span> <span class="no">ENV</span><span class="o">[</span><span class="s1">'PARALLEL_TEST_GROUPS'</span><span class="o">]</span>
+  <span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:path</span><span class="o">]</span> <span class="o">=</span> <span class="s2">":rails_root/public/system/:rails_env/</span><span class="si">#{</span><span class="no">ENV</span><span class="o">[</span><span class="s1">'TEST_ENV_NUMBER'</span><span class="o">].</span><span class="n">to_i</span><span class="si">}</span><span class="s2">/:class/:attachment/:id_partition/:filename"</span>
+<span class="k">else</span>
+  <span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:path</span><span class="o">]</span> <span class="o">=</span> <span class="s2">":rails_root/public/system/:rails_env/:class/:attachment/:id_partition/:filename"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The important part here being the inclusion of <code>ENV['TEST_ENV_NUMBER']</code>, or the
+similar mechanism for whichever parallel testing library you use.</p>
+
+<p><strong>Integration Tests</strong></p>
+
+<p>Using integration tests with FactoryGirl may save multiple copies of
+your test files within the app. To avoid this, specify a custom path in
+the <code>config/environments/test.rb</code> like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Paperclip</span><span class="o">::</span><span class="no">Attachment</span><span class="o">.</span><span class="n">default_options</span><span class="o">[</span><span class="ss">:path</span><span class="o">]</span> <span class="o">=</span> <span class="s2">"</span><span class="si">#{</span><span class="no">Rails</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">/spec/test_files/:class/:id_partition/:style.:extension"</span>
+</pre></div>
+
+<p>Then, make sure to delete that directory after the test suite runs by adding
+this to <code>spec_helper.rb</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">after</span><span class="p">(</span><span class="ss">:suite</span><span class="p">)</span> <span class="k">do</span>
+  <span class="no">FileUtils</span><span class="o">.</span><span class="n">rm_rf</span><span class="p">(</span><span class="no">Dir</span><span class="o">[</span><span class="s2">"</span><span class="si">#{</span><span class="no">Rails</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">/spec/test_files/"</span><span class="o">]</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>If you'd like to contribute a feature or bugfix: Thanks! To make sure your
+fix/feature has a high chance of being included, please read the following
+guidelines:</p>
+
+<ol class="task-list">
+<li>Post a <a href="https://github.com/thoughtbot/paperclip/compare/">pull request</a>.</li>
+<li>Make sure there are tests! We will not accept any patch that is not tested.
+It's a rare time when explicit tests aren't needed. If you have questions
+about writing tests for paperclip, please open a
+<a href="https://github.com/thoughtbot/paperclip/issues/new">GitHub issue</a>.</li>
+</ol><p>Please see <code>CONTRIBUTING.md</code> for more details on contributing and running test.</p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<p><a href="https://camo.githubusercontent.com/2639e9eedcb833e8c54034b0d88d5728a170b79b/687474703a2f2f74686f75676874626f742e636f6d2f6c6f676f2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/2639e9eedcb833e8c54034b0d88d5728a170b79b/687474703a2f2f74686f75676874626f742e636f6d2f6c6f676f2e706e67" alt="thoughtbot" data-canonical-src="http://thoughtbot.com/logo.png" style="max-width:100%;"></a></p>
+
+<p>Paperclip is maintained and funded by <a href="http://thoughtbot.com/community">thoughtbot, inc</a></p>
+
+<p>Thank you to all <a href="https://github.com/thoughtbot/paperclip/contributors">the contributors</a>!</p>
+
+<p>The names and logos for thoughtbot are trademarks of thoughtbot, inc.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Paperclip is Copyright © 2008-2014 thoughtbot, inc. It is free software, and may be
+redistributed under the terms specified in the MIT-LICENSE file.</p></article></div>

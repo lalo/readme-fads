@@ -1,0 +1,125 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-autofac" class="anchor" href="#autofac" aria-hidden="true"><span class="octicon octicon-link"></span></a>Autofac</h1>
+
+<p>Autofac is an <a href="http://martinfowler.com/articles/injection.html">IoC container</a> for Microsoft .NET. It manages the dependencies between classes so that <strong>applications stay easy to change as they grow</strong> in size and complexity. This is achieved by treating regular .NET classes as <em><a href="http://autofac.readthedocs.org/en/latest/glossary.html">components</a></em>.</p>
+
+<h2>
+<a name="user-content-nuget-packages" class="anchor" href="#nuget-packages" aria-hidden="true"><span class="octicon octicon-link"></span></a>NuGet Packages</h2>
+
+<p>You can get Autofac by <a href="https://github.com/autofac/Autofac/wiki/Nu-Get-Packages">grabbing the latest NuGet packages</a> or using <a href="http://autofac.org/scriptgen/">our NuGet script builder</a> to get exactly what you need. A few older versions remain for download <a href="https://code.google.com/p/autofac/downloads/list">here</a>.</p>
+
+<h2>
+<a name="user-content-getting-help" class="anchor" href="#getting-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Help</h2>
+
+<p><strong>Need help with Autofac?</strong> We have <a href="http://autofac.readthedocs.org/">a documentation site</a> as well as <a href="http://autofac.org/apidoc/">API documentation</a>. We're ready to answer your questions on <a href="http://stackoverflow.com/questions/tagged/autofac%20Stack%20Overflow">Stack Overflow</a> or check out the <a href="https://groups.google.com/forum/#forum/autofac">discussion forum</a>.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>Our <a href="http://autofac.readthedocs.org/en/latest/getting-started/index.html">Getting Started</a> tutorial walks you through integrating Autofac with a simple application and gives you some starting points for learning more.</p>
+
+<h3>
+<a name="user-content-adding-components" class="anchor" href="#adding-components" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding Components</h3>
+
+<p><em><a href="http://autofac.readthedocs.org/en/latest/register/registration.html">Components are registered</a></em> with a <code>ContainerBuilder</code>:</p>
+
+<div class="highlight highlight-C#"><pre><span class="kt">var</span> <span class="n">builder</span> <span class="p">=</span> <span class="k">new</span> <span class="n">ContainerBuilder</span><span class="p">();</span>
+</pre></div>
+
+<p>Autofac can use <a href="http://autofac.readthedocs.org/en/latest/register/registration.html">a Linq expression, a .NET type, or a pre-built instance</a> as a component:</p>
+
+<div class="highlight highlight-C#"><pre><span class="n">builder</span><span class="p">.</span><span class="n">Register</span><span class="p">(</span><span class="n">c</span> <span class="p">=&gt;</span> <span class="k">new</span> <span class="n">TaskController</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">Resolve</span><span class="p">&lt;</span><span class="n">ITaskRepository</span><span class="p">&gt;()));</span>
+
+<span class="n">builder</span><span class="p">.</span><span class="n">RegisterType</span><span class="p">&lt;</span><span class="n">TaskController</span><span class="p">&gt;();</span>
+
+<span class="n">builder</span><span class="p">.</span><span class="n">RegisterInstance</span><span class="p">(</span><span class="k">new</span> <span class="n">TaskController</span><span class="p">());</span>
+</pre></div>
+
+<p>Or, Autofac can find and register the component types in an assembly:</p>
+
+<div class="highlight highlight-C#"><pre><span class="n">builder</span><span class="p">.</span><span class="n">RegisterAssemblyTypes</span><span class="p">(</span><span class="n">controllerAssembly</span><span class="p">);</span>
+</pre></div>
+
+<p>Calling <code>Build()</code> creates a <em>container</em>:</p>
+
+<div class="highlight highlight-C#"><pre><span class="kt">var</span> <span class="n">container</span> <span class="p">=</span> <span class="n">builder</span><span class="p">.</span><span class="n">Build</span><span class="p">();</span>
+</pre></div>
+
+<p>To retrieve a <em>component instance</em> from a container, a <em><a href="http://autofac.readthedocs.org/en/latest/glossary.html">service</a></em> is requested. By default, components provide their concrete type as a service:</p>
+
+<div class="highlight highlight-C#"><pre><span class="kt">var</span> <span class="n">taskController</span> <span class="p">=</span> <span class="n">container</span><span class="p">.</span><span class="n">Resolve</span><span class="p">&lt;</span><span class="n">TaskController</span><span class="p">&gt;();</span>
+</pre></div>
+
+<p>To specify that the component’s service is an interface, the <code>As()</code> method is used at registration time:</p>
+
+<div class="highlight highlight-C#"><pre><span class="n">builder</span><span class="p">.</span><span class="n">RegisterType</span><span class="p">&lt;</span><span class="n">TaskController</span><span class="p">&gt;().</span><span class="n">As</span><span class="p">&lt;</span><span class="n">IController</span><span class="p">&gt;();</span>
+<span class="c1">// enabling</span>
+<span class="kt">var</span> <span class="n">taskController</span> <span class="p">=</span> <span class="n">container</span><span class="p">.</span><span class="n">Resolve</span><span class="p">&lt;</span><span class="n">IController</span><span class="p">&gt;();</span>
+</pre></div>
+
+<h3>
+<a name="user-content-expressing-dependencies" class="anchor" href="#expressing-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Expressing Dependencies</h3>
+
+<p>When Autofac instantiates a component, it satisfies the component's <em>dependencies</em> by finding and instantiating other components.</p>
+
+<p>Components express their dependencies to Autofac as constructor parameters:</p>
+
+<div class="highlight highlight-C#"><pre><span class="k">public</span> <span class="k">class</span> <span class="nc">TaskController</span> <span class="p">:</span> <span class="n">IController</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="nf">TaskController</span><span class="p">(</span><span class="n">ITaskRepository</span> <span class="n">tasks</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>In this case Autofac will look for another component that provides the <code>ITaskRepository</code> service and call the constructor of <code>TaskController</code> with that component as a parameter.</p>
+
+<p>If there is more than one constructor on a component type, Autofac will use the constructor with the most resolvable parameters.</p>
+
+<div class="highlight highlight-C#"><pre><span class="k">public</span> <span class="nf">TaskController</span><span class="p">(</span><span class="n">ITaskRepository</span> <span class="n">tasks</span><span class="p">)</span>
+<span class="k">public</span> <span class="nf">TaskController</span><span class="p">(</span><span class="n">ITaskRepository</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">ILog</span> <span class="n">log</span><span class="p">)</span>
+</pre></div>
+
+<p>Default parameter values can be used to express optional dependencies (properties can be used instead if you prefer):</p>
+
+<div class="highlight highlight-C#"><pre><span class="k">public</span> <span class="nf">TaskController</span><span class="p">(</span><span class="n">ITaskRepository</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">ILog</span> <span class="n">log</span> <span class="p">=</span> <span class="k">null</span><span class="p">)</span>
+</pre></div>
+
+<p><a href="http://autofac.readthedocs.org/en/latest/advanced/circular-dependencies.html">Circular references</a> can be constructed by declaring one of the parameters to be of type <code>Lazy&lt;T&gt;</code>.</p>
+
+<div class="highlight highlight-C#"><pre><span class="k">public</span> <span class="nf">TaskController</span><span class="p">(</span><span class="n">Lazy</span><span class="p">&lt;</span><span class="n">ITaskRepository</span><span class="p">&gt;</span> <span class="n">tasks</span><span class="p">)</span>
+</pre></div>
+
+<p>Autofac understands an advanced vocabulary of "<a href="http://autofac.readthedocs.org/en/latest/resolve/relationships.html">relationship types</a>" like <code>Lazy&lt;T&gt;</code>, <code>Func&lt;T&gt;</code>, <code>IEnumerable&lt;T&gt;</code> and others, to vary the relationship between a component and its dependencies.</p>
+
+<h2>
+<a name="user-content-highlights" class="anchor" href="#highlights" aria-hidden="true"><span class="octicon octicon-link"></span></a>Highlights</h2>
+
+<p>Autofac keeps out of your way and places as few constraints on your design as possible.</p>
+
+<p><strong>Simple Extension Points:</strong> <a href="http://autofac.readthedocs.org/en/latest/lifetime/events.html">Activation events</a> like <code>OnActivating(e =&gt; e.Instance.Start())</code> can achieve a lot of customization in very little code.</p>
+
+<p><strong>Robust Resource Management:</strong> Autofac <a href="http://autofac.readthedocs.org/en/latest/lifetime/disposal.html">takes on the burden</a> of tracking disposable components to ensure that resources are released when they should be.</p>
+
+<p><strong>Flexible Module System:</strong> Strike a balance between the deployment-time benefits of <a href="http://autofac.readthedocs.org/en/latest/configuration/xml.html">XML configuration</a> and the clarity of C# code with <a href="http://autofac.readthedocs.org/en/latest/configuration/modules.html">Autofac modules</a>.</p>
+
+<h2>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<blockquote>
+<p>Autofac moved to GitHub on the 22nd January, 2013. The process of cleaning up the issues list and wiki content is ongoing. You may stumble across some invalid links while we sort out problems from the migration. The code and NuGet packages all remain in a consistent state.</p>
+</blockquote>
+
+<p>You can get the latest releases from <a href="https://www.nuget.org/packages?q=Author%3A%22Autofac+Contributors%22+Owner%3A%22alexmg%22+Autofac*">NuGet</a>. <a href="https://github.com/autofac/Autofac/wiki/Release-Notes">Release notes are available on the wiki</a>.</p>
+
+<p>If you're feeling bold, you can get <a href="https://www.myget.org/gallery/autofac">continuous integration builds from MyGet</a>.</p>
+
+<p><a href="https://camo.githubusercontent.com/a543dde80a5324f0d9d0fea1dfb51fafe0e33287/68747470733a2f2f7777772e6d796765742e6f72672f4275696c64536f757263652f42616467652f6175746f6661633f6964656e7469666965723d65306632353034302d363334632d346237642d616562652d306636326239633436356138" target="_blank"><img src="https://camo.githubusercontent.com/a543dde80a5324f0d9d0fea1dfb51fafe0e33287/68747470733a2f2f7777772e6d796765742e6f72672f4275696c64536f757263652f42616467652f6175746f6661633f6964656e7469666965723d65306632353034302d363334632d346237642d616562652d306636326239633436356138" alt="" data-canonical-src="https://www.myget.org/BuildSource/Badge/autofac?identifier=e0f25040-634c-4b7d-aebe-0f62b9c465a8" style="max-width:100%;"></a></p>
+
+<p>There is a growing number of <a href="http://autofac.readthedocs.org/en/latest/integration/index.html">integrations</a> that make using Autofac with your application a snap. Support for several popular frameworks is also available through the "Extras" packages.</p>
+
+<p>Autofac is licensed under the MIT license, so you can comfortably use it in commercial applications (we still love <a href="https://github.com/autofac/Autofac/wiki/Contribution-Guidelines">contributions</a> though).</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Refer to the <a href="https://github.com/autofac/Autofac/blob/master/developers.md">Readme for Autofac Developers</a>
+for setting up, building Autofac and generating the related documentation. We also have a <a href="http://autofac.readthedocs.org/en/latest/contributors.html">contributors guide</a> to help you get started.</p></article></div>

@@ -1,0 +1,93 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-kvocontroller" class="anchor" href="#kvocontroller" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="https://github.com/facebook/KVOController">KVOController</a>
+</h1>
+
+<p><a href="https://travis-ci.org/facebook/KVOController"><img src="https://camo.githubusercontent.com/17c58551afff337e431846b7545648f043bcdc72/68747470733a2f2f7472617669732d63692e6f72672f66616365626f6f6b2f4b564f436f6e74726f6c6c65722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/facebook/KVOController.png?branch=master" style="max-width:100%;"></a>
+<a href="http://cocoadocs.org/docsets/KVOController"><img src="https://camo.githubusercontent.com/e0c217624b6a28b99a92b5478c1ac4e86de90ced/68747470733a2f2f636f636f61706f642d6261646765732e6865726f6b756170702e636f6d2f762f4b564f436f6e74726f6c6c65722f62616467652e706e67" alt="Version" data-canonical-src="https://cocoapod-badges.herokuapp.com/v/KVOController/badge.png" style="max-width:100%;"></a>
+<a href="http://cocoadocs.org/docsets/KVOController"><img src="https://camo.githubusercontent.com/854ba9738eff1c3381c960631e229fb55c05f73e/68747470733a2f2f636f636f61706f642d6261646765732e6865726f6b756170702e636f6d2f702f4b564f436f6e74726f6c6c65722f62616467652e706e67" alt="Platform" data-canonical-src="https://cocoapod-badges.herokuapp.com/p/KVOController/badge.png" style="max-width:100%;"></a></p>
+
+<p>Key-value observing is a particularly useful technique for communicating between layers in a Model-View-Controller application. KVOController builds on Cocoa's time-tested key-value observing implementation. It offers a simple, modern API, that is also thread safe. Benefits include:</p>
+
+<ul class="task-list">
+<li>Notification using blocks, custom actions, or NSKeyValueObserving callback.</li>
+<li>No exceptions on observer removal.</li>
+<li>Implicit observer removal on controller dealloc.</li>
+<li>Thread-safety with special guards against observer resurrection – <a href="http://openradar.appspot.com/radar?id=5305010728468480">rdar://15985376</a>.</li>
+</ul><p>For more information on KVO, see Apple's <a href="https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/KeyValueObserving/KeyValueObserving.html">Introduction to Key-Value Observing</a>.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Example apps for iOS and OS X are included with the project. Here is one simple usage pattern:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// create KVO controller with observer</span>
+<span class="n">FBKVOController</span> <span class="o">*</span><span class="n">KVOController</span> <span class="o">=</span> <span class="p">[</span><span class="n">FBKVOController</span> <span class="nl">controllerWithObserver</span><span class="p">:</span><span class="nb">self</span><span class="p">];</span>
+
+<span class="c1">// observe clock date property</span>
+<span class="p">[</span><span class="n">KVOController</span> <span class="nl">observe</span><span class="p">:</span><span class="n">clock</span> <span class="nl">keyPath</span><span class="p">:</span><span class="s">@"date"</span> <span class="nl">options</span><span class="p">:</span><span class="n">NSKeyValueObservingOptionInitial</span><span class="o">|</span><span class="n">NSKeyValueObservingOptionNew</span> <span class="nl">block</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">ClockView</span> <span class="o">*</span><span class="n">clockView</span><span class="p">,</span> <span class="n">Clock</span> <span class="o">*</span><span class="n">clock</span><span class="p">,</span> <span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">change</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="c1">// update clock view with new value</span>
+  <span class="n">clockView</span><span class="p">.</span><span class="n">date</span> <span class="o">=</span> <span class="n">change</span><span class="p">[</span><span class="n">NSKeyValueChangeNewKey</span><span class="p">];</span>
+<span class="p">}];</span>
+</pre></div>
+
+<p>While simple, the above example is complete. A clock view creates a KVO controller to observe the clock date property. A block callback is used to handle initial and change notification. Unobservation happens implicitly on controller deallocation.</p>
+
+<p>To automatically remove observers on observer dealloc, add a strong reference between observer and KVO controller.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Observer with KVO controller instance variable</span>
+<span class="k">@implementation</span> <span class="nc">ClockView</span>
+<span class="p">{</span>
+  <span class="n">FBKVOController</span> <span class="o">*</span><span class="n">_KVOController</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">init</span>
+<span class="p">{</span>
+  <span class="p">...</span>
+  <span class="c1">// create KVO controller with observer</span>
+  <span class="n">FBKVOController</span> <span class="o">*</span><span class="n">KVOController</span> <span class="o">=</span> <span class="p">[</span><span class="n">FBKVOController</span> <span class="nl">controllerWithObserver</span><span class="p">:</span><span class="nb">self</span><span class="p">];</span>
+
+  <span class="c1">// add strong reference from observer to KVO controller</span>
+  <span class="n">_KVOController</span> <span class="o">=</span> <span class="n">KVOController</span><span class="p">;</span>
+
+</pre></div>
+
+<p>Note: the observer specified must support weak references. The zeroing weak reference guards against notification of a deallocated observer instance.</p>
+
+<h2>
+<a name="user-content-prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prerequisites</h2>
+
+<p>KVOController takes advantage of recent Objective-C runtime advances, including ARC and weak collections. It requires:</p>
+
+<ul class="task-list">
+<li>iOS 6 or later.</li>
+<li>OS X 10.7 or later.</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>To install using CocoaPods, add the following to your project Podfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">pod</span> <span class="s1">'KVOController'</span>
+</pre></div>
+
+<p>Alternatively, drag and drop FBKVOController.h and FBKVOController.m into your Xcode project, agreeing to copy files if needed. For iOS applications, you can choose to link against the static library target of the KVOController project.</p>
+
+<p>Having installed using CocoaPods, add the following to import in Objective-C:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="cp">#import &lt;KVOController/FBKVOController.h&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>The unit tests included use CocoaPods for managing dependencies. Install CocoaPods if you haven't already done so. Then, at the command line, navigate to the root KVOController directory and type:</p>
+
+<div class="highlight highlight-sh"><pre>pod install
+</pre></div>
+
+<p>This will install and add test dependencies on OCHamcrest and OCMockito. Re-open the Xcode KVOController workspace and Test, ⌘U.</p>
+
+<h2>
+<a name="user-content-licence" class="anchor" href="#licence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Licence</h2>
+
+<p>KVOController is released under a BSD License. See LICENSE file for details.</p></article></div>

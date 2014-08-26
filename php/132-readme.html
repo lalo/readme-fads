@@ -1,0 +1,110 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-snappy" class="anchor" href="#snappy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Snappy</h1>
+
+<p>Snappy is a PHP5 library allowing thumbnail, snapshot or PDF generation from a url or a html page.
+It uses the excellent webkit-based <a href="http://wkhtmltopdf.org/">wkhtmltopdf and wkhtmltoimage</a>
+available on OSX, linux, windows.</p>
+
+<p>You will have to download wkhtmltopdf <code>0.12.x</code> in order to use Snappy.</p>
+
+<p><a href="http://travis-ci.org/KnpLabs/snappy"><img src="https://camo.githubusercontent.com/21819330bcb20d4d196a2dc260fd500bf8d719c6/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f4b6e704c6162732f736e617070792e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/KnpLabs/snappy.png?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-installation-using-composer" class="anchor" href="#installation-using-composer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation using <a href="http://getcomposer.org/">Composer</a>
+</h2>
+
+<p>Add to your <code>composer.json</code>:</p>
+
+<div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="nt">"require"</span> <span class="p">:</span>  <span class="p">{</span>
+        <span class="nt">"knplabs/knp-snappy"</span><span class="p">:</span> <span class="s2">"*"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="k">require_once</span> <span class="s1">'/path/to/snappy/src/autoload.php'</span><span class="p">;</span>
+
+<span class="k">use</span> <span class="nx">Knp\Snappy\Pdf</span><span class="p">;</span>
+
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="s1">'/usr/local/bin/wkhtmltopdf'</span><span class="p">);</span>
+
+<span class="c1">// or you can do it in two steps</span>
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">();</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setBinary</span><span class="p">(</span><span class="s1">'/usr/local/bin/wkhtmltopdf'</span><span class="p">);</span>
+
+<span class="c1">// Display the resulting pdf in the browser</span>
+<span class="c1">// by setting the Content-type header to pdf</span>
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="s1">'/usr/local/bin/wkhtmltopdf'</span><span class="p">);</span>
+<span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Type: application/pdf'</span><span class="p">);</span>
+<span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Disposition: attachment; filename="file.pdf"'</span><span class="p">);</span>
+<span class="k">echo</span> <span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">getOutput</span><span class="p">(</span><span class="s1">'http://www.github.com'</span><span class="p">);</span>
+
+<span class="c1">// Merge multiple urls into one pdf</span>
+<span class="c1">// by sending an array of urls to getOutput()</span>
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="s1">'/usr/local/bin/wkhtmltopdf'</span><span class="p">);</span>
+<span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Type: application/pdf'</span><span class="p">);</span>
+<span class="nb">header</span><span class="p">(</span><span class="s1">'Content-Disposition: attachment; filename="file.pdf"'</span><span class="p">);</span>
+<span class="k">echo</span> <span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">getOutput</span><span class="p">(</span><span class="k">array</span><span class="p">(</span><span class="s1">'http://www.github.com'</span><span class="p">,</span><span class="s1">'http://www.knplabs.com'</span><span class="p">,</span><span class="s1">'http://www.php.net'</span><span class="p">));</span>
+
+<span class="c1">// .. or simply save the PDF to a file</span>
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="s1">'/usr/local/bin/wkhtmltopdf'</span><span class="p">);</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">generateFromHtml</span><span class="p">(</span><span class="s1">'&lt;h1&gt;Bill&lt;/h1&gt;&lt;p&gt;You owe me money, dude.&lt;/p&gt;'</span><span class="p">,</span> <span class="s1">'/tmp/bill-123.pdf'</span><span class="p">);</span>
+
+<span class="c1">// Pass options to snappy</span>
+<span class="c1">// Type wkhtmltopdf -H to see the list of options</span>
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="s1">'/usr/local/bin/wkhtmltopdf'</span><span class="p">);</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setOption</span><span class="p">(</span><span class="s1">'disable-javascript'</span><span class="p">,</span> <span class="k">true</span><span class="p">);</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setOption</span><span class="p">(</span><span class="s1">'no-background'</span><span class="p">,</span> <span class="k">true</span><span class="p">);</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setOption</span><span class="p">(</span><span class="s1">'allow'</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">'/path1'</span><span class="p">,</span> <span class="s1">'/path2'</span><span class="p">));</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setOption</span><span class="p">(</span><span class="s1">'cookie'</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s1">'key'</span> <span class="o">=&gt;</span> <span class="s1">'value'</span><span class="p">,</span> <span class="s1">'key2'</span> <span class="o">=&gt;</span> <span class="s1">'value2'</span><span class="p">));</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setOption</span><span class="p">(</span><span class="s1">'cover'</span><span class="p">,</span> <span class="s1">'pathToCover.html'</span><span class="p">);</span>
+<span class="nv">$snappy</span><span class="o">-&gt;</span><span class="na">setOption</span><span class="p">(</span><span class="s1">'toc'</span><span class="p">,</span> <span class="k">true</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-wkhtmltopdf-binary-as-composer-dependencies" class="anchor" href="#wkhtmltopdf-binary-as-composer-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>wkhtmltopdf binary as composer dependencies</h2>
+
+<p>If you want to download wkhtmltopdf and wkhtmltoimage with composer you add to <code>composer.json</code>:</p>
+
+<div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="nt">"require"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">"h4cc/wkhtmltopdf-i386"</span><span class="p">:</span> <span class="s2">"0.12.x"</span><span class="p">,</span>
+        <span class="nt">"h4cc/wkhtmltoimage-i386"</span><span class="p">:</span> <span class="s2">"0.12.x"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>or this if you are in 64 bit based system:</p>
+
+<div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="nt">"require"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">"h4cc/wkhtmltopdf-amd64"</span><span class="p">:</span> <span class="s2">"0.12.x"</span><span class="p">,</span>
+        <span class="nt">"h4cc/wkhtmltoimage-amd64"</span><span class="p">:</span> <span class="s2">"0.12.x"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>And then you can use it</p>
+
+<div class="highlight highlight-php"><pre><span class="o">&lt;?</span><span class="nx">php</span>
+
+<span class="k">use</span> <span class="nx">Knp\Snappy\Pdf</span><span class="p">;</span>
+
+<span class="nv">$myProjectDirectory</span> <span class="o">=</span> <span class="s1">'/path/to/my/project'</span><span class="p">;</span>
+
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="nv">$myProjectDirectory</span> <span class="o">.</span> <span class="s1">'/vendor/h4cc/wkhtmltopdf-i386/bin/wkhtmltopdf-i386'</span><span class="p">);</span>
+
+<span class="c1">// or</span>
+
+<span class="nv">$snappy</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Pdf</span><span class="p">(</span><span class="nv">$myProjectDirectory</span> <span class="o">.</span> <span class="s1">'/vendor/h4cc/wkhtmltopdf-amd64/bin/wkhtmltopdf-amd64'</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<p>Snappy has been originally developed by the <a href="http://knplabs.com">KnpLabs</a> team.</p></article></div>

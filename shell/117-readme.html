@@ -1,0 +1,286 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>etckeeper is a collection of tools to let /etc be stored in a git,
+mercurial, bazaar or darcs repository. It hooks into apt to automatically
+commit changes made to /etc during package upgrades. It tracks file
+metadata that git does not normally support, but that is important for
+/etc, such as the permissions of <code>/etc/shadow</code>. It's quite modular and
+configurable, while also being simple to use if you understand the basics
+of working with version control.</p>
+
+<h2>
+<a name="user-content-security-warnings" class="anchor" href="#security-warnings" aria-hidden="true"><span class="octicon octicon-link"></span></a>security warnings</h2>
+
+<p>First, a big warning: By checking /etc into version control, you are
+creating a copy of files like /etc/shadow that must remain secret. Anytime
+you have a copy of a secret file, it becomes more likely that the file
+contents won't remain secret. etckeeper is careful about file permissions,
+and will make sure that repositories it sets up don't allow anyone but root
+to read their contents. However, you <em>also</em> must take care when cloning
+or copying these repositories, not to allow anyone else to see the data.</p>
+
+<p>Since git mushes all the files into packs under the .git directory, the
+whole .git directory content needs to be kept secret. (Ditto for mercurial
+and .hg as well as bazaar and .bzr)</p>
+
+<p>Also, since version control systems don't keep track of the mode of files
+like the shadow file, it will check out world readable, before etckeeper
+fixes the permissions. The tutorial has some examples of safe ways to avoid
+these problems when cloning an /etc repository.</p>
+
+<p>Also note that <code>etckeeper init</code> runs code stored in the repository.
+So don't use it on repositories from untrusted sources.</p>
+
+<h2>
+<a name="user-content-what-etckeeper-does" class="anchor" href="#what-etckeeper-does" aria-hidden="true"><span class="octicon octicon-link"></span></a>what etckeeper does</h2>
+
+<p>etckeeper has special support to handle changes to /etc caused by
+installing and upgrading packages. Before apt installs packages,
+<code>etckeeper pre-install</code> will check that /etc contains no uncommitted changes.
+After apt installs packages, <code>etckeeper post-install</code> will add any new
+interesting files to the repository, and commit the changes.</p>
+
+<p>You can also run <code>etckeeper commit</code> by hand to commit changes.</p>
+
+<p>There is also a cron job, that will use etckeeper to automatically
+commit any changes to /etc each day.</p>
+
+<h2>
+<a name="user-content-vcs-limitations" class="anchor" href="#vcs-limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>VCS limitations</h2>
+
+<p>Version Control Systems are designed as a way to manage source code, not as
+a way to manage arbitrary directories like /etc. This means there are a few
+limitations that etckeeper has to work around. These include file metadata
+storage, empty directories, and special files.</p>
+
+<p>Most VCS, including git, mercurial and bazaar have only limited tracking of
+file metadata, being able to track the executable bit, but not other
+permissions or owner info. (darcs doesn't even track executable bits.) So
+file metadata is stored separately. Among other chores, <code>etckeeper init</code>
+sets up a <code>pre-commit</code> hook that stores metadata about file owners and
+permissions into a <code>/etc/.etckeeper</code> file. This metadata is stored in
+version control along with everything else, and can be applied if the repo
+should need to be checked back out.</p>
+
+<p>git and mercurial cannot track empty directories, but they can be
+significant sometimes in /etc. So the <code>pre-commit</code> hook also stores
+information that can be used to recreate the empty directories in the
+<code>/etc/.etckeeper</code> file.</p>
+
+<p>Most VCS don't support several special files that you <em>probably</em> won't have
+in /etc, such as unix sockets, named pipes, hardlinked files (but symlinks
+are fine), and device files. The <code>pre-commit</code> hook will warn if your /etc
+contains such special files.</p>
+
+<p>Darcs doesn't support symlinks, so they are also stored in
+<code>/etc/.etckeeper</code>.</p>
+
+<h2>
+<a name="user-content-tutorial" class="anchor" href="#tutorial" aria-hidden="true"><span class="octicon octicon-link"></span></a>tutorial</h2>
+
+<p>A quick walkthrough of using etckeeper.</p>
+
+<p>Note that the default VCS is git, and this tutorial assumes you're using
+it. Using other VCSes should be broadly similar. </p>
+
+<p>The <code>etckeeper init</code> command initialises an /etc/.git/ repository. 
+If you installed etckeeper from a package, this was probably automatically
+performed during the package installation. If not, your first step is to
+run it by hand:</p>
+
+<pre><code>etckeeper init
+</code></pre>
+
+<p>The <code>etckeeper init</code> command is careful to never overwrite existing files
+or directories in /etc. It will create a <code>.gitignore</code> if one doesn't
+already exist (or update content inside a "managed by etckeeper" comment
+block), sets up pre-commit hooks if they don't already exist, and so on. It
+does <em>not</em> commit any files, but does <code>git add</code> all interesting files for
+an initial commit later.</p>
+
+<p>Now you might want to run <code>git status</code> to check that it includes all
+the right files, and none of the wrong files. And you can edit the
+<code>.gitignore</code> and so forth. Once you're ready, it's time to commit:</p>
+
+<pre><code>cd /etc
+git status
+git commit -m "initial checkin"
+git gc # pack git repo to save a lot of space
+</code></pre>
+
+<p>After this first commit, you can use regular git commands to handle
+further changes:</p>
+
+<pre><code>passwd someuser
+git status
+git commit -a -m "changed a password"
+</code></pre>
+
+<p>Rinse, lather, repeat. You might find that some files are changed by
+daemons and shouldn't be tracked by git. These can be removed from git:</p>
+
+<pre><code>git rm --cached printcap # modified by CUPS
+echo printcap &gt;&gt; .gitignore
+git commit -a -m "don't track printcap" 
+</code></pre>
+
+<p>etckeeper hooks into apt (and similar systems) so changes to interesting
+files in /etc caused by installing or upgrading packages will automatically
+be committed. Here "interesting" means files that are not ignored by
+<code>.gitignore</code>.</p>
+
+<p>You can use any git commands you like, but do keep in mind that, if you
+check out a different branch or an old version, git is operating directly
+on your system's /etc. If you do decide to check out a branch or tag,
+make sure you run "etckeeper init" again, to get any metadata changes:</p>
+
+<pre><code>git checkout april_first_joke_etc
+etckeeper init
+</code></pre>
+
+<p>Often it's better to clone /etc to elsewhere and do potentially dangerous
+stuff in a staging directory. You can clone the repository using git clone,
+but be careful that the directory it's cloned into starts out mode 700, to
+prevent anyone else from seeing files like <code>shadow</code>, before <code>etckeeper init</code>
+fixes their permissions:</p>
+
+<pre><code>mkdir /my/workdir
+cd /my/workdir
+chmod 700 .
+git clone /etc
+cd etc
+etckeeper init -d .
+chmod 755 ..
+</code></pre>
+
+<p>Another common reason to clone the repository is to make a backup to a
+server. When using <code>git push</code> to create a new remote clone, make sure the
+new remote clone is mode 700! (And, obviously, only push over a secure
+transport like ssh, and only to a server you trust.)</p>
+
+<pre><code>ssh server 'mkdir /etc-clone; cd /etc-clone; chmod 700 .; git init --bare'
+git remote add backup ssh://server/etc-clone
+git push backup --all
+</code></pre>
+
+<p>If you have several machine's using etckeeper, you can start with a
+etckeeper repository on one machine, then add another machine's etckeeper
+repository as a git remote. Then you can diff against it, examine its
+history, merge with it, and so on. It would probably not, however, be wise
+to "git checkout" the other machine's branch! (And if you do, make sure to
+run "etckeeper init" to update file permissions.)</p>
+
+<pre><code>root@kodama:/etc&gt;git remote add dodo ssh://dodo/etc
+root@kodama:/etc&gt;git fetch dodo
+root@kodama:/etc&gt;git diff dodo/master group |head
+diff --git a/group b/group
+index 0242b84..b5e4384 100644
+--- a/group
++++ b/group
+@@ -5,21 +5,21 @@ sys:x:3:
+adm:x:4:joey
+tty:x:5:
+disk:x:6:
+-lp:x:7:cupsys
++lp:x:7:
+</code></pre>
+
+<p>Incidentially, this also means I have a backup of dodo's /etc on kodama.
+So if kodama is compromised, that data could be used to attack dodo
+too. On the other hand, if dodo's disk dies, I can restore it from this
+handy hackup.</p>
+
+<p>Of course, it's also possible to pull changes from a server onto client
+machines, to deploy changes to /etc. Once /etc is under version control, the
+sky's the limit..</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>configuration</h2>
+
+<p>The main configuration file is <code>/etc/etckeeper/etckeeper.conf</code></p>
+
+<p>etckeeper runs the executable files in <code>/etc/etckeeper/$command.d/</code>. (It
+ignores the same ones that run-parts(1) would ignore.) You can modify these
+files, or add your own custom files. Each individual file is short, simple,
+and does only one action.</p>
+
+<p>For example, here's how to configure it to run <code>git gc</code> after each apt run,
+which will save a lot of disk space:</p>
+
+<pre><code>cd /etc/etckeeper/post-install.d
+(echo '#!/bin/sh' ; echo 'exec git gc') &gt; 99git-gc
+chmod +x 99git-gc
+git add .
+git commit -m "run git gc after each apt run"
+</code></pre>
+
+<p>Here's how to disable the automatic commits after each apt run, while still
+letting it git add new files:</p>
+
+<pre><code>rm /etc/etckeeper/commit.d/50vcs-commit
+</code></pre>
+
+<p>Here's how to make it automatically push commits to a clone of the
+repository as a backup (see instructions above to set up the clone safely):</p>
+
+<pre><code>cd /etc/etckeeper/commit.d
+(echo '#!/bin/sh' ; echo 'git push backup') &gt; 99git-push
+chmod +x 99git-push
+git add .
+git commit -m "automatically push commits to backup repository"
+</code></pre>
+
+<h2>
+<a name="user-content-changing-vcs" class="anchor" href="#changing-vcs" aria-hidden="true"><span class="octicon octicon-link"></span></a>changing VCS</h2>
+
+<p>By default, etckeeper uses git. This choice has been carefully made;
+git is the VCS best supported by etckeeper and the VCS users are most
+likely to know.</p>
+
+<p>[ It's possible that your distribution has chosen to modify etckeeper so
+  its default VCS is not git -- if they have please complain to them,
+  as they're making things unnecessarily difficult for you, and causing
+  unnecessary divergence of etckeeper installations. 
+  You should only be using etckeeper with a VCS other than git if you're
+  in love with the other VCS. ]</p>
+
+<p>If you would like to use some other VCS, and <code>etckeeper init</code> has already
+been run to set up a git repository, you have a decision to make: Is the
+history recorded in that repository something you need to preserve, or can
+you afford to just blow it away and check the current /etc into the new
+VCS?</p>
+
+<p>In the latter case, you just need to follow three steps:</p>
+
+<pre><code>etckeeper uninit # deletes /etc/.git!
+vim /etc/etckeeper/etckeeper.conf
+etckeeper init
+</code></pre>
+
+<p>In the former case, you will need to convert the git repository to the
+other VCS using whatever tools are available to do that. Then you can
+run <code>etckeeper uninit</code>, move files your new VCS will use into place,
+edit <code>etckeeper.conf</code> to change the VCS setting, and finally
+<code>etckeeper init</code>. This procedure is clearly only for the brave.</p>
+
+<h2>
+<a name="user-content-inspiration" class="anchor" href="#inspiration" aria-hidden="true"><span class="octicon octicon-link"></span></a>inspiration</h2>
+
+<p>Two blog posts provided inspiration for techniques used by etckeeper:</p>
+
+<ul class="task-list">
+<li><a href="http://www.jukie.net/%7Ebart/blog/20070312134706">http://www.jukie.net/~bart/blog/20070312134706</a></li>
+<li><a href="http://bryan-murdock.blogspot.com/2007/07/put-etc-under-revision-control-with-git.html">http://bryan-murdock.blogspot.com/2007/07/put-etc-under-revision-control-with-git.html</a></li>
+</ul><p>isisetup had some of the same aims as etckeeper, however, unlike it,
+etckeeper does not aim to be a git porcelain with its own set of commands
+for manipulating the /etc repository. Instead, etckeeper provides a simple
+setup procedure and hooks for setting up an /etc repository, and then gets
+out of your way; you manage the repository using regular VCS commands.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>license</h2>
+
+<p>etckeeper is licensed under version 2 or greater of the GNU GPL.</p>
+
+<h2>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>author</h2>
+
+<p>Joey Hess <a href="mailto:joey@kitenet.net">joey@kitenet.net</a></p></article></div>

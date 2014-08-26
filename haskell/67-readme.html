@@ -1,0 +1,156 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><strong>UPDATE:</strong> We recommend that people move away from cabal-dev, now that cabal-install supports sandboxes natively (in versions &gt;= 1.18). Here's a blog post that describes how to use cabal-install sandboxes: <a href="http://coldwa.st/e/blog/2013-07-30-Cabal-sandbox.html">http://coldwa.st/e/blog/2013-07-30-Cabal-sandbox.html</a></p>
+
+<h1>
+<a name="user-content-cabal-dev" class="anchor" href="#cabal-dev" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cabal Dev</h1>
+
+<h2>
+<a name="user-content-motivation" class="anchor" href="#motivation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Motivation</h2>
+
+<p>Performing consistent builds is critical in software development, but
+the current system of per-user and per-system GHC package databases
+interferes with this need for consistency.  It is difficult to
+precisely identify the dependencies of a given project, and changes
+necessary to enable one project to build may render another project
+inoperable.  If each project had a separate package database, each
+project could be built in a sandbox.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Cabal-dev is simple to use:</p>
+
+<pre><code>$ cd &lt;cabalized project dir&gt;
+$ cabal-dev install
+</code></pre>
+
+<p>Cabal-dev will create a default sandbox named <code>cabal-dev</code> in the
+current directory.  This will be populated with the project
+dependencies, which are built and installed into a package database
+within the sandbox.  The first cabal-dev build of a project typically
+takes substantially longer than subsequent builds--don't worry, the
+artifacts created will be re-used on subsequent builds unless you
+remove the sandbox, or specify a different sandbox (with --sandbox= at
+the command line or the CABAL_SANDBOX environment variable; the
+command line flag takes precedence).</p>
+
+<p>The project is then built, utilizing the sandboxed package database
+rather than the user database.  (The GHC system database <em>is</em> still
+used.  We recommend that only the core packages be installed to the
+system package database to reduce the potential for conflicts.)</p>
+
+<p><code>cabal-dev install</code> uses cabal-install to issue build and installation
+commands that place the project's build artifacts in the cabal-dev
+sandbox, as well as leaving the binaries in the familiar <code>dist</code>
+directory.</p>
+
+<p>If you are developing multiple interdependent packages together, see
+the section below about building with private dependencies.</p>
+
+<p>See cabal-dev --help for detailed usage information.</p>
+
+<h3>
+<a name="user-content-ghci-with-cabal-dev" class="anchor" href="#ghci-with-cabal-dev" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ghci with cabal-dev</h3>
+
+<p>Cabal-dev 0.7.3.1 and greater are capable of launching ghci with the
+project's package database and local modules (if the package under
+development exposes a library).</p>
+
+<pre><code># First, you must cabal-dev install the package to populate the
+# package database:
+$ cabal-dev install
+....
+&lt;snip&gt;
+....
+$ cabal-dev ghci
+GHCi, version 6.12.3: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Loading package ffi-1.0 ... linking ... done.
+Prelude&gt;
+</code></pre>
+
+<p>The ghci shell should have access to all the libraries your
+application/library is using, as well as any modules that your library
+exposes.</p>
+
+<p>Note that this is not quite as natural as your traditional ghci shell,
+namely: Source modifications are not visible without exiting,
+re-issuing <code>cabal-dev install</code> <em>and</em> <code>cabal-dev ghci</code>.  This will
+eventually get better, but that's where things are right now.  The
+reason for this is that <code>cabal-dev ghci</code> just issues ghci with the
+cabal-dev package database (and excluding the user package db, to best
+reflect what cabal-dev does when it causes compilation).</p>
+
+<h2>
+<a name="user-content-building-with-private-dependencies" class="anchor" href="#building-with-private-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building with private dependencies</h2>
+
+<p>Cabal-dev supports two different workflows for using un-released
+packages. The first makes the dependencies available in a
+sandbox-local Hackage. The second rebuilds the dependent package every
+time. If any of your private dependencies are unchanging (e.g. you had
+to patch a dependency to relax a package constraint) you will probably
+want to use add-source. If you are actively developing two packages
+that have dependencies on each other, you probably will prefer the
+second. You can mix and match these techniques seamlessly.</p>
+
+<h3>
+<a name="user-content-using-a-sandbox-local-hackage" class="anchor" href="#using-a-sandbox-local-hackage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using a sandbox-local Hackage</h3>
+
+<p>Cabal-dev also allows you to use un-released packages as though they
+were on hackage with <code>cabal-dev add-source</code>.</p>
+
+<p>For example, the <code>linux-ptrace</code> and <code>posix-waitpid</code> packages were only
+recently uploaded to hackage.  Previously, cabal-dev was used to build
+applications that depended on these two packages:</p>
+
+<pre><code>$ ls
+linux-ptrace/  myProject/  posix-waitpid/
+$ cd myProject
+$ cabal-dev add-source ../linux-ptrace ../posix-waitpid
+$ cabal-dev install
+</code></pre>
+
+<p>Note that <code>cabal-dev add-source</code> accepts a list of source locations.</p>
+
+<p>Be careful, however, because packages that have been added are not
+tied to their original source locations any more.  Changes to the
+<code>linux-ptrace</code> source in the above example will not be used by
+<code>myProject</code> unless the user issues <code>cabal-dev add-source</code> with the
+path to the <code>linux-ptrace</code> source again.  This is similar to the
+<code>cabal install</code> step you may do now to enable a project to make use of
+changes to a dependency.</p>
+
+<p>There is currently one additional requirement when using <code>cabal-dev
+add-source</code>.  The projects that are add-source'd must generate sdists
+that will build.  Cabal-dev currently uses sdists to transport the
+dependencies into the sandbox, so the project will not build if
+critical files are left out of the sdist.  Note that the packages do
+not need to sdist cleanly, most warnings are acceptable, so this is
+rarely a problem.</p>
+
+<h3>
+<a name="user-content-building-multiple-packages-together" class="anchor" href="#building-multiple-packages-together" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building multiple packages together</h3>
+
+<p>For packages that are being actively developed together, recent
+cabal-install (&gt; 0.10) provides another option: specify all of the
+source directories together on the cabal-install command line. For
+example, say we're developing a Web application that depends on a
+helper package that we use for other Web projects as well. We keep
+making changes to both the application and its helper package. To
+build both packages together:</p>
+
+<pre><code>$ ls
+my-webapp/  webapp-helpers/
+$ cabal-dev install my-webapp/ webapp-helpers/
+</code></pre>
+
+<p>Note that this is a feature of newer cabal-install and is not limited
+to use with cabal-dev, but cabal-dev makes it more useful by keeping
+the development code isolated from other builds.</p>
+
+<p>The disadvantage of this approach is that it can be slow. When you
+have not made changes to a dependency, cabal-install will re-link and
+reinstall it anyway (although it does avoid recompilation when it's
+not necessary). Use the add-source mechanism if you have a dependency
+that changes very infrequently.</p></article></div>

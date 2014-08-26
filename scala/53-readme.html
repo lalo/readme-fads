@@ -1,0 +1,145 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-rogue" class="anchor" href="#rogue" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rogue</h1>
+
+<p>Rogue is a type-safe internal Scala DSL for constructing and executing find and modify commands against
+MongoDB in the Lift web framework. It is fully expressive with respect to the basic options provided
+by MongoDB's native query language, but in a type-safe manner, building on the record types specified in 
+your Lift models. An example:</p>
+
+<pre><code>Venue.where(_.mayor eqs 1234).and(_.tags contains "Thai").fetch(10)
+</code></pre>
+
+<p>The type system enforces the following constraints:</p>
+
+<ul class="task-list">
+<li>the fields must actually belong to the record (e.g., mayor is a field on the Venue record)</li>
+<li>the field type must match the operand type (e.g., mayor is an IntField)</li>
+<li>the operator must make sense for the field type (e.g., categories is a MongoListField[String])</li>
+</ul><p>In addition, the type system ensures that certain builder methods are only used in certain circumstances.
+For example, take this more complex query:</p>
+
+<pre><code>Venue.where(_.closed eqs false).orderAsc(_.popularity).limit(10).modify(_.closed setTo true).updateMulti
+</code></pre>
+
+<p>This query purportedly finds the 10 least popular open venues and closes them. However, MongoDB
+does not (currently) allow you to specify limits on modify queries, so Rogue won't let you either.
+The above will generate a compiler error. </p>
+
+<p>Constructions like this:</p>
+
+<pre><code>def myMayorships = Venue.where(_.mayor eqs 1234).limit(5)
+...
+myMayorships.fetch(10)
+</code></pre>
+
+<p>will also not compile, here because a limit is being specified twice. Other similar constraints
+are in place to prevent you from accidentally doing things you don't want to do anyway.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Because Rogue is designed to work with several versions of lift-mongodb-record (2.2, 2.3, 2.4),
+you'll want to declare your dependency on Rogue as <code>intransitive</code> and declare an explicit dependency
+on the version of Lift you want to target. In sbt, that would look like the following: </p>
+
+<pre><code>val rogueField      = "com.foursquare" %% "rogue-field"         % "2.2.0" intransitive()
+val rogueCore       = "com.foursquare" %% "rogue-core"          % "2.2.0" intransitive()
+val rogueLift       = "com.foursquare" %% "rogue-lift"          % "2.2.0" intransitive()
+val rogueIndex      = "com.foursquare" %% "rogue-index"         % "2.2.0" intransitive()
+val liftMongoRecord = "net.liftweb"    %% "lift-mongodb-record" % "2.4"
+</code></pre>
+
+<p>You can substitute "2.5.1" for whatever version of Lift you are using. Rogue has been used in
+production against Lift 2.4 and 2.5.1. If you encounter problems using Rogue with other versions
+of Lift, please let us know.</p>
+
+<p>Join the <a href="http://groups.google.com/group/rogue-users">rogue-users google group</a> for help, bug reports,
+feature requests, and general discussion on Rogue.</p>
+
+<h2>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<p>Define your record classes in Lift like you would normally (see <a href="https://github.com/foursquare/rogue/blob/master/rogue-lift/src/test/scala/com/foursquare/rogue/TestModels.scala">TestModels.scala</a> for examples).</p>
+
+<p>Then anywhere you want to use rogue queries against these records, import the following:</p>
+
+<pre><code>import com.foursquare.rogue.LiftRogue._
+</code></pre>
+
+<p>See <a href="https://github.com/foursquare/rogue/blob/master/rogue-lift/src/test/scala/com/foursquare/rogue/EndToEndTest.scala">EndToEndTest.scala</a> for a complete working example.</p>
+
+<h2>
+<a name="user-content-more-examples" class="anchor" href="#more-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>More Examples</h2>
+
+<p><a href="https://github.com/foursquare/rogue/blob/master/rogue-lift/src/test/scala/com/foursquare/rogue/QueryTest.scala">QueryTest.scala</a> contains sample Records and examples of every kind of query supported by Rogue.
+It also indicates what each query translates to in MongoDB's JSON query language.
+It's a good place to look when getting started using Rogue.</p>
+
+<p>NB: The examples in QueryTest only construct query objects; none are actually executed.
+Once you have a query object, the following operations are supported (listed here because
+they are not demonstrated in QueryTest):</p>
+
+<p>For "find" query objects</p>
+
+<pre><code>val query = Venue.where(_.venuename eqs "Starbucks")
+query.count()
+query.countDistinct(_.mayor)
+query.fetch()
+query.fetch(n)
+query.get()     // equivalent to query.fetch(1).headOption
+query.exists()  // equivalent to query.fetch(1).size &gt; 0
+query.foreach{v: Venue =&gt; ... }
+query.paginate(pageSize)
+query.fetchBatch(pageSize){vs: List[Venue] =&gt; ...}
+query.bulkDelete_!!(WriteConcern.SAFE)
+query.findAndDeleteOne()
+query.explain()
+query.iterate(handler)
+query.iterateBatch(batchSize, handler)
+</code></pre>
+
+<p>For "modify" query objects</p>
+
+<pre><code>val modify = query.modify(_.mayor_count inc 1)
+modify.updateMulti()
+modify.updateOne()
+modify.upsertOne()
+</code></pre>
+
+<p>for "findAndModify" query objects</p>
+
+<pre><code>val modify = query.where(_.legacyid eqs 222).findAndModify(_.closed setTo true)
+modify.updateOne(returnNew = ...)
+modify.upsertOne(returnNew = ...)
+</code></pre>
+
+<h2>
+<a name="user-content-releases" class="anchor" href="#releases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Releases</h2>
+
+<p>The latest release is 2.2.0. See the <a href="https://github.com/foursquare/rogue/blob/master/CHANGELOG.md">changelog</a> for more details.</p>
+
+<p>Major changes in 2.0.0:</p>
+
+<ul class="task-list">
+<li>separated the query execution logic from the query builder</li>
+<li>removed dependency on Lift for ORM, although Lift is still the default</li>
+</ul><h2>
+<a name="user-content-dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+
+<p><a href="https://github.com/foursquare/rogue-field">rogue-field</a>, lift-mongodb-record (2.2, 2.3, 2.4), mongodb, joda-time, junit. These dependencies are managed by the build system.</p>
+
+<h2>
+<a name="user-content-maintainers" class="anchor" href="#maintainers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maintainers</h2>
+
+<p>Rogue was initially developed by Foursquare Labs for internal use -- 
+nearly all of the MongoDB queries in foursquare's code base go through this library.
+The current maintainers are:</p>
+
+<ul class="task-list">
+<li>Jason Liszka <a href="mailto:jliszka@foursquare.com">jliszka@foursquare.com</a>
+</li>
+<li>Jorge Ortiz <a href="mailto:jorge@foursquare.com">jorge@foursquare.com</a>
+</li>
+<li>Neil Sanchala <a href="mailto:nsanch@foursquare.com">nsanch@foursquare.com</a>
+</li>
+</ul><p>Contributions welcome!</p></article></div>

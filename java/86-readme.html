@@ -1,0 +1,109 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-gifsockets" class="anchor" href="#gifsockets" aria-hidden="true"><span class="octicon octicon-link"></span></a>gifsockets</h1>
+
+<p>"This library is the websockets of the '90s" - Somebody at Hacker News.</p>
+
+<p>This library shows how to achieve realtime text communication using GIF images as transport.</p>
+
+<p><a href="https://camo.githubusercontent.com/1ba43f6e560c86fc27837b5e5c1814ec57af287c/68747470733a2f2f7261772e6769746875622e636f6d2f766964656c616c7661726f2f676966736f636b6574732f6d61737465722f646f632f6d79627261696e2e676966" target="_blank"><img src="https://camo.githubusercontent.com/1ba43f6e560c86fc27837b5e5c1814ec57af287c/68747470733a2f2f7261772e6769746875622e636f6d2f766964656c616c7661726f2f676966736f636b6574732f6d61737465722f646f632f6d79627261696e2e676966" alt="Mind Blown" data-canonical-src="https://raw.github.com/videlalvaro/gifsockets/master/doc/mybrain.gif" style="max-width:100%;"></a></p>
+
+<p>The interesting part is that you can even use IE6 with this library and get the data in Real Time (TM).</p>
+
+<p>Of course this should have been delivered as an April's Fools joke but sadly we are in mid September here in the northern hemisphere.</p>
+
+<p>See it in action in this video: <a href="https://vimeo.com/49447841">https://vimeo.com/49447841</a>.</p>
+
+<h2>
+<a name="user-content-how-does-it-work" class="anchor" href="#how-does-it-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>How does it work</h2>
+
+<p>The idea is pretty simple. We use Animated Gif images to stream data in real time to the browser. Since a gif image doesn't specify how many frames it has, once the browser opens it, it will keep waiting for new frames until you send the bits indicating that there's no more image to fetch.</p>
+
+<p>Pretty simple uh!</p>
+
+<p>And yes. It works in IE6.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The usage now is a bit rudimentary and manual. Feel free to improve it and send a PR.</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>git clone git://github.com/videlalvaro/gifsockets.git
+<span class="nv">$ </span><span class="nb">cd </span>gifsockets
+<span class="nv">$ </span>lein deps
+% lein repl
+</pre></div>
+
+<p>Then perform the following commands on the Clojure REPL.</p>
+
+<div class="highlight highlight-clojure"><pre><span class="c1">;; in the repl do the following to import the libs</span>
+<span class="p">(</span><span class="nf">use</span> <span class="ss">'gifsockets.core</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">use</span> <span class="ss">'gifsockets.server</span><span class="p">)</span>
+<span class="c1">;;</span>
+<span class="c1">;;Then we declare the tcp server</span>
+<span class="p">(</span><span class="k">def </span><span class="nv">server</span> <span class="p">(</span><span class="nf">tcp-server</span> <span class="ss">:port</span> <span class="mi">8081</span> <span class="ss">:handler</span> <span class="nv">gif-handler</span><span class="p">))</span>
+<span class="p">(</span><span class="nf">start2</span> <span class="nv">server</span><span class="p">)</span>
+<span class="c1">;; wait for a browser connection on port 8081</span>
+<span class="c1">;; go and open http://localhost:8081/ in Safari or IE6</span>
+<span class="c1">;; In Chrome it works a bit laggy and in Firefox it doesn't work at all</span>
+<span class="c1">;;</span>
+<span class="c1">;; Now let's create the gif encoder that we use to write messages to the browser.</span>
+<span class="p">(</span><span class="k">def </span><span class="nv">encoder</span> <span class="p">(</span><span class="nf">create-gif</span> <span class="p">(</span><span class="nf">.getOutputStream</span> <span class="nv">client</span><span class="p">)))</span>
+<span class="c1">;;</span>
+<span class="c1">;;Now we are ready to send messages to that browser client</span>
+<span class="p">(</span><span class="nf">add-message</span> <span class="nv">encoder</span> <span class="s">"Hello gif-sockets"</span><span class="p">)</span>
+<span class="c1">;; now you should see a GIF image with the new message on it.</span>
+<span class="p">(</span><span class="nf">add-message</span> <span class="nv">encoder</span> <span class="s">"Zup zup zup"</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">add-message</span> <span class="nv">encoder</span> <span class="s">"And so forth"</span><span class="p">)</span>
+<span class="c1">;;</span>
+<span class="c1">;; Now let's clean up and close the connection</span>
+<span class="p">(</span><span class="nf">.finish</span> <span class="nv">encoder</span><span class="p">)</span>
+<span class="p">(</span><span class="nf">.close</span> <span class="nv">client</span><span class="p">)</span>
+</pre></div>
+
+<p>As you can see from the code this handles only one connection in what is called  an UPoC (Uber Proof Of Concept).</p>
+
+<h2>
+<a name="user-content-possible-uses" class="anchor" href="#possible-uses" aria-hidden="true"><span class="octicon octicon-link"></span></a>Possible uses:</h2>
+
+<p>All joking aside I think this is a very low tech way to have say, a website where you could tail logs for instance and you need to do it with a browser that have zero websockets support or something like that.</p>
+
+<p>Or what about progress bars for stuff that your server is doing in the background, say, while it resizes an image?</p>
+
+<p>Yes. You need <em>gifsockets</em>.</p>
+
+<h2>
+<a name="user-content-note" class="anchor" href="#note" aria-hidden="true"><span class="octicon octicon-link"></span></a>NOTE:</h2>
+
+<p>If you need a good library for real time communications on the web then I would recommend using <a href="https://github.com/sockjs">sockjs</a>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright © 2012 Alvaro Videla</p>
+
+<p>The following classes:</p>
+
+<ul class="task-list">
+<li>AnimatedGifEncoder.java</li>
+<li>GifDecoder.java</li>
+<li>LZWEncoder.java</li>
+<li>NeuQuant.java</li>
+</ul><p>Were taken from this website: <a href="http://www.fmsware.com/stuff/gif.html">http://www.fmsware.com/stuff/gif.html</a>.</p>
+
+<p>And the server code was taken from here <a href="https://github.com/weavejester/tcp-server">https://github.com/weavejester/tcp-server</a></p>
+
+<p>The awesome image that illustrates this page was given by the internet.</p>
+
+<p>Distributed under the Eclipse Public License, the same as Clojure.</p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>CREDITS</h2>
+
+<p>I've stole this idea (ehem, took inspiration) from a <a href="http://zesty.ca/chat/">chat</a> a colleague showed me like three years ago. It wasn't open source back then and I was always wondering how to implement something like that. So kudos to Ka-Ping Yee, who had the original idea.</p>
+
+<p>Thanks <a href="http://news.ycombinator.com/user?id=simonw">simonw</a> for posting the link to the original chat.</p>
+
+<ul class="task-list">
+<li>
+<a href="https://twitter.com/old_sound">@old_sound</a>.</li>
+</ul></article></div>

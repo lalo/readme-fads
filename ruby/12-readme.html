@@ -1,0 +1,242 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-resque" class="anchor" href="#resque" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resque</h1>
+
+<p>Resque (pronounced like "rescue") is a Redis-backed library for creating
+background jobs, placing those jobs on multiple queues, and processing
+them later.</p>
+
+<ul class="task-list">
+<li><a href="https://codeclimate.com/github/resque/resque"><img src="https://camo.githubusercontent.com/0b9f11a5a244dee20b9ff23e0e04353e1ea59b0d/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636c696d6174652f6769746875622f7265737175652f7265737175652e737667" alt="Code Climate" data-canonical-src="https://img.shields.io/codeclimate/github/resque/resque.svg" style="max-width:100%;"></a></li>
+<li><a href="https://travis-ci.org/resque/resque"><img src="https://camo.githubusercontent.com/d5f7eff948f160fc19bd8b344cda65504f220252/68747470733a2f2f696d672e736869656c64732e696f2f7472617669732f7265737175652f7265737175652f6d61737465722e737667" alt="Build Status" data-canonical-src="https://img.shields.io/travis/resque/resque/master.svg" style="max-width:100%;"></a></li>
+<li><a href="https://coveralls.io/r/resque/resque"><img src="https://camo.githubusercontent.com/77428ca1cf4caf77a6b6ec8a6a86a6aacdd5dcbd/68747470733a2f2f696d672e736869656c64732e696f2f636f766572616c6c732f7265737175652f7265737175652f6d61737465722e737667" alt="Coverage Status" data-canonical-src="https://img.shields.io/coveralls/resque/resque/master.svg" style="max-width:100%;"></a></li>
+<li><a href="http://inch-ci.org/github/resque/resque"><img src="https://camo.githubusercontent.com/8452640adbab32b0157656fe81fc58a53442723a/687474703a2f2f696e63682d63692e6f72672f6769746875622f7265737175652f7265737175652e737667" alt="Inline docs" data-canonical-src="http://inch-ci.org/github/resque/resque.svg" style="max-width:100%;"></a></li>
+</ul><h3>
+<a name="user-content-a-note-about-branches" class="anchor" href="#a-note-about-branches" aria-hidden="true"><span class="octicon octicon-link"></span></a>A note about branches</h3>
+
+<p>This branch is the master branch, which contains work towards Resque 2.0. If
+you're currently using Resque, you'll want to check out <a href="https://github.com/resque/resque/tree/1-x-stable">the 1-x-stable
+branch</a>, and particularly
+<a href="https://github.com/resque/resque/blob/1-x-stable/README.markdown">its README</a>,
+which is more accurate for the code you're running in production.</p>
+
+<p>Also, this README is written first, so lots of things in here may not work the
+exact way that they say they might here. Yay 2.0!</p>
+
+<h3>
+<a name="user-content-back-to-your-regularly-scheduled-readme" class="anchor" href="#back-to-your-regularly-scheduled-readme" aria-hidden="true"><span class="octicon octicon-link"></span></a>Back to your regularly scheduled README.</h3>
+
+<p>You can't always do work right away. Sometimes, you need to do it later. Resque
+is a really simple way to manage a pile of work that your application needs
+to do: 1.5 million installs can't be wrong!</p>
+
+<p>To define some work, make a job. Jobs need a <code>work</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ImageConversionJob</span>
+  <span class="k">def</span> <span class="nf">work</span>
+    <span class="c1"># convert some kind of image here</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Next, we need to procrastinate! Let's put your job on the queue:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">resque</span> <span class="o">=</span> <span class="no">Resque</span><span class="o">.</span><span class="n">new</span>
+<span class="n">resque</span> <span class="o">&lt;&lt;</span> <span class="no">ImageConversionJob</span><span class="o">.</span><span class="n">new</span>
+</pre></div>
+
+<p>Neat! This unit of work will be stored in Redis. We can spin up a worker to
+grab some work off of the queue and do the work:</p>
+
+<pre><code>bin/resque work
+</code></pre>
+
+<p>This process polls Redis, grabs any jobs that need to be done, and then does
+them. <img class="emoji" title=":metal:" alt=":metal:" src="https://assets-cdn.github.com/images/icons/emoji/metal.png" height="20" width="20" align="absmiddle"></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>To install Resque, add the gem to your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"resque"</span><span class="p">,</span> <span class="s2">"~&gt; 2.0.0.pre.1"</span><span class="p">,</span> <span class="ss">github</span><span class="p">:</span> <span class="s2">"resque/resque"</span>
+</pre></div>
+
+<p>Then run <code>bundle</code>. If you're not using Bundler, just <code>gem install resque</code>.</p>
+
+<h3>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h3>
+
+<p>Resque is used by a large number of people, across a diverse set of codebases.
+There is no official requirement other than Ruby 1.9.3 or newer. We of course
+recommend Ruby 2.0.0, but test against many Rubies, as you can see from our
+<a href="https://github.com/resque/resque/blob/master/.travis.yml">.travis.yml</a>.</p>
+
+<p>We would love to support non-MRI Rubies, but they may have bugs. We would love
+some contributions to clear up failures on these Rubies, but they are set to
+allow failure in our CI.</p>
+
+<p>We officially support Rails 2.3.x and newer, though we recommend that you're on
+Rails 3.2 or 4.</p>
+
+<h3>
+<a name="user-content-backwards-compatibility" class="anchor" href="#backwards-compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Backwards Compatibility</h3>
+
+<p>Resque uses <a href="http://semver.org/">SemVer</a>, and takes it seriously. If you find
+an interface regression, please <a href="https://github.com/resque/resque/issues">file an issue</a>
+so that we can address it.</p>
+
+<p>If you have previously used Resque 1.23, the transition to 2.0 shouldn't be
+too painful: we've tried to upgrade <em>interfaces</em> but leave <em>semantics</em> largely
+in place. Check out
+<a href="https://github.com/resque/resque/blob/master/UPGRADING.md">UPGRADING.md</a> for
+detailed examples of what needs to be done.</p>
+
+<h2>
+<a name="user-content-jobs" class="anchor" href="#jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jobs</h2>
+
+<p>What deserves to be a background job? Anything that's not always super fast.
+There are tons of stuff that an application does that falls under the 'not
+always fast' category:</p>
+
+<ul class="task-list">
+<li>Warming caches</li>
+<li>Counting disk usage</li>
+<li>Building tarballs</li>
+<li>Firing off web hooks</li>
+<li>Creating events in the db and pre-caching them</li>
+<li>Building graphs</li>
+<li>Deleting users</li>
+</ul><p>And it's not always web stuff, either. A command-line client application that
+does web scraping and crawling is a great use of jobs, too.</p>
+
+<h3>
+<a name="user-content-in-redis" class="anchor" href="#in-redis" aria-hidden="true"><span class="octicon octicon-link"></span></a>In Redis</h3>
+
+<p>Jobs are persisted in Redis via JSON serialization. Basically, the job looks
+like this:</p>
+
+<div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="nt">"class"</span><span class="p">:</span> <span class="s2">"Email"</span><span class="p">,</span>
+    <span class="nt">"vars"</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">"to"</span><span class="p">:</span> <span class="s2">"foo@example.com"</span><span class="p">,</span>
+      <span class="nt">"from"</span><span class="p">:</span> <span class="s2">"steve@example.com"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>When Resque fetches this job from Redis, it will do something like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">json</span> <span class="o">=</span> <span class="n">fetch_json_from_redis</span>
+
+<span class="n">job</span> <span class="o">=</span> <span class="n">json</span><span class="o">[</span><span class="s2">"class"</span><span class="o">].</span><span class="n">constantize</span><span class="o">.</span><span class="n">new</span>
+<span class="n">json</span><span class="o">[</span><span class="s2">"vars"</span><span class="o">].</span><span class="n">each</span> <span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="o">|</span> <span class="n">job</span><span class="o">.</span><span class="n">instance_variable_set</span><span class="p">(</span><span class="s2">"@</span><span class="si">#{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="p">}</span>
+<span class="n">job</span><span class="o">.</span><span class="n">work</span>
+</pre></div>
+
+<p>Ta da! Simple.</p>
+
+<h3>
+<a name="user-content-failure" class="anchor" href="#failure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Failure</h3>
+
+<p>When jobs fail, the failure is stored in Redis, too, so you can check them out
+and possibly re-queue them.</p>
+
+<h2>
+<a name="user-content-workers" class="anchor" href="#workers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Workers</h2>
+
+<p>You can start up a worker with</p>
+
+<pre><code>$ bin/resque work
+</code></pre>
+
+<p>This will basically loop over and over, polling for jobs and doing the work.
+You can have workers work on a specific queue with the <code>--queue</code> option:</p>
+
+<pre><code>$ bin/resque work --queues=high,low
+$ bin/resque work --queue=high
+</code></pre>
+
+<p>This starts two workers working on the <code>high</code> queue, one of which also polls
+the <code>low</code> queue.</p>
+
+<p>You can control the length of the poll with <code>interval</code>:</p>
+
+<pre><code>$ bin/resque work --interval=1
+</code></pre>
+
+<p>Now workers will check for a new job every second. The default is 5.</p>
+
+<p>Resque workers respond to a few different signals:</p>
+
+<pre><code>QUIT - Wait for child to finish processing then exit
+TERM / INT - Immediately kill child then exit
+USR1 - Immediately kill child but don't exit
+USR2 - Don't start to process any new jobs
+CONT - Start to process new jobs again after a USR2
+</code></pre>
+
+<h3>
+<a name="user-content-queue-priority" class="anchor" href="#queue-priority" aria-hidden="true"><span class="octicon octicon-link"></span></a>Queue Priority</h3>
+
+<p>Queues are picked off in order of their priority. A job from a lower priority queue will only be
+picked off if there are no jobs for a higher priority queue available.</p>
+
+<p>See Resque::WorkerQueueList#search_order for more details.</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>You can configure Resque via a YAML <code>.resque</code> file in the root of your project:</p>
+
+<pre><code>queues: 'high,med,low'
+require: 'some_context.rb'
+pid_file: 'tmp/pids/resque.pid'
+interval: 1
+daemon: true
+timeout: 5
+graceful_term: false
+</code></pre>
+
+<p>Then pass the configuration to the resque CLI: <code>bin/resque work -c='./.resque'</code>.</p>
+
+<p>You can also configure Resque via <code>Resque.configure</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Resque</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+
+  <span class="c1"># Set the redis connection. Takes any of:</span>
+  <span class="c1">#   String - a redis url string (e.g., 'redis://host:port')</span>
+  <span class="c1">#   String - 'hostname:port[:db][/namespace]'</span>
+  <span class="c1">#   Redis - a redis connection that will be namespaced :resque</span>
+  <span class="c1">#   Redis::Namespace - a namespaced redis connection that will be used as-is</span>
+  <span class="c1">#   Redis::Distributed - a distributed redis connection that will be used as-is</span>
+  <span class="c1">#   Hash - a redis connection hash (e.g. {:host =&gt; 'localhost', :port =&gt; 6379, :db =&gt; 0})</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="s1">'localhost:6379:alpha/high'</span>
+
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-hooks-and-plugins" class="anchor" href="#hooks-and-plugins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hooks and Plugins</h2>
+
+<p>Please see <a href="https://github.com/resque/resque/blob/master/docs/HOOKS.md">HOOKS.md</a>.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Please see <a href="https://github.com/resque/resque/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+
+<h2>
+<a name="user-content-other-implementations" class="anchor" href="#other-implementations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other Implementations</h2>
+
+<p>You can write your Resque workers in other languages, too:</p>
+
+<ul class="task-list">
+<li><a href="http://www.goworker.org/">Go</a></li>
+<li><a href="https://github.com/gresrun/jesque">Java</a></li>
+<li><a href="https://github.com/technoweenie/coffee-resque">CoffeeScript</a></li>
+</ul><h2>
+<a name="user-content-anything-we-missed" class="anchor" href="#anything-we-missed" aria-hidden="true"><span class="octicon octicon-link"></span></a>Anything we missed?</h2>
+
+<p>If there's anything at all that you need or want to know, please email either
+<a href="mailto:resque@librelist.com">the mailing list</a> or <a href="mailto:steve@steveklabnik.com">Steve
+Klabnik</a> and we'll get you sorted.</p></article></div>

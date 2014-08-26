@@ -1,0 +1,181 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-deploy" class="anchor" href="#deploy" aria-hidden="true"><span class="octicon octicon-link"></span></a>deploy</h1>
+
+<p>Minimalistic shell deployment shell script.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<pre><code>$ make install
+</code></pre>
+
+<p>Visit the <a href="https://github.com/visionmedia/deploy/wiki">wiki</a> for additional usage information.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<pre><code>  Usage: deploy [options] &lt;env&gt; [command]
+
+  Options:
+
+    -C, --chdir &lt;path&gt;   change the working directory to &lt;path&gt;
+    -c, --config &lt;path&gt;  set config path. defaults to ./deploy.conf
+    -T, --no-tests       ignore test hook
+    -V, --version        output program version
+    -h, --help           output help information
+
+  Commands:
+
+    setup                run remote setup commands
+    update               update deploy to the latest release
+    revert [n]           revert to [n]th last deployment or 1
+    config [key]         output config file or [key]
+    curr[ent]            output current release commit
+    prev[ious]           output previous release commit
+    exec|run &lt;cmd&gt;       execute the given &lt;cmd&gt;
+    console              open an ssh session to the host
+    list                 list previous deploy commits
+    [ref]                deploy to [ref], the 'ref' setting, or latest tag
+</code></pre>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>By default <code>deploy(1)</code> will look for <em>./deploy.conf</em>, consisting of one or more environments, <code>[stage]</code>, <code>[production]</code>, etc, followed by directives.</p>
+
+<pre><code>[stage]
+key /path/to/some.pem
+user deployer
+host n.n.n.n
+repo git@github.com:visionmedia/express.git
+path /var/www/myapp.com
+ref origin/master
+post-deploy /var/www/myapp.com/update.sh
+</code></pre>
+
+<h2>
+<a name="user-content-directives" class="anchor" href="#directives" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directives</h2>
+
+<h3>
+<a name="user-content-key-optional" class="anchor" href="#key-optional" aria-hidden="true"><span class="octicon octicon-link"></span></a>key (optional)</h3>
+
+<p>Path to identity file used by <code>ssh -i</code>.</p>
+
+<pre><code>  key /path/to/some.pem
+</code></pre>
+
+<h3>
+<a name="user-content-ref-optional" class="anchor" href="#ref-optional" aria-hidden="true"><span class="octicon octicon-link"></span></a>ref (optional)</h3>
+
+<p>When specified, <strong>HEAD</strong> is reset to <code>ref</code>. When deploying
+  production typically this will <em>not</em> be used, as <code>deploy(1)</code> will
+  utilize the most recent tag by default, however this is useful
+  for a staging environment, as shown below where <strong>HEAD</strong> is updated
+  and set to the develop branch.</p>
+
+<pre><code>    ref origin/develop
+</code></pre>
+
+<h3>
+<a name="user-content-user" class="anchor" href="#user" aria-hidden="true"><span class="octicon octicon-link"></span></a>user</h3>
+
+<p>User for deployment.</p>
+
+<pre><code>   user deployer
+</code></pre>
+
+<h3>
+<a name="user-content-host" class="anchor" href="#host" aria-hidden="true"><span class="octicon octicon-link"></span></a>host</h3>
+
+<p>Server hostname.</p>
+
+<pre><code>   host 50.17.255.50
+</code></pre>
+
+<h3>
+<a name="user-content-repo" class="anchor" href="#repo" aria-hidden="true"><span class="octicon octicon-link"></span></a>repo</h3>
+
+<p>GIT repository to clone.</p>
+
+<pre><code>   repo git@github.com:visionmedia/express.git
+</code></pre>
+
+<h3>
+<a name="user-content-path" class="anchor" href="#path" aria-hidden="true"><span class="octicon octicon-link"></span></a>path</h3>
+
+<p>Deployment path.</p>
+
+<pre><code>    path /var/www/myapp.com
+</code></pre>
+
+<h3>
+<a name="user-content-forward-agent" class="anchor" href="#forward-agent" aria-hidden="true"><span class="octicon octicon-link"></span></a>forward-agent</h3>
+
+<p>Webhosts normally use read-only deploy keys to access private git repositories.
+  If you'd rather use the credentials of the person invoking the deploy
+  command, put <code>forward-agent yes</code> in the relevant config sections.
+  Now the deploy script will invoke <code>ssh -A</code> when deploying and there's
+  no need to keep SSH keys on your servers.</p>
+
+<h3>
+<a name="user-content-needs_tty" class="anchor" href="#needs_tty" aria-hidden="true"><span class="octicon octicon-link"></span></a>needs_tty</h3>
+
+<p>If your deployment scripts require any user interaction (which they shouldn't, but
+  often do) you'll probably want SSH to allocate a tty for you. Put <code>needs_tty yes</code>
+  in the config section if you'd like the deploy script to invoke <code>ssh -t</code> and ensure
+  you have a tty available.</p>
+
+<h2>
+<a name="user-content-hooks" class="anchor" href="#hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hooks</h2>
+
+<p>All hooks are arbitrary commands, executed relative to <code>path/current</code>,
+  aka the previous deployment for <code>pre-deploy</code>, and the new deployment
+  for <code>post-deploy</code>. Of course you may specify absolute paths as well.</p>
+
+<h3>
+<a name="user-content-pre-deploy" class="anchor" href="#pre-deploy" aria-hidden="true"><span class="octicon octicon-link"></span></a>pre-deploy</h3>
+
+<pre><code>  pre-deploy ./bin/something
+</code></pre>
+
+<h3>
+<a name="user-content-post-deploy" class="anchor" href="#post-deploy" aria-hidden="true"><span class="octicon octicon-link"></span></a>post-deploy</h3>
+
+<pre><code>  post-deploy ./bin/restart
+</code></pre>
+
+<h3>
+<a name="user-content-test" class="anchor" href="#test" aria-hidden="true"><span class="octicon octicon-link"></span></a>test</h3>
+
+<p>Post-deployment test command after <code>post-deploy</code>. If this
+  command fails, <code>deploy(1)</code> will attempt to revert to the previous
+  deployment, ignoring tests (for now), as they are assumed to have run correctly.</p>
+
+<pre><code>  test ./something
+</code></pre>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>(The MIT License)</p>
+
+<p>Copyright (c) 2011 TJ Holowaychuk &lt;<a href="mailto:tj@vision-media.ca">tj@vision-media.ca</a>&gt;</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

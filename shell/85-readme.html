@@ -1,0 +1,278 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-boot-to-gecko-b2g" class="anchor" href="#boot-to-gecko-b2g" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boot to Gecko (B2G)</h1>
+
+<p>Boot to Gecko aims to create a complete, standalone operating system for the open web.</p>
+
+<p>You can read more about B2G here:</p>
+
+<p><a href="http://wiki.mozilla.org/B2G">http://wiki.mozilla.org/B2G</a></p>
+
+<p>follow us on twitter: @Boot2Gecko</p>
+
+<p><a href="http://twitter.com/Boot2Gecko">http://twitter.com/Boot2Gecko</a></p>
+
+<p>join the Mozilla Platform mailing list:</p>
+
+<p><a href="http://groups.google.com/group/mozilla.dev.platform">http://groups.google.com/group/mozilla.dev.platform</a></p>
+
+<p>and talk to us on IRC:</p>
+
+<p>#B2G on irc.mozilla.org</p>
+
+<h2>
+<a name="user-content-prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prerequisites</h2>
+
+<h3>
+<a name="user-content-linux" class="anchor" href="#linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Linux</h3>
+
+<ul class="task-list">
+<li>A 64 bit linux distro
+
+<ul class="task-list">
+<li>See <a href="http://source.android.com/source/initializing.html">http://source.android.com/source/initializing.html</a> on configuring USB access.</li>
+</ul>
+</li>
+<li>20GB of free disk space</li>
+<li>autoconf-2.13</li>
+<li>git</li>
+<li>ccache</li>
+<li>gcc/g++ <strong>4.6.3 or older</strong>
+</li>
+<li>bison</li>
+<li>flex</li>
+<li>32bit ncurses</li>
+<li>zlib
+
+<ul class="task-list">
+<li>You need both zlib1g and zlib1g-dev for both i386 and amd64. That is, for
+Ubuntu 12.04 Precise or older, they are zlib1g, zlib1g-dev, zlib1g:i386, and
+zlib1g-dev:i386; for Ubuntu 12.10 Quantal or newer, they are zlib1g:amd64,
+zlib1g-dev:amd64, zlib1g:i386, and zlib1g-dev:i386.</li>
+</ul>
+</li>
+<li>make</li>
+</ul><p>Additionally, if you're building the emulator, you probably need the the Mesa
+implementation of OpenGL.  On Ubuntu, this is the <strong>libgl1-mesa-dev</strong> package.</p>
+
+<p>Ubuntu 12.10 ships with gcc 4.7 by default, which causes build errors pretty
+early in the process.  To use gcc 4.6, edit .userconfig and add</p>
+
+<pre><code>export CC=gcc-4.6
+export CXX=g++-4.6
+</code></pre>
+
+<p>Of course, you'll need the g++-4.6 package installed.</p>
+
+<p>On Ubuntu 13.04, for example, you might find <code>apt-get install zlib1g{,-dev}:i386</code>
+is going to do something seriously wrong like removing all your toolchain
+packages. You may execute either <code>apt-get install --no-install-recommends &lt;packages&gt;</code>
+to explicitly disallow installing recommended packages, or <code>aptitude</code> to
+interactively select the very necessary packages you need.</p>
+
+<p>For full lists of minimum required packages that build B2G emulator on all
+recent Ubuntu releases, see <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=866489">https://bugzilla.mozilla.org/show_bug.cgi?id=866489</a> .</p>
+
+<h3>
+<a name="user-content-osx" class="anchor" href="#osx" aria-hidden="true"><span class="octicon octicon-link"></span></a>OSX</h3>
+
+<ul class="task-list">
+<li>XCode</li>
+<li>20GB of free space</li>
+<li>homebrew
+
+<ul class="task-list">
+<li>git (if not using XCode 4)</li>
+<li>gpg</li>
+<li>ccache</li>
+<li>autoconf-2.13 - brew install <a href="https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb">https://raw.github.com/Homebrew/homebrew-versions/master/autoconf213.rb</a>
+</li>
+</ul>
+</li>
+</ul><h4>
+<a name="user-content-note-builds-for-some-devices-require-case-sensitive-file-systems" class="anchor" href="#note-builds-for-some-devices-require-case-sensitive-file-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Note: Builds for some devices require case-sensitive file systems</h4>
+
+<p>Some B2G subrepositories contain files whose names differ only in case.
+This causes build failures when building for some target phones (such as the
+Hamachi) if you're on a case-insensitive FS (the default on Mac).  You'll see
+an error like the following during the ./build.sh step:</p>
+
+<blockquote>
+<p>[entering kernel]
+ERROR: You have uncommited changes in kernel
+You may force overwriting these changes
+with |source build/envsetup.sh force|</p>
+
+<p>ERROR: Patching of kernel/ failed.</p>
+</blockquote>
+
+<p>If you hit this error, the easiest way around it is to build on a
+case-sensitive file-system.  Doing so doesn't require any re-partitioning; you
+can simply create a disk image and build within it using the following
+commands.</p>
+
+<pre><code>hdiutil create -volname 'firefoxos' -type SPARSE -fs 'Case-sensitive Journaled HFS+' -size 40g ~/firefoxos.sparseimage
+open ~/firefoxos.sparseimage
+cd /Volumes/firefoxos/
+</code></pre>
+
+<p>See <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=867259">https://bugzilla.mozilla.org/show_bug.cgi?id=867259</a> for details.</p>
+
+<h4>
+<a name="user-content-note-linker-oom-with-noopt-builds" class="anchor" href="#note-linker-oom-with-noopt-builds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Note: Linker OOM with noopt builds</h4>
+
+<p>If you build with B2G_NOOPT=1 on MacOS, your linker may run out of memory and
+crash.</p>
+
+<p>The solution, if you really want a noopt build, is to use a 64-bit linker.
+Follow these steps:</p>
+
+<ol class="task-list">
+<li>
+<p>Clone this repository somewhere</p>
+
+<p>$ git://github.com/jld/b2g-toolchain-prebuilt.git</p>
+</li>
+<li>
+<p>In .userconfig, add the following line.</p>
+
+<pre><code>export TARGET_TOOLS_PREFIX=/path/to/b2g-toolchain-prebuilt/toolchain-4.4.3/x86_64-apple-darwin/bin/arm-linux-androideabi-
+</code></pre>
+
+<p>(Of course, replace /path/to/b2g-toolchain-prebuilt/ with the actual path.)</p>
+</li>
+<li><p>Rebuild.</p></li>
+</ol><p>See <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=854535">https://bugzilla.mozilla.org/show_bug.cgi?id=854535</a> for details.</p>
+
+<h2>
+<a name="user-content-configure" class="anchor" href="#configure" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure</h2>
+
+<p>Run config.sh to get a list of supported devices:</p>
+
+<pre><code>./config.sh
+</code></pre>
+
+<p>And then run config.sh for the device you want to build for:</p>
+
+<pre><code>./config.sh [device name]
+</code></pre>
+
+<h3>
+<a name="user-content-udev-permissions" class="anchor" href="#udev-permissions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Udev Permissions</h3>
+
+<p>If you get "error: insufficient permissions for device"...</p>
+
+<p>Obtain ID of device manufacturer (first 4 hexidecimal digits before colon):</p>
+
+<pre><code>$ lsusb
+</code></pre>
+
+<p>Add a line to /etc/udev/rules.d/android.rules (replacing XXXX with 4 digit ID):</p>
+
+<pre><code>SUBSYSTEM=="usb", ATTRS{idVendor}=="XXXX", MODE="0666"
+</code></pre>
+
+<p>Restart udev before re-plugging your device for it to be detected:</p>
+
+<pre><code>$ sudo service udev restart
+</code></pre>
+
+<p>Re-run configure:</p>
+
+<pre><code>./config.sh [device name]
+</code></pre>
+
+<h3>
+<a name="user-content-building-against-a-custom-gecko" class="anchor" href="#building-against-a-custom-gecko" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building against a custom Gecko</h3>
+
+<p>It can sometimes be useful to build against a different Gecko than the one specified in the manifest, e.g. a mozilla-central checkout that has some patches applied. To do so, edit .userconfig:</p>
+
+<pre><code>GECKO_PATH=/path/to/mozilla-central
+GECKO_OBJDIR=/path/to/mozilla-central/objdir-gonk
+</code></pre>
+
+<p>Note that if you switch your userconfig's gecko path, you need to rm -rf the objdir and rebuild.</p>
+
+<h2>
+<a name="user-content-build" class="anchor" href="#build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build</h2>
+
+<p>Run build.sh or bld.sh to build B2G.</p>
+
+<pre><code>./build.sh
+</code></pre>
+
+<p>If you want to just build gecko or some other project, just specify it:</p>
+
+<pre><code>./build.sh gecko
+</code></pre>
+
+<h2>
+<a name="user-content-flashinstall" class="anchor" href="#flashinstall" aria-hidden="true"><span class="octicon octicon-link"></span></a>Flash/Install</h2>
+
+<p>Make sure your phone is plugged in with usb debugging enabled.</p>
+
+<p>To flash everything on your phone:</p>
+
+<pre><code>./flash.sh
+</code></pre>
+
+<p>To flash system/userdata/boot partitions on fastboot phones:</p>
+
+<pre><code>./flash.sh system
+./flash.sh boot
+./flash.sh user
+</code></pre>
+
+<p>To update gecko:</p>
+
+<pre><code>./flash.sh gecko
+</code></pre>
+
+<p>To update gaia:</p>
+
+<pre><code>./flash.sh gaia
+</code></pre>
+
+<h2>
+<a name="user-content-update-repos" class="anchor" href="#update-repos" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update Repos</h2>
+
+<p>To update all repos:</p>
+
+<pre><code>git pull
+./repo sync
+</code></pre>
+
+<p>To update a specific repo (eg, gaia):</p>
+
+<pre><code>./repo sync gaia
+</code></pre>
+
+<h2>
+<a name="user-content-debug" class="anchor" href="#debug" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debug</h2>
+
+<p>To restart B2G and run B2G under gdb:</p>
+
+<pre><code>./run-gdb.sh
+</code></pre>
+
+<p>To attach gdb to a running B2G process:</p>
+
+<pre><code>./run-gdb.sh attach
+</code></pre>
+
+<h2>
+<a name="user-content-test" class="anchor" href="#test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test</h2>
+
+<p>To run the Marionette test suite on the emulator:</p>
+
+<pre><code>./test.sh
+</code></pre>
+
+<p>To run specific tests (individual files, directories, or ini files):</p>
+
+<pre><code>./test.sh gecko/dom/sms gecko/dom/battery/test/marionette/test_battery.py
+</code></pre>
+
+<p>Specify the full path if you're using a different Gecko repo:</p>
+
+<pre><code>./test.sh /path/to/mozilla-central/dom/battery/test/marionette/test_battery.py
+</code></pre></article></div>

@@ -1,0 +1,680 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-android-sdk-plugin-for-sbt" class="anchor" href="#android-sdk-plugin-for-sbt" aria-hidden="true"><span class="octicon octicon-link"></span></a>Android SDK Plugin for SBT</h1>
+
+<p>Current version is 1.3.4</p>
+
+<h2>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h2>
+
+<p>This is an easy-to-use plugin for existing and newly created android
+projects.  It is tested and developed against 0.12.x and 0.13.x.</p>
+
+<p>The plugin supports normal android projects and projects that reference
+library projects. 3rd party libraries can be included by placing them in
+<code>libs</code> as in regular projects, or they can be added by using sbt's
+<code>libraryDependencies</code> feature.</p>
+
+<h2>
+<a name="user-content-new-features-in-13x" class="anchor" href="#new-features-in-13x" aria-hidden="true"><span class="octicon octicon-link"></span></a>New features in 1.3.x</h2>
+
+<ul class="task-list">
+<li>
+<code>1.3.4</code>: bugfixes
+
+<ul class="task-list">
+<li>#81 add fullClasspath to javah</li>
+<li>update to builder 0.12.2</li>
+<li>#82 add NDK_PROJECT_PATH environment for ndkbuild</li>
+<li>#84 package dependsOn managedResources</li>
+<li>#85 sourceManaged = gen</li>
+<li>minor ndk build fixes (apkbuild depends on *.so)</li>
+</ul>
+</li>
+<li>
+<code>1.3.3</code>: Add <code>ApkSigningConfig</code>, <code>PlainSigningConfig</code>,
+<code>PromptStorepassSigningConfig</code> and <code>PromptPasswordsSigningConfig</code>. These
+various signing configurations allow control over prompting for keystore
+and key passwords. The default is <code>PlainSigningConfig</code> which observes the
+original behavior from ant builds (reads properties out of
+<code>local.properties</code>). Set <code>apkSigningConfig in Android</code> to one of these
+variants to perform non-default behavior.
+
+<ul class="task-list">
+<li>Also added <code>androidBuildWith()</code> project decorator, replaces
+<code>androidBuild(projects)</code> and <code>dependsOn(projects)</code>
+</li>
+</ul>
+</li>
+<li>
+<code>1.3.2</code>: add <code>AutoPlugin</code> support for <code>0.13.5</code>
+
+<ul class="task-list">
+<li>Auto-set <code>localProjects</code> when using <code>android.Plugin.androidBuild(...)</code>
+</li>
+<li>When <code>gen-android</code>, <code>gen-android</code>, and <code>android.AutoBuild</code> require <code>0.13.5</code>
+if on the <code>0.13.x</code> sbt line.</li>
+<li>Some refactoring of classes out of <code>android.Keys</code>, should be mostly
+compatible still.</li>
+</ul>
+</li>
+<li>
+<code>1.3.1</code>: add <code>android:apkbuild-pickfirsts</code> works like
+<code>android:apkbuild-excludes</code> but picks the first occurrence of the resource.
+
+<ul class="task-list">
+<li>A bug in com.android.tools.build:builder,
+<a href="https://code.google.com/p/android/issues/detail?id=73437">https://code.google.com/p/android/issues/detail?id=73437</a>, prevents
+PackagingOptions from working correctly with JNI libraries.
+A workaround is implemented copy all JNI to a single location first.</li>
+</ul>
+</li>
+<li>NDK build process, similarly to <code>ANDROID_HOME</code>, set <code>ANDROID_NDK_HOME</code> to
+the location where the Android NDK is installed. Alternatively, <code>ndk.dir</code>
+can be set in a <code>local.properties</code> file for the project.
+
+<ul class="task-list">
+<li>libs will be generated into <code>binPath / "jni"</code> and
+obj will drop into <code>binPath / "obj"</code>
+</li>
+<li>Pre-generated JNI libraries will no longer be pulled out of <code>jni</code>
+(nor <code>src/main/jni</code>) -- they will be taken from <code>libs</code> (or <code>src/main/libs</code>)
+
+<ul class="task-list">
+<li>This does not apply to aar and apklib--they will be pulled out of
+appropriate locations per their spec.</li>
+</ul>
+</li>
+<li>
+<code>javah</code> is automatically executed on all classes that have <code>native</code> methods
+in their signatures. The header files are generated into <code>sourceManaged</code>
+and are available to include in native sources and <code>Android.mk</code> by adding
+<code>LOCAL_CFLAGS := -I$(SBT_SOURCE_MANAGED)</code>
+</li>
+<li>
+<code>collect-jni</code> no longer copies libraries, it only assembles a list of
+directory names for packaging</li>
+</ul>
+</li>
+<li>Global plugin installation friendly
+
+<ul class="task-list">
+<li>For sbt 0.13, add to <code>~/.sbt/0.13/plugins/android.sbt</code>
+</li>
+<li>For sbt 0.12, add to <code>~/.sbt/plugins/android.sbt</code>
+</li>
+<li><code>addSbtPlugin("com.hanhuy.sbt" % "android-sdk-plugin" % "1.3.4")</code></li>
+</ul>
+</li>
+<li>New commands, all commands have proper tab-completion:
+
+<ul class="task-list">
+<li>
+<code>gen-android</code> - creates android projects from scratch with sbt plumbing</li>
+<li>
+<code>gen-android-sbt</code> - creates SBT files for an existing android project</li>
+<li>
+<code>logcat</code> - supports all regular options, non-polling (-d by default)</li>
+<li>
+<code>pidcat</code> - logcat the current package or specified package with TAG filters</li>
+<li>
+<code>adb-ls</code> - ls on-device</li>
+<li>
+<code>adb-cat</code> - cat a file on-device</li>
+<li>
+<code>adb-rm</code> - rm a file on-device</li>
+<li>
+<code>adb-shell</code> - execute a shell command on-device</li>
+<li>
+<code>adb-push</code> - push a file to device</li>
+<li>
+<code>adb-pull</code> - pull a file from device</li>
+<li>
+<code>reboot-device</code> renamed to <code>adb-reboot</code>
+</li>
+</ul>
+</li>
+<li>Existing commands available globally
+
+<ul class="task-list">
+<li>
+<code>devices</code>, <code>device</code>, <code>adb-wifi</code>
+</li>
+</ul>
+</li>
+<li>
+<code>AutoBuild</code> support, (created automatically with <code>gen-android</code>), set your
+build to be <code>object Build extends android.AutoBuild</code> and settings will be
+automatically applied to projects as necessary.</li>
+<li>Update to latest <code>com.android.tools.build</code> <code>0.12.x</code>
+
+<ul class="task-list">
+<li>Now requires android build-tools <code>19.1.0</code> or newer</li>
+</ul>
+</li>
+<li>
+<code>minSdkVersion</code> and <code>targetSdkVersion</code> are now <code>SettingKey[String]</code> and no
+longer <code>SettingKey[Int]</code> (support android-L)</li>
+<li>Instrumentation tests are now located in <code>src/main/androidTest</code> instead of
+<code>src/main/instrumentTest</code> (match layout generated by android create project)</li>
+<li>
+<code>android:dex</code> task now returns a folder for the output dex not a <code>classes.dex</code>
+file.</li>
+</ul><h2>
+<a name="user-content-new-features-in-12x-last-version-1220" class="anchor" href="#new-features-in-12x-last-version-1220" aria-hidden="true"><span class="octicon octicon-link"></span></a>New features in 1.2.x (last version: 1.2.20)</h2>
+
+<ul class="task-list">
+<li>
+<p>Add setting <code>android:debug-includes-tests</code> (default = true) to automatically
+include instrumented test cases in the debug APK instead of using a separate
+test APK. This feature improves IntelliJ testing integration.</p>
+
+<ul class="task-list">
+<li>As a result of this new feature, if there are any <code>libraryDependencies</code> in
+<code>test</code> that must be honored, the setting must be disabled, and a separate
+test APK must be created. An alternative is to include the test dependencies
+in the normal compile. Proguard will automatically strip these out in
+release builds if they are unused.</li>
+<li>This setting may be ignored, or set to <code>false</code> if one does not have tests
+or does not want to include the test cases in the debug package.</li>
+<li>If the setting is disabled, test cases will be generated into a test APK
+when running <code>android:test</code>
+</li>
+<li>When generating release builds, it is important to <code>clean</code>, otherwise
+test artifacts may be left over and present in the released apk.</li>
+<li>
+<p>When using included tests, it is necessary to add the following proguard
+options, or else proguard will mistakenly remove test cases from the
+output:</p>
+
+<pre><code>proguardOptions in Android ++= Seq(
+  "-keep public class * extends junit.framework.TestCase",
+  "-keepclassmembers class * extends junit.framework.TestCase { *; }"
+)
+</code></pre>
+</li>
+</ul>
+</li>
+<li>Add ability to disable manifest merging if upstream libraries have bad
+manifest settings, set <code>mergeManifests in Android := false</code>, default is
+<code>true</code>
+
+<ul class="task-list">
+<li>Disabling manifest merging will remove automatic import of Activities,
+Services, BroadcastReceivers, etc. from the library's manifest into the
+main application manifest</li>
+</ul>
+</li>
+<li>Increase test timeout to 3 minutes, from 5 seconds, configurable by using the
+<code>instrumentTestTimeout</code> setting key, in milliseconds</li>
+<li>Add <code>apkbuildExcludes</code> setting to skip/ignore duplicate files, an error like
+this:
+<code>
+[info] com.android.builder.packaging.DuplicateFileException: Duplicate files copied in APK META-INF/LICENSE.txt
+[info]  File 1: /path1/some.jar
+[info]  File 2: /path2/some.jar
+</code>
+Can be rectified by setting
+<code>apkbuildExcludes in Android += "META-INF/LICENSE.txt"</code>
+</li>
+<li>
+<code>1.2.18</code>: <code>zipalignPath</code> has changed from a Setting into a Task</li>
+</ul><h2>
+<a name="user-content-new-features-in-11x-last-version-112" class="anchor" href="#new-features-in-11x-last-version-112" aria-hidden="true"><span class="octicon octicon-link"></span></a>New features in 1.1.x (last version: 1.1.2)</h2>
+
+<ul class="task-list">
+<li>
+<p>Automatically load declared library projects from <code>project.properties</code>,
+<code>build.scala</code> is no longer necessary to configure the library projects,
+unless other advanced features are necessary (this means that any
+android project that only uses library projects does not need to use
+multi-project configurations).</p>
+
+<ul class="task-list">
+<li>
+<p>For those not using <code>project.properties</code> an alternative is to add
+<code>android.Dependencies.AutoLibraryProject(path)</code>s to <code>local-projects</code></p>
+
+<pre><code>import android.Keys._
+import android.Dependencies.AutoLibraryProject
+
+localProjects in Android &lt;+= (baseDirectory) {
+  b =&gt; AutoLibraryProject(b / ".." / "my-library-project")
+}
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<code>version-code</code> and <code>version-name</code> are defaulted to no-ops (no overrides)
+
+<ul class="task-list">
+<li>They can be set programmatically using an sbt <code>Command</code>
+</li>
+</ul>
+</li>
+<li>instrumented tests now go into <code>src/instrumentTest</code> in gradle-layout projects
+
+<ul class="task-list">
+<li>a test <code>AndroidManifest.xml</code> will be automatically generated if not present</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-new-features-in-10x-last-version-108" class="anchor" href="#new-features-in-10x-last-version-108" aria-hidden="true"><span class="octicon octicon-link"></span></a>New features in 1.0.x (last version: 1.0.8)</h2>
+
+<ul class="task-list">
+<li>Customizable proguard caching!</li>
+<li>Proguard cache rules are defined using the <code>proguardCache in Android</code>
+setting, the rules are of type <code>android.Keys.ProguardCache</code> and can be
+defined like so:
+
+<ul class="task-list">
+<li>The default cache rule is defined as
+<code>ProguardCache("scala") % "org.scala-lang"</code>, this caches all scala
+core libraries automatically.</li>
+<li>
+<code>proguardCache in Android += ProguardCache("play") % "play" %% "play-json"</code>
+will match all packages and classes contained in <code>play.**</code> from the
+module defined by the organization name <code>play</code> and module name <code>play-json</code>.
+<code>%%</code> specifies that the module name should be cross-versioned for
+detecting a match. <code>%</code> can be used to select the plain module name
+without scala cross-versioning. If a module name is not specified,
+all libraries in the selected organization will be cached with the
+package names passed to <code>ProguardCache()</code>
+</li>
+<li>
+<code>... &lt;+= baseDirectory (b =&gt; ProguardCache("android.support.v4") &lt;&lt; (b / "libs / "android-support-v4.jar))"</code>
+will cache <code>android.support.v4.**</code> from the local jar
+<code>libs/android-support-v4.jar</code>
+</li>
+<li>All packages within a jar to be cached <em>MUST</em> be declared in the rule
+or else many NoClassDefFound errors will ensue!</li>
+<li>Multiple packages may be specified in a cache rule:
+<code>ProguardCache("package1", "package2", "package3") ...</code>
+</li>
+<li>All ProguardCache rules must be associated with a module-org+name or a
+local jar file.</li>
+<li>Defining many cache rules will result in a higher cache-miss rate, but
+will dramatically speed up builds on cache-hits; choose libraries and
+caching rules carefully to balance the the cache-hit ratio. Large,
+multi-megabyte libraries should always be cached to avoid hitting the
+dex-file method-limit.</li>
+<li>Transitive dependencies are not cached automatically, those rules need
+to be defined explicitly.</li>
+</ul>
+</li>
+<li>Fixes NoSuchMethodError sometimes occuring when re-building after a
+proguard cache-miss (clear dex file on the first cache-hit build after
+proguarding; caused by dex incremental builds)</li>
+</ul><h2>
+<a name="user-content-new-features-in-09x-last-version-093" class="anchor" href="#new-features-in-09x-last-version-093" aria-hidden="true"><span class="octicon octicon-link"></span></a>New features in 0.9.x (last version: 0.9.3)</h2>
+
+<ul class="task-list">
+<li>Add a better method of specifying local-projects besides only in
+project.properties, or overriding library-projects in a convoluted manner.
+use <code>localProjects in Android += android.Dependencies.LibraryProject(lib_project.base)</code>
+settings to add library projects without declaring them in
+<code>project.properties</code> or otherwise</li>
+<li>Add <code>local-aars</code> setting to allow the use of AARs without a repo.</li>
+<li>Add <code>android.ArbitraryProject</code> load any project you want from a git repo,
+see <a href="https://gist.github.com/pfn/6238004">this example</a> for details.</li>
+</ul><h2>
+<a name="user-content-example-projects" class="anchor" href="#example-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example projects</h2>
+
+<ul class="task-list">
+<li>A variety of my own projects can be found on github that use this plugin</li>
+<li>In addition to this, a growing collection of tests can be found under
+<code>sbt-test/android-sdk-plugin/</code>. Over time, this will grow to be a larger
+set of examples of how to use the plugin in various configurations.</li>
+<li>Tests can be run via <code>sbt scripted</code> and require <code>ANDROID_HOME</code> to be set
+in addition to having platform <code>android-17</code> installed.</li>
+<li>All tests have auto-generated <code>build.properties</code> and <code>auto_plugins.sbt</code>
+files that set the current version of sbt and the android-sdk-plugin to use
+for testing.</li>
+</ul><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<ol class="task-list">
+<li>
+<p>Install sbt (from <a href="http://www.scala-sbt.org">http://www.scala-sbt.org</a> or use your local packaging
+system like macports, brew, etc.) -- make sure the Android SDK is fully
+updated (minimum build-tools 19.1.0 and up)</p>
+
+<ul class="task-list">
+<li>(OPTIONAL) Install the plugin globally into <code>~/.sbt/plugins</code> or
+<code>~/.sbt/0.13/plugins</code> (for 0.12 and 0.13, respectively)</li>
+</ul>
+<pre><code>addSbtPlugin("com.hanhuy.sbt" % "android-sdk-plugin" % "1.3.4")
+</code></pre>
+</li>
+<li>
+<p>Create a new android project using <code>gen-android</code> if the plugin is installed
+globally</p>
+
+<ul class="task-list">
+<li>Instead of creating a new project, one can also do
+<code>android update project</code> to make sure everything is properly setup
+in an existing project.</li>
+<li>Instead of keeping local.properties up-to-date, you may set the
+environment variable <code>ANDROID_HOME</code> pointing to the path where the
+Android SDK is unpacked. This will bypass the requirement of having
+to run <code>android update project</code> on existing projects.</li>
+<li>When using <code>gen-android</code>, the <code>platformTarget</code> is automatically set to
+the newest version available in your local SDK, override this by setting
+<code>target</code> in a <code>project.properties</code> file, or setting
+<code>platformTarget in Android</code>
+</li>
+</ul>
+</li>
+<li>
+<p>(N/A if globally configured) Create a directory named <code>project</code> within
+your project and add the file <code>project/plugins.sbt</code>, in it, add the
+following line:</p>
+
+<pre><code>addSbtPlugin("com.hanhuy.sbt" % "android-sdk-plugin" % "1.3.4")
+</code></pre>
+</li>
+<li>
+<p>Create a file named <code>project/build.scala</code> and add the
+following line, (automatically performed if using <code>gen-android</code>) :</p>
+
+<pre><code>object Build extends android.AutoBuild
+</code></pre>
+</li>
+<li>
+<p>Now you will be able to run SBT, some available commands in sbt are:</p>
+
+<ul class="task-list">
+<li>
+<code>compile</code>
+
+<ul class="task-list">
+<li>Compiles all the sources in the project, java and scala</li>
+<li>Compile output is automatically processed through proguard if there
+are any Scala sources, otherwise; it can be enabled manually.</li>
+</ul>
+</li>
+<li>
+<code>android:package-release</code>
+
+<ul class="task-list">
+<li>Builds a release APK and signs it with a release key if configured</li>
+</ul>
+</li>
+<li>
+<code>android:package-debug</code>
+
+<ul class="task-list">
+<li>Builds a debug APK and signs it using the debug key</li>
+</ul>
+</li>
+<li>
+<code>android:package</code>
+
+<ul class="task-list">
+<li>Builds an APK for the project of the last type selected, by default
+<code>debug</code>
+</li>
+</ul>
+</li>
+<li>
+<code>android:test</code>
+
+<ul class="task-list">
+<li>run instrumented android unit tests</li>
+</ul>
+</li>
+<li>
+<code>android:install</code>
+
+<ul class="task-list">
+<li>Install the application to device</li>
+</ul>
+</li>
+<li>
+<code>android:run</code>
+
+<ul class="task-list">
+<li>Install and run the application on-device</li>
+</ul>
+</li>
+<li>
+<code>android:uninstall</code>
+
+<ul class="task-list">
+<li>Uninstall the application from device</li>
+</ul>
+</li>
+<li>Any task can be repeated continuously whenever any source code changes
+by prefixing the command with a <code>~</code>. <code>~ android:package-debug</code>
+will continuously build a debug build any time one of the project's
+source files is modified.</li>
+</ul>
+</li>
+<li>If you want android-sdk-plugin to automatically sign release packages
+add the following lines to <code>local.properties</code> (or any file.properties of
+your choice that you will not check in to source control):
+
+<ul class="task-list">
+<li><code>key.alias: YOUR-KEY-ALIAS</code></li>
+<li><code>key.store: /path/to/your/.keystore</code></li>
+<li><code>key.store.password: YOUR-KEY-PASSWORD</code></li>
+<li>
+<code>key.store.type: pkcs12</code> (optional, defaults to <code>jks</code>)</li>
+</ul>
+</li>
+</ol><h2>
+<a name="user-content-advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Usage</h2>
+
+<ul class="task-list">
+<li>IDE integration
+
+<ul class="task-list">
+<li>The primary IDE recommendation is IntelliJ, not Android Studio
+nor Eclipse.</li>
+<li>To generate project files for loading into IntelliJ, use the <code>sbt-idea</code>
+plugin by adding
+<code>addSbtPlugin("com.hanhuy.sbt" % "sbt-idea" % "1.7.0-SNAPSHOT")</code> to your
+<code>project/plugins.sbt</code> and running the command <code>sbt gen-idea</code>
+
+<ul class="task-list">
+<li>This requires the snapshots repo which can be done by adding
+<code>resolvers += Resolver.sbtPluginRepo("snapshots")</code>
+</li>
+<li>Use my snapshot of sbt-idea until mpeltonen/sbt-idea#314 is merged</li>
+<li>As with this plugin, sbt-idea may be installed globally as well.</li>
+</ul>
+</li>
+<li>When loading a project into IntelliJ, it is required that the <code>SBT</code>
+and <code>Scala</code> plugins are installed; the <code>SBT</code> plugin allows replacing the
+default <code>Make</code> builder with sbt, enabling seamless builds from the IDE.</li>
+<li>The best practice is to set the IDE's run task to invoke sbt
+<code>android:package</code> instead of <code>Make</code>; this is found under the Run
+Configurations</li>
+<li>The SBT plugin for IntelliJ is the one from this project
+<a href="https://github.com/orfjackal/idea-sbt-plugin">https://github.com/orfjackal/idea-sbt-plugin</a>
+</li>
+<li>The <code>Scala</code> plugin is still required for non-Scala projects in order to
+edit sbt build files from inside the IDE.</li>
+</ul>
+</li>
+<li>Consuming apklib and aar artifacts from other projects
+
+<ul class="task-list">
+<li>Optionally use <code>apklib()</code> or <code>aar()</code>
+
+<ul class="task-list">
+<li>using <code>apklib()</code> and <code>aar()</code> are only necessary if there are multiple
+filetypes for the dependency, such as <code>jar</code>, etc.</li>
+</ul>
+</li>
+<li>
+<code>libraryDependencies += apklib("groupId" % "artifactId" % "version", "optionalArtifactFilename")</code>
+
+<ul class="task-list">
+<li>Basically, wrap the typical dependency specification with either
+apklib() or aar() to consume the library</li>
+<li>If aars or apklibs are duplicately included in a multi-project build,
+specify <code>transitiveAndroidLibs in Android := false</code>
+</li>
+<li>
+<code>apklib</code> and <code>aar</code> that transitively depend on <code>apklib</code> and <code>aar</code> will
+automatically be processed. To disable set
+<code>transitiveAndroidLibs in Android := false</code>
+</li>
+</ul>
+</li>
+<li>Sometimes library projects and apklibs will incorrectly bundle
+android-support-v4.jar, to rectify this, add this setting:
+<code>dependencyClasspath in Compile ~= { _ filterNot (_.data.getName startsWith "android-support-v4") }</code>
+</li>
+</ul>
+</li>
+<li>
+<p>Using the google gms play-services aar:</p>
+
+<pre><code>libraryDependencies +=
+  "com.google.android.gms" % "play-services" % "4.4.52"
+</code></pre>
+</li>
+<li>
+<p>Generating apklib and/or aar artifacts</p>
+
+<ul class="task-list">
+<li>To specify that your project will generate and publish either an <code>aar</code>
+or <code>apklib</code> artifact simply change the <code>android.Plugin.androidBuild</code>
+line to one of the variants that will build the desired output type.
+
+<ul class="task-list">
+<li>For <code>apklib</code> use <code>android.Plugin.androidBuildApklib</code>
+</li>
+<li>For <code>aar</code> use <code>android.Plugin.androidBuildAar</code>
+</li>
+</ul>
+</li>
+<li>Alternatively, use <code>android.Plugin.buildAar</code> and/or
+<code>android.Plugin.buildApklib</code> in addition to any of the variants above
+
+<ul class="task-list">
+<li>In build.sbt, add <code>android.Plugin.buildAar</code> and/or
+<code>android.Plugin.buildApklib</code> on a new line.</li>
+<li>It could also be specified, for example, like so:
+<code>android.Plugin.androidBuild ++ android.Plugin.buildAar</code>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Multi-project builds
+
+<ul class="task-list">
+<li>See multi-project build examples in the test cases for an example of
+configuration.</li>
+<li>Multi-project builds <em>must</em> specify
+<code>transitiveAndroidLibs in Android := false</code> if any of the subprojects
+include <code>aar</code>s or <code>apklib</code>s as dependencies.</li>
+<li>
+<code>androidBuild(...)</code> should be used to specify all dependent library-projects</li>
+<li>All sub-projects in a multi-project build must specify <code>exportJars := true</code>.
+Android projects automatically set this variable.</li>
+<li>When using multi-project builds in Scala, where library projects have
+scala code, but the main project(s) do(es) not, you will need to specify
+that proguard must run. To do this, the following must be set for each
+main project: <code>proguardScala in Android := true</code>
+</li>
+</ul>
+</li>
+<li>Configuring <code>android-sdk-plugin</code> by editing build.sbt
+
+<ul class="task-list">
+<li>
+<code>import android.Keys._</code> at the top to make sure you can use the plugin's
+configuration options (not required with sbt 0.13.5+ and AutoPlugin)</li>
+<li>Add configuration options according to the sbt style:
+
+<ul class="task-list">
+<li>
+<code>useProguard in Android := true</code> to enable proguard. Note: if you
+disable proguard for scala, you <em>must</em> specify uses-library on a
+pre-installed scala lib on-device. Pre-dexing the scala libs is not
+supported.</li>
+</ul>
+</li>
+<li>Configurable keys can be discovered by typing <code>android:&lt;tab&gt;</code> at the
+sbt shell</li>
+</ul>
+</li>
+<li>Configuring proguard, some options are available
+
+<ul class="task-list">
+<li>
+<code>proguardOptions in Android += Seq("-dontobfuscate", "-dontoptimize")</code> -
+will tell proguard not to obfuscute nor optimize code (any valid proguard
+option is usable here)</li>
+<li>
+<code>proguardConfig in Android ...</code> can be used to replace the entire
+proguard config included with android-sdk-plugin</li>
+</ul>
+</li>
+<li>On-device unit testing, use <code>android:test</code> and see
+<a href="http://developer.android.com/tools/testing/testing_android.html">Android Testing Fundamentals</a>
+</li>
+<li> Unit testing with robolectric, see my build.scala for this configuration:
+
+<ul class="task-list">
+<li><a href="https://gist.github.com/pfn/5872909">https://gist.github.com/pfn/5872909</a></li>
+<li>This example is somewhat old and may include settings that are no longer
+necessary, this project hasn't been touched in nearly a year.</li>
+<li>To get rid of robolectric's warnings about not finding certain classes
+to shadow, change the project target to include google APIs</li>
+<li>jberkel has written a Suite trait to be able to use robolectric with
+scalatest rather than junit, see <a href="https://gist.github.com/2662806">https://gist.github.com/2662806</a>
+</li>
+</ul>
+</li>
+<li>Device Management
+
+<ul class="task-list">
+<li>The commands <code>devices</code> and <code>device</code> are implemented. The former lists
+all connected devices. The latter command is for selecting a target
+device if there is more than one device. If there is more than one
+device, and no target is selected, all commands will execute against the
+first device in the list.</li>
+<li>
+<code>android:install</code>, <code>android:run</code> and <code>android:test</code> are tasks that can
+be used to install, run and test the built apk on-device, respectively.</li>
+<li>Type <code>help</code> for a list of all available commands.</li>
+</ul>
+</li>
+</ul><h3>
+<a name="user-content-todo--known-issues" class="anchor" href="#todo--known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO / Known Issues</h3>
+
+<ul class="task-list">
+<li>Changing usage of <code>implicit</code>s (defs, vals, classes, etc.) confuses
+the proguard cache. It results in <code>NoSuchMethodError</code>s even though present
+in the generated dex. Current workaround is to <code>clean</code> when <code>implicit</code>
+usage changes occur.</li>
+<li>Version checking of plugin and update notifications. This is not possible
+with ivy. Options: relocate plugin to sonatype and/or host an off-site
+versions config descriptor.</li>
+<li>Better handling of release vs. debug builds and creating other build
+flavors as supported by the Android Gradle plugin.</li>
+<li>Changes to <code>AndroidManifest.xml</code> may require the plugin to be reloaded.
+The manifest data is stored internally as read-only data and does not
+reload automatically when it is changed. The current workaround is to
+type <code>reload</code> manually anytime <code>AndroidManifest.xml</code> is updated if
+necessary. This <code>reload</code> is necessary to keep <code>android:run</code> working
+properly if activities are changed, and packaging operating correctly
+when package names, or sdk references change.</li>
+<li>sbt <code>0.12</code> and <code>0.13</code> currently have a bug where jars specified in javac's
+-bootclasspath option forces a full rebuild of all classes everytime. sbt
+<code>0.12.3</code> and later has a hack that should workaround this problem. The
+plugin sets the system property <code>xsbt.skip.cp.lookup</code> to <code>true</code> to bypass
+this issue; this disables certain incremental compilation checks, but should
+not be an issue for the majority of use-cases.</li>
+<li>
+<code>autolibs</code> do not properly process <code>apklib</code> and <code>aar</code> resources. If anything
+in an <code>autolib</code> uses resources from such a library, the answer is to create
+a standard multi-project build configuration rather than utilize <code>autolibs</code>.
+<code>autolibs</code> can be disabled by manually configuring <code>localProjects in Android</code>
+</li>
+</ul></article></div>

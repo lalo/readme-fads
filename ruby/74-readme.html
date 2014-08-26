@@ -1,0 +1,580 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-draper-view-models-for-rails" class="anchor" href="#draper-view-models-for-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Draper: View Models for Rails</h1>
+
+<p><a href="http://travis-ci.org/drapergem/draper"><img src="https://camo.githubusercontent.com/d72ebb6c543c1267a75a6b65482e267ec2d6ea0b/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f64726170657267656d2f6472617065722e706e673f6272616e63683d6d6173746572" alt="TravisCI Build Status" data-canonical-src="https://secure.travis-ci.org/drapergem/draper.png?branch=master" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/drapergem/draper"><img src="https://camo.githubusercontent.com/98461794e734d83fa5e9e1f34e7da653a4e25d99/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f64726170657267656d2f6472617065722e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/drapergem/draper.png" style="max-width:100%;"></a></p>
+
+<p>Draper adds an object-oriented layer of presentation logic to your Rails
+application.</p>
+
+<p>Without Draper, this functionality might have been tangled up in procedural
+helpers or adding bulk to your models. With Draper decorators, you can wrap your
+models with presentation-related logic to organise - and test - this layer of
+your app much more effectively.</p>
+
+<h2>
+<a name="user-content-why-use-a-decorator" class="anchor" href="#why-use-a-decorator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Use a Decorator?</h2>
+
+<p>Imagine your application has an <code>Article</code> model. With Draper, you'd create a
+corresponding <code>ArticleDecorator</code>. The decorator wraps the model, and deals
+<em>only</em> with presentational concerns. In the controller, you decorate the article
+before handing it off to the view:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/controllers/articles_controller.rb</span>
+<span class="k">def</span> <span class="nf">show</span>
+  <span class="vi">@article</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span><span class="o">.</span><span class="n">decorate</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>In the view, you can use the decorator in exactly the same way as you would have
+used the model. But whenever you start needing logic in the view or start
+thinking about a helper method, you can implement a method on the decorator
+instead.</p>
+
+<p>Let's look at how you could convert an existing Rails helper to a decorator
+method. You have this existing helper:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/helpers/articles_helper.rb</span>
+<span class="k">def</span> <span class="nf">publication_status</span><span class="p">(</span><span class="n">article</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">article</span><span class="o">.</span><span class="n">published?</span>
+    <span class="s2">"Published at </span><span class="si">#{</span><span class="n">article</span><span class="o">.</span><span class="n">published_at</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">'%A, %B %e'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+  <span class="k">else</span>
+    <span class="s2">"Unpublished"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>But it makes you a little uncomfortable. <code>publication_status</code> lives in a
+nebulous namespace spread across all controllers and view. Down the road, you
+might want to display the publication status of a <code>Book</code>. And, of course, your
+design calls for a slighly different formatting to the date for a <code>Book</code>.</p>
+
+<p>Now your helper method can either switch based on the input class type (poor
+Ruby style), or you break it out into two methods, <code>book_publication_status</code> and
+<code>article_publication_status</code>. And keep adding methods for each publication
+type...to the global helper namespace. And you'll have to remember all the names. Ick.</p>
+
+<p>Ruby thrives when we use Object-Oriented style. If you didn't know Rails'
+helpers existed, you'd probably imagine that your view template could feature
+something like this:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%=</span> <span class="vi">@article</span><span class="o">.</span><span class="n">publication_status</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<p>Without a decorator, you'd have to implement the <code>publication_status</code> method in
+the <code>Article</code> model. That method is presentation-centric, and thus does not
+belong in a model.</p>
+
+<p>Instead, you implement a decorator:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/decorators/article_decorator.rb</span>
+<span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">delegate_all</span>
+
+  <span class="k">def</span> <span class="nf">publication_status</span>
+    <span class="k">if</span> <span class="n">published?</span>
+      <span class="s2">"Published at </span><span class="si">#{</span><span class="n">published_at</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">else</span>
+      <span class="s2">"Unpublished"</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">published_at</span>
+    <span class="n">object</span><span class="o">.</span><span class="n">published_at</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%A, %B %e"</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Within the <code>publication_status</code> method we use the <code>published?</code> method. Where
+does that come from? It's a method of the  source <code>Article</code>, whose methods have
+been made available on the decorator by the <code>delegate_all</code> call above.</p>
+
+<p>You might have heard this sort of decorator called a "presenter", an "exhibit",
+a "view model", or even just a "view" (in that nomenclature, what Rails calls
+"views" are actually "templates"). Whatever you call it, it's a great way to
+replace procedural helpers like the one above with "real" object-oriented
+programming.</p>
+
+<p>Decorators are the ideal place to:</p>
+
+<ul class="task-list">
+<li>format complex data for user display</li>
+<li>define commonly-used representations of an object, like a <code>name</code> method that
+combines <code>first_name</code> and <code>last_name</code> attributes</li>
+<li>mark up attributes with a little semantic HTML, like turning a <code>url</code> field
+into a hyperlink</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Add Draper to your Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'draper'</span><span class="p">,</span> <span class="s1">'~&gt; 1.3'</span>
+</pre></div>
+
+<p>And run <code>bundle install</code> within your app's directory.</p>
+
+<p>If you're upgrading from a 0.x release, the major changes are outlined <a href="https://github.com/drapergem/draper/wiki/Upgrading-to-1.0">in the
+wiki</a>.</p>
+
+<h2>
+<a name="user-content-writing-decorators" class="anchor" href="#writing-decorators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing Decorators</h2>
+
+<p>Decorators inherit from <code>Draper::Decorator</code>, live in your <code>app/decorators</code>
+directory, and are named for the model that they decorate:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/decorators/article_decorator.rb</span>
+<span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+<span class="c1"># ...</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-generators" class="anchor" href="#generators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Generators</h3>
+
+<p>When you have Draper installed and generate a controller...</p>
+
+<pre><code>rails generate resource Article
+</code></pre>
+
+<p>...you'll get a decorator for free!</p>
+
+<p>But if the <code>Article</code> model already exists, you can run...</p>
+
+<pre><code>rails generate decorator Article
+</code></pre>
+
+<p>...to create the <code>ArticleDecorator</code>.</p>
+
+<h3>
+<a name="user-content-accessing-helpers" class="anchor" href="#accessing-helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accessing Helpers</h3>
+
+<p>Normal Rails helpers are still useful for lots of tasks. Both Rails' provided
+helpers and those defined in your app can be accessed within a decorator via the <code>h</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="k">def</span> <span class="nf">emphatic</span>
+    <span class="n">h</span><span class="o">.</span><span class="n">content_tag</span><span class="p">(</span><span class="ss">:strong</span><span class="p">,</span> <span class="s2">"Awesome"</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If writing <code>h.</code> frequently is getting you down, you can add...</p>
+
+<pre><code>include Draper::LazyHelpers
+</code></pre>
+
+<p>...at the top of your decorator class - you'll mix in a bazillion methods and
+never have to type <code>h.</code> again.</p>
+
+<p>(<em>Note</em>: the <code>capture</code> method is only available through <code>h</code> or <code>helpers</code>)</p>
+
+<h3>
+<a name="user-content-accessing-the-model" class="anchor" href="#accessing-the-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accessing the model</h3>
+
+<p>When writing decorator methods you'll usually need to access the wrapped model.
+While you may choose to use delegation (<a href="#delegating-methods">covered below</a>)
+for convenience, you can always use the <code>object</code> (or its alias <code>model</code>):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="k">def</span> <span class="nf">published_at</span>
+    <span class="n">object</span><span class="o">.</span><span class="n">published_at</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%A, %B %e"</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-decorating-objects" class="anchor" href="#decorating-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decorating Objects</h2>
+
+<h3>
+<a name="user-content-single-objects" class="anchor" href="#single-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Single Objects</h3>
+
+<p>Ok, so you've written a sweet decorator, now you're going to want to put it into
+action! A simple option is to call the <code>decorate</code> method on your model:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@article</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">decorate</span>
+</pre></div>
+
+<p>This infers the decorator from the object being decorated. If you want more
+control - say you want to decorate a <code>Widget</code> with a more general
+<code>ProductDecorator</code> - then you can instantiate a decorator directly:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@widget</span> <span class="o">=</span> <span class="no">ProductDecorator</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">Widget</span><span class="o">.</span><span class="n">first</span><span class="p">)</span>
+<span class="c1"># or, equivalently</span>
+<span class="vi">@widget</span> <span class="o">=</span> <span class="no">ProductDecorator</span><span class="o">.</span><span class="n">decorate</span><span class="p">(</span><span class="no">Widget</span><span class="o">.</span><span class="n">first</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-collections" class="anchor" href="#collections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collections</h3>
+
+<h4>
+<a name="user-content-decorating-individual-elements" class="anchor" href="#decorating-individual-elements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decorating Individual Elements</h4>
+
+<p>If you have a collection of objects, you can decorate them all in one fell
+swoop:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@articles</span> <span class="o">=</span> <span class="no">ArticleDecorator</span><span class="o">.</span><span class="n">decorate_collection</span><span class="p">(</span><span class="no">Article</span><span class="o">.</span><span class="n">all</span><span class="p">)</span>
+</pre></div>
+
+<p>If your collection is an ActiveRecord query, you can use this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@articles</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">popular</span><span class="o">.</span><span class="n">decorate</span>
+</pre></div>
+
+<p><em>Note:</em> In Rails 3, the <code>.all</code> method returns an array and not a query. Thus you
+<em>cannot</em> use the technique of <code>Article.all.decorate</code> in Rails 3. In Rails 4,
+<code>.all</code> returns a query so this techique would work fine.</p>
+
+<h4>
+<a name="user-content-decorating-the-collection-itself" class="anchor" href="#decorating-the-collection-itself" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decorating the Collection Itself</h4>
+
+<p>If you want to add methods to your decorated collection (for example, for
+pagination), you can subclass <code>Draper::CollectionDecorator</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/decorators/articles_decorator.rb</span>
+<span class="k">class</span> <span class="nc">ArticlesDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">CollectionDecorator</span>
+  <span class="k">def</span> <span class="nf">page_number</span>
+    <span class="mi">42</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># elsewhere...</span>
+<span class="vi">@articles</span> <span class="o">=</span> <span class="no">ArticlesDecorator</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">Article</span><span class="o">.</span><span class="n">all</span><span class="p">)</span>
+<span class="c1"># or, equivalently</span>
+<span class="vi">@articles</span> <span class="o">=</span> <span class="no">ArticlesDecorator</span><span class="o">.</span><span class="n">decorate</span><span class="p">(</span><span class="no">Article</span><span class="o">.</span><span class="n">all</span><span class="p">)</span>
+</pre></div>
+
+<p>Draper decorates each item by calling the <code>decorate</code> method. Alternatively, you can
+specify a decorator by overriding the collection decorator's <code>decorator_class</code>
+method, or by passing the <code>:with</code> option to the constructor.</p>
+
+<h4>
+<a name="user-content-using-pagination" class="anchor" href="#using-pagination" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using pagination</h4>
+
+<p>Some pagination gems add methods to <code>ActiveRecord::Relation</code>. For example,
+<a href="https://github.com/amatsuda/kaminari">Kaminari</a>'s <code>paginate</code> helper method
+requires the collection to implement <code>current_page</code>, <code>total_pages</code>, and
+<code>limit_value</code>. To expose these on a collection decorator, you can delegate to
+the <code>object</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PaginatingDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">CollectionDecorator</span>
+  <span class="n">delegate</span> <span class="ss">:current_page</span><span class="p">,</span> <span class="ss">:total_pages</span><span class="p">,</span> <span class="ss">:limit_value</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The <code>delegate</code> method used here is the same as that added by <a href="http://api.rubyonrails.org/classes/Module.html#method-i-delegate">Active
+Support</a>,
+except that the <code>:to</code> option is not required; it defaults to <code>:object</code> when
+omitted.</p>
+
+<p><a href="https://github.com/mislav/will_paginate">will_paginate</a> needs the following delegations:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">delegate</span> <span class="ss">:current_page</span><span class="p">,</span> <span class="ss">:per_page</span><span class="p">,</span> <span class="ss">:offset</span><span class="p">,</span> <span class="ss">:total_entries</span><span class="p">,</span> <span class="ss">:total_pages</span>
+</pre></div>
+
+<h3>
+<a name="user-content-decorating-associated-objects" class="anchor" href="#decorating-associated-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decorating Associated Objects</h3>
+
+<p>You can automatically decorate associated models when the primary model is
+decorated. Assuming an <code>Article</code> model has an associated <code>Author</code> object:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates_association</span> <span class="ss">:author</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>When <code>ArticleDecorator</code> decorates an <code>Article</code>, it will also use
+<code>AuthorDecorator</code> to decorate the associated <code>Author</code>.</p>
+
+<h3>
+<a name="user-content-decorated-finders" class="anchor" href="#decorated-finders" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decorated Finders</h3>
+
+<p>You can call <code>decorates_finders</code> in a decorator...</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates_finders</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>...which allows you to then call all the normal ActiveRecord-style finders on
+your <code>ArticleDecorator</code> and they'll return decorated objects:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@article</span> <span class="o">=</span> <span class="no">ArticleDecorator</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-when-to-decorate-objects" class="anchor" href="#when-to-decorate-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>When to Decorate Objects</h3>
+
+<p>Decorators are supposed to behave very much like the models they decorate, and
+for that reason it is very tempting to just decorate your objects at the start
+of your controller action and then use the decorators throughout. <em>Don't</em>.</p>
+
+<p>Because decorators are designed to be consumed by the view, you should only be
+accessing them there. Manipulate your models to get things ready, then decorate
+at the last minute, right before you render the view. This avoids many of the
+common pitfalls that arise from attempting to modify decorators (in particular,
+collection decorators) after creating them.</p>
+
+<p>To help you make your decorators read-only, we have the <code>decorates_assigned</code>
+method in your controller. It adds a helper method that returns the decorated
+version of an instance variable:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/controllers/articles_controller.rb</span>
+<span class="k">class</span> <span class="nc">ArticlesController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="n">decorates_assigned</span> <span class="ss">:article</span>
+
+  <span class="k">def</span> <span class="nf">show</span>
+    <span class="vi">@article</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The <code>decorates_assigned :article</code> bit is roughly equivalent to</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">article</span>
+  <span class="vi">@decorated_article</span> <span class="o">||=</span> <span class="vi">@article</span><span class="o">.</span><span class="n">decorate</span>
+<span class="k">end</span>
+<span class="n">helper_method</span> <span class="ss">:article</span>
+</pre></div>
+
+<p>This means that you can just replace <code>@article</code> with <code>article</code> in your views and
+you'll have access to an ArticleDecorator object instead. In your controller you
+can continue to use the <code>@article</code> instance variable to manipulate the model -
+for example, <code>@article.comments.build</code> to add a new blank comment for a form.</p>
+
+<h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>Draper supports RSpec, MiniTest::Rails, and Test::Unit, and will add the
+appropriate tests when you generate a decorator.</p>
+
+<h3>
+<a name="user-content-rspec" class="anchor" href="#rspec" aria-hidden="true"><span class="octicon octicon-link"></span></a>RSpec</h3>
+
+<p>Your specs are expected to live in <code>spec/decorators</code>. If you use a different
+path, you need to tag them with <code>type: :decorator</code>.</p>
+
+<p>In a controller spec, you might want to check whether your instance variables
+are being decorated properly. You can use the handy predicate matchers:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">assigns</span><span class="p">(</span><span class="ss">:article</span><span class="p">)</span><span class="o">.</span><span class="n">should</span> <span class="n">be_decorated</span>
+
+<span class="c1"># or, if you want to be more specific</span>
+<span class="n">assigns</span><span class="p">(</span><span class="ss">:article</span><span class="p">)</span><span class="o">.</span><span class="n">should</span> <span class="n">be_decorated_with</span> <span class="no">ArticleDecorator</span>
+</pre></div>
+
+<p>Note that <code>model.decorate == model</code>, so your existing specs shouldn't break when
+you add the decoration.</p>
+
+<h4>
+<a name="user-content-spork-users" class="anchor" href="#spork-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>Spork Users</h4>
+
+<p>In your <code>Spork.prefork</code> block of <code>spec_helper.rb</code>, add this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'draper/test/rspec_integration'</span>
+</pre></div>
+
+<h3>
+<a name="user-content-isolated-tests" class="anchor" href="#isolated-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Isolated Tests</h3>
+
+<p>In tests, Draper needs to build a view context to access helper methods. By
+default, it will create an <code>ApplicationController</code> and then use its view
+context. If you are speeding up your test suite by testing each component in
+isolation, you can eliminate this dependency by putting the following in your
+<code>spec_helper</code> or similar:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Draper</span><span class="o">::</span><span class="no">ViewContext</span><span class="o">.</span><span class="n">test_strategy</span> <span class="ss">:fast</span>
+</pre></div>
+
+<p>In doing so, your decorators will no longer have access to your application's
+helpers. If you need to selectively include such helpers, you can pass a block:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Draper</span><span class="o">::</span><span class="no">ViewContext</span><span class="o">.</span><span class="n">test_strategy</span> <span class="ss">:fast</span> <span class="k">do</span>
+  <span class="kp">include</span> <span class="no">ApplicationHelper</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-stubbing-route-helper-functions" class="anchor" href="#stubbing-route-helper-functions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stubbing Route Helper Functions</h4>
+
+<p>If you are writing isolated tests for Draper methods that call route helper
+methods, you can stub them instead of needing to require Rails.</p>
+
+<p>If you are using RSpec, minitest-rails, or the Test::Unit syntax of minitest,
+you already have access to the Draper <code>helpers</code> in your tests since they
+inherit from <code>Draper::TestCase</code>. If you are using minitest's spec syntax
+without minitest-rails, you can explicitly include the Draper <code>helpers</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">describe</span> <span class="no">YourDecorator</span> <span class="k">do</span>
+  <span class="kp">include</span> <span class="no">Draper</span><span class="o">::</span><span class="no">ViewHelpers</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then you can stub the specific route helper functions you need using your
+preferred stubbing technique (this example uses RSpec's <code>stub</code> method):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">helpers</span><span class="o">.</span><span class="n">stub</span><span class="p">(</span><span class="ss">users_path</span><span class="p">:</span> <span class="s1">'/users'</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced usage</h2>
+
+<h3>
+<a name="user-content-shared-decorator-methods" class="anchor" href="#shared-decorator-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Shared Decorator Methods</h3>
+
+<p>You might have several decorators that share similar needs. Since decorators are
+just Ruby objects, you can use any normal Ruby technique for sharing
+functionality.</p>
+
+<p>In Rails controllers, common functionality is organized by having all
+controllers inherit from <code>ApplicationController</code>. You can apply this same
+pattern to your decorators:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/decorators/application_decorator.rb</span>
+<span class="k">class</span> <span class="nc">ApplicationDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+<span class="c1"># ...</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then modify your decorators to inherit from that <code>ApplicationDecorator</code> instead
+of directly from <code>Draper::Decorator</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">ApplicationDecorator</span>
+  <span class="c1"># decorator methods</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-delegating-methods" class="anchor" href="#delegating-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delegating Methods</h3>
+
+<p>When your decorator calls <code>delegate_all</code>, any method called on the decorator not
+defined in the decorator itself will be delegated to the decorated object. This
+is a very permissive interface.</p>
+
+<p>If you want to strictly control which methods are called within views, you can
+choose to only delegate certain methods from the decorator to the source model:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">delegate</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:body</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>We omit the <code>:to</code> argument here as it defaults to the <code>object</code> being decorated.
+You could choose to delegate methods to other places like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">delegate</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:body</span>
+  <span class="n">delegate</span> <span class="ss">:name</span><span class="p">,</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">to</span><span class="p">:</span> <span class="ss">:author</span><span class="p">,</span> <span class="ss">prefix</span><span class="p">:</span> <span class="kp">true</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>From your view template, assuming <code>@article</code> is decorated, you could do any of
+the following:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@article</span><span class="o">.</span><span class="n">title</span> <span class="c1"># Returns the article's `.title`</span>
+<span class="vi">@article</span><span class="o">.</span><span class="n">body</span>  <span class="c1"># Returns the article's `.body`</span>
+<span class="vi">@article</span><span class="o">.</span><span class="n">author_name</span>  <span class="c1"># Returns the article's `author.name`</span>
+<span class="vi">@article</span><span class="o">.</span><span class="n">author_title</span> <span class="c1"># Returns the article's `author.title`</span>
+</pre></div>
+
+<h3>
+<a name="user-content-adding-context" class="anchor" href="#adding-context" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding Context</h3>
+
+<p>If you need to pass extra data to your decorators, you can use a <code>context</code> hash.
+Methods that create decorators take it as an option, for example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Article</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">decorate</span><span class="p">(</span><span class="ss">context</span><span class="p">:</span> <span class="p">{</span><span class="ss">role</span><span class="p">:</span> <span class="ss">:admin</span><span class="p">})</span>
+</pre></div>
+
+<p>The value passed to the <code>:context</code> option is then available in the decorator
+through the <code>context</code> method.</p>
+
+<p>If you use <code>decorates_association</code>, the context of the parent decorator is
+passed to the associated decorators. You can override this with the <code>:context</code>
+option:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates_association</span> <span class="ss">:author</span><span class="p">,</span> <span class="ss">context</span><span class="p">:</span> <span class="p">{</span><span class="ss">foo</span><span class="p">:</span> <span class="s2">"bar"</span><span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>or, if you want to modify the parent's context, use a lambda that takes a hash
+and returns a new hash:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates_association</span> <span class="ss">:author</span><span class="p">,</span>
+    <span class="ss">context</span><span class="p">:</span> <span class="o">-&gt;</span><span class="p">(</span><span class="n">parent_context</span><span class="p">){</span> <span class="n">parent_context</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="ss">foo</span><span class="p">:</span> <span class="s2">"bar"</span><span class="p">)</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-specifying-decorators" class="anchor" href="#specifying-decorators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying Decorators</h3>
+
+<p>When you're using <code>decorates_association</code>, Draper uses the <code>decorate</code> method on
+the associated record(s) to perform the decoration. If you want use a specific
+decorator, you can use the <code>:with</code> option:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates_association</span> <span class="ss">:author</span><span class="p">,</span> <span class="ss">with</span><span class="p">:</span> <span class="no">FancyPersonDecorator</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>For a collection association, you can specify a <code>CollectionDecorator</code> subclass,
+which is applied to the whole collection, or a singular <code>Decorator</code> subclass,
+which is applied to each item individually.</p>
+
+<h3>
+<a name="user-content-scoping-associations" class="anchor" href="#scoping-associations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scoping Associations</h3>
+
+<p>If you want your decorated association to be ordered, limited, or otherwise
+scoped, you can pass a <code>:scope</code> option to <code>decorates_association</code>, which will be
+applied to the collection <em>before</em> decoration:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates_association</span> <span class="ss">:comments</span><span class="p">,</span> <span class="ss">scope</span><span class="p">:</span> <span class="ss">:recent</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-proxying-class-methods" class="anchor" href="#proxying-class-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Proxying Class Methods</h3>
+
+<p>If you want to proxy class methods to the wrapped model class, including when
+using <code>decorates_finders</code>, Draper needs to know the model class. By default, it
+assumes that your decorators are named <code>SomeModelDecorator</code>, and then attempts
+to proxy unknown class methods to <code>SomeModel</code>.</p>
+
+<p>If your model name can't be inferred from your decorator name in this way, you
+need to use the <code>decorates</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">MySpecialArticleDecorator</span> <span class="o">&lt;</span> <span class="no">Draper</span><span class="o">::</span><span class="no">Decorator</span>
+  <span class="n">decorates</span> <span class="ss">:article</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This is only necessary when proxying class methods.</p>
+
+<h3>
+<a name="user-content-making-models-decoratable" class="anchor" href="#making-models-decoratable" aria-hidden="true"><span class="octicon octicon-link"></span></a>Making Models Decoratable</h3>
+
+<p>Models get their <code>decorate</code> method from the <code>Draper::Decoratable</code> module, which
+is included in <code>ActiveRecord::Base</code> and <code>Mongoid::Document</code> by default. If
+you're <a href="https://github.com/drapergem/draper/wiki/Using-other-ORMs">using another
+ORM</a> (including
+versions of Mongoid prior to 3.0), or want to decorate plain old Ruby objects,
+you can include this module manually.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>Draper was conceived by Jeff Casimir and heavily refined by Steve Klabnik and a
+great community of open source
+<a href="https://github.com/drapergem/draper/contributors">contributors</a>.</p>
+
+<h3>
+<a name="user-content-core-team" class="anchor" href="#core-team" aria-hidden="true"><span class="octicon octicon-link"></span></a>Core Team</h3>
+
+<ul class="task-list">
+<li>Jeff Casimir (<a href="mailto:jeff@jumpstartlab.com">jeff@jumpstartlab.com</a>)</li>
+<li>Steve Klabnik (<a href="mailto:steve@jumpstartlab.com">steve@jumpstartlab.com</a>)</li>
+<li>Vasiliy Ermolovich</li>
+<li>Andrew Haines</li>
+</ul></article></div>

@@ -1,0 +1,1185 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage">
+
+<h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a>Name</h1>
+
+<p><strong>ngx_srcache</strong> - Transparent subrequest-based caching layout for arbitrary nginx locations</p>
+
+<p><em>This module is not distributed with the Nginx source.</em> See <a href="#installation">the installation instructions</a>.</p>
+
+<h1>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h1>
+
+<ul class="task-list">
+<li><a href="#status">Status</a></li>
+<li><a href="#version">Version</a></li>
+<li><a href="#synopsis">Synopsis</a></li>
+<li>
+<a href="#description">Description</a>
+
+<ul class="task-list">
+<li><a href="#subrequest-caching">Subrequest caching</a></li>
+<li><a href="#distributed-memcached-caching">Distributed Memcached Caching</a></li>
+<li><a href="#caching-with-redis">Caching with Redis</a></li>
+<li><a href="#cache-key-preprocessing">Cache Key Preprocessing</a></li>
+</ul>
+</li>
+<li>
+<a href="#directives">Directives</a>
+
+<ul class="task-list">
+<li><a href="#srcache_fetch">srcache_fetch</a></li>
+<li><a href="#srcache_fetch_skip">srcache_fetch_skip</a></li>
+<li><a href="#srcache_store">srcache_store</a></li>
+<li><a href="#srcache_store_max_size">srcache_store_max_size</a></li>
+<li><a href="#srcache_store_skip">srcache_store_skip</a></li>
+<li><a href="#srcache_store_statuses">srcache_store_statuses</a></li>
+<li><a href="#srcache_store_ranges">srcache_store_ranges</a></li>
+<li><a href="#srcache_header_buffer_size">srcache_header_buffer_size</a></li>
+<li><a href="#srcache_store_hide_header">srcache_store_hide_header</a></li>
+<li><a href="#srcache_store_pass_header">srcache_store_pass_header</a></li>
+<li><a href="#srcache_methods">srcache_methods</a></li>
+<li><a href="#srcache_ignore_content_encoding">srcache_ignore_content_encoding</a></li>
+<li><a href="#srcache_request_cache_control">srcache_request_cache_control</a></li>
+<li><a href="#srcache_response_cache_control">srcache_response_cache_control</a></li>
+<li><a href="#srcache_store_no_store">srcache_store_no_store</a></li>
+<li><a href="#srcache_store_no_cache">srcache_store_no_cache</a></li>
+<li><a href="#srcache_store_private">srcache_store_private</a></li>
+<li><a href="#srcache_default_expire">srcache_default_expire</a></li>
+<li><a href="#srcache_max_expire">srcache_max_expire</a></li>
+</ul>
+</li>
+<li>
+<a href="#variables">Variables</a>
+
+<ul class="task-list">
+<li><a href="#srcache_expire">$srcache_expire</a></li>
+<li><a href="#srcache_fetch_status">$srcache_fetch_status</a></li>
+<li><a href="#srcache_store_status">$srcache_store_status</a></li>
+</ul>
+</li>
+<li><a href="#known-issues">Known Issues</a></li>
+<li><a href="#caveats">Caveats</a></li>
+<li><a href="#trouble-shooting">Trouble Shooting</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#compatibility">Compatibility</a></li>
+<li>
+<a href="#community">Community</a>
+
+<ul class="task-list">
+<li><a href="#english-mailing-list">English Mailing List</a></li>
+<li><a href="#chinese-mailing-list">Chinese Mailing List</a></li>
+</ul>
+</li>
+<li><a href="#bugs-and-patches">Bugs and Patches</a></li>
+<li><a href="#source-repository">Source Repository</a></li>
+<li><a href="#test-suite">Test Suite</a></li>
+<li><a href="#todo">TODO</a></li>
+<li><a href="#getting-involved">Getting involved</a></li>
+<li><a href="#author">Author</a></li>
+<li><a href="#copyright--license">Copyright &amp; License</a></li>
+<li><a href="#see-also">See Also</a></li>
+</ul><h1>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h1>
+
+<p>This module is production ready.</p>
+
+<h1>
+<a name="user-content-version" class="anchor" href="#version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version</h1>
+
+<p>This document describes srcache-nginx-module <a href="https://github.com/openresty/srcache-nginx-module/tags">v0.28</a> released on 8 July 2014.</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h1>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">upstream</span> <span class="s">my_memcached</span> <span class="p">{</span>
+    <span class="kn">server</span> <span class="n">10.62.136.7</span><span class="p">:</span><span class="mi">11211</span><span class="p">;</span>
+    <span class="kn">keepalive</span> <span class="mi">512</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">location</span> <span class="p">=</span> <span class="s">/memc</span> <span class="p">{</span>
+    <span class="kn">internal</span><span class="p">;</span>
+
+    <span class="kn">memc_connect_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+    <span class="kn">memc_send_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+    <span class="kn">memc_read_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+    <span class="kn">memc_ignore_client_abort</span> <span class="no">on</span><span class="p">;</span>
+
+    <span class="kn">set</span> <span class="nv">$memc_key</span> <span class="nv">$query_string</span><span class="p">;</span>
+    <span class="kn">set</span> <span class="nv">$memc_exptime</span> <span class="mi">300</span><span class="p">;</span>
+
+    <span class="kn">memc_pass</span> <span class="s">my_memcached</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">location</span> <span class="s">/foo</span> <span class="p">{</span>
+    <span class="kn">set</span> <span class="nv">$key</span> <span class="nv">$uri$args</span><span class="p">;</span>
+    <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+    <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+    <span class="kn">srcache_store_statuses</span> <span class="mi">200</span> <span class="mi">301</span> <span class="mi">302</span><span class="p">;</span>
+
+    <span class="c1"># proxy_pass/fastcgi_pass/drizzle_pass/echo/etc...</span>
+    <span class="c1"># or even static files on the disk</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">location</span> <span class="p">=</span> <span class="s">/memc2</span> <span class="p">{</span>
+    <span class="kn">internal</span><span class="p">;</span>
+
+    <span class="kn">memc_connect_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+    <span class="kn">memc_send_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+    <span class="kn">memc_read_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+    <span class="kn">memc_ignore_client_abort</span> <span class="no">on</span><span class="p">;</span>
+
+    <span class="kn">set_unescape_uri</span> <span class="nv">$memc_key</span> <span class="nv">$arg_key</span><span class="p">;</span>
+    <span class="kn">set</span> <span class="nv">$memc_exptime</span> <span class="nv">$arg_exptime</span><span class="p">;</span>
+
+    <span class="kn">memc_pass</span> <span class="s">unix:/tmp/memcached.sock</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">location</span> <span class="s">/bar</span> <span class="p">{</span>
+    <span class="kn">set_escape_uri</span> <span class="nv">$key</span> <span class="nv">$uri$args</span><span class="p">;</span>
+    <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc2</span> <span class="s">key=</span><span class="nv">$key</span><span class="p">;</span>
+    <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/memc2</span> <span class="s">key=</span><span class="nv">$key&amp;exptime=$srcache_expire</span><span class="p">;</span>
+
+    <span class="c1"># proxy_pass/fastcgi_pass/drizzle_pass/echo/etc...</span>
+    <span class="c1"># or even static files on the disk</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">map</span> <span class="nv">$request_method</span> <span class="nv">$skip_fetch</span> <span class="p">{</span>
+    <span class="kn">default</span>     <span class="mi">0</span><span class="p">;</span>
+    <span class="kn">POST</span>        <span class="mi">1</span><span class="p">;</span>
+    <span class="kn">PUT</span>         <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">server</span> <span class="p">{</span>
+    <span class="kn">listen</span> <span class="mi">8080</span><span class="p">;</span>
+
+    <span class="kn">location</span> <span class="s">/api/</span> <span class="p">{</span>
+        <span class="kn">set</span> <span class="nv">$key</span> <span class="s">"</span><span class="nv">$uri?$args"</span><span class="p">;</span>
+
+        <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+        <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+
+        <span class="kn">srcache_methods</span> <span class="s">GET</span> <span class="s">PUT</span> <span class="s">POST</span><span class="p">;</span>
+        <span class="kn">srcache_fetch_skip</span> <span class="nv">$skip_fetch</span><span class="p">;</span>
+
+        <span class="c1"># proxy_pass/drizzle_pass/content_by_lua/echo/...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h1>
+
+<p>This module provides a transparent caching layer for arbitrary nginx locations (like those use an upstream or even serve static disk files). The caching behavior is mostly compatible with <a href="http://www.ietf.org/rfc/rfc2616.txt">RFC 2616</a>.</p>
+
+<p>Usually, <a href="http://github.com/openresty/memc-nginx-module">memc-nginx-module</a> is used together with this module to provide a concrete caching storage backend. But technically, any modules that provide a REST interface can be used as the fetching and storage subrequests used by this module.</p>
+
+<p>For main requests, the <a href="#srcache_fetch">srcache_fetch</a> directive works at the end of the access phase, so the <a href="http://nginx.org/en/docs/http/ngx_http_access_module.html">standard access module</a>'s <a href="http://nginx.org/en/docs/http/ngx_http_access_module.html#allow">allow</a> and <a href="http://nginx.org/en/docs/http/ngx_http_access_module.html#deny">deny</a> direcives run <em>before</em> ours, which is usually the desired behavior for security reasons.</p>
+
+<p>The workflow of this module looks like below:</p>
+
+<p><a href="https://camo.githubusercontent.com/60900ca6df530e69b28514b934550eba7a2088c0/687474703a2f2f6167656e747a682e6f72672f6d6973632f696d6167652f737263616368652d666c6f7763686172742e706e67" target="_blank"><img src="https://camo.githubusercontent.com/60900ca6df530e69b28514b934550eba7a2088c0/687474703a2f2f6167656e747a682e6f72672f6d6973632f696d6167652f737263616368652d666c6f7763686172742e706e67" alt="srcache flowchart" title="srcache flowchart" data-canonical-src="http://agentzh.org/misc/image/srcache-flowchart.png" style="max-width:100%;"></a></p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-subrequest-caching" class="anchor" href="#subrequest-caching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Subrequest caching</h2>
+
+<p>For <em>subrequests</em>, we explicitly <strong>disallow</strong> the use of this module because it's too difficult to get right. There used to be an implementation but it was buggy and I finally gave up fixing it and abandoned it.</p>
+
+<p>However, if you're using <a href="http://github.com/openresty/lua-nginx-module">lua-nginx-module</a>, it's easy to do subrequest caching in Lua all by yourself. That is, first issue a subrequest to an <a href="http://github.com/openresty/memc-nginx-module">memc-nginx-module</a> location to do an explicit cache lookup, if cache hit, just use the cached data returned; otherwise, fall back to the true backend, and finally do a cache insertion to feed the data into the cache.</p>
+
+<p>Using this module for main request caching and Lua for subrequest caching is the approach that we're taking in our business. This hybrid solution works great in production.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-distributed-memcached-caching" class="anchor" href="#distributed-memcached-caching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Distributed Memcached Caching</h2>
+
+<p>Here is a simple example demonstrating a distributed memcached caching mechanism built atop this module. Suppose we do have three different memcacached nodes and we use simple modulo to hash our keys.</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">http</span> <span class="p">{</span>
+    <span class="kn">upstream</span> <span class="s">moon</span> <span class="p">{</span>
+        <span class="kn">server</span> <span class="n">10.62.136.54</span><span class="p">:</span><span class="mi">11211</span><span class="p">;</span>
+        <span class="kn">server</span> <span class="s">unix:/tmp/memcached.sock</span> <span class="s">backup</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kn">upstream</span> <span class="s">earth</span> <span class="p">{</span>
+        <span class="kn">server</span> <span class="n">10.62.136.55</span><span class="p">:</span><span class="mi">11211</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kn">upstream</span> <span class="s">sun</span> <span class="p">{</span>
+        <span class="kn">server</span> <span class="n">10.62.136.56</span><span class="p">:</span><span class="mi">11211</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kn">upstream_list</span> <span class="s">universe</span> <span class="s">moon</span> <span class="s">earth</span> <span class="s">sun</span><span class="p">;</span>
+
+    <span class="kn">server</span> <span class="p">{</span>
+        <span class="kn">memc_connect_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+        <span class="kn">memc_send_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+        <span class="kn">memc_read_timeout</span> <span class="s">100ms</span><span class="p">;</span>
+
+        <span class="kn">location</span> <span class="p">=</span> <span class="s">/memc</span> <span class="p">{</span>
+            <span class="kn">internal</span><span class="p">;</span>
+
+            <span class="kn">set</span> <span class="nv">$memc_key</span> <span class="nv">$query_string</span><span class="p">;</span>
+            <span class="kn">set_hashed_upstream</span> <span class="nv">$backend</span> <span class="s">universe</span> <span class="nv">$memc_key</span><span class="p">;</span>
+            <span class="kn">set</span> <span class="nv">$memc_exptime</span> <span class="mi">3600</span><span class="p">;</span> <span class="c1"># in seconds</span>
+            <span class="kn">memc_pass</span> <span class="nv">$backend</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="kn">location</span> <span class="s">/</span> <span class="p">{</span>
+            <span class="kn">set</span> <span class="nv">$key</span> <span class="nv">$uri</span><span class="p">;</span>
+            <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+            <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+
+            <span class="c1"># proxy_pass/fastcgi_pass/content_by_lua/drizzle_pass/...</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Here's what is going on in the sample above:
+1. We first define three upstreams, <code>moon</code>, <code>earth</code>, and <code>sun</code>. These are our three memcached servers.
+1. And then we group them together as an upstream list entity named <code>universe</code> with the <code>upstream_list</code> directive provided by <a href="http://github.com/openresty/set-misc-nginx-module">set-misc-nginx-module</a>.
+1. After that, we define an internal location named <code>/memc</code> for talking to the memcached cluster.
+1. In this <code>/memc</code> location, we first set the <code>$memc_key</code> variable with the query string (<code>$args</code>), and then use the <a href="http://github.com/openresty/set-misc-nginx-module#set_hashed_upstream">set_hashed_upstream</a> directive to hash our <a href="http://github.com/openresty/memc-nginx-module#memc_key">$memc_key</a> over the upsteam list <code>universe</code>, so as to obtain a concrete upstream name to be assigned to the variable <code>$backend</code>.
+1. We pass this <code>$backend</code> variable into the <a href="http://github.com/openresty/memc-nginx-module#memc_pass">memc_pass</a> directive. The <code>$backend</code> variable can hold a value among <code>moon</code>, <code>earth</code>, and <code>sun</code>.
+1. Also, we define the memcached caching expiration time to be 3600 seconds (i.e., an hour) by overriding the <a href="http://github.com/openresty/memc-nginx-module#memc_exptime">$memc_exptime</a> variable.
+1. In our main public location <code>/</code>, we configure the <code>$uri</code> variable as our cache key, and then configure <a href="#srcache_fetch">srcache_fetch</a> for cache lookups and <a href="#srcache_store">srcache_store</a> for cache updates. We're using two subrequests to our <code>/memc</code> location defined earlier in these two directives.</p>
+
+<p>One can use <a href="http://github.com/openresty/lua-nginx-module">lua-nginx-module</a>'s <a href="http://github.com/openresty/lua-nginx-module#set_by_lua">set_by_lua</a> or <a href="http://github.com/openresty/lua-nginx-module#rewrite_by_lua">rewrite_by_lua</a> directives to inject custom Lua code to compute the <code>$backend</code> and/or <code>$key</code> variables in the sample above.</p>
+
+<p>One thing that should be taken care of is that memcached does have restriction on key lengths, i.e., 250 bytes, so for keys that may be very long, one could use the <a href="http://github.com/openresty/set-misc-nginx-module#set_md5">set_md5</a> directive or its friends to pre-hash the key to a fixed-length digest before assigning it to <code>$memc_key</code> in the <code>/memc</code> location or the like.</p>
+
+<p>Further, one can utilize the <a href="#srcache_fetch_skip">srcache_fetch_skip</a> and <a href="#srcache_store_skip">srcache_store_skip</a> directives to control what to cache and what not on a per-request basis, and Lua can also be used here in a similar way. So the possibility is really unlimited.</p>
+
+<p>To maximize speed, we often enable TCP (or Unix Domain Socket) connection pool for our memcached upstreams provided by <a href="http://wiki.nginx.org/HttpUpstreamKeepaliveModule">HttpUpstreamKeepaliveModule</a>, for example,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">upstream</span> <span class="s">moon</span> <span class="p">{</span>
+    <span class="kn">server</span> <span class="n">10.62.136.54</span><span class="p">:</span><span class="mi">11211</span><span class="p">;</span>
+    <span class="kn">server</span> <span class="s">unix:/tmp/memcached.sock</span> <span class="s">backup</span><span class="p">;</span>
+    <span class="kn">keepalive</span> <span class="mi">512</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>where we define a connection pool which holds up to 512 keep-alive connections for our <code>moon</code> upstream (cluster).</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-caching-with-redis" class="anchor" href="#caching-with-redis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caching with Redis</h2>
+
+<p>One annoyance with Memcached backed caching is Memcached server's 1 MB value size limit. So it is often desired to use some more permissive backend storage services like Redis to serve as this module's backend.</p>
+
+<p>Here is a working example by using Redis:</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">location</span> <span class="s">/api</span> <span class="p">{</span>
+    <span class="kn">default_type</span> <span class="s">text/css</span><span class="p">;</span>
+
+    <span class="kn">set</span> <span class="nv">$key</span> <span class="nv">$uri</span><span class="p">;</span>
+    <span class="kn">set_escape_uri</span> <span class="nv">$escaped_key</span> <span class="nv">$key</span><span class="p">;</span>
+
+    <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/redis</span> <span class="nv">$key</span><span class="p">;</span>
+    <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/redis2</span> <span class="s">key=</span><span class="nv">$escaped_key&amp;exptime=120</span><span class="p">;</span>
+
+    <span class="c1"># fastcgi_pass/proxy_pass/drizzle_pass/postgres_pass/echo/etc</span>
+<span class="p">}</span>
+
+<span class="k">location</span> <span class="p">=</span> <span class="s">/redis</span> <span class="p">{</span>
+    <span class="kn">internal</span><span class="p">;</span>
+
+    <span class="kn">set_md5</span> <span class="nv">$redis_key</span> <span class="nv">$args</span><span class="p">;</span>
+    <span class="kn">redis_pass</span> <span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">6379</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">location</span> <span class="p">=</span> <span class="s">/redis2</span> <span class="p">{</span>
+    <span class="kn">internal</span><span class="p">;</span>
+
+    <span class="kn">set_unescape_uri</span> <span class="nv">$exptime</span> <span class="nv">$arg_exptime</span><span class="p">;</span>
+    <span class="kn">set_unescape_uri</span> <span class="nv">$key</span> <span class="nv">$arg_key</span><span class="p">;</span>
+    <span class="kn">set_md5</span> <span class="nv">$key</span><span class="p">;</span>
+
+    <span class="kn">redis2_query</span> <span class="s">set</span> <span class="nv">$key</span> <span class="nv">$echo_request_body</span><span class="p">;</span>
+    <span class="kn">redis2_query</span> <span class="s">expire</span> <span class="nv">$key</span> <span class="nv">$exptime</span><span class="p">;</span>
+    <span class="kn">redis2_pass</span> <span class="n">127.0.0.1</span><span class="p">:</span><span class="mi">6379</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This example makes use of the <a href="http://github.com/openresty/echo-nginx-module#echo_request_body">$echo_request_body</a> variable provided by <a href="http://github.com/openresty/echo-nginx-module">echo-nginx-module</a>. Note that you need the latest version of <a href="http://github.com/openresty/echo-nginx-module">echo-nginx-module</a>, <code>v0.38rc2</code> because earlier versions may not work reliably.</p>
+
+<p>Also, you need both <a href="http://wiki.nginx.org/HttpRedisModule">HttpRedisModule</a> and <a href="http://github.com/openresty/redis2-nginx-module">redis2-nginx-module</a>. The former is used in the <a href="#srcache_fetch">srcache_fetch</a> subrequest and the latter is used in the <a href="#srcache_store">srcache_store</a> subrequest.</p>
+
+<p>The Nginx core also has a bug that could prevent <a href="http://github.com/openresty/redis2-nginx-module">redis2-nginx-module</a>'s pipelining support from working properly in certain extreme conditions. And the following patch fixes this:</p>
+
+<p><a href="http://mailman.nginx.org/pipermail/nginx-devel/2012-March/002040.html">http://mailman.nginx.org/pipermail/nginx-devel/2012-March/002040.html</a></p>
+
+<p>Note that, however, if you are using the <a href="http://openresty.org/">ngx_openresty</a> 1.0.15.3 bundle or later, then you already have everything that you need here in the bundle.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-cache-key-preprocessing" class="anchor" href="#cache-key-preprocessing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cache Key Preprocessing</h2>
+
+<p>It is often desired to preprocess the cache key to exclude random noises that may hurt the cache hit rate. For example, random session IDs in the URI arguments are usually desired to get removed.</p>
+
+<p>Consider the following URI querystring</p>
+
+<pre><code>SID=BC3781C3-2E02-4A11-89CF-34E5CFE8B0EF&amp;UID=44332&amp;L=EN&amp;M=1&amp;H=1&amp;UNC=0&amp;SRC=LK&amp;RT=62
+</code></pre>
+
+<p>we want to remove the <code>SID</code> and <code>UID</code> arguments from it. It is easy to achieve if you use <a href="http://github.com/openresty/lua-nginx-module">lua-nginx-module</a> at the same time:</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">location</span> <span class="p">=</span> <span class="s">/t</span> <span class="p">{</span>
+    <span class="kn">rewrite_by_lua</span> <span class="s">'</span>
+        <span class="s">local</span> <span class="s">args</span> <span class="p">=</span> <span class="s">ngx.req.get_uri_args()</span>
+        <span class="s">args.SID</span> <span class="p">=</span> <span class="s">nil</span>
+        <span class="s">args.UID</span> <span class="p">=</span> <span class="s">nil</span>
+        <span class="s">ngx.req.set_uri_args(args)</span>
+    <span class="s">'</span><span class="p">;</span>
+
+    <span class="kn">echo</span> <span class="nv">$args</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Here we use the <a href="http://github.com/openresty/echo-nginx-module#echo">echo</a> directive from <a href="http://github.com/openresty/echo-nginx-module">echo-nginx-module</a> to dump out
+the final value of <a href="http://nginx.org/en/docs/http/ngx_http_core_module.html#var_args">$args</a> in the end. You can replace it with your
+[[HttpSRCacheModule]] configurations and upstream configurations instead for
+your case. Let's test this /t interface with curl:</p>
+
+<pre><code>$ curl 'localhost:8081/t?RT=62&amp;SID=BC3781C3-2E02-4A11-89CF-34E5CFE8B0EF&amp;UID=44332&amp;L=EN&amp;M=1&amp;H=1&amp;UNC=0&amp;SRC=LK'
+M=1&amp;UNC=0&amp;RT=62&amp;H=1&amp;L=EN&amp;SRC=LK
+</code></pre>
+
+<p>It is worth mentioning that, if you want to retain the order of the URI
+arguments, then you can do string substitutions on the value of <a href="http://nginx.org/en/docs/http/ngx_http_core_module.html#var_args">$args</a>
+directly, for example,</p>
+
+<pre><code>location = /t {
+    rewrite_by_lua '
+        local args = ngx.var.args
+        newargs, n, err = ngx.re.gsub(args, [[\b[SU]ID=[^&amp;]*&amp;?]], "", "jo")
+        if n and n &gt; 0 then
+            ngx.var.args = newargs
+        end
+    ';
+
+    echo $args;
+}
+</code></pre>
+
+<p>Now test it with the original curl command again, we get exactly what
+we would expect:</p>
+
+<pre><code>RT=62&amp;L=EN&amp;M=1&amp;H=1&amp;UNC=0&amp;SRC=LK
+</code></pre>
+
+<p>But for caching purposes, it's good to normalize the URI argument
+order so that you can increase the cache hit rate. And the hash table
+entry order used by LuaJIT or Lua can be used to normalize the order
+as a nice side effect.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-directives" class="anchor" href="#directives" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directives</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_fetch" class="anchor" href="#srcache_fetch" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_fetch</h2>
+
+<p><strong>syntax:</strong> <em>srcache_fetch &lt;method&gt; &lt;uri&gt; &lt;args&gt;?</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>post-access</em></p>
+
+<p>This directive registers an access phase handler that will issue an Nginx subrequest to lookup the cache.</p>
+
+<p>When the subrequest returns status code other than <code>200</code>, than a cache miss is signaled and the control flow will continue to the later phases including the content phase configured by <a href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html">ngx_http_proxy_module</a>, <a href="http://nginx.org/en/docs/http/ngx_http_fastcgi_module.html">ngx_http_fastcgi_module</a>, and others. If the subrequest returns <code>200 OK</code>, then a cache hit is signaled and this module will send the subrequest's response as the current main request's response to the client directly.</p>
+
+<p>This directive will always run at the end of the access phase, such that <a href="http://nginx.org/en/docs/http/ngx_http_access_module.html">ngx_http_access_module</a>'s <a href="http://nginx.org/en/docs/http/ngx_http_access_module.html#allow">allow</a> and <a href="http://nginx.org/en/docs/http/ngx_http_access_module.html#deny">deny</a> will always run <em>before</em> this.</p>
+
+<p>You can use the <a href="#srcache_fetch_skip">srcache_fetch_skip</a> directive to disable cache look-up selectively.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_fetch_skip" class="anchor" href="#srcache_fetch_skip" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_fetch_skip</h2>
+
+<p><strong>syntax:</strong> <em>srcache_fetch_skip &lt;flag&gt;</em></p>
+
+<p><strong>default:</strong> <em>srcache_fetch_skip 0</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>post-access</em></p>
+
+<p>The <code>&lt;flag&gt;</code> argument supports nginx variables. When this argument's value is not empty <em>and</em> not equal to <code>0</code>, then the fetching process will be unconditionally skipped.</p>
+
+<p>For example, to skip caching requests which have a cookie named <code>foo</code> with the value <code>bar</code>, we can write</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">location</span> <span class="s">/</span> <span class="p">{</span>
+    <span class="kn">set</span> <span class="nv">$key</span> <span class="s">...</span><span class="p">;</span>
+    <span class="kn">set_by_lua</span> <span class="nv">$skip</span> <span class="s">'</span>
+        <span class="s">if</span> <span class="s">ngx.var.cookie_foo</span> <span class="p">==</span> <span class="s">"bar"</span> <span class="s">then</span>
+            <span class="s">return</span> <span class="mi">1</span>
+        <span class="s">end</span>
+        <span class="s">return</span> <span class="mi">0</span>
+    <span class="s">'</span><span class="p">;</span>
+
+    <span class="kn">srcache_fetch_skip</span> <span class="nv">$skip</span><span class="p">;</span>
+    <span class="kn">srcache_store_skip</span> <span class="nv">$skip</span><span class="p">;</span>
+
+    <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+    <span class="kn">srcache_store</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+
+    <span class="c1"># proxy_pass/fastcgi_pass/content_by_lua/...</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>where <a href="http://github.com/openresty/lua-nginx-module">lua-nginx-module</a> is used to calculate the value of the <code>$skip</code> variable at the (earlier) rewrite phase. Similarly, the <code>$key</code> variable can be computed by Lua using the <a href="http://github.com/openresty/lua-nginx-module#set_by_lua">set_by_lua</a> or <a href="http://github.com/openresty/lua-nginx-module#rewrite_by_lua">rewrite_by_lua</a> directive too.</p>
+
+<p>The standard <a href="http://nginx.org/en/docs/http/ngx_http_map_module.html#map">map</a> directive can also be used to compute the value of the <code>$skip</code> variable used in the sample above:</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">map</span> <span class="nv">$cookie_foo</span> <span class="nv">$skip</span> <span class="p">{</span>
+    <span class="kn">default</span>     <span class="mi">0</span><span class="p">;</span>
+    <span class="kn">bar</span>         <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>but your <a href="http://nginx.org/en/docs/http/ngx_http_map_module.html#map">map</a> statement should be put into the <code>http</code> config block in your <code>nginx.conf</code> file though.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store" class="anchor" href="#srcache_store" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store &lt;method&gt; &lt;uri&gt; &lt;args&gt;?</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-filter</em></p>
+
+<p>This directive registers an output filter handler that will issue an Nginx subrequest to save the response of the current main request into a cache backend. The status code of the subrequest will be ignored.</p>
+
+<p>You can use the <a href="#srcache_store_skip">srcache_store_skip</a> and <a href="#srcache_store_max_size">srcache_store_max_size</a> directives to disable caching for certain requests in case of a cache miss.</p>
+
+<p>Since the <code>v0.12rc7</code> release, both the response status line, response headers, and response bodies will be put into the cache. By default, the following special response headers will not be cached:</p>
+
+<ul class="task-list">
+<li>Connection</li>
+<li>Keep-Alive</li>
+<li>Proxy-Authenticate</li>
+<li>Proxy-Authorization</li>
+<li>TE</li>
+<li>Trailers</li>
+<li>Transfer-Encoding</li>
+<li>Upgrade</li>
+<li>Set-Cookie</li>
+</ul><p>You can use the <a href="#srcache_store_pass_header">srcache_store_pass_header</a> and/or <a href="#srcache_store_hide_header">srcache_store_hide_header</a> directives to control what headers to cache and what not.</p>
+
+<p>The original response's data chunks get emitted as soon as 
+they arrive. <code>srcache_store</code> just copies and collects the data in an output filter without postponing them from being sent downstream.</p>
+
+<p>But please note that even though all the response data will be sent immediately, the current Nginx request lifetime will not finish until the srcache_store subrequest completes. That means a delay in closing the TCP connection on the server side (when HTTP keepalive is disabled, but proper HTTP clients should close the connection actively on the client side, which adds no extra delay or other issues at all) or serving the next request sent on the same TCP connection (when HTTP keepalive is in action).</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_max_size" class="anchor" href="#srcache_store_max_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_max_size</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_max_size &lt;size&gt;</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_max_size 0</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>When the response body length is exceeding this size, this module will not try to store the response body into the cache using the subrequest template that is specified in <a href="#srcache_store">srcache_store</a>.</p>
+
+<p>This is particular useful when using cache storage backend that does have a hard upper limit on the input data. For example, for Memcached server, the limit is usually <code>1 MB</code>.</p>
+
+<p>When <code>0</code> is specified (the default value), there's no limit check at all.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_skip" class="anchor" href="#srcache_store_skip" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_skip</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_skip &lt;flag&gt;</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_skip 0</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>The <code>&lt;flag&gt;</code> argument supports Nginx variables. When this argument's value is not empty <em>and</em> not equal to <code>0</code>, then the storing process will be unconditionally skipped.</p>
+
+<p>Starting from the <code>v0.25</code> release, the <code>&lt;flag&gt;</code> expression (possibly containing Nginx variables) can be evaluated up to twice: the first time is right after the response header is being sent and when the <code>&lt;flag&gt;</code> expression is not evaluated to true values it will be evaluated again right after the end of the response body data stream is seen. Before <code>v0.25</code>, only the first time evaluation is performed.</p>
+
+<p>Here's an example using Lua to set $nocache to avoid storing URIs that contain the string "/tmp":</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">set_by_lua</span> <span class="nv">$nocache</span> <span class="s">'</span>
+    <span class="s">if</span> <span class="s">string.match(ngx.var.uri,</span> <span class="s">"/tmp")</span> <span class="s">then</span>
+        <span class="s">return</span> <span class="mi">1</span>
+    <span class="s">end</span>
+    <span class="s">return</span> <span class="mi">0</span><span class="s">'</span><span class="p">;</span>
+
+<span class="k">srcache_store_skip</span> <span class="nv">$nocache</span><span class="p">;</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_statuses" class="anchor" href="#srcache_store_statuses" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_statuses</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_statuses &lt;status1&gt; &lt;status2&gt; ..</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_statuses 200 301 302</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>This directive controls what responses to store to the cache according to their status code.</p>
+
+<p>By default, only <code>200</code>, <code>301</code>, and <code>302</code> responses will be stored to cache and any other responses will skip <a href="#srcache_store">srcache_store</a>.</p>
+
+<p>You can specify arbitrary positive numbers for the response status code that you'd like to cache, even including error code like <code>404</code> and <code>503</code>. For example:</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">srcache_store_statuses</span> <span class="mi">200</span> <span class="mi">201</span> <span class="mi">301</span> <span class="mi">302</span> <span class="mi">404</span> <span class="mi">503</span><span class="p">;</span>
+</pre></div>
+
+<p>At least one argument should be given to this directive.</p>
+
+<p>This directive was first introduced in the <code>v0.13rc2</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_ranges" class="anchor" href="#srcache_store_ranges" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_ranges</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_ranges on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_ranges off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-body-filter</em></p>
+
+<p>When this directive is turned on (default to <code>off</code>), <a href="#srcache_store">srcache_store</a> will also store 206 Partial Content responses generated by the standard <code>ngx_http_range_filter_module</code>. If you turn this directive on, you MUST add <code>$http_range</code> to your cache keys. For example,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">location</span> <span class="s">/</span> <span class="p">{</span>
+    <span class="kn">set</span> <span class="nv">$key</span> <span class="s">"</span><span class="nv">$uri$args$http_range"</span><span class="p">;</span>
+    <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+    <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This directive was first introduced in the <code>v0.27</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_header_buffer_size" class="anchor" href="#srcache_header_buffer_size" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_header_buffer_size</h2>
+
+<p><strong>syntax:</strong> <em>srcache_header_buffer_size &lt;size&gt;</em></p>
+
+<p><strong>default:</strong> <em>srcache_header_buffer_size 4k/8k</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>This directive controles the header buffer when serializing response headers for <a href="#srcache_store">srcache_store</a>. The default size is the page size, usually <code>4k</code> or <code>8k</code> depending on specific platforms.</p>
+
+<p>Note that the buffer is not used to hold all the response headers, but just each individual header. So the buffer is merely needed to be big enough to hold the longest response header.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_hide_header" class="anchor" href="#srcache_store_hide_header" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_hide_header</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_hide_header &lt;header&gt;</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>By default, this module caches all the response headers except the following ones:</p>
+
+<ul class="task-list">
+<li>Connection</li>
+<li>Keep-Alive</li>
+<li>Proxy-Authenticate</li>
+<li>Proxy-Authorization</li>
+<li>TE</li>
+<li>Trailers</li>
+<li>Transfer-Encoding</li>
+<li>Upgrade</li>
+<li>Set-Cookie</li>
+</ul><p>You can hide even more response headers from <a href="#srcache_store">srcache_store</a> by listing their names (case-insensitive) by means of this directive. For examples,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">srcache_store_hide_header</span> <span class="s">X-Foo</span><span class="p">;</span>
+<span class="k">srcache_store_hide_header</span> <span class="s">Last-Modified</span><span class="p">;</span>
+</pre></div>
+
+<p>Multiple occurrences of this directive are allowed in a single location.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p>See also <a href="#srcache_store_pass_header">srcache_store_pass_header</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_pass_header" class="anchor" href="#srcache_store_pass_header" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_pass_header</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_pass_header &lt;header&gt;</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>By default, this module caches all the response headers except the following ones:</p>
+
+<ul class="task-list">
+<li>Connection</li>
+<li>Keep-Alive</li>
+<li>Proxy-Authenticate</li>
+<li>Proxy-Authorization</li>
+<li>TE</li>
+<li>Trailers</li>
+<li>Transfer-Encoding</li>
+<li>Upgrade</li>
+<li>Set-Cookie</li>
+</ul><p>You can force <a href="#srcache_store">srcache_store</a> to store one or more of these response headers from <a href="#srcache_store">srcache_store</a> by listing their names (case-insensitive) by means of this directive. For examples,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">srcache_store_pass_header</span> <span class="s">Set-Cookie</span><span class="p">;</span>
+<span class="k">srcache_store_pass_header</span> <span class="s">Proxy-Autenticate</span><span class="p">;</span>
+</pre></div>
+
+<p>Multiple occurrences of this directive are allowed in a single location.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p>See also <a href="#srcache_store_hide_header">srcache_store_hide_header</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_methods" class="anchor" href="#srcache_methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_methods</h2>
+
+<p><strong>syntax:</strong> <em>srcache_methods &lt;method&gt;...</em></p>
+
+<p><strong>default:</strong> <em>srcache_methods GET HEAD</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p><strong>phase:</strong> <em>post-access, output-header-filter</em></p>
+
+<p>This directive specifies HTTP request methods that are considered by either <a href="#srcache_fetch">srcache_fetch</a> or <a href="#srcache_store">srcache_store</a>. HTTP request methods not listed will be skipped completely from the cache.</p>
+
+<p>The following HTTP methods are allowed: <code>GET</code>, <code>HEAD</code>, <code>POST</code>, <code>PUT</code>, and <code>DELETE</code>. The <code>GET</code> and <code>HEAD</code> methods are always implicitly included in the list regardless of their presence in this directive.</p>
+
+<p>Note that since the <code>v0.17</code> release <code>HEAD</code> requests are always skipped by <a href="#srcache_store">srcache_store</a> because their responses never carry a response body.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_ignore_content_encoding" class="anchor" href="#srcache_ignore_content_encoding" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_ignore_content_encoding</h2>
+
+<p><strong>syntax:</strong> <em>srcache_ignore_content_encoding on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_ignore_content_encoding off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>When this directive is turned <code>off</code> (which is the default), non-empty <code>Content-Encoding</code> response header will cause <a href="#srcache_store">srcache_store</a> skip storing the whole response into the cache and issue a warning into nginx's <code>error.log</code> file like this:</p>
+
+<pre><code>[warn] 12500#0: *1 srcache_store skipped due to response header "Content-Encoding: gzip"
+            (maybe you forgot to disable compression on the backend?)
+</code></pre>
+
+<p>Turning on this directive will ignore the <code>Content-Encoding</code> response header and store the response as usual (and also without warning).</p>
+
+<p>It's recommended to always disable gzip/deflate compression on your backend server by specifying the following line in your <code>nginx.conf</code> file:</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">proxy_set_header</span>  <span class="s">Accept-Encoding</span>  <span class="s">""</span><span class="p">;</span>
+</pre></div>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_request_cache_control" class="anchor" href="#srcache_request_cache_control" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_request_cache_control</h2>
+
+<p><strong>syntax:</strong> <em>srcache_request_cache_control on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_request_cache_control off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p><strong>phase:</strong> <em>post-access, output-header-filter</em></p>
+
+<p>When this directive is turned <code>on</code>, the request headers <code>Cache-Control</code> and <code>Pragma</code> will be honored by this module in the following ways:</p>
+
+<ol class="task-list">
+<li>
+<a href="#srcache_fetch">srcache_fetch</a>, i.e., the cache lookup operation, will be skipped when request headers <code>Cache-Control: no-cache</code> and/or <code>Pragma: no-cache</code> are present.</li>
+<li>
+<a href="#srcache_store">srcache_store</a>, i.e., the cache store operation, will be skipped when the request header <code>Cache-Control: no-store</code> is specified.</li>
+</ol><p>Turning off this directive will disable this functionality and is considered safer for busy sites mainly relying on cache for speed.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p>See also <a href="#srcache_response_cache_control">srcache_response_cache_control</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_response_cache_control" class="anchor" href="#srcache_response_cache_control" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_response_cache_control</h2>
+
+<p><strong>syntax:</strong> <em>srcache_response_cache_control on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_response_cache_control on</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>When this directive is turned <code>on</code>, the response headers <code>Cache-Control</code> and <code>Expires</code> will be honored by this module in the following ways:</p>
+
+<ul class="task-list">
+<li>
+<code>Cache-Control: private</code> skips <a href="#srcache_store">srcache_store</a>,</li>
+<li>
+<code>Cache-Control: no-store</code> skips <a href="#srcache_store">srcache_store</a>,</li>
+<li>
+<code>Cache-Control: no-cache</code> skips <a href="#srcache_store">srcache_store</a>,</li>
+<li>
+<code>Cache-Control: max-age=0</code> skips <a href="#srcache_store">srcache_store</a>,</li>
+<li>and <code>Expires: &lt;date-no-more-recently-than-now&gt;</code> skips <a href="#srcache_store">srcache_store</a>.</li>
+</ul><p>This directive takes priority over the <a href="#srcache_store_no_store">srcache_store_no_store</a>, <a href="#srcache_store_no_cache">srcache_store_no_cache</a>, and <a href="#srcache_store_private">srcache_store_private</a> directives.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p>See also <a href="#srcache_request_cache_control">srcache_request_cache_control</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_no_store" class="anchor" href="#srcache_store_no_store" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_no_store</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_no_store on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_no_store off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>Turning this directive on will force responses with the header <code>Cache-Control: no-store</code> to be stored into the cache when <a href="#srcache_response_cache_control">srcache_response_cache_control</a> is turned <code>on</code> <em>and</em> other conditions are met. Default to <code>off</code>.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_no_cache" class="anchor" href="#srcache_store_no_cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_no_cache</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_no_cache on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_no_cache off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>Turning this directive on will force responses with the header <code>Cache-Control: no-cache</code> to be stored into the cache when <a href="#srcache_response_cache_control">srcache_response_cache_control</a> is turned <code>on</code> <em>and</em> other conditions are met. Default to <code>off</code>.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_private" class="anchor" href="#srcache_store_private" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_store_private</h2>
+
+<p><strong>syntax:</strong> <em>srcache_store_private on|off</em></p>
+
+<p><strong>default:</strong> <em>srcache_store_private off</em></p>
+
+<p><strong>context:</strong> <em>http, server, location</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>Turning this directive on will force responses with the header <code>Cache-Control: private</code> to be stored into the cache when <a href="#srcache_response_cache_control">srcache_response_cache_control</a> is turned <code>on</code> <em>and</em> other conditions are met. Default to <code>off</code>.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_default_expire" class="anchor" href="#srcache_default_expire" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_default_expire</h2>
+
+<p><strong>syntax:</strong> <em>srcache_default_expire &lt;time&gt;</em></p>
+
+<p><strong>default:</strong> <em>srcache_default_expire 60s</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>This directive controls the default expiration time period that is allowed for the <a href="#srcache_expire">$srcache_expire</a> variable value when neither <code>Cache-Control: max-age=N</code> nor <code>Expires</code> are specified in the response headers.</p>
+
+<p>The <code>&lt;time&gt;</code> argument values are in seconds by default. But it's wise to always explicitly specify the time unit to avoid confusion. Time units supported are "s"(seconds), "ms"(milliseconds), "y"(years), "M"(months), "w"(weeks), "d"(days), "h"(hours), and "m"(minutes). For example,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">srcache_default_expire</span> <span class="mi">30m</span><span class="p">;</span> <span class="c1"># 30 minutes</span>
+</pre></div>
+
+<p>This time must be less than 597 hours.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_max_expire" class="anchor" href="#srcache_max_expire" aria-hidden="true"><span class="octicon octicon-link"></span></a>srcache_max_expire</h2>
+
+<p><strong>syntax:</strong> <em>srcache_max_expire &lt;time&gt;</em></p>
+
+<p><strong>default:</strong> <em>srcache_max_expire 0</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>This directive controls the maximal expiration time period that is allowed for the <a href="#srcache_expire">$srcache_expire</a> variable value. This setting takes priority over other calculating methods.</p>
+
+<p>The <code>&lt;time&gt;</code> argument values are in seconds by default. But it's wise to always explicitly specify the time unit to avoid confusion. Time units supported are "s"(seconds), "ms"(milliseconds), "y"(years), "M"(months), "w"(weeks), "d"(days), "h"(hours), and "m"(minutes). For example,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">srcache_max_expire</span> <span class="s">2h</span><span class="p">;</span>  <span class="c1"># 2 hours</span>
+</pre></div>
+
+<p>This time must be less than 597 hours.</p>
+
+<p>When <code>0</code> is specified, which is the default setting, then there will be <em>no</em> limit at all.</p>
+
+<p>This directive was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-variables" class="anchor" href="#variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Variables</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_expire" class="anchor" href="#srcache_expire" aria-hidden="true"><span class="octicon octicon-link"></span></a>$srcache_expire</h2>
+
+<p><strong>type:</strong> <em>integer</em></p>
+
+<p><strong>cacheable:</strong> <em>no</em></p>
+
+<p><strong>writable:</strong> <em>no</em></p>
+
+<p>This Nginx variable gives the recommended expiration time period (in seconds) for the current response being stored into the cache. The algorithm of computing the value is as follows:</p>
+
+<ol class="task-list">
+<li>When the response header <code>Cache-Control: max-age=N</code> is specified, then <code>N</code> will be used as the expiration time,</li>
+<li>otherwise if the response header <code>Expires</code> is specified, then the expiration time will be obtained by subtracting the current time stamp from the time specified in the <code>Expires</code> header,</li>
+<li>when neither <code>Cache-Control: max-age=N</code> nor <code>Expires</code> headers are specified, use the value specified in the <a href="#srcache_default_expire">srcache_default_expire</a> directive.</li>
+</ol><p>The final value of this variable will be the value specified by the <a href="#srcache_max_expire">srcache_max_expire</a> directive if the value obtained in the algorithm above exceeds the maximal value (if any).</p>
+
+<p>You don't have to use this variable for the expiration time.</p>
+
+<p>This variable was first introduced in the <code>v0.12rc7</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_fetch_status" class="anchor" href="#srcache_fetch_status" aria-hidden="true"><span class="octicon octicon-link"></span></a>$srcache_fetch_status</h2>
+
+<p><strong>type:</strong> <em>string</em></p>
+
+<p><strong>cacheable:</strong> <em>no</em></p>
+
+<p><strong>writable:</strong> <em>no</em></p>
+
+<p>This Nginx variable is evaluated to the status of the "fetch" phase for the caching system. Three values are possible, <code>HIT</code>, <code>MISS</code>, and <code>BYPASS</code>.</p>
+
+<p>When the "fetch" subrequest returns status code other than <code>200</code> or its response data is not well-formed, then this variable is evaluated to the value <code>MISS</code>.</p>
+
+<p>The value of this variable is only meaningful after the <code>access</code> request processing phase, or <code>BYPASS</code> is always given.</p>
+
+<p>This variable was first introduced in the <code>v0.14</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-srcache_store_status" class="anchor" href="#srcache_store_status" aria-hidden="true"><span class="octicon octicon-link"></span></a>$srcache_store_status</h2>
+
+<p><strong>type:</strong> <em>string</em></p>
+
+<p><strong>cacheable:</strong> <em>no</em></p>
+
+<p><strong>writable:</strong> <em>no</em></p>
+
+<p>This Nginx variable gives the current caching status for the "store" phase. Two possible values, <code>STORE</code> and <code>BYPASS</code> can be obtained.</p>
+
+<p>Because the responses for the "store" subrequest are always discarded, so the value of this variable will always be <code>STORE</code> as long as the "store" subrequest is actually issued.</p>
+
+<p>The value of this variable is only meaningful at least when the request headers of the current (main) request are being sent. The final result can only be obtained after all the response body has been sent if the <code>Content-Length</code> response header is not specified for the main request.</p>
+
+<p>This variable was first introduced in the <code>v0.14</code> release.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Issues</h1>
+
+<ul class="task-list">
+<li>On certain systems, enabling aio and/or sendfile may stop <a href="#srcache_store">srcache_store</a> from working. You can disable them in the locations configured by <a href="#srcache_store">srcache_store</a>.</li>
+<li>The <a href="#srcache_store">srcache_store</a> directive can not be used to capture the responses generated by <a href="http://github.com/openresty/echo-nginx-module">echo-nginx-module</a>'s subrequest directivees like <a href="http://github.com/openresty/echo-nginx-module#echo_subrequest_async">echo_subrequest_async</a> and <a href="http://github.com/openresty/echo-nginx-module#echo_location">echo_location</a>. You are recommended to use HttpLuaModule to initiate and capture subrequests, which should work with <a href="#srcache_store">srcache_store</a>.</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h1>
+
+<ul class="task-list">
+<li>It is recommended to disable your backend server's gzip compression and use nginx's <a href="http://nginx.org/en/docs/http/ngx_http_gzip_module.html">ngx_http_gzip_module</a> to do the job. In case of <a href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html">ngx_http_proxy_module</a>, you can use the following configure setting to disable backend gzip compression:</li>
+</ul><div class="highlight highlight-nginx"><pre>
+<span class="k">proxy_set_header</span>  <span class="s">Accept-Encoding</span>  <span class="s">""</span><span class="p">;</span>
+</pre></div>
+
+<ul class="task-list">
+<li>Do <em>not</em> use <a href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html">ngx_http_rewrite_module</a>'s <a href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html#if">if</a> directive in the same location as this module's, because "<a href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html#if">if</a> is evil". Instead, use <a href="http://nginx.org/en/docs/http/ngx_http_map_module.html">ngx_http_map_module</a> or <a href="http://github.com/openresty/lua-nginx-module">lua-nginx-module</a> combined with this module's <a href="#srcache_store_skip">srcache_store_skip</a> and/or <a href="#srcache_fetch_skip">srcache_fetch_skip</a> directives. For example:</li>
+</ul><div class="highlight highlight-nginx"><pre>
+<span class="k">map</span> <span class="nv">$request_method</span> <span class="nv">$skip_fetch</span> <span class="p">{</span>
+    <span class="kn">default</span>     <span class="mi">0</span><span class="p">;</span>
+    <span class="kn">POST</span>        <span class="mi">1</span><span class="p">;</span>
+    <span class="kn">PUT</span>         <span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">server</span> <span class="p">{</span>
+    <span class="kn">listen</span> <span class="mi">8080</span><span class="p">;</span>
+
+    <span class="kn">location</span> <span class="s">/api/</span> <span class="p">{</span>
+        <span class="kn">set</span> <span class="nv">$key</span> <span class="s">"</span><span class="nv">$uri?$args"</span><span class="p">;</span>
+
+        <span class="kn">srcache_fetch</span> <span class="s">GET</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+        <span class="kn">srcache_store</span> <span class="s">PUT</span> <span class="s">/memc</span> <span class="nv">$key</span><span class="p">;</span>
+
+        <span class="kn">srcache_methods</span> <span class="s">GET</span> <span class="s">PUT</span> <span class="s">POST</span><span class="p">;</span>
+        <span class="kn">srcache_fetch_skip</span> <span class="nv">$skip_fetch</span><span class="p">;</span>
+
+        <span class="c1"># proxy_pass/drizzle_pass/content_by_lua/echo/...</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-trouble-shooting" class="anchor" href="#trouble-shooting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Trouble Shooting</h1>
+
+<p>To debug issues, you should always check your Nginx <code>error.log</code> file first. If no error messages are printed, you need to enable the Nginx debugging logs to get more details, as explained in <a href="http://nginx.org/en/docs/debugging_log.html">debugging log</a>.</p>
+
+<p>Several common pitfalls for beginners:</p>
+
+<ul class="task-list">
+<li>The original response carries a <code>Cache-Control</code> header that explicitly disables caching and you do not configure directives like <a href="#srcache_response_cache_control">srcache_response_cache_control</a>.</li>
+<li>The original response is already gzip compressed, which is not cached by default (see <a href="#srcache_ignore_content_encoding">srcache_ignore_content_encoding</a>).</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>It is recommended to install this module as well as the Nginx core and many other goodies via the <a href="http://openresty.org">ngx_openresty bundle</a>. It is the easiest way and most safe way to set things up. See OpenResty's <a href="http://openresty.org/#Installation">installation instructions</a> for details.</p>
+
+<p>Alternatively, you can build Nginx with this module all by yourself:</p>
+
+<ul class="task-list">
+<li>Grab the nginx source code from <a href="http://nginx.org">nginx.org</a>, for example, the version 1.7.2 (see <a href="#compatibility">Nginx Compatibility</a>),</li>
+<li>and then apply the patch to your nginx source tree that fixes an important bug in the mainline Nginx core: <a href="https://raw.github.com/openresty/ngx_openresty/master/patches/nginx-1.4.3-upstream_truncation.patch">https://raw.github.com/openresty/ngx_openresty/master/patches/nginx-1.4.3-upstream_truncation.patch</a> (you do NOT need this patch if you are using nginx 1.5.3 and later versions.)</li>
+<li>after that, download the latest version of the release tarball of this module from srcache-nginx-module <a href="http://github.com/openresty/srcache-nginx-module/tags">file list</a>,</li>
+<li>and finally build the Nginx source with this module</li>
+</ul><div class="highlight highlight-nginx"><pre>
+    <span class="k">wget</span> <span class="s">'http://nginx.org/download/nginx-1.7.2.tar.gz'</span>
+    <span class="s">tar</span> <span class="s">-xzvf</span> <span class="s">nginx-1.7.2.tar.gz</span>
+    <span class="s">cd</span> <span class="s">nginx-1.7.2/</span>
+
+    <span class="c1"># Here we assume you would install you nginx under /opt/nginx/.</span>
+    <span class="s">./configure</span> <span class="s">--prefix=/opt/nginx</span> <span class="s">\</span>
+         <span class="s">--add-module=/path/to/srcache-nginx-module</span>
+
+    <span class="s">make</span> <span class="s">-j2</span>
+    <span class="s">make</span> <span class="s">install</span>
+</pre></div>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h1>
+
+<p>The following versions of Nginx should work with this module:</p>
+
+<ul class="task-list">
+<li>1.7.x (last tested: 1.7.2)</li>
+<li>1.5.x (last tested: 1.5.12)</li>
+<li>1.4.x (last tested: 1.4.4)</li>
+<li>1.3.x (last tested: 1.3.7)</li>
+<li>1.2.x (last tested: 1.2.9)</li>
+<li>1.1.x (last tested: 1.1.5)</li>
+<li>1.0.x (last tested: 1.0.11)</li>
+<li>0.9.x (last tested: 0.9.4)</li>
+<li>0.8.x &gt;= 0.8.54 (last tested: 0.8.54)</li>
+</ul><p>Earlier versions of Nginx like 0.7.x, 0.6.x and 0.5.x will <em>not</em> work.</p>
+
+<p>If you find that any particular version of Nginx above 0.7.44 does not work with this module, please consider reporting a bug.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-english-mailing-list" class="anchor" href="#english-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>English Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty-en">openresty-en</a> mailing list is for English speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-chinese-mailing-list" class="anchor" href="#chinese-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chinese Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty">openresty</a> mailing list is for Chinese speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-bugs-and-patches" class="anchor" href="#bugs-and-patches" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bugs and Patches</h1>
+
+<p>Please submit bug reports, wishlists, or patches by</p>
+
+<ol class="task-list">
+<li>creating a ticket on the <a href="http://github.com/openresty/srcache-nginx-module/issues">GitHub Issue Tracker</a>,</li>
+<li>or posting to the <a href="#community">OpenResty community</a>.</li>
+</ol><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-source-repository" class="anchor" href="#source-repository" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source Repository</h1>
+
+<p>Available on github at <a href="http://github.com/openresty/srcache-nginx-module">openresty/srcache-nginx-module</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-test-suite" class="anchor" href="#test-suite" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test Suite</h1>
+
+<p>This module comes with a Perl-driven test suite. The <a href="http://github.com/openresty/srcache-nginx-module/tree/master/test/t">test cases</a> are <a href="http://github.com/openresty/srcache-nginx-module/blob/master/test/t/main-req.t">declarative</a> too. Thanks to the <a href="http://search.cpan.org/perldoc?Test::Base">Test::Nginx</a> module in the Perl world.</p>
+
+<p>To run it on your side:</p>
+
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ PATH</span><span class="o">=</span>/path/to/your/nginx-with-srcache-module:<span class="nv">$PATH</span> prove -r t
+</pre></div>
+
+<p>You need to terminate any Nginx processes before running the test suite if you have changed the Nginx server binary.</p>
+
+<p>Because a single nginx server (by default, <code>localhost:1984</code>) is used across all the test scripts (<code>.t</code> files), it's meaningless to run the test suite in parallel by specifying <code>-jN</code> when invoking the <code>prove</code> utility.</p>
+
+<p>Some parts of the test suite requires modules <a href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html">ngx_http_rewrite_module</a>, <a href="http://github.com/openresty/echo-nginx-module">echo-nginx-module</a>, <a href="http://github.com/openresty/rds-json-nginx-module">rds-json-nginx-module</a>, and <a href="http://github.com/openresty/drizzle-nginx-module">drizzle-nginx-module</a> to be enabled as well when building Nginx.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h1>
+
+<ul class="task-list">
+<li>add gzip compression and decompression support.</li>
+<li>add new nginx variable <code>$srcache_key</code> and new directives <code>srcache_key_ignore_args</code>, <code>srcache_key_filter_args</code>, and <code>srcache_key_sort_args</code>.</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-getting-involved" class="anchor" href="#getting-involved" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting involved</h1>
+
+<p>You'll be very welcomed to submit patches to the author or just ask for a commit bit to the source repository on GitHub.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h1>
+
+<p>Yichun "agentzh" Zhang (章亦春) <a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>, CloudFlare Inc.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-copyright--license" class="anchor" href="#copyright--license" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright &amp; License</h1>
+
+<p>Copyright (c) 2010-2014, Yichun "agentzh" Zhang (章亦春) <a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>, CloudFlare Inc.</p>
+
+<p>This module is licensed under the terms of the BSD license.</p>
+
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
+
+<ul class="task-list">
+<li>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</li>
+</ul><p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>See Also</h1>
+
+<ul class="task-list">
+<li><a href="http://github.com/openresty/memc-nginx-module">memc-nginx-module</a></li>
+<li><a href="http://github.com/openresty/lua-nginx-module">lua-nginx-module</a></li>
+<li><a href="http://github.com/openresty/set-misc-nginx-module">set-misc-nginx-module</a></li>
+<li>The <a href="http://openresty.org">ngx_openresty bundle</a>
+</li>
+</ul></article></div>

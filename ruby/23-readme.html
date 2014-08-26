@@ -1,0 +1,234 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>Whenever is a Ruby gem that provides a clear syntax for writing and deploying cron jobs.</p>
+
+<h3>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h3>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>gem install whenever
+</pre></div>
+
+<p>Or with Bundler in your Gemfile.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'whenever'</span><span class="p">,</span> <span class="ss">:require</span> <span class="o">=&gt;</span> <span class="kp">false</span>
+</pre></div>
+
+<h3>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h3>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">cd</span> /apps/my-great-project
+<span class="nv">$ </span>wheneverize .
+</pre></div>
+
+<p>This will create an initial <code>config/schedule.rb</code> file for you.</p>
+
+<h3>
+<a name="user-content-example-schedulerb-file" class="anchor" href="#example-schedulerb-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example schedule.rb file</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="n">every</span> <span class="mi">3</span><span class="o">.</span><span class="n">hours</span> <span class="k">do</span>
+  <span class="n">runner</span> <span class="s2">"MyModel.some_process"</span>
+  <span class="n">rake</span> <span class="s2">"my:rake:task"</span>
+  <span class="n">command</span> <span class="s2">"/usr/bin/my_great_command"</span>
+<span class="k">end</span>
+
+<span class="n">every</span> <span class="mi">1</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="ss">:at</span> <span class="o">=&gt;</span> <span class="s1">'4:30 am'</span> <span class="k">do</span>
+  <span class="n">runner</span> <span class="s2">"MyModel.task_to_run_at_four_thirty_in_the_morning"</span>
+<span class="k">end</span>
+
+<span class="n">every</span> <span class="ss">:hour</span> <span class="k">do</span> <span class="c1"># Many shortcuts available: :hour, :day, :month, :year, :reboot</span>
+  <span class="n">runner</span> <span class="s2">"SomeModel.ladeeda"</span>
+<span class="k">end</span>
+
+<span class="n">every</span> <span class="ss">:sunday</span><span class="p">,</span> <span class="ss">:at</span> <span class="o">=&gt;</span> <span class="s1">'12pm'</span> <span class="k">do</span> <span class="c1"># Use any day of the week or :weekend, :weekday</span>
+  <span class="n">runner</span> <span class="s2">"Task.do_something_great"</span>
+<span class="k">end</span>
+
+<span class="n">every</span> <span class="s1">'0 0 27-31 * *'</span> <span class="k">do</span>
+  <span class="n">command</span> <span class="s2">"echo 'you can use raw cron syntax too'"</span>
+<span class="k">end</span>
+
+<span class="c1"># run this task only on servers with the :app role in Capistrano</span>
+<span class="c1"># see Capistrano roles section below</span>
+<span class="n">every</span> <span class="ss">:day</span><span class="p">,</span> <span class="ss">:at</span> <span class="o">=&gt;</span> <span class="s1">'12:20am'</span><span class="p">,</span> <span class="ss">:roles</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:app</span><span class="o">]</span> <span class="k">do</span>
+  <span class="n">rake</span> <span class="s2">"app_server:task"</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-define-your-own-job-types" class="anchor" href="#define-your-own-job-types" aria-hidden="true"><span class="octicon octicon-link"></span></a>Define your own job types</h3>
+
+<p>Whenever ships with three pre-defined job types: command, runner, and rake. You can define your own with <code>job_type</code>.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">job_type</span> <span class="ss">:awesome</span><span class="p">,</span> <span class="s1">'/usr/local/bin/awesome :task :fun_level'</span>
+
+<span class="n">every</span> <span class="mi">2</span><span class="o">.</span><span class="n">hours</span> <span class="k">do</span>
+  <span class="n">awesome</span> <span class="s2">"party"</span><span class="p">,</span> <span class="ss">:fun_level</span> <span class="o">=&gt;</span> <span class="s2">"extreme"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Would run <code>/usr/local/bin/awesome party extreme</code> every two hours. <code>:task</code> is always replaced with the first argument, and any additional <code>:whatevers</code> are replaced with the options passed in or by variables that have been defined with <code>set</code>.</p>
+
+<p>The default job types that ship with Whenever are defined like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">job_type</span> <span class="ss">:command</span><span class="p">,</span> <span class="s2">":task :output"</span>
+<span class="n">job_type</span> <span class="ss">:rake</span><span class="p">,</span>    <span class="s2">"cd :path &amp;&amp; :environment_variable=:environment bundle exec rake :task --silent :output"</span>
+<span class="n">job_type</span> <span class="ss">:runner</span><span class="p">,</span>  <span class="s2">"cd :path &amp;&amp; script/rails runner -e :environment ':task' :output"</span>
+<span class="n">job_type</span> <span class="ss">:script</span><span class="p">,</span>  <span class="s2">"cd :path &amp;&amp; :environment_variable=:environment bundle exec script/:task :output"</span>
+</pre></div>
+
+<p>Pre-Rails 3 apps and apps that don't use Bundler will redefine the <code>rake</code> and <code>runner</code> jobs respectively to function correctly.</p>
+
+<p>If a <code>:path</code> is not set it will default to the directory in which <code>whenever</code> was executed. <code>:environment_variable</code> will default to 'RAILS_ENV'. <code>:environment</code> will default to 'production'. <code>:output</code> will be replaced with your output redirection settings which you can read more about here: <a href="http://github.com/javan/whenever/wiki/Output-redirection-aka-logging-your-cron-jobs">http://github.com/javan/whenever/wiki/Output-redirection-aka-logging-your-cron-jobs</a></p>
+
+<p>All jobs are by default run with <code>bash -l -c 'command...'</code>. Among other things, this allows your cron jobs to play nice with RVM by loading the entire environment instead of cron's somewhat limited environment. Read more: <a href="http://blog.scoutapp.com/articles/2010/09/07/rvm-and-cron-in-production">http://blog.scoutapp.com/articles/2010/09/07/rvm-and-cron-in-production</a></p>
+
+<p>You can change this by setting your own <code>:job_template</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:job_template</span><span class="p">,</span> <span class="s2">"bash -l -c ':job'"</span>
+</pre></div>
+
+<p>Or set the job_template to nil to have your jobs execute normally.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:job_template</span><span class="p">,</span> <span class="kp">nil</span>
+</pre></div>
+
+<h3>
+<a name="user-content-capistrano-integration" class="anchor" href="#capistrano-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capistrano integration</h3>
+
+<p>Use the built-in Capistrano recipe for easy crontab updates with deploys. For Capistrano V3, see the next section.</p>
+
+<p>In your "config/deploy.rb" file:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s2">"whenever/capistrano"</span>
+</pre></div>
+
+<p>Take a look at the recipe for options you can set. <a href="https://github.com/javan/whenever/blob/master/lib/whenever/capistrano/v2/recipes.rb">https://github.com/javan/whenever/blob/master/lib/whenever/capistrano/v2/recipes.rb</a>
+For example, if you're using bundler do this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:whenever_command</span><span class="p">,</span> <span class="s2">"bundle exec whenever"</span>
+<span class="nb">require</span> <span class="s2">"whenever/capistrano"</span>
+</pre></div>
+
+<p>If you are using different environments (such as staging, production), then you may want to do this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:whenever_environment</span><span class="p">,</span> <span class="n">defer</span> <span class="p">{</span> <span class="n">stage</span> <span class="p">}</span>
+<span class="nb">require</span> <span class="s2">"whenever/capistrano"</span>
+</pre></div>
+
+<p>The capistrano variable <code>:stage</code> should be the one holding your environment name. This will make the correct <code>:environment</code> available in your <code>schedule.rb</code>.</p>
+
+<p>If both your environments are on the same server you'll want to namespace them or they'll overwrite each other when you deploy:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:whenever_environment</span><span class="p">,</span> <span class="n">defer</span> <span class="p">{</span> <span class="n">stage</span> <span class="p">}</span>
+<span class="n">set</span> <span class="ss">:whenever_identifier</span><span class="p">,</span> <span class="n">defer</span> <span class="p">{</span> <span class="s2">"</span><span class="si">#{</span><span class="n">application</span><span class="si">}</span><span class="s2">_</span><span class="si">#{</span><span class="n">stage</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+<span class="nb">require</span> <span class="s2">"whenever/capistrano"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-capistrano-v3-integration" class="anchor" href="#capistrano-v3-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capistrano V3 Integration</h3>
+
+<p>In your "Capfile" file:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s2">"whenever/capistrano"</span>
+</pre></div>
+
+<p>Take a look at the load:defaults (bottom of file) task for options you can set. <a href="https://github.com/javan/whenever/blob/master/lib/whenever/capistrano/v3/tasks/whenever.rake">https://github.com/javan/whenever/blob/master/lib/whenever/capistrano/v3/tasks/whenever.rake</a>. For example, to namespace the crontab entries by application and stage do this.</p>
+
+<p>In your  in "config/deploy.rb" file:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">set</span> <span class="ss">:whenever_identifier</span><span class="p">,</span> <span class="o">-&gt;</span><span class="p">{</span> <span class="s2">"</span><span class="si">#{</span><span class="n">fetch</span><span class="p">(</span><span class="ss">:application</span><span class="p">)</span><span class="si">}</span><span class="s2">_</span><span class="si">#{</span><span class="n">fetch</span><span class="p">(</span><span class="ss">:stage</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-capistrano-roles" class="anchor" href="#capistrano-roles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capistrano roles</h3>
+
+<p>The first thing to know about the new roles support is that it is entirely
+optional and backwards-compatible. If you don't need different jobs running on
+different servers in your capistrano deployment, then you can safely stop reading
+now and everything should just work the same way it always has.</p>
+
+<p>When you define a job in your schedule.rb file, by default it will be deployed to
+all servers in the whenever_roles list (which defaults to [:db]).</p>
+
+<p>However, if you want to restrict certain jobs to only run on subset of servers,
+you can add a :roles =&gt; [...] argument to their definitions. <strong>Make sure to add
+that role to the whenever_roles list in your deploy.rb.</strong></p>
+
+<p>When you run <code>cap deploy</code>, jobs with a :roles list specified will only be added to
+the crontabs on servers with one or more of the roles in that list.</p>
+
+<p>Jobs with no :roles argument will be deployed to all servers in the whenever_roles
+list. This is to maintain backward compatibility with previous releases of whenever.</p>
+
+<p>So, for example, with the default whenever_roles of [:db], a job like this would be
+deployed to all servers with the :db role:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">every</span> <span class="ss">:day</span><span class="p">,</span> <span class="ss">:at</span> <span class="o">=&gt;</span> <span class="s1">'12:20am'</span> <span class="k">do</span>
+  <span class="n">rake</span> <span class="s1">'foo:bar'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If we set whenever_roles to [:db, :app] in deploy.rb, and have the following
+jobs in schedule.rb:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">every</span> <span class="ss">:day</span><span class="p">,</span> <span class="ss">:at</span> <span class="o">=&gt;</span> <span class="s1">'1:37pm'</span><span class="p">,</span> <span class="ss">:roles</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:app</span><span class="o">]</span> <span class="k">do</span>
+  <span class="n">rake</span> <span class="s1">'app:task'</span> <span class="c1"># will only be added to crontabs of :app servers</span>
+<span class="k">end</span>
+
+<span class="n">every</span> <span class="ss">:hour</span><span class="p">,</span> <span class="ss">:roles</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:db</span><span class="o">]</span> <span class="k">do</span>
+  <span class="n">rake</span> <span class="s1">'db:task'</span> <span class="c1"># will only be added to crontabs of :db servers</span>
+<span class="k">end</span>
+
+<span class="n">every</span> <span class="ss">:day</span><span class="p">,</span> <span class="ss">:at</span> <span class="o">=&gt;</span> <span class="s1">'12:02am'</span> <span class="k">do</span>
+  <span class="n">command</span> <span class="s2">"run_this_everywhere"</span> <span class="c1"># will be deployed to :db and :app servers</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Here are the basic rules:</p>
+
+<ol class="task-list">
+<li>If a server's role isn't listed in whenever_roles, it will <em>never</em> have jobs
+ added to its crontab.</li>
+<li>If a server's role is listed in the whenever_roles, then it will have all
+ jobs added to its crontab that either list that role in their :roles arg or
+ that don't have a :roles arg.</li>
+<li>If a job has a :roles arg but that role isn't in the whenever_roles list,
+ that job <em>will not</em> be deployed to any server.</li>
+</ol><h3>
+<a name="user-content-rvm-integration" class="anchor" href="#rvm-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>RVM Integration</h3>
+
+<p>If your production environment uses RVM (Ruby Version Manager) you will run into a gotcha that causes your cron jobs to hang.  This is not directly related to Whenever, and can be tricky to debug.  Your .rvmrc files must be trusted or else the cron jobs will hang waiting for the file to be trusted.  A solution is to disable the prompt by adding this line to your user rvm file in <code>~/.rvmrc</code></p>
+
+<p><code>rvm_trust_rvmrcs_flag=1</code></p>
+
+<p>This tells rvm to trust all rvmrc files.</p>
+
+<h3>
+<a name="user-content-the-whenever-command" class="anchor" href="#the-whenever-command" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>whenever</code> command</h3>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">cd</span> /apps/my-great-project
+<span class="nv">$ </span>whenever
+</pre></div>
+
+<p>This will simply show you your <code>schedule.rb</code> file converted to cron syntax. It does not read or write your crontab file. Run <code>whenever --help</code> for a complete list of options.</p>
+
+<h3>
+<a name="user-content-credit" class="anchor" href="#credit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credit</h3>
+
+<p>Whenever was created for use at Inkling (<a href="http://inklingmarkets.com">http://inklingmarkets.com</a>). Their take on it: <a href="http://blog.inklingmarkets.com/2009/02/whenever-easy-way-to-do-cron-jobs-from.html">http://blog.inklingmarkets.com/2009/02/whenever-easy-way-to-do-cron-jobs-from.html</a></p>
+
+<p>Thanks to all the contributors who have made it even better: <a href="http://github.com/javan/whenever/contributors">http://github.com/javan/whenever/contributors</a></p>
+
+<h3>
+<a name="user-content-discussion--feedback--issues--bugs" class="anchor" href="#discussion--feedback--issues--bugs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion / Feedback / Issues / Bugs</h3>
+
+<p>For general discussion and questions, please use the google group: <a href="http://groups.google.com/group/whenever-gem">http://groups.google.com/group/whenever-gem</a></p>
+
+<p>If you've found a genuine bug or issue, please use the Issues section on github: <a href="http://github.com/javan/whenever/issues">http://github.com/javan/whenever/issues</a></p>
+
+<p>Ryan Bates created a great Railscast about Whenever: <a href="http://railscasts.com/episodes/164-cron-in-ruby">http://railscasts.com/episodes/164-cron-in-ruby</a>
+It's a little bit dated now, but remains a good introduction.</p>
+
+<hr><p>Compatible with Ruby 1.8.7-2.1.0, JRuby, and Rubinius. <a href="http://travis-ci.org/javan/whenever"><img src="https://camo.githubusercontent.com/5708b6ea19648bd4e6cc669216c2736392b758b7/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6a6176616e2f7768656e657665722e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/javan/whenever.png" style="max-width:100%;"></a></p>
+
+<hr><p>Copyright © 2014 Javan Makhmali</p></article></div>

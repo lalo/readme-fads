@@ -1,0 +1,313 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-parallaxjs" class="anchor" href="#parallaxjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parallax.js</h1>
+
+<p>Parallax Engine that reacts to the orientation of a smart device. Where no gyroscope or motion detection hardware is available, the position of the cursor is used instead.</p>
+
+<p>Check out this <strong><a href="http://wagerfield.github.com/parallax/">demo</a></strong> to see it in action!</p>
+
+<h2>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<p>Create a list of elements giving each item that you want to move within your parallax scene a class of <code>layer</code> and a <code>data-depth</code> attribute specifying its depth within the scene. A depth of <strong>0</strong> will cause the layer to remain stationary, and a depth of <strong>1</strong> will cause the layer to move by the total effect of the calculated motion. Values inbetween <strong>0</strong> and <strong>1</strong> will cause the layer to move by an amount relative to the supplied ratio.</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">"scene"</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.00"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"layer1.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.20"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"layer2.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.40"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"layer3.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.60"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"layer4.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.80"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"layer5.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"1.00"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"layer6.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+<span class="nt">&lt;/ul&gt;</span>
+</pre></div>
+
+<p>To kickoff a <strong>Parallax</strong> scene, select your parent DOM Element and pass it to the <strong>Parallax</strong> constructor.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">scene</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'scene'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">parallax</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Parallax</span><span class="p">(</span><span class="nx">scene</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-understanding-layer-motion-calculations" class="anchor" href="#understanding-layer-motion-calculations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding Layer Motion Calculations</h2>
+
+<p>The amount of motion that each layer moves by depends on 3 contributing factors:</p>
+
+<ol class="task-list">
+<li>The <code>scalarX</code> and <code>scalarY</code> values (see <a href="#behaviours">Behaviours</a> below for configuration)</li>
+<li>The dimensions of the parent DOM element</li>
+<li>The <code>depth</code> of a layer within a parallax scene (specified by it's <code>data-depth</code> attribute)</li>
+</ol><p>The calculation for this motion is as follows:</p>
+
+<div class="highlight highlight-coffeescript"><pre><span class="nv">xMotion = </span><span class="nx">parentElement</span><span class="p">.</span><span class="nx">width</span>  <span class="o">*</span> <span class="p">(</span><span class="nx">scalarX</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="nx">layerDepth</span>
+<span class="nv">yMotion = </span><span class="nx">parentElement</span><span class="p">.</span><span class="nx">height</span> <span class="o">*</span> <span class="p">(</span><span class="nx">scalarY</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="nx">layerDepth</span>
+</pre></div>
+
+<p>So for a layer with a <code>data-depth</code> value of <code>0.5</code> within a scene that has both the <code>scalarX</code> and <code>scalarY</code> values set to <code>10</code> ( <em>the default</em> ) where the containing scene element is <code>1000px x 1000px</code>, the total motion of the layer in both <code>x</code> and <code>y</code> would be:</p>
+
+<div class="highlight highlight-coffeescript"><pre><span class="nv">xMotion = </span><span class="mi">1000</span> <span class="o">*</span> <span class="p">(</span><span class="mi">10</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">=</span> <span class="mi">50</span> <span class="c1"># 50px of positive and negative motion in x</span>
+<span class="nv">yMotion = </span><span class="mi">1000</span> <span class="o">*</span> <span class="p">(</span><span class="mi">10</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">=</span> <span class="mi">50</span> <span class="c1"># 50px of positive and negative motion in y</span>
+</pre></div>
+
+<h2>
+<a name="user-content-behaviours" class="anchor" href="#behaviours" aria-hidden="true"><span class="octicon octicon-link"></span></a>Behaviours</h2>
+
+<p>There are a number of behaviours that you can setup for any given <strong>Parallax</strong> instance. These behaviours can either be specified in the markup via data attributes or in JavaScript via the constructor and API.</p>
+
+<table>
+<thead><tr>
+<th>Behaviour</th>
+<th>Values</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>relativeInput</code></td>
+<td>
+<code>true</code> or <code>false</code>
+</td>
+<td>Specifies whether or not to use the coordinate system of the <code>element</code> passed to the parallax <code>constructor</code>. <strong>Mouse input only.</strong>
+</td>
+</tr>
+<tr>
+<td><code>clipRelativeInput</code></td>
+<td>
+<code>true</code> or <code>false</code>
+</td>
+<td>Specifies whether or not to clip the mouse input to the bounds of the <code>element</code> passed to the parallax <code>constructor</code>. <strong>Mouse input only.</strong>
+</td>
+</tr>
+<tr>
+<td><code>calibrate-x</code></td>
+<td>
+<code>true</code> or <code>false</code>
+</td>
+<td>Specifies whether or not to cache &amp; calculate the motion relative to the initial <code>x</code> axis value on initialisation.</td>
+</tr>
+<tr>
+<td><code>calibrate-y</code></td>
+<td>
+<code>true</code> or <code>false</code>
+</td>
+<td>Specifies whether or not to cache &amp; calculate the motion relative to the initial <code>y</code> axis value on initialisation.</td>
+</tr>
+<tr>
+<td><code>invert-x</code></td>
+<td>
+<code>true</code> or <code>false</code>
+</td>
+<td>
+<code>true</code> moves layers in opposition to the device motion, <code>false</code> slides them away.</td>
+</tr>
+<tr>
+<td><code>invert-y</code></td>
+<td>
+<code>true</code> or <code>false</code>
+</td>
+<td>
+<code>true</code> moves layers in opposition to the device motion, <code>false</code> slides them away.</td>
+</tr>
+<tr>
+<td><code>limit-x</code></td>
+<td>
+<code>number</code> or <code>false</code>
+</td>
+<td>A numeric value limits the total range of motion in <code>x</code>, <code>false</code> allows layers to move with complete freedom.</td>
+</tr>
+<tr>
+<td><code>limit-y</code></td>
+<td>
+<code>number</code> or <code>false</code>
+</td>
+<td>A numeric value limits the total range of motion in <code>y</code>, <code>false</code> allows layers to move with complete freedom.</td>
+</tr>
+<tr>
+<td><code>scalar-x</code></td>
+<td><code>number</code></td>
+<td>Multiplies the input motion by this value, increasing or decreasing the sensitivity of the layer motion.</td>
+</tr>
+<tr>
+<td><code>scalar-y</code></td>
+<td><code>number</code></td>
+<td>Multiplies the input motion by this value, increasing or decreasing the sensitivity of the layer motion.</td>
+</tr>
+<tr>
+<td><code>friction-x</code></td>
+<td>
+<code>number</code> <code>0 - 1</code>
+</td>
+<td>The amount of friction the layers experience. This essentially adds some easing to the layer motion.</td>
+</tr>
+<tr>
+<td><code>friction-y</code></td>
+<td>
+<code>number</code> <code>0 - 1</code>
+</td>
+<td>The amount of friction the layers experience. This essentially adds some easing to the layer motion.</td>
+</tr>
+<tr>
+<td><code>origin-x</code></td>
+<td><code>number</code></td>
+<td>The <code>x</code> origin of the mouse input. Defaults to 0.5 (the center). <code>0</code> moves the origin to the left edge, <code>1</code> to the right edge. <strong>Mouse input only.</strong>
+</td>
+</tr>
+<tr>
+<td><code>origin-y</code></td>
+<td><code>number</code></td>
+<td>The <code>y</code> origin of the mouse input. Defaults to 0.5 (the center). <code>0</code> moves the origin to the top edge, <code>1</code> to the bottom edge. <strong>Mouse input only.</strong>
+</td>
+</tr>
+</tbody>
+</table><p>In addition to the behaviours described above, there are <strong>two</strong> methods <code>enable()</code> and <code>disable()</code> that <em>activate</em> and <em>deactivate</em> the <strong>Parallax</strong> instance respectively.</p>
+
+<h3>
+<a name="user-content-behaviours-data-attributes-example" class="anchor" href="#behaviours-data-attributes-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Behaviours: Data Attributes Example</h3>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">"scene"</span>
+  <span class="na">data-calibrate-x=</span><span class="s">"false"</span>
+  <span class="na">data-calibrate-y=</span><span class="s">"true"</span>
+  <span class="na">data-invert-x=</span><span class="s">"false"</span>
+  <span class="na">data-invert-y=</span><span class="s">"true"</span>
+  <span class="na">data-limit-x=</span><span class="s">"false"</span>
+  <span class="na">data-limit-y=</span><span class="s">"10"</span>
+  <span class="na">data-scalar-x=</span><span class="s">"2"</span>
+  <span class="na">data-scalar-y=</span><span class="s">"8"</span>
+  <span class="na">data-friction-x=</span><span class="s">"0.2"</span>
+  <span class="na">data-friction-y=</span><span class="s">"0.8"</span>
+  <span class="na">data-origin-x=</span><span class="s">"0.0"</span>
+  <span class="na">data-origin-y=</span><span class="s">"1.0"</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.00"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"graphics/layer1.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.20"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"graphics/layer2.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.40"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"graphics/layer3.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.60"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"graphics/layer4.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"0.80"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"graphics/layer5.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+  <span class="nt">&lt;li</span> <span class="na">class=</span><span class="s">"layer"</span> <span class="na">data-depth=</span><span class="s">"1.00"</span><span class="nt">&gt;&lt;img</span> <span class="na">src=</span><span class="s">"graphics/layer6.png"</span><span class="nt">&gt;&lt;/li&gt;</span>
+<span class="nt">&lt;/ul&gt;</span>
+</pre></div>
+
+<h3>
+<a name="user-content-behaviours-constructor-object-example" class="anchor" href="#behaviours-constructor-object-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Behaviours: Constructor Object Example</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">scene</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'scene'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">parallax</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Parallax</span><span class="p">(</span><span class="nx">scene</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">calibrateX</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nx">calibrateY</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nx">invertX</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nx">invertY</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nx">limitX</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nx">limitY</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
+  <span class="nx">scalarX</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nx">scalarY</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span>
+  <span class="nx">frictionX</span><span class="o">:</span> <span class="mf">0.2</span><span class="p">,</span>
+  <span class="nx">frictionY</span><span class="o">:</span> <span class="mf">0.8</span><span class="p">,</span>
+  <span class="nx">originX</span><span class="o">:</span> <span class="mf">0.0</span><span class="p">,</span>
+  <span class="nx">originY</span><span class="o">:</span> <span class="mf">1.0</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-behaviours-api-example" class="anchor" href="#behaviours-api-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Behaviours: API Example</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">scene</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'scene'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">parallax</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Parallax</span><span class="p">(</span><span class="nx">scene</span><span class="p">);</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">enable</span><span class="p">();</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">disable</span><span class="p">();</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">updateLayers</span><span class="p">();</span> <span class="c1">// Useful for reparsing the layers in your scene if you change their data-depth value</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">calibrate</span><span class="p">(</span><span class="kc">false</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">invert</span><span class="p">(</span><span class="kc">false</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">limit</span><span class="p">(</span><span class="kc">false</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">scalar</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">);</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">friction</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">);</span>
+<span class="nx">parallax</span><span class="p">.</span><span class="nx">origin</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-jquery" class="anchor" href="#jquery" aria-hidden="true"><span class="octicon octicon-link"></span></a>jQuery</h2>
+
+<p>If you're using <strong><a href="http://jquery.com/">jQuery</a></strong> or <strong><a href="http://zeptojs.com/">Zepto</a></strong> and would prefer to
+use <strong>Parallax.js</strong> as a plugin, you're in luck!</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="s1">'#scene'</span><span class="p">).</span><span class="nx">parallax</span><span class="p">();</span>
+</pre></div>
+
+<h3>
+<a name="user-content-jquery-passing-options" class="anchor" href="#jquery-passing-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>jQuery: Passing Options</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">(</span><span class="s1">'#scene'</span><span class="p">).</span><span class="nx">parallax</span><span class="p">({</span>
+  <span class="nx">calibrateX</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nx">calibrateY</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nx">invertX</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nx">invertY</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nx">limitX</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="nx">limitY</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
+  <span class="nx">scalarX</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nx">scalarY</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span>
+  <span class="nx">frictionX</span><span class="o">:</span> <span class="mf">0.2</span><span class="p">,</span>
+  <span class="nx">frictionY</span><span class="o">:</span> <span class="mf">0.8</span><span class="p">,</span>
+  <span class="nx">originX</span><span class="o">:</span> <span class="mf">0.0</span><span class="p">,</span>
+  <span class="nx">originY</span><span class="o">:</span> <span class="mf">1.0</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-jquery-api" class="anchor" href="#jquery-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>jQuery: API</h3>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">$scene</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#scene'</span><span class="p">).</span><span class="nx">parallax</span><span class="p">();</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'enable'</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'disable'</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'updateLayers'</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'calibrate'</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'invert'</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'limit'</span><span class="p">,</span> <span class="kc">false</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'scalar'</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'friction'</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">);</span>
+<span class="nx">$scene</span><span class="p">.</span><span class="nx">parallax</span><span class="p">(</span><span class="s1">'origin'</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-ios" class="anchor" href="#ios" aria-hidden="true"><span class="octicon octicon-link"></span></a>iOS</h2>
+
+<p>If you are writing a <strong>native iOS application</strong> and would like to use <strong>parallax.js</strong> within a <code>UIWebView</code>, you will need to do a little bit of work to get it running.</p>
+
+<p><code>UIWebView</code> no longer automatically receives the <code>deviceorientation</code> event, so your native application must intercept the events from the gyroscope and reroute them to the <code>UIWebView</code>:</p>
+
+<ol class="task-list">
+<li>Include the <strong>CoreMotion</strong> framework <code>#import &lt;CoreMotion/CoreMotion.h&gt;</code> and create a reference to the <strong>UIWebView</strong> <code>@property(nonatomic, strong) IBOutlet UIWebView *parallaxWebView;</code>
+</li>
+<li>Add a property to the app delegate (or controller that will own the <strong>UIWebView</strong>) <code>@property(nonatomic, strong) CMMotionManager *motionManager;</code>
+</li>
+<li>Finally, make the following calls:</li>
+</ol><div class="highlight highlight-Objective-C"><pre><span class="nb">self</span><span class="p">.</span><span class="n">motionManager</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">CMMotionManager</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">motionManager</span><span class="p">.</span><span class="n">isGyroAvailable</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nb">self</span><span class="p">.</span><span class="n">motionManager</span><span class="p">.</span><span class="n">isGyroActive</span><span class="p">)</span> <span class="p">{</span>
+  <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">motionManager</span> <span class="nl">setGyroUpdateInterval</span><span class="p">:</span><span class="mf">0.5f</span><span class="p">];</span> <span class="c1">// Set the event update frequency (in seconds)</span>
+  <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">motionManager</span> <span class="nl">startGyroUpdatesToQueue</span><span class="p">:</span><span class="bp">NSOperationQueue</span><span class="p">.</span><span class="n">mainQueue</span>
+                                  <span class="nl">withHandler</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">CMGyroData</span> <span class="o">*</span><span class="n">gyroData</span><span class="p">,</span> <span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">js</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">@"parallax.onDeviceOrientation({beta:%f, gamma:%f})"</span><span class="p">,</span> <span class="n">gyroData</span><span class="p">.</span><span class="n">rotationRate</span><span class="p">.</span><span class="n">x</span><span class="p">,</span> <span class="n">gyroData</span><span class="p">.</span><span class="n">rotationRate</span><span class="p">.</span><span class="n">y</span><span class="p">];</span>
+    <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">parallaxWebView</span> <span class="nl">stringByEvaluatingJavaScriptFromString</span><span class="p">:</span><span class="n">js</span><span class="p">];</span>
+  <span class="p">}];</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-build" class="anchor" href="#build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build</h2>
+
+<blockquote>
+<p>As a prerequisite, you will need <a href="http://gulpjs.com/">gulp</a> installed: <code>npm install -g gulp</code></p>
+</blockquote>
+
+<pre><code>npm install
+gulp
+</code></pre>
+
+<p>During development you can have gulp watch the <code>source</code> directory for changes and automatically build the <code>deploy</code> files by running:</p>
+
+<pre><code>gulp watch
+</code></pre>
+
+<h2>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h2>
+
+<p>Matthew Wagerfield: <a href="http://twitter.com/wagerfield">@wagerfield</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Licensed under <a href="http://www.opensource.org/licenses/mit-license.php">MIT</a>. Enjoy.</p></article></div>

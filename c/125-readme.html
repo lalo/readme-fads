@@ -1,0 +1,156 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-what-is-conceal" class="anchor" href="#what-is-conceal" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is Conceal?</h2>
+
+<p>Conceal provides a set of Java APIs to perform cryptography on Android. 
+It was designed to be able to encrypt large files on disk in a fast and 
+memory efficient manner. </p>
+
+<p>The major target for this project is typical Android devices which run old 
+Android versions, have low memory and slower processors.</p>
+
+<p>Unlike other libraries, which provide a Smorgasbord of encryption algorithms 
+and options, Conceal prefers to abstract this choice and use sane defaults. 
+Thus Conceal is not a general purpose crypto library, however it aims to provide 
+useful functionality.</p>
+
+<h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick start</h2>
+
+<h4>
+<a name="user-content-setup-options" class="anchor" href="#setup-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup options</h4>
+
+<ul class="task-list">
+<li><strong>Build using buck</strong></li>
+</ul><div class="highlight highlight-bash"><pre>buck build :crypto
+</pre></div>
+
+<ul class="task-list">
+<li><p><strong>Use prebuilt binaries</strong>: <a href="http://facebook.github.io/conceal/documentation/">http://facebook.github.io/conceal/documentation/</a>.</p></li>
+<li><p><strong>Use Maven Central</strong>: Available on maven central under <strong>com.facebook.conceal:conceal:1.0.0@aar</strong> as an AAR package.</p></li>
+</ul><h4>
+<a name="user-content-running-benchmarks" class="anchor" href="#running-benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Benchmarks</h4>
+
+<div class="highlight highlight-bash"><pre>./benchmarks/run <span class="se">\</span>
+  benchmarks/src/com/facebook/crypto/benchmarks/CipherReadBenchmark.java <span class="se">\</span>
+  -- -Dsize<span class="o">=</span>102400
+</pre></div>
+
+<p>This script runs vogar with caliper benchmarks.
+You can also specify all the options caliper provides.</p>
+
+<h6>
+<a name="user-content-an-aside-on-kitkat" class="anchor" href="#an-aside-on-kitkat" aria-hidden="true"><span class="octicon octicon-link"></span></a>An aside on KitKat</h6>
+
+<blockquote>
+<p>Conceal predates Jellybean 4.3. On KitKat, Android changed the provider for 
+cryptographic algorithms to OpenSSL. The default Cipher stream however still 
+does not perform well. When replaced with our Cipher stream 
+(see BetterCipherInputStream), the default implementation is competitive against 
+Conceal. On older phones, Conceal is faster than the system provided libraries.</p>
+</blockquote>
+
+<h4>
+<a name="user-content-running-unit-tests" class="anchor" href="#running-unit-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running unit tests</h4>
+
+<div class="highlight highlight-bash"><pre>buck <span class="nb">test </span>javatests/com/facebook/crypto:crypto
+</pre></div>
+
+<h4>
+<a name="user-content-running-integration-tests" class="anchor" href="#running-integration-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running integration tests</h4>
+
+<div class="highlight highlight-bash"><pre>./instrumentTest/crypto/run
+</pre></div>
+
+<p>Since Conceal uses native libraries, the only way to run a test on the entire
+encryption process is using integration tests.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h4>
+<a name="user-content-encryption" class="anchor" href="#encryption" aria-hidden="true"><span class="octicon octicon-link"></span></a>Encryption</h4>
+
+<div class="highlight highlight-java"><pre><span class="c1">// Creates a new Crypto object with default implementations of </span>
+<span class="c1">// a key chain as well as native library.</span>
+<span class="n">Crypto</span> <span class="n">crypto</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Crypto</span><span class="o">(</span>
+  <span class="k">new</span> <span class="nf">SharedPrefsBackedKeyChain</span><span class="o">(</span><span class="n">context</span><span class="o">),</span>
+  <span class="k">new</span> <span class="nf">SystemNativeCryptoLibrary</span><span class="o">());</span>
+
+<span class="c1">// Check for whether the crypto functionality is available</span>
+<span class="c1">// This might fail if Android does not load libaries correctly.</span>
+<span class="k">if</span> <span class="o">(!</span><span class="n">crypto</span><span class="o">.</span><span class="na">isAvailable</span><span class="o">())</span> <span class="o">{</span>
+  <span class="k">return</span><span class="o">;</span>
+<span class="o">}</span>
+
+<span class="n">OutputStream</span> <span class="n">fileStream</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">BufferedOutputStream</span><span class="o">(</span>
+  <span class="k">new</span> <span class="nf">FileOutputStream</span><span class="o">(</span><span class="n">file</span><span class="o">));</span>
+
+<span class="c1">// Creates an output stream which encrypts the data as</span>
+<span class="c1">// it is written to it and writes it out to the file.</span>
+<span class="n">OutputStream</span> <span class="n">outputStream</span> <span class="o">=</span> <span class="n">crypto</span><span class="o">.</span><span class="na">getCipherOutputStream</span><span class="o">(</span>
+  <span class="n">fileStream</span><span class="o">,</span>
+  <span class="n">entity</span><span class="o">);</span>
+
+<span class="c1">// Write plaintext to it.</span>
+<span class="n">outputStream</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">plainText</span><span class="o">);</span>
+<span class="n">outputStream</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</pre></div>
+
+<h4>
+<a name="user-content-decryption" class="anchor" href="#decryption" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decryption</h4>
+
+<div class="highlight highlight-java"><pre><span class="c1">// Get the file to which ciphertext has been written.</span>
+<span class="n">FileInputStream</span> <span class="n">fileStream</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">FileInputStream</span><span class="o">(</span><span class="n">file</span><span class="o">);</span>
+
+<span class="c1">// Creates an input stream which decrypts the data as</span>
+<span class="c1">// it is read from it.</span>
+<span class="n">InputStream</span> <span class="n">inputStream</span> <span class="o">=</span> <span class="n">crypto</span><span class="o">.</span><span class="na">getCipherInputStream</span><span class="o">(</span>
+  <span class="n">fileStream</span><span class="o">,</span>
+  <span class="n">entity</span><span class="o">);</span>
+
+<span class="c1">// Read into a byte array.</span>
+<span class="kt">int</span> <span class="n">read</span><span class="o">;</span>
+<span class="kt">byte</span><span class="o">[]</span> <span class="n">buffer</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">1024</span><span class="o">];</span>
+
+<span class="c1">// You must read the entire stream to completion.</span>
+<span class="c1">// The verification is done at the end of the stream.</span>
+<span class="c1">// Thus not reading till the end of the stream will cause</span>
+<span class="c1">// a security bug. For safety, you should not</span>
+<span class="c1">// use any of the data until it's been fully read or throw</span>
+<span class="c1">// away the data if an exception occurs.</span>
+<span class="k">while</span> <span class="o">((</span><span class="n">read</span> <span class="o">=</span> <span class="n">inputStream</span><span class="o">.</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">))</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+  <span class="n">out</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">buffer</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">read</span><span class="o">);</span>
+<span class="o">}</span>
+
+<span class="n">inputStream</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</pre></div>
+
+<p>If you don't have a lot of data to encrypt, you could
+use the convenience functions:</p>
+
+<div class="highlight highlight-java"><pre><span class="kt">byte</span><span class="o">[]</span> <span class="n">cipherText</span> <span class="o">=</span> <span class="n">crypto</span><span class="o">.</span><span class="na">encrypt</span><span class="o">(</span><span class="n">plainText</span><span class="o">);</span>
+
+<span class="kt">byte</span><span class="o">[]</span> <span class="n">plainText</span> <span class="o">=</span> <span class="n">crypto</span><span class="o">.</span><span class="na">decrypt</span><span class="o">(</span><span class="n">cipherText</span><span class="o">);</span>
+</pre></div>
+
+<h4>
+<a name="user-content-integrity" class="anchor" href="#integrity" aria-hidden="true"><span class="octicon octicon-link"></span></a>Integrity</h4>
+
+<div class="highlight highlight-java"><pre><span class="n">OutputStream</span> <span class="n">outputStream</span> <span class="o">=</span> <span class="n">crypto</span><span class="o">.</span><span class="na">getMacOutputStream</span><span class="o">(</span><span class="n">fileStream</span><span class="o">,</span> <span class="n">entity</span><span class="o">);</span>
+<span class="n">outputStream</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">plainTextBytes</span><span class="o">);</span>
+<span class="n">outputStream</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+
+<span class="n">InputStream</span> <span class="n">inputStream</span> <span class="o">=</span> <span class="n">crypto</span><span class="o">.</span><span class="na">getMacInputStream</span><span class="o">(</span><span class="n">fileStream</span><span class="o">,</span> <span class="n">entity</span><span class="o">);</span>
+
+<span class="c1">// Will throw an exception if mac verification fails.</span>
+<span class="c1">// You must read the entire stream to completion.</span>
+<span class="c1">// The verification is done at the end of the stream.</span>
+<span class="c1">// Thus not reading till the end of the stream will cause</span>
+<span class="c1">// a security bug. For safety, you should not</span>
+<span class="c1">// use any of the data until it's been fully read or throw</span>
+<span class="c1">// away the data if an exception occurs.</span>
+<span class="k">while</span><span class="o">((</span><span class="n">read</span> <span class="o">=</span> <span class="n">inputStream</span><span class="o">.</span><span class="na">read</span><span class="o">(</span><span class="n">buffer</span><span class="o">))</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+  <span class="n">out</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">buffer</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">read</span><span class="o">);</span>
+<span class="o">}</span>
+<span class="n">inputStream</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</pre></div></article></div>

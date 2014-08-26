@@ -1,0 +1,459 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-deploy-your-website-to-s3" class="anchor" href="#deploy-your-website-to-s3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploy your website to S3</h1>
+
+<p><a href="https://travis-ci.org/laurilehmijoki/s3_website"><img src="https://camo.githubusercontent.com/93f7c09399cc12f68268c1fd789c7dac477ed111/68747470733a2f2f7472617669732d63692e6f72672f6c617572696c65686d696a6f6b692f73335f776562736974652e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/laurilehmijoki/s3_website.png?branch=master" style="max-width:100%;"></a>
+<a href="http://badge.fury.io/rb/s3_website"><img src="https://camo.githubusercontent.com/9dd347cb8e2e28cddbe12ad02ed2440adaa0ee9c/68747470733a2f2f667572792d62616467652e6865726f6b756170702e636f6d2f72622f73335f776562736974652e706e67" alt="Gem Version" data-canonical-src="https://fury-badge.herokuapp.com/rb/s3_website.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-what-s3_website-can-do-for-you" class="anchor" href="#what-s3_website-can-do-for-you" aria-hidden="true"><span class="octicon octicon-link"></span></a>What <code>s3_website</code> can do for you</h2>
+
+<ul class="task-list">
+<li>Create and configure an S3 website for you</li>
+<li>Upload your static website to AWS S3
+
+<ul class="task-list">
+<li>Jekyll and Nanoc are automatically supported</li>
+</ul>
+</li>
+<li>Help you use AWS Cloudfront to distribute your website</li>
+<li>Improve page speed with HTTP cache control and gzipping</li>
+<li>Set HTTP redirects for your website</li>
+<li>(for other features, see the documentation below)</li>
+</ul><h2>
+<a name="user-content-install" class="anchor" href="#install" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install</h2>
+
+<pre><code>gem install s3_website
+</code></pre>
+
+<p>s3_website needs both <a href="https://www.ruby-lang.org/en/downloads/">Ruby</a>
+and <a href="http://java.com">Java</a> to run. (S3_website is partly written in Scala, hence the need for Java.)</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Here's how you can get started:</p>
+
+<ul class="task-list">
+<li>Create API credentials that have sufficient permissions to S3. More info
+<a href="additional-docs/setting-up-aws-credentials.md">here</a>.</li>
+<li>Go to your website directory</li>
+<li>Run <code>s3_website cfg create</code>. This generates a configuration file called <code>s3_website.yml</code>.</li>
+<li>Put your AWS credentials and the S3 bucket name into the file</li>
+<li>Run <code>s3_website cfg apply</code>. This will configure your bucket to function as an
+S3 website. If the bucket does not exist, the command will create it for you.</li>
+<li>Run <code>s3_website push</code> to push your website to S3. Congratulations! You are live.</li>
+</ul><h3>
+<a name="user-content-specifying-the-location-of-your-website" class="anchor" href="#specifying-the-location-of-your-website" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying the location of your website</h3>
+
+<p>S3_website will automatically discover websites in the <em>_site</em> and
+<em>public/output</em> directories.</p>
+
+<p>If your website is not in either of those directories, you can
+point the location of your website in two ways:</p>
+
+<ol class="task-list">
+<li>Add the line <code>site: path-to-your-website</code> into the <code>s3_website.yml</code> file</li>
+<li>Or, use the <code>--site=path-to-your-site</code> command-line argument</li>
+</ol><p>If you want to store the <code>s3_website.yml</code> file in a directory other than
+the project's root you can specify the directory like so:
+<code>s3_website push --config-dir config</code>.</p>
+
+<h3>
+<a name="user-content-using-environment-variables" class="anchor" href="#using-environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using environment variables</h3>
+
+<p>You can use ERB in your <code>s3_website.yml</code> file which incorporates environment variables:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">s3_id</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV['S3_ID'] %&gt;</span>
+<span class="l-Scalar-Plain">s3_secret</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= ENV['S3_SECRET'] %&gt;</span>
+<span class="l-Scalar-Plain">s3_bucket</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">blog.example.com</span>
+</pre></div>
+
+<p>(If you are using <code>s3_website</code> on an <a href="http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/UsingIAM.html#UsingIAMrolesWithAmazonEC2Instances">EC2 instance with IAM
+roles</a>,
+you can omit the <code>s3_id</code> and <code>s3_secret</code> keys in the config file.)</p>
+
+<p>S3_website implements supports for reading environment variables from a file using
+the <a href="https://github.com/bkeepers/dotenv">dotenv</a> gem. You can create a <code>.env</code> file
+in the project's root directory to take advantage of this feature. Please have
+a look at <a href="https://github.com/bkeepers/dotenv#usage">dotenv's usage guide</a> for
+syntax information.</p>
+
+<h2>
+<a name="user-content-project-goals" class="anchor" href="#project-goals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project goals</h2>
+
+<ul class="task-list">
+<li>Provide a command-line interface tool for deploying and managing S3 websites</li>
+<li>Let the user have all the S3 website configurations in a file</li>
+<li>Minimise or remove the need to use the AWS Console</li>
+<li>Allow the user to deliver the website via CloudFront</li>
+<li>Automatically detect the most common static website tools, such as Jekyll or
+Nanoc</li>
+<li>Be simple to use: require only the S3 credentials and the name of the S3
+bucket</li>
+<li>Let the power users benefit from advanced S3 website features such as
+redirects, Cache-Control headers and gzip support</li>
+<li>Be as fast as possible. Do in parallel all that can be done in parallel.</li>
+</ul><p><code>s3_website</code> attempts to be a command-line interface tool that is easy to
+understand and use. For example, <code>s3_website --help</code> should print you all the
+things it can perform. Please create an issue if you think the tool is
+incomprehensible or inconsistent.</p>
+
+<h2>
+<a name="user-content-additional-features" class="anchor" href="#additional-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional features</h2>
+
+<h3>
+<a name="user-content-cache-control" class="anchor" href="#cache-control" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cache Control</h3>
+
+<p>You can use the <code>max_age</code> configuration option to enable more effective browser
+caching of your static assets. There are two possible ways to use the option:
+you can specify a single age (in seconds) like so:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">max_age</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">300</span>
+</pre></div>
+
+<p>Or you can specify a hash of globs, and all files matching those globs will have
+the specified age:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">max_age</span><span class="p-Indicator">:</span>
+  <span class="s">"assets/*"</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">6000</span>
+  <span class="s">"*"</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">300</span>
+</pre></div>
+
+<p>Place the configuration into the file <code>s3_website.yml</code>.</p>
+
+<h3>
+<a name="user-content-gzip-compression" class="anchor" href="#gzip-compression" aria-hidden="true"><span class="octicon octicon-link"></span></a>Gzip Compression</h3>
+
+<p>If you choose, you can use compress certain file types before uploading them to
+S3. This is a recommended practice for maximizing page speed and minimizing
+bandwidth usage.</p>
+
+<p>To enable Gzip compression, simply add a <code>gzip</code> option to your <code>s3_website.yml</code>
+configuration file:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">gzip</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">true</span>
+</pre></div>
+
+<p>Note that you can additionally specify the file extensions you want to Gzip
+(<code>.html</code>, <code>.css</code>, <code>.js</code>, and <code>.txt</code> will be compressed when <code>gzip: true</code>):</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">gzip</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">.html</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">.css</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">.md</span>
+</pre></div>
+
+<p>Remember that the extensions here are referring to the <em>compiled</em> extensions,
+not the pre-processed extensions.</p>
+
+<h3>
+<a name="user-content-using-non-standard-aws-regions" class="anchor" href="#using-non-standard-aws-regions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using non-standard AWS regions</h3>
+
+<p>By default, <code>s3_website</code> uses the US Standard Region. You can upload your
+website to other regions by adding the setting <code>s3_endpoint</code> into the
+<code>s3_website.yml</code> file.</p>
+
+<p>For example, the following line in <code>s3_website.yml</code> will instruct <code>s3_website</code> to
+push your site into the Tokyo region:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">s3_endpoint</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">ap-northeast-1</span>
+</pre></div>
+
+<p>The valid <code>s3_endpoint</code> values consist of the <a href="http://docs.amazonwebservices.com/general/latest/gr/rande.html#s3_region">S3 location constraint
+values</a>.</p>
+
+<h3>
+<a name="user-content-ignoring-files-you-want-to-keep-on-aws" class="anchor" href="#ignoring-files-you-want-to-keep-on-aws" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ignoring files you want to keep on AWS</h3>
+
+<p>Sometimes there are files or directories you want to keep on S3, but not on
+your local machine. You may define a regular expression to ignore files like so:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">ignore_on_server</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">that_folder_of_stuff_i_dont_keep_locally</span>
+</pre></div>
+
+<p>You may also specify the values as a list:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">ignore_on_server</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">that_folder_of_stuff_i_dont_keep_locally</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">file_managed_by_somebody_else</span>
+</pre></div>
+
+<h3>
+<a name="user-content-excluding-files-from-upload" class="anchor" href="#excluding-files-from-upload" aria-hidden="true"><span class="octicon octicon-link"></span></a>Excluding files from upload</h3>
+
+<p>You can instruct <code>s3_website</code> not to push certain files:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">exclude_from_upload</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">test</span>
+</pre></div>
+
+<p>The value can be a regex, and you can specify many of them:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">exclude_from_upload</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">test</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">(draft|secret)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-reduced-redundancy" class="anchor" href="#reduced-redundancy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reduced Redundancy</h3>
+
+<p>You can reduce the cost of hosting your blog on S3 by using Reduced Redundancy Storage:</p>
+
+<ul class="task-list">
+<li>In <code>s3_website.yml</code>, set <code>s3_reduced_redundancy: true</code>
+</li>
+<li>All objects uploaded after this change will use the Reduced Redundancy Storage.</li>
+<li>If you want to change all of the files in the bucket, you can change them through the AWS console, or update the timestamp on the files before running <code>s3_website</code> again</li>
+</ul><h3>
+<a name="user-content-how-to-use-cloudfront-to-deliver-your-blog" class="anchor" href="#how-to-use-cloudfront-to-deliver-your-blog" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use Cloudfront to deliver your blog</h3>
+
+<p>It is easy to deliver your S3-based web site via Cloudfront, the CDN of Amazon.</p>
+
+<h4>
+<a name="user-content-creating-a-new-cloudfront-distribution" class="anchor" href="#creating-a-new-cloudfront-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a new CloudFront distribution</h4>
+
+<p>When you run the command <code>s3_website cfg apply</code>, it will ask you whether you
+want to deliver your website via CloudFront. If you answer yes, the command will
+create a CloudFront distribution for you.</p>
+
+<h4>
+<a name="user-content-using-your-existing-cloudfront-distribution" class="anchor" href="#using-your-existing-cloudfront-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using your existing CloudFront distribution</h4>
+
+<p>If you already have a CloudFront distribution that serves data from your website
+S3 bucket, just add the following line into the file <code>s3_website.yml</code>:</p>
+
+<pre><code>cloudfront_distribution_id: your-dist-id
+</code></pre>
+
+<p>Next time you run <code>s3_website push</code>, it will invalidate the items on CloudFront and
+thus force the CDN system to reload the changes from your website S3 bucket.</p>
+
+<h4>
+<a name="user-content-specifying-custom-settings-for-your-cloudfront-distribution" class="anchor" href="#specifying-custom-settings-for-your-cloudfront-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying custom settings for your CloudFront distribution</h4>
+
+<p><code>s3_website</code> lets you define custom settings for your CloudFront distribution.</p>
+
+<p>For example, like this you can define a your own TTL and CNAME:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">cloudfront_distribution_config</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">default_cache_behavior</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">min_TTL</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">&lt;%= 60 * 60 * 24 %&gt;</span>
+  <span class="l-Scalar-Plain">aliases</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">quantity</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">1</span>
+    <span class="l-Scalar-Plain">items</span><span class="p-Indicator">:</span>
+      <span class="l-Scalar-Plain">CNAME</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">your.website.com</span>
+</pre></div>
+
+<p>Once you've saved the configuration into <code>s3_website.yml</code>, you can apply them by
+running <code>s3_website cfg apply</code>.</p>
+
+<h4>
+<a name="user-content-invalidating-root-resources-instead-of-indexhtmls" class="anchor" href="#invalidating-root-resources-instead-of-indexhtmls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Invalidating root resources instead of index.htmls</h4>
+
+<p>By default, <code>s3_website push</code> calls the CloudFront invalidation API with the
+file-name-as-it-is. This means that if your file is <em>article/index.html</em>, the
+push command will call the invalidation API on the resource
+<em>article/index.html</em>.</p>
+
+<p>You can instruct the push command to invalidate the root resource instead of the
+<em>index.html</em> resource by adding the following setting into the configuration
+file:</p>
+
+<pre><code>cloudfront_invalidate_root: true
+</code></pre>
+
+<p>To recap, this setting instructs s3_website to invalidate the root resource
+(e.g., <em>article/</em>) instead of the filename'd resource (e.g.,
+<em>article/index.html</em>).</p>
+
+<p>No more index.htmls in your URLs!</p>
+
+<p><em>Note</em>: If the root resource on your folder displays an error instead of the
+index file, your source bucket in Cloudfront likely is pointing to the S3 Origin,
+<em>example.com.s3.amazonaws.com</em>. Update the source to the S3 Website Endpoint,
+<em>e.g. example.com.s3-website-us-east-1.amazonaws.com</em>, to fix this.</p>
+
+<h3>
+<a name="user-content-configuring-redirects-on-your-s3-website" class="anchor" href="#configuring-redirects-on-your-s3-website" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring redirects on your S3 website</h3>
+
+<p>You can set HTTP redirects on your S3 website in two ways. If you only need
+simple "301 Moved Premanently" redirects for certain keys, use the Simple
+Redirects method. Otherwise, use the Routing Rules method.</p>
+
+<h4>
+<a name="user-content-simple-redirects" class="anchor" href="#simple-redirects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple Redirects</h4>
+
+<p>For simple redirects <code>s3_website</code> uses Amazon S3's
+<a href="http://docs.aws.amazon.com/AmazonS3/latest/dev/how-to-page-redirect.html"><code>x-amz-website-redirect-location</code></a>
+metadata. It will create zero-byte objects for each path you want
+redirected with the appropriate <code>x-amz-website-redirect-location</code> value.</p>
+
+<p>For setting up simple redirect rules, simply list each path and target
+as key-value pairs under the <code>redirects</code> configuration option:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">redirects</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">index.php</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">/</span>
+  <span class="l-Scalar-Plain">about.php</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">/about.html</span>
+  <span class="l-Scalar-Plain">music-files/promo.mp4</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">http://www.youtube.com/watch?v=dQw4w9WgXcQ</span>
+</pre></div>
+
+<h4>
+<a name="user-content-routing-rules" class="anchor" href="#routing-rules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Routing Rules</h4>
+
+<p>You can configure more complex redirect rules by adding the following
+configuration into the <code>s3_website.yml</code> file:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">routing_rules</span><span class="p-Indicator">:</span>
+  <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">condition</span><span class="p-Indicator">:</span>
+      <span class="l-Scalar-Plain">key_prefix_equals</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">blog/some_path</span>
+    <span class="l-Scalar-Plain">redirect</span><span class="p-Indicator">:</span>
+      <span class="l-Scalar-Plain">host_name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">blog.example.com</span>
+      <span class="l-Scalar-Plain">replace_key_prefix_with</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">some_new_path/</span>
+      <span class="l-Scalar-Plain">http_redirect_code</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">301</span>
+</pre></div>
+
+<p>After adding the configuration, run the command <code>s3_website cfg apply</code> on your
+command-line interface. This will apply the routing rules on your S3 bucket.</p>
+
+<p>For more information on configuring redirects, see the documentation of the
+<a href="https://github.com/laurilehmijoki/configure-s3-website#configuring-redirects">configure-s3-website</a>
+gem, which comes as a transitive dependency of the <code>s3_website</code> gem. (The
+command <code>s3_website cfg apply</code> internally calls the <code>configure-s3-website</code> gem.)</p>
+
+<h3>
+<a name="user-content-specifying-custom-concurrency-level" class="anchor" href="#specifying-custom-concurrency-level" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying custom concurrency level</h3>
+
+<p>By default, <code>s3_website</code> does 3 operations in parallel. An operation can be an
+HTTP PUT operation against the S3 API, for example.</p>
+
+<p>You can increase the concurrency level by adding the following setting into the
+<code>s3_website.yml</code> file:</p>
+
+<pre><code>concurrency_level: &lt;integer&gt;
+</code></pre>
+
+<p>However, because S3 throttles connections, there's an upper limit to the
+level of parallelism. If you start to see end-of-file errors, decrease the
+concurrency level. Conversely, if you don't experience any errors, you can
+increase the concurrency level and thus benefit from faster uploads.</p>
+
+<p>If you experience the "too many open files" error, either increase the amount of
+maximum open files (on Unix-like systems, see <code>man ulimit</code>) or decrease the
+<code>concurrency_level</code> setting.</p>
+
+<h3>
+<a name="user-content-simulating-deployments" class="anchor" href="#simulating-deployments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simulating deployments</h3>
+
+<p>You can simulate the <code>s3_website push</code> operation by adding the
+<code>--dry-run</code> switch. The dry run mode will not apply any modifications on your S3
+bucket or CloudFront distribution. It will merely print out what the <code>push</code>
+operation would actually do if run without the dry switch.</p>
+
+<p>You can use the dry run mode if you are unsure what kind of effects the <code>push</code>
+operation would cause to your live website.</p>
+
+<h2>
+<a name="user-content-migrating-from-v1-to-v2" class="anchor" href="#migrating-from-v1-to-v2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Migrating from v1 to v2</h2>
+
+<p>Please read the <a href="/changelog.md#200">release note</a> on version 2. It contains
+information on backward incompatible changes.</p>
+
+<p>You can find the v1 branch
+<a href="https://github.com/laurilehmijoki/s3_website/tree/1.x">here</a>. It's in
+maintenance mode. This means that v1 will see only critical bugfix releases.</p>
+
+<h2>
+<a name="user-content-example-configurations" class="anchor" href="#example-configurations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example configurations</h2>
+
+<p>See <a href="additional-docs/example-configurations.md">example-configurations</a>.</p>
+
+<h2>
+<a name="user-content-on-security" class="anchor" href="#on-security" aria-hidden="true"><span class="octicon octicon-link"></span></a>On security</h2>
+
+<p>If the source code of your website is publicly
+available, ensure that the <code>s3_website.yml</code> file is in the list of ignored files.
+For git users this means that the file <code>.gitignore</code> should mention the
+<code>s3_website.yml</code> file.</p>
+
+<p>If you use the .dotenv gem, ensure that you do not push the <code>.env</code> file to a
+public git repository.</p>
+
+<h2>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known issues</h2>
+
+<p>Please create an issue and send a pull request if you spot any.</p>
+
+<h2>
+<a name="user-content-versioning" class="anchor" href="#versioning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Versioning</h2>
+
+<p>s3_website uses <a href="http://semver.org">Semantic Versioning</a>.</p>
+
+<p>In the spirit of semantic versioning, here is the definition of public API for
+s3_website: Within a major version, s3_website will not break
+backwards-compatibility of anything that is mentioned in this README file.</p>
+
+<h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<p>See <a href="additional-docs/development.md">development</a>.</p>
+
+<h3>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h3>
+
+<p>We (users and developers of s3_website) welcome patches, pull requests and
+ideas for improvement.</p>
+
+<p>When sending pull requests, please accompany them with tests. Favor BDD style
+in test descriptions. Use VCR-backed integration tests where possible. For
+reference, you can look at the existing s3_website tests.</p>
+
+<p>If you are not sure how to test your pull request, you can ask the <a href="http://rubygems.org/gems/s3_website">gem owners
+</a> to supplement the request with tests.
+However, by including proper tests, you increase the chances of your pull
+request being incorporated into future releases.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>MIT. See the LICENSE file for more information.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>This gem is created by Lauri Lehmijoki. Without the valuable work of <a href="https://github.com/pcreux">Philippe
+Creux</a> on
+<a href="https://github.com/laurilehmijoki/jekyll-s3">jekyll-s3</a>, this project would not
+exist.</p>
+
+<p>Contributors (in alphabetical order)</p>
+
+<ul class="task-list">
+<li>Alan deLevie</li>
+<li>Cory Kaufman-Schofield</li>
+<li>Chris Kelly</li>
+<li>Chris Moos</li>
+<li>Christian Grobmeier</li>
+<li>Christopher Petersen</li>
+<li>David Michael Barr</li>
+<li>David Raffensperger</li>
+<li>Douglas Teoh</li>
+<li>Greg Karékinian</li>
+<li>John Allison</li>
+<li>Jordan White</li>
+<li>Justin Latimer</li>
+<li>László Bácsi</li>
+<li>Mason Turner</li>
+<li>Michael Bleigh</li>
+<li>maxberger</li>
+<li>Philip I. Thomas</li>
+<li>Philippe Creux</li>
+<li>Piotr Janik</li>
+<li>Shigeaki Matsumura</li>
+<li>stanislas</li>
+<li>Tate Johnson</li>
+<li>Toby Marsden</li>
+<li>Trevor Fitzgerald</li>
+<li>Zee Spencer</li>
+</ul><h2>
+<a name="user-content-donations" class="anchor" href="#donations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Donations</h2>
+
+<p><a href="https://www.gittip.com/laurilehmijoki/"><img src="https://camo.githubusercontent.com/2c87fe287dc4ddfa84a5b5f53df03b33e1f703fd/68747470733a2f2f7261776769746875622e636f6d2f74776f6c66736f6e2f6769747469702d62616467652f302e322e302f646973742f6769747469702e706e67" alt="Support via Gittip" data-canonical-src="https://rawgithub.com/twolfson/gittip-badge/0.2.0/dist/gittip.png" style="max-width:100%;"></a></p></article></div>

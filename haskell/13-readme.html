@@ -1,0 +1,238 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-yi-" class="anchor" href="#yi-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Yi <a href="https://travis-ci.org/yi-editor/yi"><img src="https://camo.githubusercontent.com/87d4fd6319dcc4af5cc65395f4a32de87679890c/68747470733a2f2f7472617669732d63692e6f72672f79692d656469746f722f79692e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/yi-editor/yi.svg?branch=master" style="max-width:100%;"></a>
+</h1>
+
+<p>Yi is a text editor written in Haskell and extensible in Haskell. The goal of Yi is to provide a flexible, powerful and correct editor core scriptable in Haskell.</p>
+
+<p>Its features include</p>
+
+<ul class="task-list">
+<li>a purely functional editor core;</li>
+<li>keybindings written as parsers of the input;</li>
+<li>Emacs, Vim and Cua (subset) emulations provided by default;</li>
+<li>Vty (terminal) and Gtk-based Pango UIs</li>
+</ul><p>The long term goal of the project is to make Yi the editor of choice for the haskell hacker. The main short term goal is to maximize Yi's Fun Factor. This means that we want to</p>
+
+<ul class="task-list">
+<li>improve hackability (and therefore architecture) and</li>
+<li>add cool features.</li>
+</ul><p>We also want to simplify the core Yi package to make it more accessible, splitting some parts into several packages.</p>
+
+<p>Other information (much of it old) is available on the <a href="http://haskell.org/haskellwiki/Yi">Haskell wiki</a>.</p>
+
+<h2>
+<a name="user-content-contents" class="anchor" href="#contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contents</h2>
+
+<ul class="task-list">
+<li>
+<a href="#installing">Installing</a>
+
+<ul class="task-list">
+<li><a href="#installing-inside-a-cabal-sandbox">Installing inside a Cabal sandbox</a></li>
+</ul>
+</li>
+<li><a href="#getting-source">Getting Source</a></li>
+<li><a href="#reporting-bugs">Reporting Bugs</a></li>
+<li><a href="#mailing-list">Mailing List</a></li>
+<li><a href="#irc-channel">IRC channel</a></li>
+<li><a href="#configuring-yi">Configuring Yi</a></li>
+<li><a href="#frontend-compatibility">Frontend Compatibility</a></li>
+<li><a href="#profiling">Profiling</a></li>
+<li><a href="#reading-material">Reading material</a></li>
+</ul><h2>
+<a name="user-content-installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing</h2>
+
+<p>Yi requires the Haskell Platform 2011.2.0.0 at minimum (for GHC 7, alex, and cabal-install, among other things).</p>
+
+<p>With the Haskell Platform installed, yi should be installed with cabal-install:</p>
+
+<pre><code>$ cabal update
+$ cabal install yi
+</code></pre>
+
+<p>On Linux systems, you'll probably need ncurses development headers for the Vty frontend. On Ubuntu, you'll need to install the <code>libncurses5-dev</code> package.</p>
+
+<p>You can specify frontends to compile, also:</p>
+
+<pre><code>$ cabal install yi -fvty -fpango
+</code></pre>
+
+<p>Options are <code>-fvty</code> and <code>-fpango</code>.</p>
+
+<p>You can also install the <code>yi-contrib</code> package, which contains some extra contributed things (like user configs):</p>
+
+<pre><code>$ cabal install yi-contrib
+</code></pre>
+
+<p>If you're in the source repository, you can install yi from source:</p>
+
+<pre><code>$ cabal update # Still update to get updated dependencies
+$ (cd yi &amp;&amp; cabal install)
+</code></pre>
+
+<p>And the contrib package:</p>
+
+<pre><code>$ (cd yi-contrib &amp;&amp; cabal install)
+</code></pre>
+
+<p>If you're getting errors about Alex version bounds or are experiencing
+similar problems, it's recommended that you install from the sources
+available in the GitHub repository which has the version bounds
+adjusted and contains a couple of nice fixes that might not be present
+in the latest Hackage version.</p>
+
+<h3>
+<a name="user-content-installing-inside-a-cabal-sandbox" class="anchor" href="#installing-inside-a-cabal-sandbox" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing inside a Cabal sandbox</h3>
+
+<p>Many people want to install Yi inside a cabal sandbox (cabal-install
+1.18 feature). This is especially important if you plan on hacking on
+Yi itself or on libraries for Yi.</p>
+
+<p>As Yi compiles your config file once you start it, the config needs to
+know where to look for any of its dependencies, such as Yi itself! If
+these are inside of the sandbox, it doesn't know where to look and
+you'll get config compilation errors due to missing modules.</p>
+
+<p>To sandbox, navigate to your source yi directory. For me it's
+<code>~/programming/yi/yi</code>.</p>
+
+<p>We then setup a cabal sandbox following instructions from the
+<a href="http://www.haskell.org/cabal/users-guide/installing-packages.html#sandboxes-basic-usage">cabal userguide</a>:</p>
+
+<pre><code>$ cabal sandbox init
+$ cabal install --only-dependencies
+$ cabal build
+</code></pre>
+
+<p>From cabal-install 1.20, Yi can be launched in an environment using the
+sandbox's package DB using <code>cabal exec ./dist/build/yi/yi</code>. It may be useful
+to create an alias or small script for this, along the lines of:</p>
+
+<pre><code>#!/bin/bash
+YI_DIR=$HOME/programming/yi/yi
+env CABAL_SANDBOX_CONFIG=$YI_DIR/cabal.sandbox.config cabal exec $YI_DIR/dist/build/yi/yi "$@"
+</code></pre>
+
+<p>The <code>"$@"</code> part means that all the
+arguments we pass to this script are passed on to the Yi binary which
+means we can still use all the regular flags, such as <code>runyi
+--as=emacs</code>. Of course, you'll need to adjust the paths used to match
+your sandbox and package directories.</p>
+
+<p>There's one more thing to mention in this section and that is config
+dependencies. One of the great things about Yi is that we have access
+to the wealth of existing Haskell libraries and we can take advantage
+of this in our config file. There are two scenarios:</p>
+
+<p>If the package your config depends on is on Hackage and you want to
+use that, just use <code>cabal install</code> in the sandboxed Yi directory. So
+if your config depends on <code>semigroups</code>, you'd run <code>cabal install
+semigroups</code>. After doing this, <code>semigroups</code> should now be visible when
+your config is getting compiled.</p>
+
+<p>If the package your config depends on is local, for example when
+you're developing the library that you want to use or if you need a
+patched version, you'll have to use <code>cabal sandbox add-source</code>
+command. As an example, I'm developing a <code>yi-haskell-utils</code> package
+and my config depends on it. To accommodate for this, I ran <code>cabal
+sandbox add-source ~/programming/yi-haskell-utils</code>.
+You can then <code>cabal install yi-haskell-utils</code> to add the package to
+the sandbox. You should call <code>cabal build</code> in the sandbox directory
+after you modify a local package so that the sandbox has an up-to-date
+version of the package.</p>
+
+<p>I suspect that it'd be perfectly possible to make your config file
+into a cabal project and manage the dependencies that way but I have
+not yet investigated this approach.</p>
+
+<h2>
+<a name="user-content-getting-source" class="anchor" href="#getting-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Source</h2>
+
+<p>Yi source repository is available on <a href="https://github.com/yi-editor/">GitHub</a>.</p>
+
+<p>To get the git version,</p>
+
+<pre><code>$ git clone git://github.com/yi-editor/yi.git
+</code></pre>
+
+<p>(There may be more repositories in the future, as yi is split more.)</p>
+
+<h2>
+<a name="user-content-reporting-bugs" class="anchor" href="#reporting-bugs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporting Bugs</h2>
+
+<p>Please report issues on <a href="https://github.com/yi-editor/yi/issues">GitHub</a>.</p>
+
+<h2>
+<a name="user-content-mailing-list" class="anchor" href="#mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mailing List</h2>
+
+<p>Our mailing list is <a href="http://groups.google.com/group/yi-devel">yi-devel</a>, hosted at Google Groups. Please ask us questions on this list! All development discussion occurs on this list.</p>
+
+<h2>
+<a name="user-content-irc-channel" class="anchor" href="#irc-channel" aria-hidden="true"><span class="octicon octicon-link"></span></a>IRC channel</h2>
+
+<p>Our channel is #yi at Freenode. Please note that it is rather slow (very slow compared to #haskell), so be prepared to stay for longer than 5 minutes.</p>
+
+<h2>
+<a name="user-content-configuring-yi" class="anchor" href="#configuring-yi" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring Yi</h2>
+
+<p>Yi uses the <a href="http://hackage.haskell.org/package/dyre">Dyre</a> package to have dynamic reconfiguration. You can configure Yi by creating <code>~/.config/yi/yi.hs</code>, and then Yi is reconfigured whenever you update this file. Example configuration files are in <code>yi/examples/</code> (copy any of these into <code>~/.config/yi/</code> as <code>yi.hs</code> and restart Yi).</p>
+
+<p>You can also use the sample user configs in the <code>yi-contrib</code> package (see the <a href="https://github.com/yi-editor/yi/tree/master/yi-contrib/src/Yi/Config/Users">list of user configs</a> in the source repository on GitHub). To use one of these configurations, install the package and then create a configuration file <code>~/.config/yi/yi.hs</code> like this:</p>
+
+<pre><code>import Yi
+import Yi.Config.Users.Anders
+
+main = yi config
+</code></pre>
+
+<p>It's possible to customize even these user configs in the same way as the example configurations.</p>
+
+<h2>
+<a name="user-content-frontend-compatibility" class="anchor" href="#frontend-compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Frontend Compatibility</h2>
+
+<pre><code>        |  Vty    Pango
+--------+----------------
+Linux   |   X       X
+OSX     |   X       X
+Windows |           X
+</code></pre>
+
+<p>Windows support for Vty may eventually come; patches on the vty package would certainly be appreciated.</p>
+
+<p>The plan is to move the UI frontends into separate packages, but this has not yet happened.</p>
+
+<h2>
+<a name="user-content-profiling" class="anchor" href="#profiling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Profiling</h2>
+
+<p>If you're interested in optimizing Yi, here is a <a href="https://groups.google.com/forum/?fromgroups=#!topic/yi-devel/2dUXKJMSFsM">way to get profiling</a>:</p>
+
+<ol class="task-list">
+<li>Change ghcOptions in <code>yi/src/library/Yi/Main.hs</code>:</li>
+</ol><pre><code>-                  ghcOptions = [],
++                  ghcOptions = ["-auto-all", "-prof", "-osuf=p_o", "-hisuf=p_hi", "-rtsopts"],
+</code></pre>
+
+<ol class="task-list">
+<li>Recompile yi with <code>--enable-library-profiling</code>:</li>
+</ol><pre><code>cabal configure --enable-library-profiling &amp;&amp; cabal install --reinstall
+</code></pre>
+
+<ol class="task-list">
+<li><p>Run <code>yi</code> first to get a compiled <strong>real</strong> executable.</p></li>
+<li><p>Then call <strong>real</strong> executable from cache directory with profiling options. On any XDG-compatible (Unix-like) system this should look like:</p></li>
+</ol><pre><code>~/.cache/yi/yi-linux-x86_64 +RTS -Pa
+</code></pre>
+
+<h2>
+<a name="user-content-reading-material" class="anchor" href="#reading-material" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reading material</h2>
+
+<p>There are some papers which might interest you. If you plan on hacking
+on Yi, it's very recommended that you read these</p>
+
+<ul class="task-list">
+<li><p><a href="http://publications.lib.chalmers.se/records/fulltext/local_72549.pdf">An editor in Haskell for Haskell</a></p></li>
+<li><p><a href="http://publications.lib.chalmers.se/records/fulltext/local_94979.pdf">Lazy Functional Incremental Parsing</a> in Yi</p></li>
+<li><p><a href="http://publications.lib.chalmers.se/records/fulltext/112284.pdf">A JavaScript Mode for Yi</a></p></li>
+<li><p><a href="http://publications.lib.chalmers.se/records/fulltext/117337.pdf">Robust &amp; Precise incremental parsing of Haskell</a>
+talks about the precise Haskell mode.</p></li>
+</ul></article></div>

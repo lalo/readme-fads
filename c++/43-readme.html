@@ -1,0 +1,1604 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-edgejs-net-and-nodejs-in-process" class="anchor" href="#edgejs-net-and-nodejs-in-process" aria-hidden="true"><span class="octicon octicon-link"></span></a>Edge.js: .NET and Node.js in-process</h1>
+
+<p>An edge connects two nodes. This edge connects Node.js and .NET. V8 and CLR/Mono - in process. On Windows, MacOS, and Linux. </p>
+
+<p><a href="https://cloud.githubusercontent.com/assets/822369/2807996/94b3ff4e-cd07-11e3-833c-b0474d25119a.png" target="_blank"><img src="https://cloud.githubusercontent.com/assets/822369/2807996/94b3ff4e-cd07-11e3-833c-b0474d25119a.png" alt="image" style="max-width:100%;"></a></p>
+
+<p>You can script C# from a Node.js process:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">helloWorld</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (input) =&gt; { </span>
+<span class="cm">        return ".NET Welcomes " + input.ToString(); </span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">helloWorld</span><span class="p">(</span><span class="s1">'JavaScript'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>You can also script Node.js from C#:</p>
+
+<div class="highlight highlight-c#"><pre><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">EdgeJs</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">Program</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">async</span> <span class="k">void</span> <span class="nf">Start</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">func</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">            return function (data, callback) {</span>
+<span class="s">                callback(null, 'Node.js welcomes ' + data);</span>
+<span class="s">            }</span>
+<span class="s">        "</span><span class="p">);</span>
+
+        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="k">await</span> <span class="n">func</span><span class="p">(</span><span class="s">".NET"</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Task</span><span class="p">.</span><span class="n">Run</span><span class="p">((</span><span class="n">Action</span><span class="p">)</span><span class="n">Start</span><span class="p">).</span><span class="n">Wait</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-what-problems-does-edgejs-solve" class="anchor" href="#what-problems-does-edgejs-solve" aria-hidden="true"><span class="octicon octicon-link"></span></a>What problems does Edge.js solve?</h2>
+
+<blockquote>
+<p>Ah, whatever problem you have. If you have this problem, this solves it.</p>
+</blockquote>
+
+<p><em><a href="https://twitter.com/shanselman/status/461532471037677568">--Scott Hanselman (@shanselman)</a></em></p>
+
+<h2>
+<a name="user-content-before-you-dive-in" class="anchor" href="#before-you-dive-in" aria-hidden="true"><span class="octicon octicon-link"></span></a>Before you dive in</h2>
+
+<p>See the <a href="http://tjanczuk.github.com/edge">Edge.js overview</a>.<br>
+Read the <a href="http://www.infoq.com/articles/the_edge_of_net_and_node">Edge.js introduction on InfoQ</a>.<br>
+Listen to the <a href="http://herdingcode.com/herding-code-166-tomasz-janczuk-on-edge-js/">Edge.js podcast on Herdingcode</a>. </p>
+
+<p><a href="https://cloud.githubusercontent.com/assets/822369/2808101/87f73a5c-cd0f-11e3-9f7a-f53be86641be.png" target="_blank"><img src="https://cloud.githubusercontent.com/assets/822369/2808101/87f73a5c-cd0f-11e3-9f7a-f53be86641be.png" alt="image" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-contents" class="anchor" href="#contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contents</h2>
+
+<p><a href="#introduction">Introduction</a><br><a href="#scripting-clr-from-nodejs">Scripting CLR from Node.js</a><br>
+    <a href="#what-you-need">What you need</a><br>
+    <a href="#how-to-c-hello-world">How to: C# hello, world</a><br>
+    <a href="#how-to-integrate-c-code-into-nodejs-code">How to: integrate C# code into Node.js code</a><br>
+    <a href="#how-to-specify-additional-clr-assembly-references-in-c-code">How to: specify additional CLR assembly references in C# code</a><br>
+    <a href="#how-to-marshal-data-between-c-and-nodejs">How to: marshal data between C# and Node.js</a><br>
+    <a href="#how-to-call-nodejs-from-c">How to: call Node.js from C#</a><br>
+    <a href="#how-to-export-c-function-to-nodejs">How to: export C# function to Node.js</a><br>
+    <a href="#how-to-script-python-in-a-nodejs-application">How to: script Python in a Node.js application</a><br>
+    <a href="#how-to-script-powershell-in-a-nodejs-application">How to: script PowerShell in a Node.js application</a><br>
+    <a href="#how-to-script-f-in-a-nodejs-application">How to: script F# in a Node.js application</a><br>
+    <a href="#how-to-script-t-sql-in-a-nodejs-application">How to: script T-SQL in a Node.js application</a><br>
+    <a href="#how-to-support-for-other-clr-languages">How to: support for other CLR languages</a><br>
+    <a href="#how-to-exceptions">How to: exceptions</a><br>
+    <a href="#how-to-app-config">How to: app.config</a><br>
+    <a href="#how-to-debugging">How to: debugging</a><br>
+    <a href="#performance">Performance</a><br>
+    <a href="#building-on-windows">Building on Windows</a><br>
+    <a href="#building-on-osx">Building on OSX</a><br>
+    <a href="#building-on-linux">Building on Linux</a><br>
+    <a href="#running-tests">Running tests</a><br><a href="#scripting-nodejs-from-clr">Scripting Node.js from CLR</a><br>
+    <a href="#what-you-need-1">What you need</a><br>
+    <a href="#how-to-nodejs-hello-world">How to: Node.js hello, world</a><br>
+    <a href="#how-to-integrate-nodejs-code-into-clr-code">How to: integrate Node.js into CLR code</a><br>
+    <a href="#how-to-use-nodejs-built-in-modules">How to: use Node.js built-in modules</a><br>
+    <a href="#how-to-use-external-nodejs-modules">How to: use external Node.js modules</a><br>
+    <a href="#how-to-handle-nodejs-events-in-net">How to: handle Node.js events in .NET</a><br>
+    <a href="#how-to-expose-nodejs-state-to-net">How to: expose Node.js state to .NET</a><br>
+    <a href="#how-to-use-nodejs-in-aspnet-web-applications">How to: use Node.js in ASP.NET application</a><br>
+    <a href="#building-edgejs-nuget-package">Building Edge.js NuGet package</a><br>
+    <a href="#running-tests-of-scripting-nodejs-in-c">Running tests of scripting Node.js in C#</a><br><a href="#contribution-and-derived-work">Contribution and derived work</a>  </p>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>Edge.js allows you to run Node.js and .NET code in one process on Windows, MacOS, and Linux. </p>
+
+<p>You can call .NET functions from Node.js and Node.js functions from .NET. Edge.js takes care of marshalling data between CLR and V8. Edge.js also reconciles threading models of single threaded V8 and multi-threaded CLR. Edge.js ensures correct lifetime of objects on V8 and CLR heaps. The CLR code can be pre-compiled or specified as C#, F#, Python, or PowerShell source: Edge.js can compile CLR scripts at runtime. Edge can be extended to support other CLR languages or DSLs.</p>
+
+<p><a href="https://camo.githubusercontent.com/842e3b9478283258ebdd35aa9f77dfada44a4ad3/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3233343038352f62333035363235632d383736382d313165322d386465302d6530336165393865373234392e504e47" target="_blank"><img src="https://camo.githubusercontent.com/842e3b9478283258ebdd35aa9f77dfada44a4ad3/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3233343038352f62333035363235632d383736382d313165322d386465302d6530336165393865373234392e504e47" alt="Edge.js interop model" data-canonical-src="https://f.cloud.github.com/assets/822369/234085/b305625c-8768-11e2-8de0-e03ae98e7249.PNG" style="max-width:100%;"></a></p>
+
+<p>Edge.js provides an asynchronous, in-process mechanism for interoperability between Node.js and .NET. You can use this mechanism to:</p>
+
+<ul class="task-list">
+<li>script Node.js from a .NET application (console app, ASP.NET, etc.)</li>
+<li>script C# from a Node.js application on Windows, MacOS, and Linux</li>
+<li>access MS SQL from Node.js using ADO.NET <a href="http://blog.codeship.io/2014/04/22/leverage-sql-server-with-node-js-using-edge-js.html">more...</a><br>
+</li>
+<li>use CLR multi-threading from Node.js for CPU intensive work <a href="http://tomasz.janczuk.org/2013/02/cpu-bound-workers-for-nodejs.html">more...</a><br>
+</li>
+<li>write native extensions to Node.js in C# instead of C/C++<br>
+</li>
+<li>integrate existing .NET components into Node.js applications</li>
+</ul><p>Read more about the background and motivations of the project <a href="http://tomasz.janczuk.org/2013/02/hosting-net-code-in-nodejs-applications.html">here</a>. </p>
+
+<p><a href="https://twitter.com/tjanczuk">Follow @tjanczuk</a> for updates related to the module. </p>
+
+<h2>
+<a name="user-content-scripting-clr-from-nodejs" class="anchor" href="#scripting-clr-from-nodejs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scripting CLR from Node.js</h2>
+
+<p>If you are writing a Node.js application, this section explains how you include and run CLR code in your app. It works on Windows, MacOS, and Linux.</p>
+
+<h3>
+<a name="user-content-what-you-need" class="anchor" href="#what-you-need" aria-hidden="true"><span class="octicon octicon-link"></span></a>What you need</h3>
+
+<p>Edge.js runs on Windows, Linux, and MacOS and requires Node.js 0.8 or later, as well as .NET Framework 4.5. or Mono 3.4.0. </p>
+
+<h4>
+<a name="user-content-windows" class="anchor" href="#windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows</h4>
+
+<ul class="task-list">
+<li>Node.js 0.8.x or later (developed and tested with v0.8.22, and v0.10.0, both x32 and x64 architectures)<br>
+</li>
+<li>
+<a href="http://www.microsoft.com/en-us/download/details.aspx?id=30653">.NET 4.5</a><br>
+</li>
+<li>to use Python, you also need <a href="http://ironpython.codeplex.com/releases/view/81726">IronPython 2.7.3 or later</a><br>
+</li>
+<li>to use F#, read <a href="http://7sharpnine.com/posts/i-node-something/">Dave Thomas blog post</a>
+</li>
+</ul><p><a href="https://cloud.githubusercontent.com/assets/822369/2808066/3707f37c-cd0d-11e3-9b4e-7257ffc27c9c.png" target="_blank"><img src="https://cloud.githubusercontent.com/assets/822369/2808066/3707f37c-cd0d-11e3-9b4e-7257ffc27c9c.png" alt="image" style="max-width:100%;"></a></p>
+
+<h4>
+<a name="user-content-linux" class="anchor" href="#linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Linux</h4>
+
+<ul class="task-list">
+<li>Node.js 0.8.x or later (developed and tested with v0.10.26 x64)<br>
+</li>
+<li>Mono 3.4.0 x64<br>
+</li>
+<li>Check out <a href="#building-on-linux">Ubuntu 12.04 setup instructions</a>
+</li>
+</ul><p><a href="https://cloud.githubusercontent.com/assets/822369/2808077/03f92874-cd0e-11e3-88ea-79f67b8b1d49.png" target="_blank"><img src="https://cloud.githubusercontent.com/assets/822369/2808077/03f92874-cd0e-11e3-88ea-79f67b8b1d49.png" alt="image" style="max-width:100%;"></a></p>
+
+<h4>
+<a name="user-content-macos" class="anchor" href="#macos" aria-hidden="true"><span class="octicon octicon-link"></span></a>MacOS</h4>
+
+<ul class="task-list">
+<li>Node.js 0.8.x or later (developed and tested with v0.10.26 x64)<br>
+</li>
+<li>Mono 3.4.0 x64</li>
+<li>Check out <a href="#building-on-osx">Mac OS setup instructions</a><br>
+</li>
+</ul><p><a href="https://cloud.githubusercontent.com/assets/822369/2808046/8f4ce378-cd0b-11e3-95dc-ef0842c28821.png" target="_blank"><img src="https://cloud.githubusercontent.com/assets/822369/2808046/8f4ce378-cd0b-11e3-95dc-ef0842c28821.png" alt="image" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-how-to-c-hello-world" class="anchor" href="#how-to-c-hello-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: C# hello, world</h3>
+
+<p>Follow setup instructions <a href="#what-you-need">for your platform</a>. </p>
+
+<p>Install edge:</p>
+
+<pre><code>npm install edge
+</code></pre>
+
+<p>In your server.js:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">helloWorld</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (input) =&gt; { </span>
+<span class="cm">        return ".NET Welcomes " + input.ToString(); </span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">helloWorld</span><span class="p">(</span><span class="s1">'JavaScript'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Run and enjoy:</p>
+
+<pre><code>$&gt;node server.js
+.NET welcomes JavaScript
+</code></pre>
+
+<h3>
+<a name="user-content-how-to-integrate-c-code-into-nodejs-code" class="anchor" href="#how-to-integrate-c-code-into-nodejs-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: integrate C# code into Node.js code</h3>
+
+<p>Edge provides several ways to integrate C# code into a Node.js application. Regardless of the way you choose, the entry point into the .NET code is normalized to a <code>Func&lt;object,Task&lt;object&gt;&gt;</code> delegate. This allows Node.js code to call .NET asynchronously and avoid blocking the Node.js event loop. </p>
+
+<p>Edge provides a function that accepts a reference to C# code in one of the supported representations, and returns a Node.js function which acts as a JavaScript proxy to the <code>Func&lt;object,Task&lt;object&gt;&gt;</code> .NET delegate:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">myFunction</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(...);</span>
+</pre></div>
+
+<p>The function proxy can then be called from Node.js like any asynchronous function:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">myFunction</span><span class="p">(</span><span class="s1">'Some input'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">//...</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Alternatively, if you know the C# implementation will complete synchronously given the circumstances, you can call this function as any synchronous JavaScript function as follows:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">myFunction</span><span class="p">(</span><span class="s1">'Some input'</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+</pre></div>
+
+<p>The <code>true</code> parameter instead of a callback indicates that Node.js expects the C# implementation to complete synchronously. If the CLR function implementation does not complete synchronously, the call above will result in an exception. </p>
+
+<p>One representation of CLR code that Edge.js accepts is C# source code. You can embed C# literal representing a .NET async lambda expression implementing the <code>Func&lt;object,Task&lt;object&gt;&gt;</code> delegate directly inside Node.js code:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">add7</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'async (input) =&gt; { return (int)input + 7; }'</span><span class="p">);</span>
+</pre></div>
+
+<p>In another representation, you can embed multi-line C# source code by providing a function with a body containing a multi-line comment. Edge extracts the C# code from the function body using regular expressions:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">add7</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (input) =&gt; {</span>
+<span class="cm">        return (int)input + 7;</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+</pre></div>
+
+<p>If your C# code is more involved than a simple lambda, you can specify entire class definition. By convention, the class must be named <code>Startup</code> and it must have an <code>Invoke</code> method that matches the <code>Func&lt;object,Task&lt;object&gt;&gt;</code> delegate signature. This method is useful if you need to factor your code into multiple methods:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">add7</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    using System.Threading.Tasks;</span>
+
+<span class="cm">    public class Startup</span>
+<span class="cm">    {</span>
+<span class="cm">        public async Task&lt;object&gt; Invoke(object input)</span>
+<span class="cm">        {</span>
+<span class="cm">            int v = (int)input;</span>
+<span class="cm">            return Helper.AddSeven(v);</span>
+<span class="cm">        }</span>
+<span class="cm">    }</span>
+
+<span class="cm">    static class Helper</span>
+<span class="cm">    {</span>
+<span class="cm">        public static int AddSeven(int v) </span>
+<span class="cm">        {</span>
+<span class="cm">            return v + 7;</span>
+<span class="cm">        }</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+</pre></div>
+
+<p>If your C# code grows substantially, it is useful to keep it in a separate file. You can save it to a file with <code>*.csx</code> or <code>*.cs</code> extension, and then reference from your Node.js application:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">add7</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s1">'path'</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span> <span class="s1">'add7.csx'</span><span class="p">));</span>
+</pre></div>
+
+<p>If you integrate C# code into your Node.js application by specifying C# source using one of the methods above, edge will compile the code on the fly. If you prefer to pre-compile your C# sources to a CLR assembly, or if your C# component is already pre-compiled, you can reference a CLR assembly from your Node.js code. In the most generic form, you can specify the assembly file name, the type name, and the method name when creating a Node.js proxy to a .NET method:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">clrMethod</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">({</span>
+    <span class="nx">assemblyFile</span><span class="o">:</span> <span class="s1">'My.Edge.Samples.dll'</span><span class="p">,</span>
+    <span class="nx">typeName</span><span class="o">:</span> <span class="s1">'Samples.FooBar.MyType'</span><span class="p">,</span>
+    <span class="nx">methodName</span><span class="o">:</span> <span class="s1">'MyMethod'</span> <span class="c1">// This must be Func&lt;object,Task&lt;object&gt;&gt;</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>If you don't specify methodName, <code>Invoke</code> is assumed. If you don't specify typeName, a type name is constructed by assuming the class called <code>Startup</code> in the namespace equal to the assembly file name (without the <code>.dll</code>). In the example above, if typeName was not specified, it would default to <code>My.Edge.Samples.Startup</code>.</p>
+
+<p>The assemblyFile is relative to the working directory. If you want to locate your assembly in a fixed location relative to your Node.js application, it is useful to construct the assemblyFile using <code>__dirname</code>. </p>
+
+<p>You can also create Node.js proxies to .NET functions specifying just the assembly name as a parameter:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">clrMethod</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'My.Edge.Samples.dll'</span><span class="p">);</span>
+</pre></div>
+
+<p>In that case the default typeName of <code>My.Edge.Samples.Startup</code> and methodName of <code>Invoke</code> is assumed as explained above. </p>
+
+<h3>
+<a name="user-content-how-to-specify-additional-clr-assembly-references-in-c-code" class="anchor" href="#how-to-specify-additional-clr-assembly-references-in-c-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: specify additional CLR assembly references in C# code</h3>
+
+<p>When you provide C# source code and let edge compile it for you at runtime, edge will by default reference only mscorlib.dll and System.dll assemblies. In applications that require additional assemblies you can specify them in C# code using a special hash pattern, similar to Roslyn. For example, to use ADO.NET you must reference System.Data.dll:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">add7</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+
+<span class="cm">    #r "System.Data.dll"</span>
+
+<span class="cm">    using System.Data;</span>
+<span class="cm">    using System.Threading.Tasks;</span>
+
+<span class="cm">    public class Startup</span>
+<span class="cm">    {</span>
+<span class="cm">        public async Task&lt;object&gt; Invoke(object input)</span>
+<span class="cm">        {</span>
+<span class="cm">            // ...</span>
+<span class="cm">        }</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+</pre></div>
+
+<p>If you prefer, instead of using comments you can specify references by providing options to the <code>edge.func</code> call:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">add7</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">({</span>
+    <span class="nx">source</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+
+<span class="cm">        using System.Data;</span>
+<span class="cm">        using System.Threading.Tasks;</span>
+
+<span class="cm">        public class Startup</span>
+<span class="cm">        {</span>
+<span class="cm">            public async Task&lt;object&gt; Invoke(object input)</span>
+<span class="cm">            {</span>
+<span class="cm">                // ...</span>
+<span class="cm">            }</span>
+<span class="cm">        }</span>
+<span class="cm">    */</span><span class="p">},</span>
+    <span class="nx">references</span><span class="o">:</span> <span class="p">[</span> <span class="s1">'System.Data.dll'</span> <span class="p">]</span>
+<span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-marshal-data-between-c-and-nodejs" class="anchor" href="#how-to-marshal-data-between-c-and-nodejs" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: marshal data between C# and Node.js</h3>
+
+<p>Edge.js can marshal any JSON-serializable value between .NET and Node.js (although JSON serialization is not used in the process). Edge also supports marshalling between Node.js <code>Buffer</code> instance and a CLR <code>byte[]</code> array to help you efficiently pass binary data.</p>
+
+<p>You can call .NET from Node.js and pass in a complex JavaScript object as follows:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">dotNetFunction</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'Edge.Sample.dll'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">payload</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">anInteger</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="nx">aNumber</span><span class="o">:</span> <span class="mf">3.1415</span><span class="p">,</span>
+    <span class="nx">aString</span><span class="o">:</span> <span class="s1">'foo'</span><span class="p">,</span>
+    <span class="nx">aBoolean</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">aBuffer</span><span class="o">:</span> <span class="k">new</span> <span class="nx">Buffer</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span>
+    <span class="nx">anArray</span><span class="o">:</span> <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">'foo'</span> <span class="p">],</span>
+    <span class="nx">anObject</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="s1">'foo'</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="mi">12</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="nx">dotNetFunction</span><span class="p">(</span><span class="nx">payload</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span> <span class="p">});</span>
+</pre></div>
+
+<p>In .NET, JavaScript objects are represented as dynamics (which can be cast to <code>IDictionary&lt;string,object&gt;</code> if desired), JavaScript arrays as <code>object[]</code>, and JavaScript <code>Buffer</code> as <code>byte[]</code>. Scalar JavaScript values have their corresponding .NET types (<code>int</code>, <code>double</code>, <code>bool</code>, <code>string</code>). Here is how you can access the data in .NET:</p>
+
+<div class="highlight highlight-c#"><pre><span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">Startup</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">async</span> <span class="n">Task</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">&gt;</span> <span class="n">Invoke</span><span class="p">(</span><span class="kt">dynamic</span> <span class="n">input</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">anInteger</span> <span class="p">=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">input</span><span class="p">.</span><span class="n">anInteger</span><span class="p">;</span>
+        <span class="kt">double</span> <span class="n">aNumber</span> <span class="p">=</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">input</span><span class="p">.</span><span class="n">aNumber</span><span class="p">;</span>
+        <span class="kt">string</span> <span class="n">aString</span> <span class="p">=</span> <span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="n">input</span><span class="p">.</span><span class="n">aString</span><span class="p">;</span>
+        <span class="kt">bool</span> <span class="n">aBoolean</span> <span class="p">=</span> <span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">input</span><span class="p">.</span><span class="n">aBoolean</span><span class="p">;</span>
+        <span class="kt">byte</span><span class="p">[]</span> <span class="n">aBuffer</span> <span class="p">=</span> <span class="p">(</span><span class="kt">byte</span><span class="p">[])</span><span class="n">input</span><span class="p">.</span><span class="n">aBuffer</span><span class="p">;</span>
+        <span class="kt">object</span><span class="p">[]</span> <span class="n">anArray</span> <span class="p">=</span> <span class="p">(</span><span class="kt">object</span><span class="p">[])</span><span class="n">input</span><span class="p">.</span><span class="n">anArray</span><span class="p">;</span>
+        <span class="kt">dynamic</span> <span class="n">anObject</span> <span class="p">=</span> <span class="p">(</span><span class="kt">dynamic</span><span class="p">)</span><span class="n">input</span><span class="p">.</span><span class="n">anObject</span><span class="p">;</span>
+
+        <span class="k">return</span> <span class="k">null</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<p>Similar type marshalling is applied when .NET code passes data back to Node.js code. In .NET code you can provide an instance of any CLR type that would normally be JSON serializable, including domain specific types like <code>Person</code> or anonymous objects. For example:</p>
+
+<div class="highlight highlight-c#"><pre><span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">Person</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">anInteger</span> <span class="p">=</span> <span class="m">1</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">double</span> <span class="n">aNumber</span> <span class="p">=</span> <span class="m">3.1415</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">aString</span> <span class="p">=</span> <span class="s">"foo"</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">bool</span> <span class="n">aBoolean</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+    <span class="k">public</span> <span class="kt">byte</span><span class="p">[]</span> <span class="n">aBuffer</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">byte</span><span class="p">[</span><span class="m">10</span><span class="p">];</span>
+    <span class="k">public</span> <span class="kt">object</span><span class="p">[]</span> <span class="n">anArray</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">object</span><span class="p">[]</span> <span class="p">{</span> <span class="m">1</span><span class="p">,</span> <span class="s">"foo"</span> <span class="p">};</span>
+    <span class="k">public</span> <span class="kt">object</span> <span class="n">anObject</span> <span class="p">=</span> <span class="k">new</span> <span class="p">{</span> <span class="n">a</span> <span class="p">=</span> <span class="s">"foo"</span><span class="p">,</span> <span class="n">b</span> <span class="p">=</span> <span class="m">12</span> <span class="p">};</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">Startup</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">async</span> <span class="n">Task</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">&gt;</span> <span class="n">Invoke</span><span class="p">(</span><span class="kt">dynamic</span> <span class="n">input</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Person</span> <span class="n">person</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Person</span><span class="p">();</span>
+        <span class="k">return</span> <span class="n">person</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>In your Node.js code that invokes this .NET method you can display the result object that the callback method receives:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">getPerson</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    using System.Threading.Tasks;</span>
+
+<span class="cm">    public class Person</span>
+<span class="cm">    {</span>
+<span class="cm">        public int anInteger = 1;</span>
+<span class="cm">        public double aNumber = 3.1415;</span>
+<span class="cm">        public string aString = "foo";</span>
+<span class="cm">        public bool aBoolean = true;</span>
+<span class="cm">        public byte[] aBuffer = new byte[10];</span>
+<span class="cm">        public object[] anArray = new object[] { 1, "foo" };</span>
+<span class="cm">        public object anObject = new { a = "foo", b = 12 };</span>
+<span class="cm">    }</span>
+
+<span class="cm">    public class Startup</span>
+<span class="cm">    {</span>
+<span class="cm">        public async Task&lt;object&gt; Invoke(dynamic input)</span>
+<span class="cm">        {</span>
+<span class="cm">            Person person = new Person();</span>
+<span class="cm">            return person;</span>
+<span class="cm">        }</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">getPerson</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Passing this .NET object to Node.js generates a JavaScript object as follows:</p>
+
+<pre><code>$&gt;node sample.js
+{ anInteger: 1,
+  aNumber: 3.1415,
+  aString: 'foo',
+  aBoolean: true,
+  aBuffer: &lt;Buffer 00 00 00 00 00 00 00 00 00 00&gt;,
+  anArray: [ 1, 'foo' ],
+  anObject: { a: 'foo', b: 12 } }
+</code></pre>
+
+<p>When data is marshalled from .NET to Node.js, no checks for circular references are made. They will typically result in stack overflows. Make sure the object graph you are passing from .NET to Node.js is a tree and does not contain any cycles. </p>
+
+<p><strong>WINDOWS ONLY</strong> When marshalling strongly typed objects (e.g. Person) from .NET to Node.js, you can optionally tell Edge.js to observe the <a href="http://msdn.microsoft.com/en-us/library/system.web.script.serialization.scriptignoreattribute.aspx">System.Web.Script.Serialization.ScriptIgnoreAttribute</a>. You opt in to this behavior by setting the <code>EDGE_ENABLE_SCRIPTIGNOREATTRIBUTE</code> environment variable:</p>
+
+<pre><code>set EDGE_ENABLE_SCRIPTIGNOREATTRIBUTE=1
+</code></pre>
+
+<p>Edge.js by default does not observe the ScriptIgnoreAttribute to avoid the associated performance cost. </p>
+
+<h3>
+<a name="user-content-how-to-call-nodejs-from-c" class="anchor" href="#how-to-call-nodejs-from-c" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: call Node.js from C#</h3>
+
+<p>In addition to marshalling data, edge can marshal proxies to JavaScript functions when invoking .NET code from Node.js. This allows .NET code to call back into Node.js. </p>
+
+<p>Suppose the Node.js application passes an <code>add</code> function to the .NET code as a property of an object. The function receives two numbers and returns the sum of them via the provided callback:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">addAndMultiplyBy2</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (dynamic input) =&gt; {</span>
+<span class="cm">        var add = (Func&lt;object, Task&lt;object&gt;&gt;)input.add;</span>
+<span class="cm">        var twoNumbers = new { a = (int)input.a, b = (int)input.b };</span>
+<span class="cm">        var addResult = (int)await add(twoNumbers);</span>
+<span class="cm">        return addResult * 2;</span>
+<span class="cm">    }   </span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">payload</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">a</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="nx">b</span><span class="o">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="nx">add</span><span class="o">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">a</span> <span class="o">+</span> <span class="nx">data</span><span class="p">.</span><span class="nx">b</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="nx">addAndMultiplyBy2</span><span class="p">(</span><span class="nx">payload</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>The .NET code implements the addAndMultiplyBy2 function. It extracts the two numbers passed from Node.js, calls back into the <code>add</code> function exported from Node.js to add them, multiplies the result by 2 in .NET, and returns the result back to Node.js:</p>
+
+<pre><code>$&gt;node sample.js
+10
+</code></pre>
+
+<p>The Node.js function exported from Node.js to .NET must follow the prescriptive async pattern of accepting two parameters: payload and a callback. The callback function accepts two parameters. The first one is the error, if any, and the second the result of the operation:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">function</span> <span class="p">(</span><span class="nx">payload</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">error</span><span class="p">;</span>  <span class="c1">// must be null or undefined in the absence of error</span>
+    <span class="kd">var</span> <span class="nx">result</span><span class="p">;</span> 
+
+    <span class="c1">// do something</span>
+
+    <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The proxy to that function in .NET has the following signature:</p>
+
+<div class="highlight highlight-c#"><pre><span class="n">Func</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">,</span><span class="n">Task</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">&gt;&gt;</span>
+</pre></div>
+
+<p>Using TPL in CLR to provide a proxy to an asynchronous Node.js function allows the .NET code to use the convenience of the <code>await</code> keyword when invoking the Node.js functionality. The example above shows the use of the <code>await</code> keyword when calling the proxy of the Node.js <code>add</code> method.  </p>
+
+<h3>
+<a name="user-content-how-to-export-c-function-to-nodejs" class="anchor" href="#how-to-export-c-function-to-nodejs" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: export C# function to Node.js</h3>
+
+<p>Similarly to marshalling functions from Node.js to .NET, Edge.js can also marshal functions from .NET to Node.js. The .NET code can export a <code>Func&lt;object,Task&lt;object&gt;&gt;</code> delegate to Node.js as part of the return value of a .NET method invocation. For example:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">createHello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (input) =&gt;</span>
+<span class="cm">    {</span>
+<span class="cm">        return (Func&lt;object,Task&lt;object&gt;&gt;)(async (i) =&gt; { </span>
+<span class="cm">            Console.WriteLine("Hello from .NET"); </span>
+<span class="cm">            return null; </span>
+<span class="cm">        });</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">createHello</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span> 
+<span class="nx">hello</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span> <span class="c1">// prints out "Hello from .NET"</span>
+</pre></div>
+
+<p>This mechanism in conjunction with a closure can be used to expose CLR class instances or CLR state in general to JavaScript. For example:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">createCounter</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (input) =&gt;</span>
+<span class="cm">    {</span>
+<span class="cm">        var k = (int)input; </span>
+<span class="cm">        return (Func&lt;object,Task&lt;object&gt;&gt;)(async (i) =&gt; { return ++k; });</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="nx">createCounter</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span> <span class="c1">// create counter with 12 as initial state</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">counter</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kc">true</span><span class="p">));</span> <span class="c1">// prints 13</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">counter</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kc">true</span><span class="p">));</span> <span class="c1">// prints 14</span>
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-script-python-in-a-nodejs-application" class="anchor" href="#how-to-script-python-in-a-nodejs-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: script Python in a Node.js application</h3>
+
+<p><strong>NOTE</strong> This functionality requires IronPython and has been tested on Windows only. </p>
+
+<p>Edge.js enables you to run Python and Node.js in-process.</p>
+
+<p>In addition to <a href="#what-you-need">platform specific prerequisites</a> you need <a href="http://ironpython.codeplex.com/releases/view/81726">IronPython 2.7.3</a> to proceed.</p>
+
+<h4>
+<a name="user-content-hello-world" class="anchor" href="#hello-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hello, world</h4>
+
+<p>Install edge and edge-py modules:</p>
+
+<pre><code>npm install edge
+npm install edge-py
+</code></pre>
+
+<p>In your server.js:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'py'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    def hello(input):</span>
+<span class="cm">        return "Python welcomes " + input</span>
+
+<span class="cm">    lambda x: hello(x)</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">hello</span><span class="p">(</span><span class="s1">'Node.js'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Run and enjoy:</p>
+
+<pre><code>$&gt;node py.js
+Python welcomes Node.js
+</code></pre>
+
+<h4>
+<a name="user-content-the-interop-model" class="anchor" href="#the-interop-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>The interop model</h4>
+
+<p>Your Python script must evaluate to a lambda expression that accepts a single parameter. The parameter represents marshalled input from the Node.js code. The return value of the lambda expression is passed back as the result to Node.js code. The Python script can contain constructs (e.g. Python functions) that are used in the closure of the lambda expression. The instance of the script with associated state is created when <code>edge.func</code> is called in Node.js. Each call to the function referes to that instance.</p>
+
+<p>The simplest <em>echo</em> Python script you can embed in Node.js looks like this:</p>
+
+<div class="highlight highlight-python"><pre><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+</pre></div>
+
+<p>To say hello, you can use something like this:</p>
+
+<div class="highlight highlight-python"><pre><span class="k">lambda</span><span class="p">:</span> <span class="n">x</span><span class="p">:</span> <span class="s">"Hello, "</span> <span class="o">+</span> <span class="n">x</span>
+</pre></div>
+
+<p>To maintain a running sum of numbers:</p>
+
+<div class="highlight highlight-python"><pre><span class="n">current</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">current</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">current</span> <span class="o">+</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">current</span>
+
+<span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+
+<h4>
+<a name="user-content-python-in-its-own-file" class="anchor" href="#python-in-its-own-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Python in its own file</h4>
+
+<p>You can reference Python script stored in a *.py file instead of embedding Python code in a Node.js script.</p>
+
+<p>In your hello.py file:</p>
+
+<div class="highlight highlight-python"><pre><span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="nb">input</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">"Python welcomes "</span> <span class="o">+</span> <span class="nb">input</span>
+
+<span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">hello</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+
+<p>In your hello.js file:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'py'</span><span class="p">,</span> <span class="s1">'hello.py'</span><span class="p">);</span>
+
+<span class="nx">hello</span><span class="p">(</span><span class="s1">'Node.js'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Run and enjoy:</p>
+
+<pre><code>$&gt;node hello.js
+Python welcomes Node.js
+</code></pre>
+
+<h4>
+<a name="user-content-to-sync-or-to-async-that-is-the-question" class="anchor" href="#to-sync-or-to-async-that-is-the-question" aria-hidden="true"><span class="octicon octicon-link"></span></a>To sync or to async, that is the question</h4>
+
+<p>In the examples above Python script was executing asynchronously on its own thread without blocking the singleton V8 thread on which the Node.js event loop runs. This means your Node.js application remains responsive while the Python code executes in the background. </p>
+
+<p>If you know your Python code is non-blocking, or if you know what you are doing, you can tell Edge.js to execute Python code on the singleton V8 thread. This will improve performance for non-blocking Python scripts embedded in a Node.js application:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'py'</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">source</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">        def hello(input):</span>
+<span class="cm">            return "Python welcomes " + input</span>
+
+<span class="cm">        lambda x: hello(x)</span>
+<span class="cm">    */</span><span class="p">},</span>
+    <span class="nx">sync</span><span class="o">:</span> <span class="kc">true</span>
+<span class="p">});</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">hello</span><span class="p">(</span><span class="s1">'Node.js'</span><span class="p">,</span> <span class="kc">true</span><span class="p">));</span>
+</pre></div>
+
+<p>The <code>sync: true</code> property in the call to <code>edge.func</code> tells Edge.js to execute Python code on the V8 thread as opposed to creating a new thread to run Python script on. The <code>true</code> parameter in the call to <code>hello</code> requests that Edge.js does in fact call the <code>hello</code> function synchronously, i.e. return the result as opposed to calling a callback function. </p>
+
+<h3>
+<a name="user-content-how-to-script-powershell-in-a-nodejs-application" class="anchor" href="#how-to-script-powershell-in-a-nodejs-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: script PowerShell in a Node.js application</h3>
+
+<p><strong>NOTE</strong> This functionality only works on Windows. </p>
+
+<p>Edge.js enables you to run PowerShell and Node.js in-process on Windows. <a href="https://github.com/dfinke/edge-ps">Edge-PS</a> connects the PowerShell ecosystem with Node.js.</p>
+
+<p>You need Windows, <a href="http://nodejs.org">Node.js</a>, <a href="http://www.microsoft.com/en-us/download/details.aspx?id=30653">.NET 4.5</a>, and <a href="http://www.microsoft.com/en-us/download/details.aspx?id=34595">PowerShell 3.0</a> to proceed.</p>
+
+<h3>
+<a name="user-content-hello-world-1" class="anchor" href="#hello-world-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hello, world</h3>
+
+<p>Install edge and edge-ps modules:</p>
+
+<pre><code>npm install edge
+npm install edge-ps
+</code></pre>
+
+<p>In your server.js:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'ps'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">"PowerShell welcomes $inputFromJS on $(Get-Date)"</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">hello</span><span class="p">(</span><span class="s1">'Node.js'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Run and enjoy:</p>
+
+<pre><code>C:\testEdgeps&gt;node server
+PowerShell welcomes Node.js on 05/04/2013 09:38:40
+</code></pre>
+
+<h4>
+<a name="user-content-tapping-into-powershells-ecosystem" class="anchor" href="#tapping-into-powershells-ecosystem" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tapping into PowerShell's ecosystem</h4>
+
+<p>Rather than embedding PowerShell directly, you can use PowerShell files, dot source them and even use <em>Import-Module</em>.</p>
+
+<p>What you can do in native PowerShell works in Node.js.</p>
+
+<h4>
+<a name="user-content-interop-powershell-and-python" class="anchor" href="#interop-powershell-and-python" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interop PowerShell and Python</h4>
+
+<p>Here you can reach out to IronPython from PowerShell from within Node.js on Windows. This holds true for working with JavaScript frameworks and C#.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">helloPowerShell</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'ps'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    "PowerShell welcomes $inputFromJS"</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">helloPython</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'py'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    def hello(input):</span>
+<span class="cm">        return "Python welcomes " + input</span>
+
+<span class="cm">    lambda x: hello(x)</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+
+<span class="nx">helloPython</span><span class="p">(</span><span class="s1">'Node.js'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">){</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+
+    <span class="nx">helloPowerShell</span><span class="p">(</span><span class="nx">result</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">){</span>
+        <span class="k">if</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-script-f-in-a-nodejs-application" class="anchor" href="#how-to-script-f-in-a-nodejs-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: script F# in a Node.js application</h3>
+
+<p><strong>NOTE</strong> This functionality has not been tested on non-Windows platforms. </p>
+
+<p>This section is coming up. In the meantime please refer to <a href="http://7sharpnine.com/posts/i-node-something/">Dave Thomas blog post</a>. This has been validated on Windows only. </p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">helloFs</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'fs'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    fun input -&gt; async { </span>
+<span class="cm">        return "F# welcomes " + input.ToString()</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">helloFs</span><span class="p">(</span><span class="s1">'Node.js'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-script-t-sql-in-a-nodejs-application" class="anchor" href="#how-to-script-t-sql-in-a-nodejs-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: script T-SQL in a Node.js application</h3>
+
+<p><strong>NOTE</strong> This functionality has only been tested on Windows. Although ADO.NET exist in Mono, your mileage can vary. </p>
+
+<p>The edge-sql extension of Edge.js allows for accessing MS SQL databases by scripting T-SQL inside the Node.js application. The edge-sql extension uses async ADO.NET SQL client to access MS SQL. </p>
+
+<p>You need Windows, <a href="http://nodejs.org">Node.js</a>, and <a href="http://www.microsoft.com/en-us/download/details.aspx?id=30653">.NET 4.5</a>. To run the sample code below you also need a connection string to the sample Northwind database that ships with MS SQL. </p>
+
+<h4>
+<a name="user-content-hello-world-2" class="anchor" href="#hello-world-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hello, world</h4>
+
+<p>Install edge and edge-sql modules:</p>
+
+<pre><code>npm install edge
+npm install edge-sql
+</code></pre>
+
+<p>Set the connection string as an environment variable (your connection string may be different):</p>
+
+<pre><code>set EDGE_SQL_CONNECTION_STRING=Data Source=localhost;Initial Catalog=Northwind;Integrated Security=True
+</code></pre>
+
+<p>In your server.js:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">getTop10Products</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'sql'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    select top 10 * from Products</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">getTop10Products</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">ProductName</span><span class="p">);</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="nx">ReorderLevel</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Run and enjoy:</p>
+
+<pre><code>C:\projects\edge\samples&gt;node server.js
+[ { ProductID: 10,
+    ProductName: 'New Ikura',
+    SupplierID: 4,
+    CategoryID: 8,
+    QuantityPerUnit: '12 - 200 ml jars',
+    UnitPrice: '31.000',
+    UnitsInStock: 31,
+    UnitsOnOrder: 0,
+    ReorderLevel: 0,
+    Discontinued: false },
+    ...
+]
+New Ikura
+12
+</code></pre>
+
+<h4>
+<a name="user-content-parameterized-queries" class="anchor" href="#parameterized-queries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parameterized queries</h4>
+
+<p>You can construct a parameterized query once and provide parameter values on a per-call basis:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">getProduct</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'sql'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    select * from Products </span>
+<span class="cm">    where ProductId = @myProductId</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">getProduct</span><span class="p">({</span> <span class="nx">myProductId</span><span class="o">:</span> <span class="mi">10</span> <span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<h4>
+<a name="user-content-basic-crud-support-select-update-insert-delete" class="anchor" href="#basic-crud-support-select-update-insert-delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic CRUD support: select, update, insert, delete</h4>
+
+<p>The four basic CRUD operations are supported. For example, here is how an update can look like:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">updateProductName</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'sql'</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    update Products</span>
+<span class="cm">    set ProductName = @newName </span>
+<span class="cm">    where ProductId = @myProductId</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">updateProductName</span><span class="p">({</span> <span class="nx">myProductId</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span> <span class="nx">newName</span><span class="o">:</span> <span class="s1">'New Ikura'</span> <span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-support-for-other-clr-languages" class="anchor" href="#how-to-support-for-other-clr-languages" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: support for other CLR languages</h3>
+
+<p>Edge.js can work with any pre-compiled CLR assembly that contains the <code>Func&lt;object,Task&lt;object&gt;&gt;</code> delegate. Out of the box, Edge.js also allows you to embed C# source code in a Node.js application and compile it on the fly. </p>
+
+<p>To enable compilation of other CLR languages (e.g. F#) at runtime, or to support domain specific languages (DSLs) like T-SQL, you can use the compiler composability model provided by Edge.js. Please read the <a href="https://github.com/tjanczuk/edge/wiki/Add-support-for-a-CLR-language">add support for a CLR language</a> guide to get started. </p>
+
+<h3>
+<a name="user-content-how-to-exceptions" class="anchor" href="#how-to-exceptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: exceptions</h3>
+
+<p>Edge.js marshals Node.js errors and exceptions to .NET as well as .NET exceptions to Node.js. </p>
+
+<p>CLR exceptions thrown in .NET code invoked from Node.js are marshalled as the <code>error</code> parameter to the Node.js callback function. Consider this example:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">clrFunc</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (dynamic input) =&gt; {</span>
+<span class="cm">        throw new Exception("Sample exception");</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="nx">clrFunc</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Is Error?'</span><span class="p">,</span> <span class="nx">error</span> <span class="k">instanceof</span> <span class="nb">Error</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'-----------------'</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">util</span><span class="p">.</span><span class="nx">inspect</span><span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">showHidden</span><span class="o">=</span><span class="kc">true</span><span class="p">,</span> <span class="nx">depth</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span> <span class="nx">colorize</span><span class="o">=</span><span class="kc">false</span><span class="p">));</span>
+        <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Running this Node.js application shows that the CLR exception was indeed received by the Node.js callback. The <code>error</code> parameter contains an Error object having most of the properties of the Exceptions copied over:</p>
+
+<pre><code>Is Error? true
+-----------------
+{ [System.AggregateException: One or more errors occurred.]
+  message: 'One or more errors occurred.',
+  name: 'System.AggregateException',
+  InnerExceptions: 'System.Collections.ObjectModel.ReadOnlyCollection`1[[System.Exception, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]',
+  Message: 'One or more errors occurred.',
+  Data: 'System.Collections.ListDictionaryInternal',
+  InnerException:
+   { [System.Exception: Sample exception]
+     message: 'Sample exception',
+     name: 'System.Exception',
+     Message: 'Sample exception',
+     Data: 'System.Collections.ListDictionaryInternal',
+     TargetSite: 'System.Reflection.RuntimeMethodInfo',
+     StackTrace: '   at Startup.&lt;&lt;Invoke&gt;b__0&gt;d__2.MoveNext() in c:\\Users\\User.Name\\Source\\Repos\\eCash2\\test\\edge2.js:line 7\r\n--- End of stack trace from previous location where exception was thrown ---\r\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)\r\n   at System.Runtime.CompilerServices.TaskAwaiter`1.GetResult()\r\n   at Startup.&lt;Invoke&gt;d__4.MoveNext() in c:\\Users\\User.Name\\Source\\Repos\\eCash2\\test\\edge2.js:line 5',
+     Source: 'cp2luegt',
+     HResult: -2146233088 },
+  HResult: -2146233088 }
+</code></pre>
+
+<p>The exception is copied back as Error object like every normal result object from the .NET world to JavaScript. 
+Therefore all properties and their values are available on the Error object.</p>
+
+<p>Additionally, the following happens during the mapping:</p>
+
+<ul class="task-list">
+<li>To represent the Exception type, its full name is stored as <code>name</code>.</li>
+<li>To follow the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error">JavaScript convention for Errors</a>, the <code>Message</code> is also stored as the property <code>message</code>.</li>
+<li>
+<code>System::Reflection::RuntimeMethodInfo</code>s are not copied to avoid stack overflows</li>
+</ul><pre><code>$&gt;node sample.js
+
+Edge.js:58
+    edge.callClrFunc(appId, data, callback);
+                     ^
+System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. 
+---&gt; System.Exception: Sample exception
+   at Startup.Invoke(Object input) in sample.cs:line 12
+</code></pre>
+
+<p>JavaScript exceptions thrown in Node.js code invoked from .NET are wrapped in a CLR exception and cause the asynchronous <code>Task&lt;object&gt;</code> to complete with a failure. Errors passed by Node.js code invoked from .NET code to the callback function's <code>error</code> parameter have the same effect. Consider this example:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">edge</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'edge'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">multiplyBy2</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span><span class="cm">/*</span>
+<span class="cm">    async (dynamic input) =&gt; {</span>
+<span class="cm">        var aFunctionThatThrows = (Func&lt;object, Task&lt;object&gt;&gt;)payload.aFunctionThatThrows;</span>
+<span class="cm">        try {</span>
+<span class="cm">            var aResult = await aFunctionThatThrows(null);</span>
+<span class="cm">        }</span>
+<span class="cm">        catch(Exception e)</span>
+<span class="cm">        {</span>
+<span class="cm">            Console.WriteLine(e);</span>
+<span class="cm">        }</span>
+
+<span class="cm">        return null;</span>
+<span class="cm">    }</span>
+<span class="cm">*/</span><span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">payload</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">someParameter</span><span class="o">:</span> <span class="s1">'arbitrary parameter'</span><span class="p">,</span>
+    <span class="nx">aFunctionThatThrows</span><span class="o">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">'Sample JavaScript error'</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="nx">multiplyBy2</span><span class="p">(</span><span class="nx">payload</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">error</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">result</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Running the code shows the .NET code receiving a CLR exception as a result of the Node.js function throwing a JavaScript error. The exception shows the complete stack trace, including the part that executed in the Node.js code:</p>
+
+<pre><code>$&gt;node sample.js
+System.Exception: Error: Sample JavaScript error
+    at payload.aFunctionThatThrows (sample.js:7:11)
+   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task)
+   at Edge.Sample.Startup.&lt;Invoke&gt;d__0.MoveNext()
+</code></pre>
+
+<h3>
+<a name="user-content-how-to-appconfig" class="anchor" href="#how-to-appconfig" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: app.config</h3>
+
+<p>When running C# code within Node.js app, the app config file is node.exe.config and should be located right next to the node.exe file.</p>
+
+<h3>
+<a name="user-content-how-to-debugging" class="anchor" href="#how-to-debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: debugging</h3>
+
+<p><strong>NOTE</strong> This is Windows-only functionality.</p>
+
+<p>On Windows, you can debug the .NET code running as part of your Node.js application by attaching a managed code debugger (e.g. Visual Studio) to node.exe. You can debug .NET code in a pre-compiled CLR assembly as well C# literals embedded in the application and compiled by Edge.js at runtime. </p>
+
+<h4>
+<a name="user-content-debugging-pre-compiled-net-code" class="anchor" href="#debugging-pre-compiled-net-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging pre-compiled .NET code</h4>
+
+<p>If you have integrated .NET code into a Node.js application using a pre-compiled CLR assembly like this:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'My.Assembly.dll'</span><span class="p">);</span>
+</pre></div>
+
+<p>then the best way to debug your .NET code is to attach a managed code debugger (e.g. Visual Studio) to the node.exe process. Since the node.exe process runs both native and managed code, make sure to select managed code type as target:</p>
+
+<p><a href="https://camo.githubusercontent.com/ac436dbe4d55001e69bd85c4e21691abd1c8ea92/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3139303536342f61343162616232632d376566622d313165322d383738662d3832616532333235383736632e504e47" target="_blank"><img src="https://camo.githubusercontent.com/ac436dbe4d55001e69bd85c4e21691abd1c8ea92/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3139303536342f61343162616232632d376566622d313165322d383738662d3832616532333235383736632e504e47" alt="debug" data-canonical-src="https://f.cloud.github.com/assets/822369/190564/a41bab2c-7efb-11e2-878f-82ae2325876c.PNG" style="max-width:100%;"></a></p>
+
+<p>From there, you can set breakpoints in your .NET code and the debugger will stop when they are reached.</p>
+
+<h4>
+<a name="user-content-debugging-embedded-c-code" class="anchor" href="#debugging-embedded-c-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging embedded C# code</h4>
+
+<p>Debugging embedded C# code (on Windows) requires that <code>EDGE_CS_DEBUG</code> environment variable is set in the environment of the node.exe process:</p>
+
+<pre><code>set EDGE_CS_DEBUG=1
+</code></pre>
+
+<p>Without this setting (the default), Edge.js will not generate debugging information when compiling embedded C# code.</p>
+
+<p>You can debug C# code embedded into a Node.js application using a reference to a *.cs or *.csx file:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'MyClass.cs'</span><span class="p">);</span>
+</pre></div>
+
+<p>You can also debug C# code embedded directly into a *.js file using the function comment syntax:</p>
+
+<pre lang="javscript"><code>var hello = edge.func(function () {/*
+    async (input) =&gt;
+    {
+        System.Diagnostics.Debugger.Break();
+        var result = ".NET welcomes " + input.ToString();
+        return result;
+    }
+*/});
+</code></pre>
+
+<p>You <em>cannot</em> debug C# code embedded as a simple string literal:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">hello</span> <span class="o">=</span> <span class="nx">edge</span><span class="p">.</span><span class="nx">func</span><span class="p">(</span><span class="s1">'async (input) =&gt; { return 2 * (int)input; }'</span><span class="p">);</span>
+</pre></div>
+
+<p>After setting <code>EDGE_CS_DEBUG=1</code> environment variable before starting node.exe and attaching the managed debugger to the node.exe process, you can set breakpoints in C# code (which may appear as a JavaScript comment), or use <code>System.Diagnostics.Debugger.Break()</code> to break into the debugger from .NET code. </p>
+
+<p><a href="https://camo.githubusercontent.com/55a4ab83ec6d91db6131c8324e28fdac7a3a2df7/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3332363738312f39323364383730632d396234612d313165322d386634352d3230316136343331616662662e504e47" target="_blank"><img src="https://camo.githubusercontent.com/55a4ab83ec6d91db6131c8324e28fdac7a3a2df7/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3332363738312f39323364383730632d396234612d313165322d386634352d3230316136343331616662662e504e47" alt="debug-inline" data-canonical-src="https://f.cloud.github.com/assets/822369/326781/923d870c-9b4a-11e2-8f45-201a6431afbf.PNG" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h3>
+
+<p>Read more about <a href="https://github.com/tjanczuk/edge/wiki/Performance">performance of Edge.js on the wiki</a>. Here is the gist of the latency (smaller is better):</p>
+
+<p><a href="https://camo.githubusercontent.com/15bfeb4bb415a2889acc3d58f1c3be7e70fea486/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3438363339332f36343566363936612d623932302d313165322d386132302d3966613639333262623039322e706e67" target="_blank"><img src="https://camo.githubusercontent.com/15bfeb4bb415a2889acc3d58f1c3be7e70fea486/68747470733a2f2f662e636c6f75642e6769746875622e636f6d2f6173736574732f3832323336392f3438363339332f36343566363936612d623932302d313165322d386132302d3966613639333262623039322e706e67" alt="edgejs-performance1" data-canonical-src="https://f.cloud.github.com/assets/822369/486393/645f696a-b920-11e2-8a20-9fa6932bb092.png" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-building-on-windows" class="anchor" href="#building-on-windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building on Windows</h3>
+
+<p>You must have Visual Studio 2013 toolset, Python 2.7.x, and node-gyp installed for building.</p>
+
+<p>To build and test the project against all supported versions of Node.js in x86 and x64 flavors, run the following:</p>
+
+<pre><code>tools\buildall.bat
+test\testall.bat
+npm run jshint
+</code></pre>
+
+<p>To build one of the versions of Node.js officially released by <a href="http://nodejs.org/dist">Node.js</a>, do the following:</p>
+
+<pre><code>cd tools
+build.bat release 0.10.0
+</code></pre>
+
+<p>Note: the Node.js version number you provide must be version number corresponding to one of the subdirectories of <a href="http://nodejs.org/dist">http://nodejs.org/dist</a>. The command will build both x32 and x64 architectures (assuming you use x64 machine). The command will also copy the edge.node executables to appropriate locations under lib\native directory where they are looked up from at runtime. The <code>npm install</code> step copies the C standard library shared DLL to the location of the edge.node for the component to be ready to go.</p>
+
+<p>To build the C++\CLI native extension using the version of Node.js installed on your machine, issue the following command:</p>
+
+<pre><code>npm install -g node-gyp
+node-gyp configure --msvs_version=2013
+node-gyp build -debug
+</code></pre>
+
+<p>You can then set the EDGE_NATIVE environment variable to the fully qualified file name of the built edge.node binary. It is useful during development, for example:</p>
+
+<pre><code>set EDGE_NATIVE=C:\projects\edge\build\Debug\edge.node
+</code></pre>
+
+<p>You can also set the <code>EDGE_DEBUG</code> environment variable to 1 to have the edge module generate debug traces to the console when it runs.</p>
+
+<h3>
+<a name="user-content-running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running tests</h3>
+
+<p>You must have mocha installed on the system. Then:</p>
+
+<pre><code>npm test
+</code></pre>
+
+<p>or, from the root of the enlistment:</p>
+
+<pre><code>mocha -R spec
+</code></pre>
+
+<h4>
+<a name="user-content-nodejs-version-targeting-on-windows" class="anchor" href="#nodejs-version-targeting-on-windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Node.js version targeting on Windows</h4>
+
+<p><strong>NOTE</strong> this is Windows only functionality.</p>
+
+<p>If you want to run tests after building against a specific version of Node.js that one of the previous builds used, issue the following command:</p>
+
+<pre><code>cd test
+test.bat ia32 0.10.0
+</code></pre>
+
+<p>Which will run the tests using Node.js x86 v0.10.0. Similarly:</p>
+
+<pre><code>cd test
+test.bat x64 0.8.22
+</code></pre>
+
+<p>Would run tests against Node.js 0.8.22 on x64 architecture.</p>
+
+<p>Lastly, you can run jshint on the project with:</p>
+
+<pre><code>npm run jshint
+</code></pre>
+
+<h3>
+<a name="user-content-building-on-osx" class="anchor" href="#building-on-osx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building on OSX</h3>
+
+<p>Prerequisities:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://brew.sh/">Homebrew</a><br>
+</li>
+<li>
+<a href="http://nodejs.org/">Node.js x64</a> (tested with v0.10.26)<br>
+</li>
+</ul><p>First build Mono x64:</p>
+
+<div class="highlight highlight-bash"><pre>brew install https://raw.githubusercontent.com/tjanczuk/edge/master/tools/mono64.rb
+
+<span class="c"># at this point I fried an omelette on the lid of my Mac Book Air which was running hot </span>
+<span class="c"># for about 15 minutes, compiling and installing Mono 64bit; </span>
+<span class="c"># it was delicious (the omelette, not the MacBook)</span>
+</pre></div>
+
+<p>Then install and build Edge.js:</p>
+
+<div class="highlight highlight-bash"><pre>brew install pkg-config
+sudo npm install node-gyp -g
+npm install edge
+</pre></div>
+
+<p>To build edge from a clone of the repository or source code:</p>
+
+<div class="highlight highlight-bash"><pre>node-gyp configure build
+</pre></div>
+
+<p>To build a debug build instead of release, you need to:</p>
+
+<div class="highlight highlight-bash"><pre>node-gyp configure build -debug
+<span class="nb">export </span><span class="nv">EDGE_NATIVE</span><span class="o">=</span>/Users/tomek/edge/build/Debug/edge.node
+</pre></div>
+
+<h3>
+<a name="user-content-building-on-linux" class="anchor" href="#building-on-linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building on Linux</h3>
+
+<p>These instructions were tested on Ubuntu 12.04 x64 and Debian Wheezy x64. High level, you must have Node.js x64 and Mono x64 installed on the machine before you can install Edge.js. There are two ways of getting there.</p>
+
+<h3>
+<a name="user-content-debian-starting-from-a-clean-vm-ie-taking-the-high-road" class="anchor" href="#debian-starting-from-a-clean-vm-ie-taking-the-high-road" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian, starting from a clean VM (i.e. taking the high road)</h3>
+
+<p>If you have a fresh Debian Wheezy x64 installation, the most convenient way of installing Edge.js with all prerequisites is by running:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">export </span><span class="nv">USERNAME</span><span class="o">=</span>YourUserNameHere
+sudo bash -c <span class="s1">'bash &lt;(wget -qO- https://raw.githubusercontent.com/tjanczuk/edge/master/tools/debian_wheezy_clean_install.sh)'</span>
+</pre></div>
+
+<p>This will do the following:</p>
+
+<ul class="task-list">
+<li>Download Node.js v0.10.26 sources, build, and install Node.js x64</li>
+<li>Download Mono 3.4.0 sources, build, and install Mono x64</li>
+<li>Download and install node-gyp and mocha</li>
+<li>Download Edge.js sources and build x64 release</li>
+<li>Run Edge.js tests</li>
+</ul><p>This process takes about 15 minutes on a Debian Wheezy x64 running on a 4 core with 16GB RAM. If successful, your machine will have all the prerequisites to <code>npm install edge</code>.</p>
+
+<h3>
+<a name="user-content-ubuntu-starting-from-a-clean-vm-ie-taking-the-high-road" class="anchor" href="#ubuntu-starting-from-a-clean-vm-ie-taking-the-high-road" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu, starting from a clean VM (i.e. taking the high road)</h3>
+
+<p>If you have a fresh Ubuntu 12.04 x64 installation, the most convenient way of installing Edge.js with all prerequisites is by running:</p>
+
+<div class="highlight highlight-bash"><pre>sudo bash -c <span class="s1">'bash &lt;(wget -qO- https://raw.githubusercontent.com/tjanczuk/edge/master/tools/ubuntu_12.04_clean_install.sh)'</span>
+</pre></div>
+
+<p>This will do the following:</p>
+
+<ul class="task-list">
+<li>Download Node.js v0.10.26 sources, build, and install Node.js x64<br>
+</li>
+<li>Download Mono 3.4.0 sources, build, and install Mono x64<br>
+</li>
+<li>Download and install node-gyp and mocha<br>
+</li>
+<li>Download Edge.js sources and build x64 release<br>
+</li>
+<li>Run Edge.js tests<br>
+</li>
+</ul><p>This process takes about 25 minutes on a Ubuntu 12.04 x64 VM running on a 2 core VM with 4GB RAM within Fusion on a MacBook Pro. If successful, your machine will have all the prerequisites to <code>npm install edge</code>. </p>
+
+<h4>
+<a name="user-content-ubuntu-manual-install" class="anchor" href="#ubuntu-manual-install" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu, manual install</h4>
+
+<p>This method is adequate if you already have a Mono x64 or Node.js x64 install on the machine and need to incrementally add Edge to it. </p>
+
+<p>Read through the <a href="https://raw.githubusercontent.com/tjanczuk/edge/mono/tools/ubuntu_12.04_clean_install.sh">install script</a> and cherry pick the steps you need. Here are some gotchas:</p>
+
+<ul class="task-list">
+<li>The Mono 3.4.0 source code tarball misses one file which the install script manually adds. For background on the missing file see <a href="http://stackoverflow.com/questions/22844569/build-error-mono-3-4-0-centos">here</a>.<br>
+</li>
+<li>If you need to build Mono, make sure to run <code>ldconfig</code> afterwards, otherwise the garbage collection libraries may not load.<br>
+</li>
+<li>To make sure Mono can load the standard C library, run <code>sudo ln -s -f /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so</code>. For background on that step, see how <a href="http://www.mono-project.com/Interop_with_Native_Libraries">Mono loads native libraries</a> or just <a href="http://stackoverflow.com/questions/14359981/mono-and-unmanaged-code-in-ubuntu">cut to the chase</a>.<br>
+</li>
+</ul><h4>
+<a name="user-content-debug-build-of-edgejs" class="anchor" href="#debug-build-of-edgejs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debug build of Edge.js</h4>
+
+<p>To build a debug build instead of release, you need to:</p>
+
+<div class="highlight highlight-bash"><pre>node-gyp configure build -debug
+<span class="nb">export </span><span class="nv">EDGE_NATIVE</span><span class="o">=</span>/home/tomek/edge/build/Debug/edge.node
+</pre></div>
+
+<h2>
+<a name="user-content-scripting-nodejs-from-clr" class="anchor" href="#scripting-nodejs-from-clr" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scripting Node.js from CLR</h2>
+
+<p>If you are writing a CLR application (e.g. a C# console application or ASP.NET web app), this section explains how you include and run Node.js code in your app. Currently it works on Windows, but MacOS, and Linux support is coming soon.</p>
+
+<h3>
+<a name="user-content-what-you-need-1" class="anchor" href="#what-you-need-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>What you need</h3>
+
+<p>You need Windows with:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://www.microsoft.com/en-us/download/details.aspx?id=30653">.NET 4.5</a><br>
+</li>
+<li>
+<a href="https://www.nuget.org/packages/Edge.js">Edge.js NuGet package</a><br>
+</li>
+<li>
+<a href="http://nodejs.org">Node.js</a> (optional, if you want to use additional NPM packages)</li>
+</ul><p>Edge.js support for scripting Node.js ships as a NuGet Package called <code>Edge.js</code>. It comes with everything you need to get started writing applications for x86 and x64 architectures. However, if you want to use additional Node.js packages from NPM, you must separately install Node.js runtime to access the NPM package manager. Edge.js has been developed and tested with Node.js v0.10.28. If you choose a different version of Node.js to install NPM packages, your mileage can vary. </p>
+
+<p>You can install the <a href="https://www.nuget.org/packages/Edge.js">Edge.js NuGet package</a> using the Visual Studio built-in NuGet package management functionality or using the stand-alone <a href="http://docs.nuget.org/docs/start-here/installing-nuget">NuGet client</a>. </p>
+
+<h3>
+<a name="user-content-how-to-nodejs-hello-world" class="anchor" href="#how-to-nodejs-hello-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: Node.js hello, world</h3>
+
+<p>Create a .NET 4.5 Console Application in Visual Studio. Add the Edge.js NuGet package to the project. Then in your code:</p>
+
+<div class="highlight highlight-c#"><pre><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">EdgeJs</span><span class="p">;</span>
+
+<span class="k">class</span> <span class="nc">Program</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">async</span> <span class="k">void</span> <span class="nf">Start</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">func</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">            return function (data, callback) {</span>
+<span class="s">                callback(null, 'Node.js welcomes ' + data);</span>
+<span class="s">            }</span>
+<span class="s">        "</span><span class="p">);</span>
+
+        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="k">await</span> <span class="n">func</span><span class="p">(</span><span class="s">".NET"</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Task</span><span class="p">.</span><span class="n">Run</span><span class="p">((</span><span class="n">Action</span><span class="p">)</span><span class="n">Start</span><span class="p">).</span><span class="n">Wait</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Compile and run:</p>
+
+<pre><code>C:\project\sample\bin\Debug&gt; sample.exe
+Node.js welcomes .NET
+</code></pre>
+
+<h3>
+<a name="user-content-how-to-integrate-nodejs-code-into-clr-code" class="anchor" href="#how-to-integrate-nodejs-code-into-clr-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: integrate Node.js code into CLR code</h3>
+
+<p>The Edge.js NuGet package contains a single managed assembly <code>EdgeJs.dll</code> with a single class <code>EdgeJs.Edge</code> exposing a single static function <code>Func</code>. The function accepts a string containing code in Node.js that constructs and <em>returns</em> a JavaScript function. The JavaScript function must have the signature required by Edge.js's prescriptive interop pattern: it must accept one parameter and a callback, and the callback must be called with an error and one return value: </p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">func</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">    return function (data, callback) {</span>
+<span class="s">        callback(null, 'Hello, ' + data);</span>
+<span class="s">    }</span>
+<span class="s">"</span><span class="p">);</span>
+</pre></div>
+
+<p>Edge.js creates a <code>Func&lt;object,Task&lt;object&gt;&gt;</code> delegate in CLR that allows .NET code to call the Node.js function asynchronously. You can use the standard TPL mechanisms or the async/await keywords to conveniently await completion of the asynchornous Node.js function:</p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="k">await</span> <span class="n">func</span><span class="p">(</span><span class="s">".NET"</span><span class="p">);</span>
+<span class="c1">// result == "Hello, .NET"</span>
+</pre></div>
+
+<p>Note that the Node.js code snippet is not a function <em>definition</em>. Instead it must create and <em>return</em> a function instance. This allows you to initialize and maintain encapsulated Node.js state associated with the instance of the created function. The initialization code will execute only once when you call <code>Edge.Func</code>. Conceptually this is similar to defining a Node.js module that exports a single function (by returning it to the caller).  For example:</p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">increment</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">    var current = 0;</span>
+
+<span class="s">    return function (data, callback) {</span>
+<span class="s">        current += data;</span>
+<span class="s">        callback(null, current);</span>
+<span class="s">    }</span>
+<span class="s">"</span><span class="p">);</span>
+
+<span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="k">await</span> <span class="n">increment</span><span class="p">(</span><span class="m">4</span><span class="p">));</span> <span class="c1">// outputs 4</span>
+<span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="k">await</span> <span class="n">increment</span><span class="p">(</span><span class="m">7</span><span class="p">));</span> <span class="c1">// outputs 11</span>
+</pre></div>
+
+<p>Using multiline C# string literals is convenient for short Node.js code snippets, but you may want to store larger Node.js code in its own <code>*.js</code> file or files. </p>
+
+<p>One pattern is to store your Node.js code in a <code>myfunc.js</code> file:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="k">return</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="s1">'Node.js welcomes '</span> <span class="o">+</span> <span class="nx">data</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>And then load such file into memory with <code>File</code>:</p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">func</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="n">File</span><span class="p">.</span><span class="n">ReadAllText</span><span class="p">(</span><span class="s">"myfunc.js"</span><span class="p">));</span>
+</pre></div>
+
+<p>Another pattern is to define a Node.js module that itself is a function:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="s1">'Node.js welcomes '</span> <span class="o">+</span> <span class="nx">data</span><span class="p">);</span>
+<span class="p">};</span>
+</pre></div>
+
+<p>And then load and return this module with a short snippet of Node.js:</p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">func</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"return require('./../myfunc.js')"</span><span class="p">);</span>
+</pre></div>
+
+<p>(Note the relative location of the file).</p>
+
+<h3>
+<a name="user-content-how-to-use-nodejs-built-in-modules" class="anchor" href="#how-to-use-nodejs-built-in-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: use Node.js built-in modules</h3>
+
+<p>You can use Node.js built-in modules out of the box. For example, you can set up a Node.js HTTP server hosted in a .NET application and call it from C#:</p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">createHttpServer</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">    var http = require('http');</span>
+
+<span class="s">    return function (port, cb) {</span>
+<span class="s">        var server = http.createServer(function (req, res) {</span>
+<span class="s">            res.end('Hello, world! ' + new Date());</span>
+<span class="s">        }).listen(port, cb);</span>
+<span class="s">    };</span>
+<span class="s">"</span><span class="p">);</span>
+
+<span class="k">await</span> <span class="nf">createHttpServer</span><span class="p">(</span><span class="m">8080</span><span class="p">);</span>
+<span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="k">await</span> <span class="k">new</span> <span class="n">WebClient</span><span class="p">().</span><span class="n">DownloadStringTaskAsync</span><span class="p">(</span><span class="s">"http://localhost:8080"</span><span class="p">));</span>
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-use-external-nodejs-modules" class="anchor" href="#how-to-use-external-nodejs-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: use external Node.js modules</h3>
+
+<p>You can use external Node.js modules, for example modules installed from NPM. To install modules from NPM, you must first <a href="http://nodejs.org">install Node.js</a> on your machine and use the <code>npm</code> package manager that comes with the Node.js installation. NPM modules must be installed in the directory where your build system binplaces the Edge.js NuGet package (most likely the same location as the rest of your application binaries), or any ancestor directory. Alternatively, you can install NPM modules globally on the machine using <code>npm install -g</code>:</p>
+
+<pre><code>C:\projects\websockets&gt; npm install ws
+...
+ws@0.4.31 node_modules\ws
+├── tinycolor@0.0.1
+├── options@0.0.5
+├── nan@0.3.2
+└── commander@0.6.1
+</code></pre>
+
+<p>You can then use the installed <code>ws</code> module to create a WebSocket server inside of a .NET application:</p>
+
+<div class="highlight highlight-c#"><pre><span class="k">class</span> <span class="nc">Program</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">async</span> <span class="k">void</span> <span class="nf">Start</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="kt">var</span> <span class="n">createWebSocketServer</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">            var WebSocketServer = require('ws').Server;</span>
+
+<span class="s">            return function (port, cb) {</span>
+<span class="s">                var wss = new WebSocketServer({ port: port });</span>
+<span class="s">                wss.on('connection', function (ws) {</span>
+<span class="s">                    ws.on('message', function (message) {</span>
+<span class="s">                        ws.send(message.toUpperCase());</span>
+<span class="s">                    });</span>
+<span class="s">                    ws.send('Hello!');</span>
+<span class="s">                });</span>
+<span class="s">                cb();</span>
+<span class="s">            };</span>
+<span class="s">        "</span><span class="p">);</span>
+
+        <span class="k">await</span> <span class="nf">createWebSocketServer</span><span class="p">(</span><span class="m">8080</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Task</span><span class="p">.</span><span class="n">Run</span><span class="p">((</span><span class="n">Action</span><span class="p">)</span><span class="n">Start</span><span class="p">);</span>
+        <span class="k">new</span> <span class="nf">ManualResetEvent</span><span class="p">(</span><span class="k">false</span><span class="p">).</span><span class="n">WaitOne</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This WebSocket server sends a <em>Hello</em> message to the client when a new connection is established, and then echos a capitalized version of every message it receives back to the client. You can test this webserver with the <code>wscat</code> tool included with the <code>ws</code> module. To make it convenient to use, first install the <code>ws</code> module globally:</p>
+
+<pre><code>npm install ws -g
+</code></pre>
+
+<p>Then start the .NET application conatining the WebSocket server and establish a connection to it with <code>wscat</code>:</p>
+
+<pre><code>C:\projects\websockets&gt; wscat -c ws://localhost:8080/
+
+connected (press CTRL+C to quit)
+
+&lt; Hello!
+&gt; foo
+&lt; FOO
+&gt; bar
+&lt; BAR
+</code></pre>
+
+<p>A self-contained Node.js WebSocket server, even if running within a .NET application, is rather unexciting. After all, the same could be accomplished with a stand-alone Node.js process. Ideally you could extablish a WebSocket server in Node.js, but handle the messages in .NET. Let's do it - read on. </p>
+
+<h3>
+<a name="user-content-how-to-handle-nodejs-events-in-net" class="anchor" href="#how-to-handle-nodejs-events-in-net" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: handle Node.js events in .NET</h3>
+
+<p>It is often useful to handle certain events raised by the Node.js code within .NET. For example, you may want to establish a WebSocket server in Node.js, and handle the incoming messages in the .NET part of your application. This can be accomplished by passig a .NET callback function to Node.js when the the WebSocket server is created:</p>
+
+<div class="highlight highlight-c#"><pre><span class="k">class</span> <span class="nc">Program</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">static</span> <span class="k">async</span> <span class="k">void</span> <span class="nf">Start</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="c1">// Define an event handler to be called for every message from the client</span>
+
+        <span class="kt">var</span> <span class="n">onMessage</span> <span class="p">=</span> <span class="p">(</span><span class="n">Func</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">,</span> <span class="n">Task</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">&gt;&gt;)(</span><span class="k">async</span> <span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="p">{</span>
+            <span class="k">return</span> <span class="s">"Received string of length "</span> <span class="p">+</span> <span class="p">((</span><span class="kt">string</span><span class="p">)</span><span class="n">message</span><span class="p">).</span><span class="n">Length</span><span class="p">;</span>
+        <span class="p">});</span>
+
+        <span class="c1">// The WebSocket server delegates handling of messages from clients</span>
+        <span class="c1">// to the supplied .NET handler</span>
+
+        <span class="kt">var</span> <span class="n">createWebSocketServer</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">            var WebSocketServer = require('ws').Server;</span>
+
+<span class="s">            return function (options, cb) {</span>
+<span class="s">                var wss = new WebSocketServer({ port: options.port });</span>
+<span class="s">                wss.on('connection', function (ws) {</span>
+<span class="s">                    ws.on('message', function (message) {</span>
+<span class="s">                        options.onMessage(message, function (error, result) {</span>
+<span class="s">                            if (error) throw error;</span>
+<span class="s">                            ws.send(result);</span>
+<span class="s">                        });</span>
+<span class="s">                    });</span>
+<span class="s">                    ws.send('Hello!');</span>
+<span class="s">                });</span>
+<span class="s">                cb();</span>
+<span class="s">            };</span>
+<span class="s">        "</span><span class="p">);</span>
+
+        <span class="c1">// Create a WebSocket server on a specific TCP port and using the .NET event handler</span>
+
+        <span class="k">await</span> <span class="nf">createWebSocketServer</span><span class="p">(</span><span class="k">new</span>
+        <span class="p">{</span>
+            <span class="n">port</span> <span class="p">=</span> <span class="m">8080</span><span class="p">,</span>
+            <span class="n">onMessage</span> <span class="p">=</span> <span class="n">onMessage</span>
+        <span class="p">});</span>
+    <span class="p">}</span>
+
+    <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Task</span><span class="p">.</span><span class="n">Run</span><span class="p">((</span><span class="n">Action</span><span class="p">)</span><span class="n">Start</span><span class="p">);</span>
+        <span class="k">new</span> <span class="nf">ManualResetEvent</span><span class="p">(</span><span class="k">false</span><span class="p">).</span><span class="n">WaitOne</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Using <code>wscat</code>, you can verify the .NET handler is indeed invoked for every websocket message:</p>
+
+<pre><code>C:\projects\websockets&gt; wscat -c ws://localhost:8080/
+
+connected (press CTRL+C to quit)
+
+&lt; Hello!
+&gt; Foo
+&lt; Received string of length 3
+&gt; FooBar
+&lt; Received string of length 6
+</code></pre>
+
+<p>This example shows how Edge.js can create JavaScript proxies to .NET functions and marshal calls across the V8/CLR boundary in-process. Read more about <a href="#how-to-marshal-data-between-c-and-nodejs">data marshaling between Node.js and CLR</a>.</p>
+
+<h3>
+<a name="user-content-how-to-expose-nodejs-state-to-net" class="anchor" href="#how-to-expose-nodejs-state-to-net" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: expose Node.js state to .NET</h3>
+
+<p>In the previous example <a href="#how-to-use-nodejs-built-in-modules">a Node.js HTTP server was created and started from .NET</a>. Suppose at some point you want to stop the HTTP server from your .NET code. Given that all references to it are embedded within Node.js code, it is not possible. However, just as Edge.js can <a href="#how-to-handle-nodejs-events-in-net">pass a .NET function to Node.js</a>, it also can export a Node.js function to .NET. Moreover, that function can be implemented as a closure over Node.js state. This is how it would work:</p>
+
+<div class="highlight highlight-c#"><pre><span class="kt">var</span> <span class="n">createHttpServer</span> <span class="p">=</span> <span class="n">Edge</span><span class="p">.</span><span class="n">Func</span><span class="p">(</span><span class="s">@"</span>
+<span class="s">    var http = require('http');</span>
+
+<span class="s">    return function (port, cb) {</span>
+<span class="s">        var server = http.createServer(function (req, res) {</span>
+<span class="s">            res.end('Hello, world! ' + new Date());</span>
+<span class="s">        }).listen(port, function (error) {</span>
+<span class="s">            cb(error, function (data, cb) {</span>
+<span class="s">                server.close();</span>
+<span class="s">                cb();</span>
+<span class="s">            });</span>
+<span class="s">        });</span>
+<span class="s">    };</span>
+<span class="s">"</span><span class="p">);</span>
+
+<span class="kt">var</span> <span class="n">closeHttpServer</span> <span class="p">=</span> <span class="p">(</span><span class="n">Func</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">,</span><span class="n">Task</span><span class="p">&lt;</span><span class="kt">object</span><span class="p">&gt;&gt;)</span><span class="k">await</span> <span class="n">createHttpServer</span><span class="p">(</span><span class="m">8080</span><span class="p">);</span>
+<span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="k">await</span> <span class="k">new</span> <span class="n">WebClient</span><span class="p">().</span><span class="n">DownloadStringTaskAsync</span><span class="p">(</span><span class="s">"http://localhost:8080"</span><span class="p">));</span>
+<span class="k">await</span> <span class="nf">closeHttpServer</span><span class="p">(</span><span class="k">null</span><span class="p">);</span>
+</pre></div>
+
+<p>Notice how the <code>createHttpServer</code> function, in addition to starting an HTTP server in Node.js, is also returning a .NET proxy to a JavaScript function that allows that server to be stopped. </p>
+
+<h3>
+<a name="user-content-how-to-use-nodejs-in-aspnet-web-applications" class="anchor" href="#how-to-use-nodejs-in-aspnet-web-applications" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to: use Node.js in ASP.NET web applications</h3>
+
+<p>Using Node.js via Edge.js in ASP.NET web applications is no different than in a .NET console application. The Edge.js NuGet package must be referenced in your ASP.NET web application. If you are using any external Node.js modules, the entire <code>node_modules</code> subdirectory structure must be binplaced to the <code>bin</code> folder of you web application, and deployed that way to the server. </p>
+
+<h3>
+<a name="user-content-building-edgejs-nuget-package" class="anchor" href="#building-edgejs-nuget-package" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Edge.js NuGet package</h3>
+
+<p><strong>Note</strong> This mechanism requires hardening, expect the road ahead to be bumpy. </p>
+
+<p>These are unstructions for building the Edge.js NuGet package on Windows. The package will support running apps in both x86 and x64 architectures using a selected version of Node.js. The resulting NuGet package is all-inclusive with the only dependency being .NET 4.5. </p>
+
+<p>Preprequisties:</p>
+
+<ul class="task-list">
+<li>Visual Studio 2013<br>
+</li>
+<li>Node.js (tested with v0.10.28)<br>
+</li>
+<li>Python 2.7.x<br>
+</li>
+<li>node-gyp<br>
+</li>
+</ul><p>To buid the NuGet package, open the Visual Studio 2013 Developer Command Prompt and call:</p>
+
+<pre><code>tools\build_double.bat 0.10.28
+</code></pre>
+
+<p>(you can substitite another version of Node.js, but no other than 0.10.28 were tested).</p>
+
+<p>The script takes several minutes to complete and does the following:</p>
+
+<ul class="task-list">
+<li>builds a few helper tools in C#<br>
+</li>
+<li>downloads sources of the selected Node.js version<br>
+</li>
+<li>downloads nuget.exe from <a href="http://nuget.org">http://nuget.org</a><br>
+</li>
+<li>builds Node.js shared library for the x86 and x64 flavor</li>
+<li>builds Edge.js module for the x86 and x64 flavor</li>
+<li>builds managed EdgeJs.dll library that bootstraps running Node.js in a CLR process and provides the Edge.Func programming model<br>
+</li>
+<li>packs everything into a NuGet package</li>
+</ul><p>If everything goes well, the resulting NuGet package is located in the <code>tools\build\nuget</code> directory. </p>
+
+<h3>
+<a name="user-content-running-tests-of-scripting-nodejs-in-c" class="anchor" href="#running-tests-of-scripting-nodejs-in-c" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running tests of scripting Node.js in C</h3>
+
+<p>There are functional tests in <code>test\double\double_test</code> and stress tests in <code>test\double\double_stress</code>. Before you can compile these tests, you must register the location of the built NuGet package as a local NuGet feed through the NuGet configuration manager in Visual Studio. </p>
+
+<p>After you have compiled the function tests, the best way to run them is from the command line:</p>
+
+<pre><code>C:\projects\edge\test\double\double_tests\bin\Release&gt; mstest /testcontainer:double_test.dll /noisolation
+</code></pre>
+
+<p>After you have compiled the stress tests, simply launch the executable, attach resource monitor to the process, and leave it running to observe stability:</p>
+
+<pre><code>C:\projects\edge\test\double\double_stress\bin\Release&gt; double_stress.exe
+</code></pre>
+
+<h2>
+<a name="user-content-contribution-and-derived-work" class="anchor" href="#contribution-and-derived-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribution and derived work</h2>
+
+<p>I do welcome contributions via pull request and derived work. </p>
+
+<p>The edge module is intended to remain a very small component with core functionality that supports interop between .NET and Node.js. Domain specific functionality (e.g. access to SQL, writing to ETW, writing connect middleware in .NET) should be implemented as separate modules with a dependency on edge. When you have a notable derived work, I would love to know about it to include a pointer here.  </p>
+
+<h2>
+<a name="user-content-more" class="anchor" href="#more" aria-hidden="true"><span class="octicon octicon-link"></span></a>More</h2>
+
+<p>Issues? Feedback? You <a href="https://github.com/tjanczuk/edge/issues/new">know what to do</a>. Pull requests welcome.</p></article></div>

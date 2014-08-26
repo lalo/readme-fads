@@ -1,0 +1,357 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-macwire" class="anchor" href="#macwire" aria-hidden="true"><span class="octicon octicon-link"></span></a>MacWire</h1>
+
+<p><a href="https://travis-ci.org/adamw/macwire"><img src="https://camo.githubusercontent.com/9106a872a2016b804c101c63d892f0425f66a6c3/68747470733a2f2f7472617669732d63692e6f72672f6164616d772f6d6163776972652e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/adamw/macwire.svg?branch=master" style="max-width:100%;"></a></p>
+
+<p>MacWire generates <code>new</code> instance creation code of given classes, using values in the enclosing type for constructor
+parameters, with the help of <a href="http://scalamacros.org/">Scala Macros</a>.</p>
+
+<p>For a general introduction to DI in Scala, take a look at the <a href="http://di-in-scala.github.io/">Guide to DI in Scala</a>, which also features MacWire.</p>
+
+<p>MacWire helps to implement the Dependency Injection (DI) pattern, by removing the need to write the
+class-wiring code by hand. Instead, it is enough to declare which classes should be wired, and how the instances
+should be accessed (see Scopes).</p>
+
+<p>Classes that should be wired should be organized in "modules", which can be Scala <code>trait</code>s, <code>class</code>es or <code>object</code>s.
+Multiple modules can be combined using inheritance; values from the inherited modules are also used for wiring.</p>
+
+<p>MacWire can be in many cases a replacement for DI containers, offering greater control on when and how classes are
+instantiated, typesafety and using only language (Scala) mechanisms.</p>
+
+<p>Example usage:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">class</span> <span class="nc">DatabaseAccess</span><span class="o">()</span>
+<span class="k">class</span> <span class="nc">SecurityFilter</span><span class="o">()</span>
+<span class="k">class</span> <span class="nc">UserFinder</span><span class="o">(</span><span class="n">databaseAccess</span><span class="k">:</span> <span class="kt">DatabaseAccess</span><span class="o">,</span> <span class="n">securityFilter</span><span class="k">:</span> <span class="kt">SecurityFilter</span><span class="o">)</span>
+<span class="k">class</span> <span class="nc">UserStatusReader</span><span class="o">(</span><span class="n">userFinder</span><span class="k">:</span> <span class="kt">UserFinder</span><span class="o">)</span>
+
+<span class="k">trait</span> <span class="nc">UserModule</span> <span class="o">{</span>
+    <span class="k">import</span> <span class="nn">com.softwaremill.macwire.MacwireMacros._</span>
+
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theDatabaseAccess</span>   <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">DatabaseAccess</span><span class="o">]</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theSecurityFilter</span>   <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">SecurityFilter</span><span class="o">]</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theUserFinder</span>       <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">UserFinder</span><span class="o">]</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theUserStatusReader</span> <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">UserStatusReader</span><span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>will generate:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">UserModule</span> <span class="o">{</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theDatabaseAccess</span>   <span class="k">=</span> <span class="k">new</span> <span class="nc">DatabaseAccess</span><span class="o">()</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theSecurityFilter</span>   <span class="k">=</span> <span class="k">new</span> <span class="nc">SecurityFilter</span><span class="o">()</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theUserFinder</span>       <span class="k">=</span> <span class="k">new</span> <span class="nc">UserFinder</span><span class="o">(</span><span class="n">theDatabaseAccess</span><span class="o">,</span> <span class="n">theSecurityFilter</span><span class="o">)</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theUserStatusReader</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">UserStatusReader</span><span class="o">(</span><span class="n">theUserFinder</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>For testing, just extend the base module and override any dependencies with mocks/stubs etc, e.g.:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">UserModuleForTests</span> <span class="k">extends</span> <span class="nc">UserModule</span> <span class="o">{</span>
+    <span class="k">override</span> <span class="k">lazy</span> <span class="k">val</span> <span class="n">theDatabaseAccess</span> <span class="k">=</span> <span class="n">mockDatabaseAccess</span>
+    <span class="k">override</span> <span class="k">lazy</span> <span class="k">val</span> <span class="n">theSecurityFilter</span> <span class="k">=</span> <span class="n">mockSecurityFilter</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Instead of importing the wire method in each module you can also extend <code>com.softwaremill.macwire.Macwire</code> trait.</p>
+
+<p>The core library has no dependencies.</p>
+
+<p>For more motivation behind the project see also these blogs:</p>
+
+<ul class="task-list">
+<li><a href="http://www.warski.org/blog/2013/03/dependency-injection-with-scala-macros-auto-wiring/">Dependency injection with Scala macros: auto-wiring</a></li>
+<li><a href="http://www.warski.org/blog/2013/04/macwire-0-1-framework-less-dependency-injection-with-scala-macros/">MacWire 0.1: Framework-less Dependency Injection with Scala Macros</a></li>
+<li><a href="http://www.warski.org/blog/2013/04/macwire-0-2-scopes-are-simple/">MacWire 0.2: Scopes are simple!</a></li>
+<li><a href="http://www.warski.org/blog/2013/06/implementing-factories-in-scala-macwire-0-3/">Implementing factories in Scala &amp; MacWire 0.3</a></li>
+<li><a href="http://www.warski.org/blog/2013/08/dependency-injection-in-play-with-macwire/">Dependency Injection in Play! with MacWire</a></li>
+<li><a href="http://www.warski.org/blog/2013/10/macwire-0-5-interceptors/">MacWire 0.5: Interceptors</a></li>
+<li><a href="http://www.warski.org/blog/2014/02/using-scala-traits-as-modules-or-the-thin-cake-pattern/">Using Scala traits as modules, or the "Thin Cake" Pattern</a></li>
+</ul><p>You can also try MacWire through <a href="http://typesafe.com/activator/template/macwire-activator">Typesafe Activator</a>.</p>
+
+<p>A similar project for Java is <a href="https://github.com/square/dagger">Dagger</a>.</p>
+
+<h2>
+<a name="user-content-how-wiring-works" class="anchor" href="#how-wiring-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How wiring works</h2>
+
+<p>For each constructor parameter of the given class, MacWire tries to find a value which is a subtype of the parameter's
+type in the enclosing method and trait/class/object:</p>
+
+<ul class="task-list">
+<li>first it tries to find a value declared in the enclosing method; if multiple values are found, a by name-match is attempted</li>
+<li>then it tries to find a unique value declared in the enclosing type</li>
+<li>then it tries to find a unique value in parent types (traits/classes)</li>
+</ul><p>Here value means either a <code>val</code> or a no-parameter <code>def</code>, as long as the return type matches.</p>
+
+<p>A compile-time error occurs if:</p>
+
+<ul class="task-list">
+<li>there are multiple values of a given type declared in the enclosing type, or in parent types</li>
+<li>there is no value of a given type</li>
+</ul><p>The generated code is then once again type-checked by the Scala compiler.</p>
+
+<h2>
+<a name="user-content-factories" class="anchor" href="#factories" aria-hidden="true"><span class="octicon octicon-link"></span></a>Factories</h2>
+
+<p>A factory is simply a method. The constructor of the wired class can contain parameters both from
+the factory (method) parameters, and from the enclosing/super type(s).</p>
+
+<p>Unlike wiring in other places, if multiple values of the desired type are found, they are additionally filtered by-name.
+In general this could give unpredictable results, but should be safe in the scope of a method.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">class</span> <span class="nc">DatabaseAccess</span><span class="o">()</span>
+<span class="k">class</span> <span class="nc">TaxDeductionLibrary</span><span class="o">(</span><span class="n">databaseAccess</span><span class="k">:</span> <span class="kt">DatabaseAccess</span><span class="o">)</span>
+<span class="k">class</span> <span class="nc">TaxCalculator</span><span class="o">(</span><span class="n">taxBase</span><span class="k">:</span> <span class="kt">Double</span><span class="o">,</span> <span class="n">taxFreeAmount</span><span class="k">:</span> <span class="kt">Double</span><span class="o">,</span> <span class="n">taxDeductionLibrary</span><span class="k">:</span> <span class="kt">TaxDeductionLibrary</span><span class="o">)</span>
+
+<span class="k">trait</span> <span class="nc">TaxModule</span> <span class="o">{</span>
+    <span class="k">import</span> <span class="nn">com.softwaremill.macwire.MacwireMacros._</span>
+
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theDatabaseAccess</span>      <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">DatabaseAccess</span><span class="o">]</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theTaxDeductionLibrary</span> <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">TaxDeductionLibrary</span><span class="o">]</span>
+    <span class="k">def</span> <span class="n">taxCalculator</span><span class="o">(</span><span class="n">taxBase</span><span class="k">:</span> <span class="kt">Double</span><span class="o">,</span> <span class="n">taxFreeAmount</span><span class="k">:</span> <span class="kt">Double</span><span class="o">)</span> <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">TaxCalculator</span><span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>will generate:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">TaxModule</span> <span class="o">{</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theDatabaseAccess</span>      <span class="k">=</span> <span class="k">new</span> <span class="nc">DatabaseAccess</span><span class="o">()</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">theTaxDeductionLibrary</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">TaxDeductionLibrary</span><span class="o">(</span><span class="n">theDatabaseAccess</span><span class="o">)</span>
+    <span class="k">def</span> <span class="n">taxCalculator</span><span class="o">(</span><span class="n">taxBase</span><span class="k">:</span> <span class="kt">Double</span><span class="o">,</span> <span class="n">taxFreeAmount</span><span class="k">:</span> <span class="kt">Double</span><span class="o">)</span> <span class="k">=</span>
+       <span class="k">new</span> <span class="nc">TaxCalculator</span><span class="o">(</span><span class="n">taxBase</span><span class="o">,</span> <span class="n">taxFreeAmount</span><span class="o">,</span> <span class="n">theTaxDeductionLibrary</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h2>
+
+<p>When:</p>
+
+<ul class="task-list">
+<li>referencing wired values within the trait/class/object</li>
+<li>using multiple modules in the same compilation unit</li>
+<li>using multiple modules with scopes</li>
+</ul><p>due to limitations of the current macros implementation in Scala (for more details see
+<a href="https://groups.google.com/forum/?fromgroups=#!topic/scala-user/k_2KCvO5g04">this discussion</a>)
+to avoid compilation errors it is recommended to add type ascriptions to the dependencies. This is a way of helping
+the type-checker that is invoked by the macro to figure out the types of the values which
+can be wired.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">class</span> <span class="nc">A</span><span class="o">()</span>
+<span class="k">class</span> <span class="nc">B</span><span class="o">(</span><span class="n">a</span><span class="k">:</span> <span class="kt">A</span><span class="o">)</span>
+
+<span class="c1">// note the explicit type. Without it wiring would fail with recursive type compile errors</span>
+<span class="k">lazy</span> <span class="k">val</span> <span class="n">theA</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span>
+<span class="c1">// reference to theA; if for some reason we need explicitly write the constructor call</span>
+<span class="k">lazy</span> <span class="k">val</span> <span class="n">theB</span> <span class="k">=</span> <span class="k">new</span> <span class="n">B</span><span class="o">(</span><span class="n">theA</span><span class="o">)</span>
+</pre></div>
+
+<p>This is a major inconvenience, but hopefully will get resolved once post-typer macros are introduced to the language.</p>
+
+<p>Also, wiring will probably not work properly for traits and classes defined inside the containing trait/class, or in
+super traits/classes.</p>
+
+<p>Note that the type ascription may be a subtype of the wired type. This can be useful if you want to expose e.g. a trait
+that the wired class extends, instead of the full implementation.</p>
+
+<h2>
+<a name="user-content-lazy-val-vs-val" class="anchor" href="#lazy-val-vs-val" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>lazy val</code> vs. <code>val</code>
+</h2>
+
+<p>It is safer to use <code>lazy val</code>s, as when using <code>val</code>, if a value is forward-referenced, it's value during initialization
+will be <code>null</code>. With <code>lazy val</code> the correct order of initialization is resolved by Scala.</p>
+
+<h2>
+<a name="user-content-scopes" class="anchor" href="#scopes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scopes</h2>
+
+<p>There are two "built-in" scopes, depending on how the dependency is defined:</p>
+
+<ul class="task-list">
+<li>singleton: <code>lazy val</code> / <code>val</code>
+</li>
+<li>dependent - separate instance for each dependency usage: <code>def</code>
+</li>
+</ul><p>MacWire also supports user-defined scopes, which can be used to implement request or session scopes in web applications.
+The <code>runtime</code> subproject defines a <code>Scope</code> trait, which has two methods:</p>
+
+<ul class="task-list">
+<li>
+<code>apply</code>, to create a scoped value</li>
+<li>
+<code>get</code>, to get or create the current value from the scope</li>
+</ul><p>To define a dependency as scoped, we need a scope instance, e.g.:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">WebModule</span> <span class="o">{</span>
+   <span class="k">lazy</span> <span class="k">val</span> <span class="n">loggedInUser</span> <span class="k">=</span> <span class="n">session</span><span class="o">(</span><span class="k">new</span> <span class="nc">LoggedInUser</span><span class="o">)</span>
+
+   <span class="k">def</span> <span class="n">session</span><span class="k">:</span> <span class="kt">Scope</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>With abstract scopes as above, it is possible to use no-op scopes for testing (<code>NoOpScope</code>).</p>
+
+<p>There's an implementation of <code>Scope</code> targeted at classical synchronous frameworks, <code>ThreadLocalScope</code>. The apply method
+of this scope creates a proxy (using <a href="http://www.csg.is.titech.ac.jp/%7Echiba/javassist/">javassist</a>); the get method
+stores the value in a thread local. The proxy should be defined as a <code>val</code> or <code>lazy val</code>.</p>
+
+<p>In a web application, the scopes have to be associated and disassociated with storages.
+This can be done for example in a servlet filter.
+To implement a:</p>
+
+<ul class="task-list">
+<li>request scope, we need a new empty storage for every request. The <code>associateWithEmptyStorage</code> is useful here</li>
+<li>session scope, the storage (a <code>Map</code>) should be stored in the <code>HttpSession</code>. The <code>associate(Map)</code> method is useful here</li>
+</ul><p>For example usage see the
+<a href="https://github.com/adamw/macwire/tree/master/examples/scalatra/src/main/scala/com/softwaremill/macwire/examples/scalatra">MacWire+Scalatra example</a>
+sources.</p>
+
+<p>You can run the example with <code>sbt examples-scalatra/run</code> and going to <a href="http://localhost:8080">http://localhost:8080</a>.</p>
+
+<p>Note that the <code>runtime</code> subproject does not depend on MacWire core, and can be used stand-alone with manual wiring or any other
+frameworks.</p>
+
+<h2>
+<a name="user-content-accessing-wired-instances-dynamically" class="anchor" href="#accessing-wired-instances-dynamically" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accessing wired instances dynamically</h2>
+
+<p>To integrate with some frameworks (e.g. <a href="http://www.playframework.com/">Play 2</a>) or to create instances of classes
+which names are only known at run-time (e.g. plugins) it is necessary to access the wired instances dynamically.
+MacWire contains a utility class, <code>Wired</code>, to support such functionality.</p>
+
+<p>An instance of <code>Wired</code> can be obtained using the <code>wiredInModule</code> macro, given an instance of a module containing the
+wired object graph. Any <code>vals</code>, <code>lazy val</code>s and parameter-less <code>def</code>s (factories) from the module will be available 
+in the <code>Wired</code> instance. </p>
+
+<p>The object graph in the module can be hand-wired, wired using <code>wire</code>, or a result of any computation.</p>
+
+<p><code>Wired</code> has two basic functionalities: looking up an instance by its class (or trait it implements), and instantiating
+new objects using the available dependencies. You can also extend <code>Wired</code> with new instances/instance factories.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// 1. Defining the object graph and the module</span>
+<span class="k">trait</span> <span class="nc">DatabaseConnector</span>
+<span class="k">class</span> <span class="nc">MysqlDatabaseConnector</span> <span class="k">extends</span> <span class="nc">DatabaseConnector</span>
+
+<span class="k">class</span> <span class="nc">MyApp</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">securityFilter</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">SecurityFilter</span><span class="o">()</span>
+    <span class="k">val</span> <span class="n">databaseConnector</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">MysqlDatabaseConnector</span><span class="o">()</span>
+<span class="o">}</span>
+
+<span class="c1">// 2. Creating a Wired instance</span>
+<span class="k">import</span> <span class="nn">MacwireMacros._</span>
+<span class="k">val</span> <span class="n">wired</span> <span class="k">=</span> <span class="n">wiredInModule</span><span class="o">(</span><span class="k">new</span> <span class="nc">MyApp</span><span class="o">)</span>
+
+<span class="c1">// 3. Dynamic lookup of instances</span>
+<span class="n">wired</span><span class="o">.</span><span class="n">lookup</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">SecurityFilter</span><span class="o">])</span>
+
+<span class="c1">// Returns the mysql database connector, even though its type is MysqlDatabaseConnector, which is </span>
+<span class="c1">// assignable to DatabaseConnector.</span>
+<span class="n">wired</span><span class="o">.</span><span class="n">lookup</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">DatabaseConnector</span><span class="o">])</span>
+
+<span class="c1">// 4. Instantiation using the available dependencies</span>
+<span class="o">{</span>
+    <span class="k">package</span> <span class="nn">com.softwaremill</span>
+    <span class="k">class</span> <span class="nc">AuthenticationPlugin</span><span class="o">(</span><span class="n">databaseConnector</span><span class="k">:</span> <span class="kt">DatabaseConnector</span><span class="o">)</span>
+<span class="o">}</span>
+
+<span class="c1">// Creates a new instance of the given class using the dependencies available in MyApp</span>
+<span class="n">wired</span><span class="o">.</span><span class="n">wireClassInstanceByName</span><span class="o">(</span><span class="s">"com.softwaremill.AuthenticationPlugin"</span><span class="o">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-interceptors" class="anchor" href="#interceptors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interceptors</h2>
+
+<p>MacWire contains an implementation of interceptors, which can be applied to class instances in the modules.
+Similarly to scopes, the <code>runtime</code> subproject defines an <code>Interceptor</code> trait, which has only one method: <code>apply</code>.
+When applied to an instance, it should return an instance of the same class, but with the interceptor applied.</p>
+
+<p>There are two implementations of the <code>Interceptor</code> trait provided:</p>
+
+<ul class="task-list">
+<li>
+<code>NoOpInterceptor</code>: returns the given instance without changes</li>
+<li>
+<code>ProxyingInterceptor</code>: proxies the instance, and returns the proxy. A provided function is called
+with information on the invocation</li>
+</ul><p>Interceptors can be abstract in modules. E.g.:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">BusinessLogicModule</span> <span class="o">{</span>
+   <span class="k">lazy</span> <span class="k">val</span> <span class="n">moneyTransferer</span> <span class="k">=</span> <span class="n">transactional</span><span class="o">(</span><span class="n">wire</span><span class="o">[</span><span class="kt">MoneyTransferer</span><span class="o">])</span>
+
+   <span class="k">def</span> <span class="n">transactional</span><span class="k">:</span> <span class="kt">Interceptor</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>During tests, you can then use the <code>NoOpInterceptor</code>. In production code or integration tests, you can specify a real
+interceptor, either by extending the <code>ProxyingInterceptor</code> trait, or by passing a function to the
+<code>ProxyingInterceptor</code> object:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">MyApplication</span> <span class="k">extends</span> <span class="nc">BusinessLogicModule</span> <span class="o">{</span>
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">tm</span> <span class="k">=</span> <span class="n">wire</span><span class="o">[</span><span class="kt">TransactionManager</span><span class="o">]</span>
+
+    <span class="k">lazy</span> <span class="k">val</span> <span class="n">transactional</span> <span class="k">=</span> <span class="nc">ProxyingInterceptor</span> <span class="o">{</span> <span class="n">ctx</span> <span class="k">=&gt;</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="n">tm</span><span class="o">.</span><span class="n">begin</span><span class="o">()</span>
+            <span class="k">val</span> <span class="n">result</span> <span class="k">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">proceed</span><span class="o">()</span>
+            <span class="n">tm</span><span class="o">.</span><span class="n">commit</span><span class="o">()</span>
+
+            <span class="n">result</span>
+        <span class="o">}</span> <span class="k">catch</span> <span class="o">{</span>
+            <span class="k">case</span> <span class="n">e</span><span class="k">:</span> <span class="kt">Exception</span> <span class="o">=&gt;</span> <span class="n">tm</span><span class="o">.</span><span class="n">rollback</span><span class="o">()</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>The <code>ctx</code> is an instance of an <code>InvocationContext</code>, and contains information on the parameters passed to the method,
+the method itself, and the target object. It also allows to proceed with the invocation with the same or changed
+parameters.</p>
+
+<p>For more general AOP, e.g. if you want to apply an interceptor to all methods matching a given pointcut expression,
+you should use <a href="http://eclipse.org/aspectj/">AspectJ</a> or an equivalent library. The interceptors that are implemented
+in MacWire correspond to annotation-based interceptors in Java.</p>
+
+<h2>
+<a name="user-content-installation-using-with-sbt" class="anchor" href="#installation-using-with-sbt" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation, using with SBT</h2>
+
+<p>The jars are deployed to <a href="https://oss.sonatype.org/content/repositories/snapshots/com/softwaremill/macwire/">Sonatype's OSS repository</a>.
+To use MacWire in your project, add a dependency:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.softwaremill.macwire"</span> <span class="o">%%</span> <span class="s">"macros"</span> <span class="o">%</span> <span class="s">"0.7"</span> 
+
+<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.softwaremill.macwire"</span> <span class="o">%%</span> <span class="s">"runtime"</span> <span class="o">%</span> <span class="s">"0.7"</span> 
+</pre></div>
+
+<p>To use the snapshot version:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"Sonatype OSS Snapshots"</span> <span class="n">at</span> <span class="s">"https://oss.sonatype.org/content/repositories/snapshots"</span>
+
+<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.softwaremill.macwire"</span> <span class="o">%%</span> <span class="s">"macros"</span> <span class="o">%</span> <span class="s">"0.8-SNAPSHOT"</span>
+
+<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.softwaremill.macwire"</span> <span class="o">%%</span> <span class="s">"runtime"</span> <span class="o">%</span> <span class="s">"0.8-SNAPSHOT"</span>
+</pre></div>
+
+<p>MacWire works with Scala 2.10+.</p>
+
+<h2>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h2>
+
+<p>The print debugging information on what MacWire does when looking for values, and what code is generated, set the
+<code>macwire.debug</code> system property. E.g. with SBT, just add a <code>System.setProperty("macwire.debug", "")</code> line to your
+build file.</p>
+
+<h2>
+<a name="user-content-future-development---vote" class="anchor" href="#future-development---vote" aria-hidden="true"><span class="octicon octicon-link"></span></a>Future development - vote!</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/adamw/macwire/issues/9">Qualifier support</a></li>
+<li><a href="https://github.com/adamw/macwire/issues/8">wireSet[] method to get all dependencies of the given type</a></li>
+<li><a href="https://github.com/adamw/macwire/issues/7">Support parameters in wire[] to override dependencies</a></li>
+<li>relax type ascription requirements</li>
+<li>configuration values - by-name wiring</li>
+</ul></article></div>

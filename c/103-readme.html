@@ -1,0 +1,130 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-crow" class="anchor" href="#crow" aria-hidden="true"><span class="octicon octicon-link"></span></a>Crow</h1>
+
+<p>Crow is C++ microframework for web. (inspired by Python Flask)</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Easy routing
+
+<ul class="task-list">
+<li>Similiar to Flask</li>
+<li>Type-safe Handlers (see Example)</li>
+</ul>
+</li>
+<li>Fast built-in JSON parser (crow::json)</li>
+<li>
+<a href="http://mustache.github.io/">Mustache</a> based templating library (crow::mustache)</li>
+<li>Header only</li>
+<li>Provide an amalgamated header file `crow_all.h' with every features</li>
+</ul><h2>
+<a name="user-content-still-in-development" class="anchor" href="#still-in-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Still in development</h2>
+
+<ul class="task-list">
+<li>Built-in ORM</li>
+<li>Middleware support</li>
+</ul><h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<div class="highlight highlight-c++"><pre>
+<span class="cp">#include "crow.h"</span>
+<span class="cp">#include "json.h"</span>
+
+<span class="cp">#include &lt;sstream&gt;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="n">crow</span><span class="o">::</span><span class="n">Crow</span> <span class="n">app</span><span class="p">;</span>
+
+    <span class="n">CROW_ROUTE</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s">"/about"</span><span class="p">)</span>
+    <span class="p">([](){</span>
+        <span class="k">return</span> <span class="s">"About Crow example."</span><span class="p">;</span>
+    <span class="p">});</span>
+
+    <span class="c1">// simple json response</span>
+    <span class="n">CROW_ROUTE</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s">"/json"</span><span class="p">)</span>
+    <span class="p">([]{</span>
+        <span class="n">crow</span><span class="o">::</span><span class="n">json</span><span class="o">::</span><span class="n">wvalue</span> <span class="n">x</span><span class="p">;</span>
+        <span class="n">x</span><span class="p">[</span><span class="s">"message"</span><span class="p">]</span> <span class="o">=</span> <span class="s">"Hello, World!"</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+    <span class="p">});</span>
+
+    <span class="c1">// argument</span>
+    <span class="n">CROW_ROUTE</span><span class="p">(</span><span class="n">app</span><span class="p">,</span><span class="s">"/hello/&lt;int&gt;"</span><span class="p">)</span>
+    <span class="p">([](</span><span class="kt">int</span> <span class="n">count</span><span class="p">){</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">crow</span><span class="o">::</span><span class="n">response</span><span class="p">(</span><span class="mi">400</span><span class="p">);</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">ostringstream</span> <span class="n">os</span><span class="p">;</span>
+        <span class="n">os</span> <span class="o">&lt;&lt;</span> <span class="n">count</span> <span class="o">&lt;&lt;</span> <span class="s">" bottles of beer!"</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">crow</span><span class="o">::</span><span class="n">response</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">str</span><span class="p">());</span>
+    <span class="p">});</span>
+
+    <span class="c1">// Compile error with message "Handler type is mismatched with URL paramters"</span>
+    <span class="c1">//CROW_ROUTE(app,"/another/&lt;int&gt;")</span>
+    <span class="c1">//([](int a, int b){</span>
+        <span class="c1">//return crow::response(500);</span>
+    <span class="c1">//});</span>
+
+    <span class="c1">// more json example</span>
+    <span class="n">CROW_ROUTE</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s">"/add_json"</span><span class="p">)</span>
+    <span class="p">([](</span><span class="k">const</span> <span class="n">crow</span><span class="o">::</span><span class="n">request</span><span class="o">&amp;</span> <span class="n">req</span><span class="p">){</span>
+        <span class="k">auto</span> <span class="n">x</span> <span class="o">=</span> <span class="n">crow</span><span class="o">::</span><span class="n">json</span><span class="o">::</span><span class="n">load</span><span class="p">(</span><span class="n">req</span><span class="p">.</span><span class="n">body</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">crow</span><span class="o">::</span><span class="n">response</span><span class="p">(</span><span class="mi">400</span><span class="p">);</span>
+        <span class="kt">int</span> <span class="n">sum</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s">"a"</span><span class="p">].</span><span class="n">i</span><span class="p">()</span><span class="o">+</span><span class="n">x</span><span class="p">[</span><span class="s">"b"</span><span class="p">].</span><span class="n">i</span><span class="p">();</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">ostringstream</span> <span class="n">os</span><span class="p">;</span>
+        <span class="n">os</span> <span class="o">&lt;&lt;</span> <span class="n">sum</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">crow</span><span class="o">::</span><span class="n">response</span><span class="p">{</span><span class="n">os</span><span class="p">.</span><span class="n">str</span><span class="p">()};</span>
+    <span class="p">});</span>
+
+    <span class="n">app</span><span class="p">.</span><span class="n">port</span><span class="p">(</span><span class="mi">18080</span><span class="p">)</span>
+        <span class="p">.</span><span class="n">multithreaded</span><span class="p">()</span>
+        <span class="p">.</span><span class="n">run</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-how-to-build" class="anchor" href="#how-to-build" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to Build</h2>
+
+<p>If you just want to use crow, copy amalgamate/crow_all.h and include it.</p>
+
+<h3>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h3>
+
+<ul class="task-list">
+<li>C++ compiler with good C++11 support (tested with g++&gt;=4.8)</li>
+<li>boost library</li>
+<li><p>CMake</p></li>
+<li><p>Linking with tcmalloc/jemalloc is recommended for speed.</p></li>
+</ul><h3>
+<a name="user-content-building-tests-examples" class="anchor" href="#building-tests-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building (Tests, Examples)</h3>
+
+<p>Out-of-source build with CMake is recommended.</p>
+
+<pre><code>mkdir build
+cd build
+cmake ..
+make
+</code></pre>
+
+<p>You can run tests with following commands:</p>
+
+<pre><code>ctest
+</code></pre>
+
+<h3>
+<a name="user-content-installing-missing-dependencies" class="anchor" href="#installing-missing-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing missing dependencies</h3>
+
+<h4>
+<a name="user-content-ubuntu" class="anchor" href="#ubuntu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu</h4>
+
+<pre><code>sudo apt-get install build-essential libtcmalloc-minimal4 &amp;&amp; sudo ln -s /usr/lib/libtcmalloc_minimal.so.4 /usr/lib/libtcmalloc_minimal.so
+</code></pre>
+
+<h4>
+<a name="user-content-osx" class="anchor" href="#osx" aria-hidden="true"><span class="octicon octicon-link"></span></a>OSX</h4>
+
+<pre><code>brew install boost google-perftools
+</code></pre></article></div>

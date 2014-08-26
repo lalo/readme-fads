@@ -1,0 +1,185 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-http-parser" class="anchor" href="#http-parser" aria-hidden="true"><span class="octicon octicon-link"></span></a>HTTP Parser</h1>
+
+<p><a href="https://travis-ci.org/joyent/http-parser"><img src="https://camo.githubusercontent.com/3e10f35b960500224d55fa7203ebe5d3f87a4ff0/68747470733a2f2f7472617669732d63692e6f72672f6a6f79656e742f687474702d7061727365722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/joyent/http-parser.png?branch=master" style="max-width:100%;"></a></p>
+
+<p>This is a parser for HTTP messages written in C. It parses both requests and
+responses. The parser is designed to be used in performance HTTP
+applications. It does not make any syscalls nor allocations, it does not
+buffer data, it can be interrupted at anytime. Depending on your
+architecture, it only requires about 40 bytes of data per message
+stream (in a web server that is per connection).</p>
+
+<p>Features:</p>
+
+<ul class="task-list">
+<li>No dependencies</li>
+<li>Handles persistent streams (keep-alive).</li>
+<li>Decodes chunked encoding.</li>
+<li>Upgrade support</li>
+<li>Defends against buffer overflow attacks.</li>
+</ul><p>The parser extracts the following information from HTTP messages:</p>
+
+<ul class="task-list">
+<li>Header fields and values</li>
+<li>Content-Length</li>
+<li>Request method</li>
+<li>Response status code</li>
+<li>Transfer-Encoding</li>
+<li>HTTP version</li>
+<li>Request URL</li>
+<li>Message body</li>
+</ul><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>One <code>http_parser</code> object is used per TCP connection. Initialize the struct
+using <code>http_parser_init()</code> and set the callbacks. That might look something
+like this for a request parser:</p>
+
+<div class="highlight highlight-c"><pre><span class="n">http_parser_settings</span> <span class="n">settings</span><span class="p">;</span>
+<span class="n">settings</span><span class="p">.</span><span class="n">on_url</span> <span class="o">=</span> <span class="n">my_url_callback</span><span class="p">;</span>
+<span class="n">settings</span><span class="p">.</span><span class="n">on_header_field</span> <span class="o">=</span> <span class="n">my_header_field_callback</span><span class="p">;</span>
+<span class="cm">/* ... */</span>
+
+<span class="n">http_parser</span> <span class="o">*</span><span class="n">parser</span> <span class="o">=</span> <span class="n">malloc</span><span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">http_parser</span><span class="p">));</span>
+<span class="n">http_parser_init</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">HTTP_REQUEST</span><span class="p">);</span>
+<span class="n">parser</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">=</span> <span class="n">my_socket</span><span class="p">;</span>
+</pre></div>
+
+<p>When data is received on the socket execute the parser and check for errors.</p>
+
+<div class="highlight highlight-c"><pre><span class="kt">size_t</span> <span class="n">len</span> <span class="o">=</span> <span class="mi">80</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span> <span class="n">nparsed</span><span class="p">;</span>
+<span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">len</span><span class="p">];</span>
+<span class="kt">ssize_t</span> <span class="n">recved</span><span class="p">;</span>
+
+<span class="n">recved</span> <span class="o">=</span> <span class="n">recv</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">len</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">recved</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+  <span class="cm">/* Handle error. */</span>
+<span class="p">}</span>
+
+<span class="cm">/* Start up / continue the parser.</span>
+<span class="cm"> * Note we pass recved==0 to signal that EOF has been received.</span>
+<span class="cm"> */</span>
+<span class="n">nparsed</span> <span class="o">=</span> <span class="n">http_parser_execute</span><span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">settings</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">recved</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">parser</span><span class="o">-&gt;</span><span class="n">upgrade</span><span class="p">)</span> <span class="p">{</span>
+  <span class="cm">/* handle new protocol */</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">nparsed</span> <span class="o">!=</span> <span class="n">recved</span><span class="p">)</span> <span class="p">{</span>
+  <span class="cm">/* Handle error. Usually just close the connection. */</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>HTTP needs to know where the end of the stream is. For example, sometimes
+servers send responses without Content-Length and expect the client to
+consume input (for the body) until EOF. To tell http_parser about EOF, give
+<code>0</code> as the fourth parameter to <code>http_parser_execute()</code>. Callbacks and errors
+can still be encountered during an EOF, so one must still be prepared
+to receive them.</p>
+
+<p>Scalar valued message information such as <code>status_code</code>, <code>method</code>, and the
+HTTP version are stored in the parser structure. This data is only
+temporally stored in <code>http_parser</code> and gets reset on each new message. If
+this information is needed later, copy it out of the structure during the
+<code>headers_complete</code> callback.</p>
+
+<p>The parser decodes the transfer-encoding for both requests and responses
+transparently. That is, a chunked encoding is decoded before being sent to
+the on_body callback.</p>
+
+<h2>
+<a name="user-content-the-special-problem-of-upgrade" class="anchor" href="#the-special-problem-of-upgrade" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Special Problem of Upgrade</h2>
+
+<p>HTTP supports upgrading the connection to a different protocol. An
+increasingly common example of this is the Web Socket protocol which sends
+a request like</p>
+
+<pre><code>    GET /demo HTTP/1.1
+    Upgrade: WebSocket
+    Connection: Upgrade
+    Host: example.com
+    Origin: http://example.com
+    WebSocket-Protocol: sample
+</code></pre>
+
+<p>followed by non-HTTP data.</p>
+
+<p>(See <a href="http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-75">http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-75</a> for more
+information the Web Socket protocol.)</p>
+
+<p>To support this, the parser will treat this as a normal HTTP message without a
+body, issuing both on_headers_complete and on_message_complete callbacks. However
+http_parser_execute() will stop parsing at the end of the headers and return.</p>
+
+<p>The user is expected to check if <code>parser-&gt;upgrade</code> has been set to 1 after
+<code>http_parser_execute()</code> returns. Non-HTTP data begins at the buffer supplied
+offset by the return value of <code>http_parser_execute()</code>.</p>
+
+<h2>
+<a name="user-content-callbacks" class="anchor" href="#callbacks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Callbacks</h2>
+
+<p>During the <code>http_parser_execute()</code> call, the callbacks set in
+<code>http_parser_settings</code> will be executed. The parser maintains state and
+never looks behind, so buffering the data is not necessary. If you need to
+save certain data for later usage, you can do that from the callbacks.</p>
+
+<p>There are two types of callbacks:</p>
+
+<ul class="task-list">
+<li>notification <code>typedef int (*http_cb) (http_parser*);</code>
+Callbacks: on_message_begin, on_headers_complete, on_message_complete.</li>
+<li>data <code>typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);</code>
+Callbacks: (requests only) on_uri,
+           (common) on_header_field, on_header_value, on_body;</li>
+</ul><p>Callbacks must return 0 on success. Returning a non-zero value indicates
+error to the parser, making it exit immediately.</p>
+
+<p>In case you parse HTTP message in chunks (i.e. <code>read()</code> request line
+from socket, parse, read half headers, parse, etc) your data callbacks
+may be called more than once. Http-parser guarantees that data pointer is only
+valid for the lifetime of callback. You can also <code>read()</code> into a heap allocated
+buffer to avoid copying memory around if this fits your application.</p>
+
+<p>Reading headers may be a tricky task if you read/parse headers partially.
+Basically, you need to remember whether last header callback was field or value
+and apply the following logic:</p>
+
+<pre><code>(on_header_field and on_header_value shortened to on_h_*)
+ ------------------------ ------------ --------------------------------------------
+| State (prev. callback) | Callback   | Description/action                         |
+ ------------------------ ------------ --------------------------------------------
+| nothing (first call)   | on_h_field | Allocate new buffer and copy callback data |
+|                        |            | into it                                    |
+ ------------------------ ------------ --------------------------------------------
+| value                  | on_h_field | New header started.                        |
+|                        |            | Copy current name,value buffers to headers |
+|                        |            | list and allocate new buffer for new name  |
+ ------------------------ ------------ --------------------------------------------
+| field                  | on_h_field | Previous name continues. Reallocate name   |
+|                        |            | buffer and append callback data to it      |
+ ------------------------ ------------ --------------------------------------------
+| field                  | on_h_value | Value for current header started. Allocate |
+|                        |            | new buffer and copy callback data to it    |
+ ------------------------ ------------ --------------------------------------------
+| value                  | on_h_value | Value continues. Reallocate value buffer   |
+|                        |            | and append callback data to it             |
+ ------------------------ ------------ --------------------------------------------
+</code></pre>
+
+<h2>
+<a name="user-content-parsing-urls" class="anchor" href="#parsing-urls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parsing URLs</h2>
+
+<p>A simplistic zero-copy URL parser is provided as <code>http_parser_parse_url()</code>.
+Users of this library may wish to use it to parse URLs constructed from
+consecutive <code>on_url</code> callbacks.</p>
+
+<p>See examples of reading in headers:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://gist.github.com/155877">partial example</a> in C</li>
+<li>
+<a href="http://github.com/joyent/http-parser/blob/37a0ff8/test.c#L403">from http-parser tests</a> in C</li>
+<li>
+<a href="http://github.com/joyent/node/blob/842eaf4/src/http.js#L284">from Node library</a> in Javascript</li>
+</ul></article></div>

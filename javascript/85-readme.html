@@ -1,0 +1,273 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-gremlinsjs" class="anchor" href="#gremlinsjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>gremlins.js</h1>
+
+<p>gremlins.js is a monkey testing library written in JavaScript, for Node.js and the browser. Use it to check the robustness of web applications by unleashing a horde of undisciplined gremlins.</p>
+
+<blockquote>
+<p>Kate: <em>What are they, Billy?</em></p>
+
+<p>Billy Peltzer: <em>They're gremlins, Kate, just like Mr. Futterman said.</em></p>
+</blockquote>
+
+<p><a href="https://camo.githubusercontent.com/130e101ee69d4d9b6f065df0a0404c861eb5ce18/687474703a2f2f7374617469632e6d61726d656c61622e636f6d2f746f646f2e676966" target="_blank"><img src="https://camo.githubusercontent.com/130e101ee69d4d9b6f065df0a0404c861eb5ce18/687474703a2f2f7374617469632e6d61726d656c61622e636f6d2f746f646f2e676966" alt="TodoMVC attacked by gremlins" data-canonical-src="http://static.marmelab.com/todo.gif" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-purpose" class="anchor" href="#purpose" aria-hidden="true"><span class="octicon octicon-link"></span></a>Purpose</h2>
+
+<p>While developing an HTML5 application, did you anticipate uncommon user interactions? Did you manage to detect and patch all memory leaks? If not, the application may break sooner or later. If n random actions can make an application fail, it's better to acknowledge it during testing, rather than letting users discover it.</p>
+
+<p>Gremlins.js simulates random user actions: gremlins click anywhere in the window, enter random data in forms, or move the mouse over elements that don't expect it. Their goal: triggering JavaScript errors, or making the application fail. If gremlins can't break an application, congrats! The application is robust enough to be released to real users.</p>
+
+<p>This practice, also known as <a href="http://en.wikipedia.org/wiki/Monkey_test">Monkey testing</a> or <a href="http://en.wikipedia.org/wiki/Fuzz_testing">Fuzz testing</a>, is very common in mobile application development (see for instance the <a href="http://developer.android.com/tools/help/monkey.html">Android Monkey program</a>). Now that frontend (MV*, d3.js, Backbone.js, Angular.js, etc.) and backend (Node.js) development use persistent JavaScript applications, this technique becomes valuable for web applications.</p>
+
+<h2>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h2>
+
+<p>A gremlins <em>horde</em> is an army of specialized gremlins ready to mess up your application. <em>unleash</em> the gremlins to start the stress test:</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">horde</span> <span class="o">=</span> <span class="nx">gremlins</span><span class="p">.</span><span class="nx">createHorde</span><span class="p">()</span>
+<span class="nx">horde</span><span class="p">.</span><span class="nx">unleash</span><span class="p">();</span>
+<span class="c1">// gremlins will act randomly, at 10 ms interval, 1000 times</span>
+</pre></div>
+
+<p><code>gremlins.js</code> provides several gremlin <em>species</em>: some click everywhere on the page, others enter data in form inputs, others scroll the window in every possible direction, etc.</p>
+
+<p>You will see traces of the gremlins actions on the screen (they leave red traces) and in the console log:</p>
+
+<pre><code>gremlin formFiller input 5 in &lt;input type=​"number" name=​"age"&gt;​
+gremlin formFiller input pzdoyzshh0k9@o8cpskdb73nmi.r7r in &lt;input type=​"email" name=​"email"&gt;​
+gremlin clicker    click at 1219 301
+gremlin scroller   scroll to 100 25
+...
+</code></pre>
+
+<p>A horde also contains <em>mogwais</em>, which are harmless gremlins (or, you could say that gremlins are harmful mogwais). Mogwais only monitor the activity of the application and record it on the logger. For instance, the "fps" mogwai monitors the number of frame per second, every 500ms:</p>
+
+<pre><code>mogwai  fps  33.21
+mogwai  fps  59.45
+mogwai  fps  12.67
+...
+</code></pre>
+
+<p>Mogwais also report when gremlins break the application. For instance, if the number of frames per seconds drops below 10, the fps mogwai will log an error:</p>
+
+<pre><code>mogwai  fps  12.67
+mogwai  fps  23.56
+err &gt; mogwai  fps  7.54 &lt; err
+mogwai  fps  15.76
+...
+</code></pre>
+
+<p>After 10 errors, a special mogwai stops the test. He's called <em>Gizmo</em>, and he prevents gremlins from breaking applications bad. After all, once gremlins have found the first 10 errors, you already know what you have to do to make your application more robust.</p>
+
+<p>If not stopped by Gizmo, the default horde stops after roughly 1 minute. You can increase the number of gremlins actions to make the attack last longer:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">horde</span><span class="p">.</span><span class="nx">unleash</span><span class="p">({</span> <span class="nx">nb</span><span class="o">:</span> <span class="mi">10000</span> <span class="p">});</span>
+<span class="c1">// gremlins will attack at 10 ms interval, 10,000 times</span>
+</pre></div>
+
+<p>Gremlins, just like mogwais, are simple JavaScript functions. If <code>gremlins.js</code> doesn't provide the gremlin that can break your application, it's very easy to develop it:</p>
+
+<div class="highlight highlight-js"><pre><span class="c1">// add a new custom gremlin to blur the currently focused element</span>
+<span class="nx">horde</span><span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nb">document</span><span class="p">.</span><span class="nx">activeElement</span><span class="p">.</span><span class="nx">blur</span><span class="p">();</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Check the <a href="examples">examples</a> directory for examples.</p>
+
+<p>Everything in <code>gremlins.js</code> is configurable ; you will find it very easy to extend and adapt to you use cases.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>In the browser, the <code>gremlins.min.js</code> file can be used as a standalone library, and adds <code>gremlins</code> to the global namespace:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"path/to/gremlins.min.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+<span class="nt">&lt;script&gt;</span>
+<span class="nx">gremlins</span><span class="p">.</span><span class="nx">createHorde</span><span class="p">().</span><span class="nx">unleash</span><span class="p">();</span>
+<span class="nt">&lt;/script&gt;</span>
+</pre></div>
+
+<p>Alternately, you can include <code>gremlins.min.js</code> as a RequireJS module, leaving the global namespace clean:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">require</span><span class="p">.</span><span class="nx">config</span><span class="p">({</span>
+  <span class="nx">paths</span><span class="o">:</span> <span class="p">{</span>
+    <span class="nx">gremlins</span><span class="o">:</span> <span class="s1">'path/to/gremlins.min'</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="nx">require</span><span class="p">([</span><span class="s1">'gremlins'</span><span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">gremlins</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">gremlins</span><span class="p">.</span><span class="nx">createHorde</span><span class="p">().</span><span class="nx">unleash</span><span class="p">();</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><code>gremlins.js</code> is also available as a <strong>bookmarklet</strong>. Go to <a href="https://rawgithub.com/marmelab/gremlins.js/master/bookmarklet.html">this page</a>, grab it, and unleash hordes on any web page.</p>
+
+<h2>
+<a name="user-content-advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Usage</h2>
+
+<h3>
+<a name="user-content-setting-gremlins-and-mogwais-to-use-in-a-test" class="anchor" href="#setting-gremlins-and-mogwais-to-use-in-a-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting Gremlins and Mogwais To Use In A Test</h3>
+
+<p>By default, all gremlins and mogwais species are added to the horde.</p>
+
+<p>You can also choose to add only the gremlins species you want, using the <code>gremlin()</code> function of the <code>horde</code> object:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">gremlins</span><span class="p">.</span><span class="nx">createHorde</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="nx">gremlins</span><span class="p">.</span><span class="nx">species</span><span class="p">.</span><span class="nx">formFiller</span><span class="p">())</span>
+  <span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="nx">gremlins</span><span class="p">.</span><span class="nx">species</span><span class="p">.</span><span class="nx">clicker</span><span class="p">().</span><span class="nx">clickTypes</span><span class="p">([</span><span class="s1">'click'</span><span class="p">]))</span>
+  <span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="nx">gremlins</span><span class="p">.</span><span class="nx">species</span><span class="p">.</span><span class="nx">toucher</span><span class="p">())</span>
+  <span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="nx">gremlins</span><span class="p">.</span><span class="nx">species</span><span class="p">.</span><span class="nx">scroller</span><span class="p">())</span>
+  <span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nb">window</span><span class="p">.</span><span class="nx">$</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{};</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">unleash</span><span class="p">();</span>
+</pre></div>
+
+<p>If you just want to add your own gremlins in addition to the default ones, use the <code>allGremlins()</code> function:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">gremlins</span><span class="p">.</span><span class="nx">createHorde</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">allGremlins</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">gremlin</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nb">window</span><span class="p">.</span><span class="nx">$</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{};</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">unleash</span><span class="p">();</span>
+</pre></div>
+
+<p>To add just the mogwais you want, use the <code>mogwai()</code> and <code>allMogwais()</code> method the same way.</p>
+
+<p><code>gremlins.js</code> currently provides a few gremlins and mogwais:</p>
+
+<ul class="task-list">
+<li>
+<a href="src/species/clicker.js">clickerGremlin</a> clicks anywhere on the visible area of the document</li>
+<li>
+<a href="src/species/toucher.js">toucherGremlin</a> touches anywhere on the visible area of the document</li>
+<li>
+<a href="src/species/formFiller.js">formFillerGremlin</a> fills forms by entering data, selecting options, clicking checkboxes, etc</li>
+<li>
+<a href="src/species/scroller.js">scrollerGremlin</a> scrolls the viewport to reveal another part of the document</li>
+<li>
+<a href="src/species/typer.js">typerGremlin</a> types keys on the keyboard</li>
+<li>
+<a href="src/mogwais/alert.js">alertMogwai</a> prevents calls to alert() from blocking the test</li>
+<li>
+<a href="src/mogwais/fps.js">fpsMogwai</a> logs the number of frames per seconds (FPS) of the browser</li>
+<li>
+<a href="src/mogwais/gizmo.js">gizmoMogwai</a> can stop the gremlins when they go too far</li>
+</ul><h3>
+<a name="user-content-configuring-gremlins" class="anchor" href="#configuring-gremlins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring Gremlins</h3>
+
+<p>All the gremlins and mogwais provided by <code>gremlins.js</code> are <em>configurable functions</em>, i.e. you can alter the way they work by calling methods on them.</p>
+
+<p>For instance, the clicker gremlin is a function that you can execute it directly:</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">clickerGremlin</span> <span class="o">=</span> <span class="nx">gremlins</span><span class="p">.</span><span class="nx">species</span><span class="p">.</span><span class="nx">clicker</span><span class="p">();</span>
+<span class="nx">clickerGremin</span><span class="p">();</span> <span class="c1">// trigger a random mouse even in the screen:</span>
+</pre></div>
+
+<p>In JavaScript, functions are objects, and as such can have methods. The clicker gremlin function offers customizing methods:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">gremlins</span><span class="p">.</span><span class="nx">species</span><span class="p">.</span><span class="nx">clicker</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">clickTypes</span><span class="p">([</span><span class="s1">'click'</span><span class="p">])</span> <span class="c1">// which mouse event types will be triggered</span>
+  <span class="p">.</span><span class="nx">canClick</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">element</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// only click elements in bar</span>
+    <span class="k">return</span> <span class="nx">$</span><span class="p">(</span><span class="nx">element</span><span class="p">).</span><span class="nx">parents</span><span class="p">(</span><span class="s1">'#bar'</span><span class="p">).</span><span class="nx">length</span><span class="p">;</span>
+    <span class="c1">// when canClick returns false, the gremlin will look for another</span>
+    <span class="c1">// element to click on until maxNbTries is reached</span>
+  <span class="p">})</span>
+  <span class="p">.</span><span class="nx">showAction</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">,</span> <span class="nx">y</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// by default, the clicker gremlin shows its action by a red circle</span>
+    <span class="c1">// overriding showAction() with an empty function makes the gremlin action invisible</span>
+  <span class="p">})</span>
+</pre></div>
+
+<p>Each particular gremlin or mogwai has its own customization methods, check the source for details.</p>
+
+<p><strong>Tip</strong>: For more information on configurable functions check <a href="http://redotheweb.com/2013/11/13/from-objects-to-functions-service-closures.html">this blog post about service closures</a>.</p>
+
+<h3>
+<a name="user-content-seeding-the-randomizer" class="anchor" href="#seeding-the-randomizer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Seeding The Randomizer</h3>
+
+<p>If you want the attack to be repeatable, you need to seed the random number generator. Gremlins.js depends on <a href="http://chancejs.com/">Chance.js</a> for random data generation, so it supports seeding:</p>
+
+<div class="highlight highlight-js"><pre><span class="c1">// seed the randomizer</span>
+<span class="nx">horde</span><span class="p">.</span><span class="nx">seed</span><span class="p">(</span><span class="mi">1234</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-executing-code-before-or-after-the-attack" class="anchor" href="#executing-code-before-or-after-the-attack" aria-hidden="true"><span class="octicon octicon-link"></span></a>Executing Code Before or After The Attack</h3>
+
+<p>Before starting the attack, you may want to execute custom code. This is especially useful to:</p>
+
+<ul class="task-list">
+<li>Start a profiler</li>
+<li>Disable some features to better target the test</li>
+<li>Bootstrap the application</li>
+</ul><p>For this usage, the <code>horde</code> object provides a <code>before()</code> method, which accepts a callback:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">horde</span><span class="p">.</span><span class="nx">before</span><span class="p">(</span><span class="kd">function</span> <span class="nx">startProfiler</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">profile</span><span class="p">(</span><span class="s1">'gremlins'</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>To clean up the test environment, the <code>horde</code> object also provides an <code>after()</code> method.</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">horde</span><span class="p">.</span><span class="nx">after</span><span class="p">(</span><span class="kd">function</span> <span class="nx">stopProfiler</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">profileEnd</span><span class="p">();</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Both <code>before()</code> and <code>after()</code> support asynchronous callbacks:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">horde</span><span class="p">.</span><span class="nx">before</span><span class="p">(</span><span class="kd">function</span> <span class="nx">waitFiveSeconds</span><span class="p">(</span><span class="nx">done</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nb">window</span><span class="p">.</span><span class="nx">setTimeout</span><span class="p">(</span><span class="nx">done</span><span class="p">,</span> <span class="mi">5000</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-setting-up-a-strategy" class="anchor" href="#setting-up-a-strategy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting Up a Strategy</h3>
+
+<p>By default, gremlins will attack in random order, in a uniform distribution, separated by a delay of 10ms. This attack strategy is called the <a href="src/strategies/distribution.js">distribution</a> strategy. You can customize it using the <code>horde.strategy()</code> method:</p>
+
+<div class="highlight highlight-js"><pre><span class="nx">horde</span><span class="p">.</span><span class="nx">strategy</span><span class="p">(</span><span class="nx">gremlins</span><span class="p">.</span><span class="nx">strategies</span><span class="p">.</span><span class="nx">distribution</span><span class="p">()</span>
+  <span class="p">.</span><span class="nx">delay</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span> <span class="c1">// wait 50 ms between each action</span>
+  <span class="p">.</span><span class="nx">distribution</span><span class="p">([</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">])</span> <span class="c1">// the first three gremlins have more chances to be executed than the last</span>
+<span class="p">)</span>
+</pre></div>
+
+<p>You can also use another strategy. A strategy is just a callback expecting three parameters: an array of gremlins, a parameter object (the one passed to <code>unleash()</code>), and a final callback. Two other strategies are bundled (<a href="src/strategies/allTogether.js">allTogether</a> and <a href="src/strategies/bySpecies.js">bySpecies</a>), and it should be fairly easy to implement a custom strategy for more sophisticated attack scenarios.</p>
+
+<h3>
+<a name="user-content-stopping-the-attack" class="anchor" href="#stopping-the-attack" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stopping The Attack</h3>
+
+<p>The horde can stop the attack in case of emergency using the <code>horde.stop()</code> method. Gizmo uses this method to prevent further damages to the application after 10 errors, and you can use it, too, if you don't want the attack to continue.</p>
+
+<h3>
+<a name="user-content-customizing-the-logger" class="anchor" href="#customizing-the-logger" aria-hidden="true"><span class="octicon octicon-link"></span></a>Customizing The Logger</h3>
+
+<p>By default, gremlins.js logs all gremlin actions and mogwai observations in the console. If you prefer using an alternative logging method (for instance, storing gremlins activity in LocalStorage and sending it in Ajax once every 10 seconds), just provide a logger object with 4 methods (log, info, warn, and error) to the <code>logger()</code> method:</p>
+
+<div class="highlight highlight-js"><pre><span class="kd">var</span> <span class="nx">customLogger</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="nx">log</span><span class="o">:</span>   <span class="kd">function</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span> <span class="p">{</span> <span class="cm">/* .. */</span> <span class="p">},</span>
+  <span class="nx">info</span><span class="o">:</span>  <span class="kd">function</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span> <span class="p">{</span> <span class="cm">/* .. */</span> <span class="p">},</span>
+  <span class="nx">warn</span><span class="o">:</span>  <span class="kd">function</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span> <span class="p">{</span> <span class="cm">/* .. */</span> <span class="p">},</span>
+  <span class="nx">error</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span> <span class="p">{</span> <span class="cm">/* .. */</span> <span class="p">}</span>
+<span class="p">};</span>
+<span class="nx">horde</span><span class="p">.</span><span class="nx">logger</span><span class="p">(</span><span class="nx">customLogger</span><span class="p">);</span>
+</pre></div>
+
+<p><strong>Tip</strong>: Instead of reimplementing your custom logger, you may want to look at <a href="https://github.com/mixu/minilog">Minilog</a>.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Your feedback about the usage of gremlins.js in your specific context is valuable, don't hesitate to <a href="https://github.com/marmelab/gremlins.js/issues">open GitHub Issues</a> for any problem or question you may have.</p>
+
+<p>All contributions are welcome. New gremlins, new mogwais, new strategies, should all be tested against the two examples bundled in the application. Try to follow the functional programming style. Also, don't forget to rebuild the minified version of the library using <code>make</code>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>gremlins.js is licensed under the <a href="LICENSE">MIT Licence</a>, courtesy of <a href="http://marmelab.com">marmelab</a>.</p></article></div>

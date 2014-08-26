@@ -1,0 +1,1226 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-sunspot" class="anchor" href="#sunspot" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sunspot</h1>
+
+<p><a href="http://badge.fury.io/rb/sunspot"><img src="https://camo.githubusercontent.com/ee022a75c245f3f554a5b29ee5420f7b041cf593/68747470733a2f2f62616467652e667572792e696f2f72622f73756e73706f742e706e67" alt="Gem Version" data-canonical-src="https://badge.fury.io/rb/sunspot.png" style="max-width:100%;"></a>
+<a href="http://travis-ci.org/sunspot/sunspot"><img src="https://camo.githubusercontent.com/c18a242f1b5ff5922b4999fbaa15d1013f0d3d02/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f73756e73706f742f73756e73706f742e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/sunspot/sunspot.png" style="max-width:100%;"></a></p>
+
+<p>Sunspot is a Ruby library for expressive, powerful interaction with the Solr
+search engine. Sunspot is built on top of the RSolr library, which
+provides a low-level interface for Solr interaction; Sunspot provides a simple,
+intuitive, expressive DSL backed by powerful features for indexing objects and
+searching for them.</p>
+
+<p>Sunspot is designed to be easily plugged in to any ORM, or even non-database-backed
+objects such as the filesystem.</p>
+
+<p>This README provides a high level overview; class-by-class and
+method-by-method documentation is available in the <a href="http://sunspot.github.com/sunspot/docs/">API
+reference</a>.</p>
+
+<p>For questions about how to use Sunspot in your app, please use the
+<a href="http://groups.google.com/group/ruby-sunspot">Sunspot Mailing List</a> or search
+<a href="http://www.stackoverflow.com">Stack Overflow</a>.</p>
+
+<h2>
+<a name="user-content-quickstart-with-rails-3--4" class="anchor" href="#quickstart-with-rails-3--4" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quickstart with Rails 3 / 4</h2>
+
+<p>Add to Gemfile:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'sunspot_rails'</span>
+<span class="n">gem</span> <span class="s1">'sunspot_solr'</span> <span class="c1"># optional pre-packaged Solr distribution for use in development</span>
+</pre></div>
+
+<p>Bundle it!</p>
+
+<div class="highlight highlight-bash"><pre>bundle install
+</pre></div>
+
+<p>Generate a default configuration file:</p>
+
+<div class="highlight highlight-bash"><pre>rails generate sunspot_rails:install
+</pre></div>
+
+<p>If <code>sunspot_solr</code> was installed, start the packaged Solr distribution
+with:</p>
+
+<div class="highlight highlight-bash"><pre>bundle <span class="nb">exec </span>rake sunspot:solr:start <span class="c"># or sunspot:solr:run to start in foreground</span>
+</pre></div>
+
+<h2>
+<a name="user-content-setting-up-objects" class="anchor" href="#setting-up-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting Up Objects</h2>
+
+<p>Add a <code>searchable</code> block to the objects you wish to index.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:body</span>
+    <span class="n">text</span> <span class="ss">:comments</span> <span class="k">do</span>
+      <span class="n">comments</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">comment</span><span class="o">|</span> <span class="n">comment</span><span class="o">.</span><span class="n">body</span> <span class="p">}</span>
+    <span class="k">end</span>
+
+    <span class="n">boolean</span> <span class="ss">:featured</span>
+    <span class="n">integer</span> <span class="ss">:blog_id</span>
+    <span class="n">integer</span> <span class="ss">:author_id</span>
+    <span class="n">integer</span> <span class="ss">:category_ids</span><span class="p">,</span> <span class="ss">:multiple</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+    <span class="n">double</span>  <span class="ss">:average_rating</span>
+    <span class="n">time</span>    <span class="ss">:published_at</span>
+    <span class="n">time</span>    <span class="ss">:expired_at</span>
+
+    <span class="n">string</span>  <span class="ss">:sort_title</span> <span class="k">do</span>
+      <span class="n">title</span><span class="o">.</span><span class="n">downcase</span><span class="o">.</span><span class="n">gsub</span><span class="p">(</span><span class="sr">/^(an?|the)/</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><code>text</code> fields will be full-text searchable. Other fields (e.g.,
+<code>integer</code> and <code>string</code>) can be used to scope queries.</p>
+
+<h2>
+<a name="user-content-searching-objects" class="anchor" href="#searching-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Searching Objects</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'best pizza'</span>
+
+  <span class="n">with</span> <span class="ss">:blog_id</span><span class="p">,</span> <span class="mi">1</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:published_at</span><span class="p">)</span><span class="o">.</span><span class="n">less_than</span> <span class="no">Time</span><span class="o">.</span><span class="n">now</span>
+  <span class="n">order_by</span> <span class="ss">:published_at</span><span class="p">,</span> <span class="ss">:desc</span>
+  <span class="n">paginate</span> <span class="ss">:page</span> <span class="o">=&gt;</span> <span class="mi">2</span><span class="p">,</span> <span class="ss">:per_page</span> <span class="o">=&gt;</span> <span class="mi">15</span>
+  <span class="n">facet</span> <span class="ss">:category_ids</span><span class="p">,</span> <span class="ss">:author_id</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-search-in-depth" class="anchor" href="#search-in-depth" aria-hidden="true"><span class="octicon octicon-link"></span></a>Search In Depth</h2>
+
+<p>Given an object <code>Post</code> setup in earlier steps ...</p>
+
+<h3>
+<a name="user-content-full-text" class="anchor" href="#full-text" aria-hidden="true"><span class="octicon octicon-link"></span></a>Full Text</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># All posts with a `text` field (:title, :body, or :comments) containing 'pizza'</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="p">{</span> <span class="n">fulltext</span> <span class="s1">'pizza'</span> <span class="p">}</span>
+
+<span class="c1"># Posts with pizza, scored higher if pizza appears in the title</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'pizza'</span> <span class="k">do</span>
+    <span class="n">boost_fields</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="mi">2</span><span class="o">.</span><span class="mi">0</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Posts with pizza, scored higher if featured</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'pizza'</span> <span class="k">do</span>
+    <span class="n">boost</span><span class="p">(</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="p">{</span> <span class="n">with</span><span class="p">(</span><span class="ss">:featured</span><span class="p">,</span> <span class="kp">true</span><span class="p">)</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Posts with pizza *only* in the title</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'pizza'</span> <span class="k">do</span>
+    <span class="n">fields</span><span class="p">(</span><span class="ss">:title</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Posts with pizza in the title (boosted) or in the body (not boosted)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'pizza'</span> <span class="k">do</span>
+    <span class="n">fields</span><span class="p">(</span><span class="ss">:body</span><span class="p">,</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-phrases" class="anchor" href="#phrases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Phrases</h4>
+
+<p>Solr allows searching for phrases: search terms that are close together.</p>
+
+<p>In the default query parser used by Sunspot (edismax), phrase searches
+are represented as a double quoted group of words.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts with the exact phrase "great pizza"</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'"great pizza"'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If specified, <strong>query_phrase_slop</strong> sets the number of words that may
+appear between the words in a phrase.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># One word can appear between the words in the phrase, so "great big pizza"</span>
+<span class="c1"># also matches, in addition to "great pizza"</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'"great pizza"'</span> <span class="k">do</span>
+    <span class="n">query_phrase_slop</span> <span class="mi">1</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h5>
+<a name="user-content-phrase-boosts" class="anchor" href="#phrase-boosts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Phrase Boosts</h5>
+
+<p>Phrase boosts add boost to terms that appear in close proximity;
+the terms do not <em>have</em> to appear in a phrase, but if they do, the
+document will score more highly.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Matches documents with great and pizza, and scores documents more</span>
+<span class="c1"># highly if the terms appear in a phrase in the title field</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'great pizza'</span> <span class="k">do</span>
+    <span class="n">phrase_fields</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="mi">2</span><span class="o">.</span><span class="mi">0</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Matches documents with great and pizza, and scores documents more</span>
+<span class="c1"># highly if the terms appear in a phrase (or with one word between them)</span>
+<span class="c1"># in the title field</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s1">'great pizza'</span> <span class="k">do</span>
+    <span class="n">phrase_fields</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="mi">2</span><span class="o">.</span><span class="mi">0</span>
+    <span class="n">phrase_slop</span>   <span class="mi">1</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-scoping-scalar-fields" class="anchor" href="#scoping-scalar-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scoping (Scalar Fields)</h3>
+
+<p>Fields not defined as <code>text</code> (e.g., <code>integer</code>, <code>boolean</code>, <code>time</code>,
+etc...) can be used to scope (restrict) queries before full-text
+matching is performed.</p>
+
+<h4>
+<a name="user-content-positive-restrictions" class="anchor" href="#positive-restrictions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Positive Restrictions</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts with a blog_id of 1</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:blog_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Posts with an average rating between 3.0 and 5.0</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">5</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Posts with a category of 1, 3, or 5</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:category_ids</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="o">]</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Posts published since a week ago</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:published_at</span><span class="p">)</span><span class="o">.</span><span class="n">greater_than</span><span class="p">(</span><span class="mi">1</span><span class="o">.</span><span class="n">week</span><span class="o">.</span><span class="n">ago</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-negative-restrictions" class="anchor" href="#negative-restrictions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Negative Restrictions</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts not in category 1 or 3</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">without</span><span class="p">(</span><span class="ss">:category_ids</span><span class="p">,</span> <span class="o">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="o">]</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># All examples in "positive" also work negated using `without`</span>
+</pre></div>
+
+<h4>
+<a name="user-content-empty-restrictions" class="anchor" href="#empty-restrictions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Empty Restrictions</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Passing an empty array is equivalent to a no-op, allowing you to replace this...</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:category_ids</span><span class="p">,</span> <span class="n">id_list</span><span class="p">)</span> <span class="k">if</span> <span class="n">id_list</span><span class="o">.</span><span class="n">present?</span>
+<span class="k">end</span>
+
+<span class="c1"># ...with this</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:category_ids</span><span class="p">,</span> <span class="n">id_list</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-disjunctions-and-conjunctions" class="anchor" href="#disjunctions-and-conjunctions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Disjunctions and Conjunctions</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts that do not have an expired time or have not yet expired</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">any_of</span> <span class="k">do</span>
+    <span class="n">with</span><span class="p">(</span><span class="ss">:expired_at</span><span class="p">)</span><span class="o">.</span><span class="n">greater_than</span><span class="p">(</span><span class="no">Time</span><span class="o">.</span><span class="n">now</span><span class="p">)</span>
+    <span class="n">with</span><span class="p">(</span><span class="ss">:expired_at</span><span class="p">,</span> <span class="kp">nil</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts with blog_id 1 and author_id 2</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">all_of</span> <span class="k">do</span>
+    <span class="n">with</span><span class="p">(</span><span class="ss">:blog_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">with</span><span class="p">(</span><span class="ss">:author_id</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts with blog_id 1 and author_id 2</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">any</span> <span class="k">do</span>
+    <span class="n">fulltext</span> <span class="s2">"keyword1"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:title</span>
+    <span class="n">fulltext</span> <span class="s2">"keyword2"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:body</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Disjunctions and conjunctions may be nested</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">any_of</span> <span class="k">do</span>
+    <span class="n">with</span><span class="p">(</span><span class="ss">:blog_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">all_of</span> <span class="k">do</span>
+      <span class="n">with</span><span class="p">(</span><span class="ss">:blog_id</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">with</span><span class="p">(</span><span class="ss">:category_ids</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="n">any</span> <span class="k">do</span>
+    <span class="n">all</span> <span class="k">do</span>
+      <span class="n">fulltext</span> <span class="s2">"keyword"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:title</span>
+      <span class="n">fulltext</span> <span class="s2">"keyword"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:body</span>
+    <span class="k">end</span>
+    <span class="n">all</span> <span class="k">do</span>
+      <span class="n">fulltext</span> <span class="s2">"keyword"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:first_name</span>
+      <span class="n">fulltext</span> <span class="s2">"keyword"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:last_name</span>
+    <span class="k">end</span>
+    <span class="n">fulltext</span> <span class="s2">"keyword"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:description</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-combined-with-full-text" class="anchor" href="#combined-with-full-text" aria-hidden="true"><span class="octicon octicon-link"></span></a>Combined with Full-Text</h4>
+
+<p>Scopes/restrictions can be combined with full-text searching. The
+scope/restriction pares down the objects that are searched for the
+full-text term.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts with blog_id 1 and 'pizza' in the title</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:blog_id</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-pagination" class="anchor" href="#pagination" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pagination</h3>
+
+<p><strong>All results from Solr are paginated</strong></p>
+
+<p>The results array that is returned has methods mixed in that allow it to
+operate seamlessly with common pagination libraries like will_paginate
+and kaminari.</p>
+
+<p>By default, Sunspot requests the first 30 results from Solr.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+<span class="k">end</span>
+
+<span class="c1"># Imagine there are 60 *total* results (at 30 results/page, that is two pages)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">results</span> <span class="c1"># =&gt; Array with 30 Post elements</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">total</span>           <span class="c1"># =&gt; 60</span>
+
+<span class="n">results</span><span class="o">.</span><span class="n">total_pages</span>    <span class="c1"># =&gt; 2</span>
+<span class="n">results</span><span class="o">.</span><span class="n">first_page?</span>    <span class="c1"># =&gt; true</span>
+<span class="n">results</span><span class="o">.</span><span class="n">last_page?</span>     <span class="c1"># =&gt; false</span>
+<span class="n">results</span><span class="o">.</span><span class="n">previous_page</span>  <span class="c1"># =&gt; nil</span>
+<span class="n">results</span><span class="o">.</span><span class="n">next_page</span>      <span class="c1"># =&gt; 2</span>
+<span class="n">results</span><span class="o">.</span><span class="n">out_of_bounds?</span> <span class="c1"># =&gt; false</span>
+<span class="n">results</span><span class="o">.</span><span class="n">offset</span>         <span class="c1"># =&gt; 0</span>
+</pre></div>
+
+<p>To retrieve the next page of results, recreate the search and use the
+<code>paginate</code> method.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+  <span class="n">paginate</span> <span class="ss">:page</span> <span class="o">=&gt;</span> <span class="mi">2</span>
+<span class="k">end</span>
+
+<span class="c1"># Again, imagine there are 60 total results; this is the second page</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">results</span> <span class="c1"># =&gt; Array with 30 Post elements</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">total</span>           <span class="c1"># =&gt; 60</span>
+
+<span class="n">results</span><span class="o">.</span><span class="n">total_pages</span>    <span class="c1"># =&gt; 2</span>
+<span class="n">results</span><span class="o">.</span><span class="n">first_page?</span>    <span class="c1"># =&gt; false</span>
+<span class="n">results</span><span class="o">.</span><span class="n">last_page?</span>     <span class="c1"># =&gt; true</span>
+<span class="n">results</span><span class="o">.</span><span class="n">previous_page</span>  <span class="c1"># =&gt; 1</span>
+<span class="n">results</span><span class="o">.</span><span class="n">next_page</span>      <span class="c1"># =&gt; nil</span>
+<span class="n">results</span><span class="o">.</span><span class="n">out_of_bounds?</span> <span class="c1"># =&gt; false</span>
+<span class="n">results</span><span class="o">.</span><span class="n">offset</span>         <span class="c1"># =&gt; 30</span>
+</pre></div>
+
+<p>A custom number of results per page can be specified with the
+<code>:per_page</code> option to <code>paginate</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+  <span class="n">paginate</span> <span class="ss">:page</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="ss">:per_page</span> <span class="o">=&gt;</span> <span class="mi">50</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-cursor-based-pagination" class="anchor" href="#cursor-based-pagination" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cursor-based pagination</h4>
+
+<p><strong>Solr 4.7 and above</strong></p>
+
+<p>Cursor for the first page is "*".</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+  <span class="n">paginate</span> <span class="ss">:cursor</span> <span class="o">=&gt;</span> <span class="s2">"*"</span>
+<span class="k">end</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">results</span>
+
+<span class="c1"># Results will contain cursor for the next page</span>
+<span class="n">results</span><span class="o">.</span><span class="n">next_page_cursor</span> <span class="c1"># =&gt; "AoIIP4AAACxQcm9maWxlIDEwMTk="</span>
+
+<span class="c1"># Imagine there are 60 *total* results (at 30 results/page, that is two pages)</span>
+<span class="n">results</span><span class="o">.</span><span class="n">current_cursor</span> <span class="c1"># =&gt; "*"</span>
+<span class="n">results</span><span class="o">.</span><span class="n">total_pages</span>    <span class="c1"># =&gt; 2</span>
+<span class="n">results</span><span class="o">.</span><span class="n">first_page?</span>    <span class="c1"># =&gt; true</span>
+<span class="n">results</span><span class="o">.</span><span class="n">last_page?</span>     <span class="c1"># =&gt; false</span>
+</pre></div>
+
+<p>To retrieve the next page of results, recreate the search and use the <code>paginate</code> method with cursor from previous results.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+  <span class="n">paginate</span> <span class="ss">:cursor</span> <span class="o">=&gt;</span> <span class="s2">"AoIIP4AAACxQcm9maWxlIDEwMTk="</span>
+<span class="k">end</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">results</span>
+
+<span class="c1"># Again, imagine there are 60 total results; this is the second page</span>
+<span class="n">results</span><span class="o">.</span><span class="n">next_page_cursor</span> <span class="c1"># =&gt; "AoEsUHJvZmlsZSAxNzY5"</span>
+<span class="n">results</span><span class="o">.</span><span class="n">current_cursor</span>   <span class="c1"># =&gt; "AoIIP4AAACxQcm9maWxlIDEwMTk="</span>
+<span class="n">results</span><span class="o">.</span><span class="n">total_pages</span>      <span class="c1"># =&gt; 2</span>
+<span class="n">results</span><span class="o">.</span><span class="n">first_page?</span>      <span class="c1"># =&gt; false</span>
+<span class="c1"># Last page will be detected only when current page contains less then per_page elements or contains nothing</span>
+<span class="n">results</span><span class="o">.</span><span class="n">last_page?</span>       <span class="c1"># =&gt; false</span>
+</pre></div>
+
+<p><code>:per_page</code> option is also supported.</p>
+
+<h3>
+<a name="user-content-faceting" class="anchor" href="#faceting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Faceting</h3>
+
+<p>Faceting is a feature of Solr that determines the number of documents
+that match a given search <em>and</em> an additional criterion. This allows you
+to build powerful drill-down interfaces for search.</p>
+
+<p>Each facet returns zero or more rows, each of which represents a
+particular criterion conjoined with the actual query being performed.
+For <strong>field facets</strong>, each row represents a particular value for a given
+field. For <strong>query facets</strong>, each row represents an arbitrary scope; the
+facet itself is just a means of logically grouping the scopes.</p>
+
+<p>By default Sunspot will only return the first 100 facet values.  You can
+increase this limit, or force it to return <em>all</em> facets by setting
+<strong>limit</strong> to <strong>-1</strong>.</p>
+
+<h4>
+<a name="user-content-field-facets" class="anchor" href="#field-facets" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field Facets</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts that match 'pizza' returning counts for each :author_id</span>
+<span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+  <span class="n">facet</span> <span class="ss">:author_id</span>
+<span class="k">end</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">facet</span><span class="p">(</span><span class="ss">:author_id</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">facet</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="s2">"Author </span><span class="si">#{</span><span class="n">facet</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> has </span><span class="si">#{</span><span class="n">facet</span><span class="o">.</span><span class="n">count</span><span class="si">}</span><span class="s2"> pizza posts!"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you are searching by a specific field and you still want to see all
+the options available in that field you can <strong>exclude</strong> it in the
+faceting.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts that match 'pizza' and author with id 42</span>
+<span class="c1"># Returning counts for each :author_id (even those not in the search result)</span>
+<span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span>
+  <span class="n">author_filter</span> <span class="o">=</span> <span class="n">with</span><span class="p">(</span><span class="ss">:author_id</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
+  <span class="n">facet</span> <span class="ss">:author_id</span><span class="p">,</span> <span class="ss">exclude</span><span class="p">:</span> <span class="o">[</span><span class="n">author_filter</span><span class="o">]</span>
+<span class="k">end</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">facet</span><span class="p">(</span><span class="ss">:author_id</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">facet</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="s2">"Author </span><span class="si">#{</span><span class="n">facet</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> has </span><span class="si">#{</span><span class="n">facet</span><span class="o">.</span><span class="n">count</span><span class="si">}</span><span class="s2"> pizza posts!"</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-query-facets" class="anchor" href="#query-facets" aria-hidden="true"><span class="octicon octicon-link"></span></a>Query Facets</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts faceted by ranges of average ratings</span>
+<span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">facet</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">row</span><span class="p">(</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">with</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="n">row</span><span class="p">(</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">with</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="n">row</span><span class="p">(</span><span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">4</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">with</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">4</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">end</span>
+    <span class="n">row</span><span class="p">(</span><span class="mi">4</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">5</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">with</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="mi">4</span><span class="o">.</span><span class="mi">0</span><span class="o">.</span><span class="n">.</span><span class="mi">5</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># e.g.,</span>
+<span class="c1"># Number of posts with rating within 1.0..2.0: 2</span>
+<span class="c1"># Number of posts with rating within 2.0..3.0: 1</span>
+<span class="n">search</span><span class="o">.</span><span class="n">facet</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">facet</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="s2">"Number of posts with rating within </span><span class="si">#{</span><span class="n">facet</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">facet</span><span class="o">.</span><span class="n">count</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-range-facets" class="anchor" href="#range-facets" aria-hidden="true"><span class="octicon octicon-link"></span></a>Range Facets</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Posts faceted by range of average ratings</span>
+<span class="no">Sunspot</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="no">Post</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">facet</span> <span class="ss">:average_rating</span><span class="p">,</span> <span class="ss">:range</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="o">.</span><span class="n">.</span><span class="mi">5</span><span class="p">,</span> <span class="ss">:range_interval</span> <span class="o">=&gt;</span> <span class="mi">1</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-ordering" class="anchor" href="#ordering" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ordering</h3>
+
+<p>By default, Sunspot orders results by "score": the Solr-determined
+relevancy metric. Sorting can be customized with the <code>order_by</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Order by average rating, descending</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+  <span class="n">order_by</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Order by relevancy score and in the case of a tie, average rating</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+
+  <span class="n">order_by</span><span class="p">(</span><span class="ss">:score</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+  <span class="n">order_by</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Randomized ordering</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+  <span class="n">order_by</span><span class="p">(</span><span class="ss">:random</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><strong>Solr 3.1 and above</strong></p>
+
+<p>Solr supports sorting on multiple fields using custom functions. Supported
+operators and more details are available on the <a href="http://wiki.apache.org/solr/FunctionQuery">Solr Wiki</a></p>
+
+<p>To sort results by a custom function use the <code>order_by_function</code> method.
+Functions are defined with prefix notation:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Order by sum of two example fields: rating1 + rating2</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+  <span class="n">order_by_function</span><span class="p">(</span><span class="ss">:sum</span><span class="p">,</span> <span class="ss">:rating1</span><span class="p">,</span> <span class="ss">:rating2</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Order by nested functions: rating1 + (rating2*rating3)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+  <span class="n">order_by_function</span><span class="p">(</span><span class="ss">:sum</span><span class="p">,</span> <span class="ss">:rating1</span><span class="p">,</span> <span class="o">[</span><span class="ss">:product</span><span class="p">,</span> <span class="ss">:rating2</span><span class="p">,</span> <span class="ss">:rating3</span><span class="o">]</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Order by fields and constants: rating1 + (rating2 * 5)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+  <span class="n">order_by_function</span><span class="p">(</span><span class="ss">:sum</span><span class="p">,</span> <span class="ss">:rating1</span><span class="p">,</span> <span class="o">[</span><span class="ss">:product</span><span class="p">,</span> <span class="ss">:rating2</span><span class="p">,</span> <span class="s1">'5'</span><span class="o">]</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># Order by average of three fields: (rating1 + rating2 + rating3) / 3</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"pizza"</span><span class="p">)</span>
+  <span class="n">order_by_function</span><span class="p">(</span><span class="ss">:div</span><span class="p">,</span> <span class="o">[</span><span class="ss">:sum</span><span class="p">,</span> <span class="ss">:rating1</span><span class="p">,</span> <span class="ss">:rating2</span><span class="p">,</span> <span class="ss">:rating3</span><span class="o">]</span><span class="p">,</span> <span class="s1">'3'</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-grouping" class="anchor" href="#grouping" aria-hidden="true"><span class="octicon octicon-link"></span></a>Grouping</h3>
+
+<p><strong>Solr 3.3 and above</strong></p>
+
+<p>Solr supports grouping documents, similar to an SQL <code>GROUP BY</code>. More
+information about result grouping/field collapsing is available on the
+<a href="http://wiki.apache.org/solr/FieldCollapsing">Solr Wiki</a>.</p>
+
+<p><strong>Grouping is only supported on <code>string</code> fields that are not
+multivalued. To group on a field of a different type (e.g., integer),
+add a denormalized <code>string</code> type</strong></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="c1"># Denormalized `string` field because grouping can only be performed</span>
+    <span class="c1"># on string fields</span>
+    <span class="n">string</span><span class="p">(</span><span class="ss">:blog_id_str</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="nb">p</span><span class="o">|</span> <span class="nb">p</span><span class="o">.</span><span class="n">blog_id</span><span class="o">.</span><span class="n">to_s</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Returns only the top scoring document per blog_id</span>
+<span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">group</span> <span class="ss">:blog_id_str</span>
+<span class="k">end</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="ss">:blog_id_str</span><span class="p">)</span><span class="o">.</span><span class="n">matches</span> <span class="c1"># Total number of matches to the query</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="ss">:blog_id_str</span><span class="p">)</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">group</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="n">group</span><span class="o">.</span><span class="n">value</span> <span class="c1"># blog_id of the each document in the group</span>
+
+  <span class="c1"># By default, there is only one document per group (the highest</span>
+  <span class="c1"># scoring one); if `limit` is specified (see below), multiple</span>
+  <span class="c1"># documents can be returned per group</span>
+  <span class="n">group</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span>
+    <span class="c1"># ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Additional options are supported by the DSL:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Returns the top 3 scoring documents per blog_id</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">group</span> <span class="ss">:blog_id_str</span> <span class="k">do</span>
+    <span class="n">limit</span> <span class="mi">3</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Returns document ordered within each group by published_at (by</span>
+<span class="c1"># default, the ordering is score)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">group</span> <span class="ss">:blog_id_str</span> <span class="k">do</span>
+    <span class="n">order_by</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">,</span> <span class="ss">:desc</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Facet count is based on the most relevant document of each group</span>
+<span class="c1"># matching the query (&gt;= Solr 3.4)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">group</span> <span class="ss">:blog_id_str</span> <span class="k">do</span>
+    <span class="n">truncate</span>
+  <span class="k">end</span>
+
+  <span class="n">facet</span> <span class="ss">:blog_id_str</span><span class="p">,</span> <span class="ss">:extra</span> <span class="o">=&gt;</span> <span class="ss">:any</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-geospatial" class="anchor" href="#geospatial" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geospatial</h3>
+
+<p><strong>Sunspot 2.0 only</strong></p>
+
+<p>Sunspot 2.0 supports geospatial features of Solr 3.1 and above.</p>
+
+<p>Geospatial features require a field defined with <code>latlon</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="c1"># ...</span>
+    <span class="n">latlon</span><span class="p">(</span><span class="ss">:location</span><span class="p">)</span> <span class="p">{</span> <span class="no">Sunspot</span><span class="o">::</span><span class="no">Util</span><span class="o">::</span><span class="no">Coordinates</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-filter-by-radius" class="anchor" href="#filter-by-radius" aria-hidden="true"><span class="octicon octicon-link"></span></a>Filter By Radius</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Searches posts within 100 kilometers of (32, -68)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:location</span><span class="p">)</span><span class="o">.</span><span class="n">in_radius</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="o">-</span><span class="mi">68</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-filter-by-radius-inexact-with-bbox" class="anchor" href="#filter-by-radius-inexact-with-bbox" aria-hidden="true"><span class="octicon octicon-link"></span></a>Filter By Radius (inexact with bbox)</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Searches posts within 100 kilometers of (32, -68) with `bbox`. This is</span>
+<span class="c1"># an approximation so searches run quicker, but it may include other</span>
+<span class="c1"># points that are slightly outside of the required distance</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:location</span><span class="p">)</span><span class="o">.</span><span class="n">in_radius</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="o">-</span><span class="mi">68</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="ss">:bbox</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-filter-by-bounding-box" class="anchor" href="#filter-by-bounding-box" aria-hidden="true"><span class="octicon octicon-link"></span></a>Filter By Bounding Box</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Searches posts within the bounding box defined by the corners (45,</span>
+<span class="c1"># -94) to (46, -93)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:location</span><span class="p">)</span><span class="o">.</span><span class="n">in_bounding_box</span><span class="p">(</span><span class="o">[</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">94</span><span class="o">]</span><span class="p">,</span> <span class="o">[</span><span class="mi">46</span><span class="p">,</span> <span class="o">-</span><span class="mi">93</span><span class="o">]</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-sort-by-distance" class="anchor" href="#sort-by-distance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sort By Distance</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Orders documents by closeness to (32, -68)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">order_by_geodist</span><span class="p">(</span><span class="ss">:location</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="o">-</span><span class="mi">68</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-joins" class="anchor" href="#joins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Joins</h3>
+
+<p><strong>Solr 4 and above</strong></p>
+
+<p>Solr joins allow you to filter objects by joining on additional documents.  More information can be found on the <a href="http://wiki.apache.org/solr/Join">Solr Wiki</a>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Photo</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:description</span>
+    <span class="n">string</span> <span class="ss">:caption</span><span class="p">,</span> <span class="ss">:default_boost</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="o">.</span><span class="mi">5</span>
+    <span class="n">time</span> <span class="ss">:created_at</span>
+    <span class="n">integer</span> <span class="ss">:photo_container_id</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">PhotoContainer</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:name</span>
+    <span class="n">join</span><span class="p">(</span><span class="ss">:description</span><span class="p">,</span> <span class="ss">:target</span> <span class="o">=&gt;</span> <span class="no">Photo</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:text</span><span class="p">,</span> <span class="ss">:join</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:photo_container_id</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:id</span> <span class="p">})</span>
+    <span class="n">join</span><span class="p">(</span><span class="ss">:caption</span><span class="p">,</span> <span class="ss">:target</span> <span class="o">=&gt;</span> <span class="no">Photo</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:string</span><span class="p">,</span> <span class="ss">:join</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:photo_container_id</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:id</span> <span class="p">})</span>
+    <span class="n">join</span><span class="p">(</span><span class="ss">:photos_created</span><span class="p">,</span> <span class="ss">:target</span> <span class="o">=&gt;</span> <span class="no">Photo</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:time</span><span class="p">,</span> <span class="ss">:join</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:photo_container_id</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:id</span> <span class="p">},</span> <span class="ss">:as</span> <span class="o">=&gt;</span> <span class="s1">'created_at_d'</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">PhotoContainer</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:caption</span><span class="p">,</span> <span class="s1">'blah'</span><span class="p">)</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:photos_created</span><span class="p">)</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="no">Date</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">2011</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="no">Date</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">2011</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+  <span class="n">fulltext</span><span class="p">(</span><span class="s2">"keywords"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:name</span><span class="p">,</span> <span class="ss">:description</span><span class="o">]</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="c1"># ...or</span>
+
+<span class="no">PhotoContainer</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:caption</span><span class="p">,</span> <span class="s1">'blah'</span><span class="p">)</span>
+  <span class="n">with</span><span class="p">(</span><span class="ss">:photos_created</span><span class="p">)</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="no">Date</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">2011</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="no">Date</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">2011</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+  <span class="n">any</span> <span class="k">do</span>
+    <span class="n">fulltext</span><span class="p">(</span><span class="s2">"keyword1"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:name</span><span class="p">)</span>
+    <span class="n">fulltext</span><span class="p">(</span><span class="s2">"keyword2"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="ss">:description</span><span class="p">)</span> <span class="c1"># will be joined from the Photo model</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-if-your-models-have-fields-with-the-same-name" class="anchor" href="#if-your-models-have-fields-with-the-same-name" aria-hidden="true"><span class="octicon octicon-link"></span></a>If your models have fields with the same name</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Tweet</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:keywords</span>
+    <span class="n">integer</span> <span class="ss">:profile_id</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Rss</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:keywords</span>
+    <span class="n">integer</span> <span class="ss">:profile_id</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Profile</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:name</span>
+    <span class="n">join</span><span class="p">(</span><span class="ss">:keywords</span><span class="p">,</span> <span class="ss">:prefix</span> <span class="o">=&gt;</span> <span class="s2">"tweet"</span><span class="p">,</span> <span class="ss">:target</span> <span class="o">=&gt;</span> <span class="no">Tweet</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:text</span><span class="p">,</span> <span class="ss">:join</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:profile_id</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:id</span> <span class="p">})</span>
+    <span class="n">join</span><span class="p">(</span><span class="ss">:keywords</span><span class="p">,</span> <span class="ss">:prefix</span> <span class="o">=&gt;</span> <span class="s2">"rss"</span><span class="p">,</span> <span class="ss">:target</span> <span class="o">=&gt;</span> <span class="no">Rss</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:text</span><span class="p">,</span> <span class="ss">:join</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="ss">:profile_id</span><span class="p">,</span> <span class="ss">:to</span> <span class="o">=&gt;</span> <span class="ss">:id</span> <span class="p">})</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">Profile</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">any</span> <span class="k">do</span>
+    <span class="n">fulltext</span><span class="p">(</span><span class="s2">"keyword1 keyword2"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:tweet_keywords</span><span class="o">]</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">minimum_match</span> <span class="mi">1</span>
+    <span class="k">end</span>
+
+    <span class="n">fulltext</span><span class="p">(</span><span class="s2">"keyword3"</span><span class="p">,</span> <span class="ss">:fields</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:rss_keywords</span><span class="o">]</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># ...produces:</span>
+<span class="c1"># sort: "score desc", fl: "* score", start: 0, rows: 20,</span>
+<span class="c1"># fq: ["type:Profile"],</span>
+<span class="c1"># q: "(_query_:"{!join from=profile_ids_i to=id_i v=$qTweet91755700 fq=$fqTweet91755700}" OR _query_:"{!join from=profile_ids_i to=id_i v=$qRss91753840 fq=$fqRss91753840}")",</span>
+<span class="c1"># qTweet91755700: "_query_:"{!edismax qf='keywords_text' mm='1'}keyword1 keyword2"", fqTweet91755700: "type:Tweet",</span>
+<span class="c1"># qRss91753840: "_query_:"{!edismax qf='keywords_text'}keyword3"", fqRss91753840: "type:Rss"</span>
+</pre></div>
+
+<h3>
+<a name="user-content-highlighting" class="anchor" href="#highlighting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Highlighting</h3>
+
+<p>Highlighting allows you to display snippets of the part of the document
+that matched the query.</p>
+
+<p>The fields you wish to highlight must be <strong>stored</strong>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="c1"># ...</span>
+    <span class="n">text</span> <span class="ss">:body</span><span class="p">,</span> <span class="ss">:stored</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Highlighting matches on the <code>body</code> field, for instance, can be achieved
+like:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">fulltext</span> <span class="s2">"pizza"</span> <span class="k">do</span>
+    <span class="n">highlight</span> <span class="ss">:body</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Will output something similar to:</span>
+<span class="c1"># Post #1</span>
+<span class="c1">#   I really love *pizza*</span>
+<span class="c1">#   *Pizza* is my favorite thing</span>
+<span class="c1"># Post #2</span>
+<span class="c1">#   Pepperoni *pizza* is delicious</span>
+<span class="n">search</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">hit</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="s2">"Post #</span><span class="si">#{</span><span class="n">hit</span><span class="o">.</span><span class="n">primary_key</span><span class="si">}</span><span class="s2">"</span>
+
+  <span class="n">hit</span><span class="o">.</span><span class="n">highlights</span><span class="p">(</span><span class="ss">:body</span><span class="p">)</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">highlight</span><span class="o">|</span>
+    <span class="nb">puts</span> <span class="s2">"  "</span> <span class="o">+</span> <span class="n">highlight</span><span class="o">.</span><span class="n">format</span> <span class="p">{</span> <span class="o">|</span><span class="n">word</span><span class="o">|</span> <span class="s2">"*</span><span class="si">#{</span><span class="n">word</span><span class="si">}</span><span class="s2">*"</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-stats" class="anchor" href="#stats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stats</h3>
+
+<p>Solr can return some statistics on indexed numeric fields. Fetching statistics
+for <code>average_rating</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">stats</span> <span class="ss">:average_rating</span>
+<span class="k">end</span>
+
+<span class="nb">puts</span> <span class="s2">"Minimum average rating: </span><span class="si">#{</span><span class="n">search</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="si">}</span><span class="s2">"</span>
+<span class="nb">puts</span> <span class="s2">"Maximum average rating: </span><span class="si">#{</span><span class="n">search</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="si">}</span><span class="s2">"</span>
+</pre></div>
+
+<h4>
+<a name="user-content-stats-on-multiple-fields" class="anchor" href="#stats-on-multiple-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stats on multiple fields</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">stats</span> <span class="ss">:average_rating</span><span class="p">,</span> <span class="ss">:blog_id</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-faceting-on-stats" class="anchor" href="#faceting-on-stats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Faceting on stats</h4>
+
+<p>It's possible to facet field stats on another field:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">stats</span> <span class="ss">:average_rating</span> <span class="k">do</span>
+    <span class="n">facet</span> <span class="ss">:featured</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">search</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="ss">:average_rating</span><span class="p">)</span><span class="o">.</span><span class="n">facet</span><span class="p">(</span><span class="ss">:featured</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span> <span class="k">do</span> <span class="o">|</span><span class="n">row</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="s2">"Minimum average rating for featured=</span><span class="si">#{</span><span class="n">row</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">: </span><span class="si">#{</span><span class="n">row</span><span class="o">.</span><span class="n">min</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Take care when requesting facets on a stats field, since all facet results are
+returned by Solr!</p>
+
+<h4>
+<a name="user-content-multiple-stats-and-selective-faceting" class="anchor" href="#multiple-stats-and-selective-faceting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multiple stats and selective faceting</h4>
+
+<div class="highlight highlight-ruby"><pre><span class="n">search</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">stats</span> <span class="ss">:average_rating</span> <span class="k">do</span>
+    <span class="n">facet</span> <span class="ss">:featured</span>
+  <span class="k">end</span>
+  <span class="n">stats</span> <span class="ss">:blog_id</span> <span class="k">do</span>
+    <span class="n">facet</span> <span class="ss">:average_rating</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-functions" class="anchor" href="#functions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Functions</h3>
+
+<p>TODO</p>
+
+<h3>
+<a name="user-content-more-like-this" class="anchor" href="#more-like-this" aria-hidden="true"><span class="octicon octicon-link"></span></a>More Like This</h3>
+
+<p>Sunspot can extract related items using more_like_this. When searching
+for similar items, you can pass a block with the following options:</p>
+
+<ul class="task-list">
+<li>fields :field_1[, :field_2, ...]</li>
+<li>minimum_term_frequency ##</li>
+<li>minimum_document_frequency ##</li>
+<li>minimum_word_length ##</li>
+<li>maximum_word_length ##</li>
+<li>maximum_query_terms ##</li>
+<li>boost_by_relevance true/false</li>
+</ul><div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="c1"># The :more_like_this option must be set to true</span>
+    <span class="n">text</span> <span class="ss">:body</span><span class="p">,</span> <span class="ss">:more_like_this</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">first</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="no">Sunspot</span><span class="o">.</span><span class="n">more_like_this</span><span class="p">(</span><span class="n">post</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">fields</span> <span class="ss">:body</span>
+  <span class="n">minimum_term_frequency</span> <span class="mi">5</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>To use more_like_this you need to have the <a href="http://wiki.apache.org/solr/MoreLikeThisHandler">MoreLikeThis handler enabled in solrcofig.xml</a>.</p>
+
+<p>Example handler will look like this:</p>
+
+<pre><code>&lt;requestHandler class="solr.MoreLikeThisHandler" name="/mlt"&gt;
+  &lt;lst name="defaults"&gt;
+    &lt;str name="mlt.mintf"&gt;1&lt;/str&gt;
+    &lt;str name="mlt.mindf"&gt;2&lt;/str&gt;
+  &lt;/lst&gt;
+&lt;/requestHandler&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-indexes-in-depth" class="anchor" href="#indexes-in-depth" aria-hidden="true"><span class="octicon octicon-link"></span></a>Indexes In Depth</h2>
+
+<p>TODO</p>
+
+<h3>
+<a name="user-content-index-time-boosts" class="anchor" href="#index-time-boosts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Index-Time Boosts</h3>
+
+<p>To specify that a field should be boosted in relation to other fields for
+all queries, you can specify the boost at index time:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:title</span><span class="p">,</span> <span class="ss">:boost</span> <span class="o">=&gt;</span> <span class="mi">5</span><span class="o">.</span><span class="mi">0</span>
+    <span class="n">text</span> <span class="ss">:body</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-stored-fields" class="anchor" href="#stored-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stored Fields</h3>
+
+<p>Stored fields keep an original (untokenized/unanalyzed) version of their
+contents in Solr.</p>
+
+<p>Stored fields allow data to be retrieved without also hitting the
+underlying database (usually an SQL server). They are also required for
+highlighting and more like this queries.</p>
+
+<p>Stored fields come at some performance cost in the Solr index, so use
+them wisely.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">searchable</span> <span class="k">do</span>
+    <span class="n">text</span> <span class="ss">:body</span><span class="p">,</span> <span class="ss">:stored</span> <span class="o">=&gt;</span> <span class="kp">true</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># Retrieving stored contents without hitting the database</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">hit</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="n">hit</span><span class="o">.</span><span class="n">stored</span><span class="p">(</span><span class="ss">:body</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-hits-vs-results" class="anchor" href="#hits-vs-results" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hits vs. Results</h2>
+
+<p>Sunspot simply stores the type and primary key of objects in Solr.
+When results are retrieved, those primary keys are used to load the
+actual object (usually from an SQL database).</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Using #results pulls in the records from the object-relational</span>
+<span class="c1"># mapper (e.g., ActiveRecord + a SQL server)</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="n">result</span><span class="o">.</span><span class="n">body</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>To access information about the results without querying the underlying
+database, use <code>hits</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Using #hits gives back all information requested from Solr, but does</span>
+<span class="c1"># not load the object from the object-relational mapper</span>
+<span class="no">Post</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">hit</span><span class="o">|</span>
+  <span class="nb">puts</span> <span class="n">hit</span><span class="o">.</span><span class="n">stored</span><span class="p">(</span><span class="ss">:body</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you need both the result (ORM-loaded object) and <code>Hit</code> (e.g., for
+faceting, highlighting, etc...), you can use the convenience method
+<code>each_hit_with_result</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Post</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">each_hit_with_result</span> <span class="k">do</span> <span class="o">|</span><span class="n">hit</span><span class="p">,</span> <span class="n">result</span><span class="o">|</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-reindexing-objects" class="anchor" href="#reindexing-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reindexing Objects</h2>
+
+<p>If you are using Rails, objects are automatically indexed to Solr as a
+part of the <code>save</code> callbacks.</p>
+
+<p>There are a number of ways to index manually within Ruby:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># On a class itself</span>
+<span class="no">Person</span><span class="o">.</span><span class="n">reindex</span>
+<span class="no">Sunspot</span><span class="o">.</span><span class="n">commit</span>
+
+<span class="c1"># On mixed objects</span>
+<span class="no">Sunspot</span><span class="o">.</span><span class="n">index</span> <span class="o">[</span><span class="n">post1</span><span class="p">,</span> <span class="n">item2</span><span class="o">]</span>
+<span class="no">Sunspot</span><span class="o">.</span><span class="n">index</span> <span class="n">person3</span>
+<span class="no">Sunspot</span><span class="o">.</span><span class="n">commit</span>
+
+<span class="c1"># With autocommit</span>
+<span class="no">Sunspot</span><span class="o">.</span><span class="n">index!</span> <span class="o">[</span><span class="n">post1</span><span class="p">,</span> <span class="n">item2</span><span class="p">,</span> <span class="n">person3</span><span class="o">]</span>
+</pre></div>
+
+<p>If you make a change to the object's "schema" (code in the <code>searchable</code> block),
+you must reindex all objects so the changes are reflected in Solr:</p>
+
+<div class="highlight highlight-bash"><pre>bundle <span class="nb">exec </span>rake sunspot:solr:reindex
+
+<span class="c"># or, to be specific to a certain model with a certain batch size:</span>
+bundle <span class="nb">exec </span>rake sunspot:solr:reindex<span class="o">[</span>500,Post<span class="o">]</span> <span class="c"># some shells will require escaping [ with \[ and ] with \]</span>
+
+<span class="c"># to skip the prompt asking you if you want to proceed with the reindexing:</span>
+bundle <span class="nb">exec </span>rake sunspot:solr:reindex<span class="o">[</span>,,true<span class="o">]</span> <span class="c"># some shells will require escaping [ with \[ and ] with \]</span>
+</pre></div>
+
+<h2>
+<a name="user-content-use-without-rails" class="anchor" href="#use-without-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use Without Rails</h2>
+
+<p>TODO</p>
+
+<h2>
+<a name="user-content-threading" class="anchor" href="#threading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Threading</h2>
+
+<p>The default Sunspot Session is not thread-safe. If used in a multi-threaded
+environment (such as sidekiq), you should configure Sunspot to use the
+<a href="http://sunspot.github.io/sunspot/docs/Sunspot/SessionProxy/ThreadLocalSessionProxy.html">ThreadLocalSessionProxy</a>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Sunspot</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="no">Sunspot</span><span class="o">::</span><span class="no">SessionProxy</span><span class="o">::</span><span class="no">ThreadLocalSessionProxy</span><span class="o">.</span><span class="n">new</span>
+</pre></div>
+
+<h2>
+<a name="user-content-manually-adjusting-solr-parameters" class="anchor" href="#manually-adjusting-solr-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually Adjusting Solr Parameters</h2>
+
+<p>To add or modify parameters sent to Solr, use <code>adjust_solr_params</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Post</span><span class="o">.</span><span class="n">search</span> <span class="k">do</span>
+  <span class="n">adjust_solr_params</span> <span class="k">do</span> <span class="o">|</span><span class="n">params</span><span class="o">|</span>
+    <span class="n">params</span><span class="o">[</span><span class="ss">:q</span><span class="o">]</span> <span class="o">+=</span> <span class="s2">" AND something_s:more"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-session-proxies" class="anchor" href="#session-proxies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Session Proxies</h2>
+
+<p>TODO</p>
+
+<h2>
+<a name="user-content-type-reference" class="anchor" href="#type-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Type Reference</h2>
+
+<p>TODO</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Configure Sunspot by creating a <em>config/sunspot.yml</em> file or by setting a <code>SOLR_URL</code> or a <code>WEBSOLR_URL</code> environment variable.
+The defaults are as follows.</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">development</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">solr</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">hostname</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">localhost</span>
+    <span class="l-Scalar-Plain">port</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">8982</span>
+    <span class="l-Scalar-Plain">log_level</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">INFO</span>
+
+<span class="l-Scalar-Plain">test</span><span class="p-Indicator">:</span>
+  <span class="l-Scalar-Plain">solr</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">hostname</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">localhost</span>
+    <span class="l-Scalar-Plain">port</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">8981</span>
+    <span class="l-Scalar-Plain">log_level</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">WARNING</span>
+</pre></div>
+
+<p>You may want to use SSL for production environments with a username and password. For example, set <code>SOLR_URL</code> to <code>https://username:password@production.solr.example.com/solr</code>.</p>
+
+<p>You can examine the value of <code>Sunspot::Rails.configuration</code> at runtime.</p>
+
+<h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<h3>
+<a name="user-content-running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Tests</h3>
+
+<h4>
+<a name="user-content-sunspot-1" class="anchor" href="#sunspot-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>sunspot</h4>
+
+<p>Install the required gem dependencies:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd</span> /path/to/sunspot/sunspot
+bundle install
+</pre></div>
+
+<p>Start a Solr instance on port 8983:</p>
+
+<div class="highlight highlight-bash"><pre>bundle <span class="nb">exec </span>sunspot-solr start -p 8983
+<span class="c"># or `bundle exec sunspot-solr run -p 8983` to run in foreground</span>
+</pre></div>
+
+<p>Run the tests:</p>
+
+<div class="highlight highlight-bash"><pre>bundle <span class="nb">exec </span>rake spec
+</pre></div>
+
+<p>If desired, stop the Solr instance:</p>
+
+<div class="highlight highlight-bash"><pre>bundle <span class="nb">exec </span>sunspot-solr stop
+</pre></div>
+
+<h4>
+<a name="user-content-sunspot_rails" class="anchor" href="#sunspot_rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>sunspot_rails</h4>
+
+<p>Install the gem dependencies for <code>sunspot</code>:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd</span> /path/to/sunspot/sunspot
+bundle install
+</pre></div>
+
+<p>Start a Solr instance on port 8983:</p>
+
+<div class="highlight highlight-bash"><pre>bundle <span class="nb">exec </span>sunspot-solr start -p 8983
+<span class="c"># or `bundle exec sunspot-solr run -p 8983` to run in foreground</span>
+</pre></div>
+
+<p>Navigate to the <code>sunspot_rails</code> directory:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd</span> ../sunspot_rails
+</pre></div>
+
+<p>Run the tests:</p>
+
+<div class="highlight highlight-bash"><pre>rake spec <span class="c"># all Rails versions</span>
+rake spec <span class="nv">RAILS</span><span class="o">=</span>3.1.1 <span class="c"># specific Rails version only</span>
+</pre></div>
+
+<p>If desired, stop the Solr instance:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd</span> ../sunspot
+bundle <span class="nb">exec </span>sunspot-solr stop
+</pre></div>
+
+<h3>
+<a name="user-content-generating-documentation" class="anchor" href="#generating-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Generating Documentation</h3>
+
+<p>Install the <code>yard</code> and <code>redcarpet</code> gems:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>gem install yard redcarpet
+</pre></div>
+
+<p>Uninstall the <code>rdiscount</code> gem, if installed:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>gem uninstall rdiscount
+</pre></div>
+
+<p>Generate the documentation from topmost directory:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>yardoc -o docs */lib/**/*.rb - README.md
+</pre></div>
+
+<h2>
+<a name="user-content-tutorials-and-articles" class="anchor" href="#tutorials-and-articles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tutorials and Articles</h2>
+
+<ul class="task-list">
+<li>
+<a href="http://mrdanadams.com/2012/sunspot-websolr-solr-heroku/">Using Sunspot, Websolr, and Solr on Heroku</a> (mrdanadams)</li>
+<li>
+<a href="http://collectiveidea.com/blog/archives/2011/03/08/full-text-searching-with-solr-and-sunspot/">Full Text Searching with Solr and Sunspot</a> (Collective Idea)</li>
+<li>
+<a href="http://tech.favoritemedium.com/2010/01/full-text-search-in-rails-with-sunspot.html">Full-text search in Rails with Sunspot</a> (Tropical Software Observations)</li>
+<li>
+<a href="http://therailworld.com/posts/23-Sunspot-Full-text-Search-for-Rails-Ruby">Sunspot Full-text Search for Rails/Ruby</a> (The Rail World)</li>
+<li>
+<a href="http://blog.trydionel.com/2009/11/19/a-few-sunspot-tips/">A Few Sunspot Tips</a> (spiral_code)</li>
+<li>
+<a href="http://www.linux-mag.com/id/7341">Sunspot: A Solr-Powered Search Engine for Ruby</a> (Linux Magazine)</li>
+<li>
+<a href="http://bennyfreshness.com/2010/05/sunspot-helped-me-see-the-light/">Sunspot Showed Me the Light</a> (ben koonse)</li>
+<li>
+<a href="http://blog.websolr.com/post/3505903537/rubygems-search-upgrade-1">RubyGems.org — A case study in upgrading to full-text search</a> (Websolr)</li>
+<li>
+<a href="http://web.archive.org/web/20120708071427/http://codequest.eu/articles/how-to-implement-spatial-search-with-sunspot-and-solr">How to Implement Spatial Search with Sunspot and Solr</a> (Code Quest)</li>
+<li>
+<a href="http://joelmats.wordpress.com/2011/02/23/getting-sunspot-1-2-with-spatial-solr-plugin-2-0-to-work/">Sunspot 1.2 with Spatial Solr Plugin 2.0</a> (joelmats)</li>
+<li>
+<a href="http://web.archive.org/web/20100727041141/http://anhaminha.tumblr.com/post/632682537/rails3-heroku-sunspot-madness">rails3 + heroku + sunspot : madness</a> (anhaminha)</li>
+<li>
+<a href="https://devcenter.heroku.com/articles/websolr">heroku + websolr + sunspot</a> (Onemorecloud)</li>
+<li>
+<a href="http://cookbook.hobocentral.net/recipes/57-how-to-get-full-text-search">How to get full text search working with Sunspot</a> (Hobo Cookbook)</li>
+<li>
+<a href="http://web.archive.org/web/20120311015358/http://hemju.com/2011/01/04/full-text-search-with-sunspot-in-rails/">Full text search with Sunspot in Rails</a> (hemju)</li>
+<li>
+<a href="http://masonoise.wordpress.com/2010/02/06/using-sunspot-for-free-text-search-with-redis/">Using Sunspot for Free-Text Search with Redis</a> (While I Pondered...)</li>
+<li>
+<a href="http://www.pipetodevnull.com/past/2010/8/5/fuzzy_searching_in_solr_with_sunspot/">Fuzzy searching in SOLR with Sunspot</a> (pipe :to =&gt; /dev/null)</li>
+<li>
+<a href="http://www.cloudspace.com/blog/2010/01/15/default-scope-with-sunspot/">Default scope with Sunspot</a> (Cloudspace)</li>
+<li>
+<a href="http://www.medihack.org/2011/03/19/index-external-models-with-sunspotsolr/">Index External Models with Sunspot/Solr</a> (Medihack)</li>
+<li>
+<a href="http://collectiveidea.com/blog/archives/2011/05/25/testing-with-sunspot-and-cucumber/">Testing with Sunspot and Cucumber</a> (Collective Idea)</li>
+<li>
+<a href="http://opensoul.org/2010/4/7/cucumber-and-sunspot">Cucumber and Sunspot</a> (opensoul.org)</li>
+<li>
+<a href="http://blog.trydionel.com/2010/02/06/testing-sunspot-with-cucumber/">Testing Sunspot with Cucumber</a> (spiral_code)</li>
+<li>
+<a href="http://blog.kabisa.nl/2010/02/03/running-cucumber-features-with-sunspot_rails">Running cucumber features with sunspot_rails</a> (Kabisa Blog)</li>
+<li>
+<a href="http://timcowlishaw.co.uk/post/3179661158/testing-sunspot-with-test-unit">Testing Sunspot with Test::Unit</a> (Type Slowly)</li>
+<li>
+<a href="http://wiki.websolr.com/guides/Sunspot-Quick-Start">Sunspot Quickstart</a> (WebSolr)</li>
+<li>
+<a href="http://www.kuahyeow.com/2009/08/solr-and-sunspot.html">Solr, and Sunspot</a> (YT!)</li>
+<li>
+<a href="http://web.archive.org/web/20100427135335/http://mrb.github.com/2010/04/08/the-saga-of-the-switch.html">The Saga of the Switch</a> (mrb -- includes comparison of Sunspot and Ultrasphinx)</li>
+<li>
+<a href="http://mikepackdev.com/blog_posts/19-conditional-indexing-with-sunspot">Conditional Indexing with Sunspot</a> (mikepack)</li>
+<li>
+<a href="http://valve.github.io/blog/2014/02/22/rails-developer-guide-to-full-text-search-with-solr/">Introduction to Full Text Search for Rails Developers</a> (Valve's)</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Sunspot is distributed under the MIT License, copyright (c) 2008-2013 Mat Brown</p></article></div>

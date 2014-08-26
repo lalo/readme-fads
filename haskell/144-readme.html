@@ -1,0 +1,223 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>Deployment system for web applications, originally intended for hosting Yesod
+applications. Keter does the following actions for your application:</p>
+
+<ul class="task-list">
+<li>Binds to the main port (usually port 80) and reverse proxies requests to your application based on virtual hostnames.</li>
+<li>Provides SSL support if requested.</li>
+<li>Automatically launches applications, monitors processes, and relaunches any processes which die.</li>
+<li>Provides graceful redeployment support, but launching a second copy of your application, performing a health check, and then switching reverse proxying to the new process.</li>
+<li>Management of log files.</li>
+</ul><p>Keter provides many more advanced features and extension points. It allows
+configuration of static hosts, redirect rules, management of PostgreSQL
+databases, and more. It supports a simple bundle format for applications which
+allows for easy management of your web apps.</p>
+
+<h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start</h2>
+
+<p>Do get Keter up-and-running quickly on an Ubuntu system, run:</p>
+
+<pre><code>wget -O - https://raw.github.com/snoyberg/keter/master/setup-keter.sh | bash
+</code></pre>
+
+<p>(Note: you may need to run the above command twice, if the shell exits after
+<code>apt-get</code> but before running the rest of its instructions.) This will download
+and build Keter from source and get it running with a
+default configuration.</p>
+
+<p><em>This approach is not recommended for a production system</em>. We do not recommend
+installing a full GHC toolchain on a production server, nor running such ad-hoc
+scripts. This is intended to provide a quick way to play with Keter, especially
+for temporary virtual machines. For a production system, we recommend building
+the <code>keter</code> binary on a separate system, and tracking it via a package manager
+or similar strategy.</p>
+
+<h2>
+<a name="user-content-bundling-your-app-for-keter" class="anchor" href="#bundling-your-app-for-keter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bundling your app for Keter</h2>
+
+<ol class="task-list">
+<li><p>Modify your web app to check for the <code>PORT</code> environment variable, and have
+it listen for incoming HTTP requests on that port. Keter automatically
+assigns arbitrary ports to each web app it manages. The Yesod scaffold
+site is already equipped to read the <code>PORT</code> environment variable when
+it is set.</p></li>
+<li>
+<p>Create a file <code>config/keter.yaml</code>. The minimal file just has two settings:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">exec</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">../path/to/executable</span>
+<span class="l-Scalar-Plain">host</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">mydomainname.example.com</span>
+</pre></div>
+
+<p>See the bundles section below for more available settings.</p>
+</li>
+<li><p>Create a gzipped tarball with the <code>config/keter.yaml</code> file, your
+executable, and any other static resources you would like available to your
+application. This file should be given a <code>.keter</code> file extension, e.g.
+<code>myapp.keter</code>.</p></li>
+<li><p>Copy the <code>.keter</code> file to <code>/opt/keter/incoming</code>. Keter will monitor this
+directory for file updates, and automatically redeploy new versions of your
+bundle.</p></li>
+</ol><h2>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<p>Instructions are for an Ubuntu system. Eventually, I hope to provide a PPA for
+this (please contact me if you would like to assist with this). For now, the
+following steps should be sufficient:</p>
+
+<p>First, install PostgreSQL</p>
+
+<pre><code>sudo apt-get install postgresql
+</code></pre>
+
+<p>Second, build the <code>keter</code> binary and place it at <code>/opt/keter/bin</code>. To do so,
+you'll need to install the Haskell Platform, and can then build with <code>cabal</code>.
+This would look something like:</p>
+
+<pre><code>sudo apt-get install haskell-platform
+cabal update
+cabal install keter
+sudo mkdir -p /opt/keter/bin
+sudo cp ~/.cabal/bin/keter /opt/keter/bin
+</code></pre>
+
+<p>Third, create a Keter config file. You can view a sample at
+<a href="https://github.com/snoyberg/keter/blob/master/etc/keter-config.yaml">https://github.com/snoyberg/keter/blob/master/etc/keter-config.yaml</a>.</p>
+
+<p>Fourth, set up an Upstart job to start <code>keter</code> when your system boots.</p>
+
+<pre><code># /etc/init/keter.conf
+start on (net-device-up and local-filesystems and runlevel [2345])
+stop on runlevel [016]
+respawn
+
+console none
+
+exec /opt/keter/bin/keter /opt/keter/etc/keter-config.yaml
+</code></pre>
+
+<p>Finally, start the job for the first time:</p>
+
+<pre><code>sudo start keter
+</code></pre>
+
+<p>Optionally, you may wish to change the owner on the <code>/opt/keter/incoming</code>
+folder to your user account, so that you can deploy without <code>sudo</code>ing.</p>
+
+<pre><code>sudo mkdir -p /opt/keter/incoming
+sudo chown $USER /opt/keter/incoming
+</code></pre>
+
+<h2>
+<a name="user-content-bundles" class="anchor" href="#bundles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bundles</h2>
+
+<p>An application needs to be set up as a keter bundle. This is a GZIPed tarball
+with a <code>.keter</code> filename extension and which has one special file:
+<code>config/keter.yaml</code>. A sample file is available at
+<a href="https://github.com/snoyberg/keter/blob/master/incoming/foo1_0/config/keter.yaml">https://github.com/snoyberg/keter/blob/master/incoming/foo1_0/config/keter.yaml</a>.</p>
+
+<p>Keter as well supports wildcard subdomains and exceptions, as in this example
+configuration:</p>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">exec</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">../com.example.app</span>
+<span class="l-Scalar-Plain">args</span><span class="p-Indicator">:</span>
+    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">Hello</span>
+    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">World</span>
+    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">1</span>
+<span class="l-Scalar-Plain">host</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">www.example.com</span>
+<span class="l-Scalar-Plain">extra-hosts</span><span class="p-Indicator">:</span>
+    <span class="p-Indicator">-</span> <span class="s">"*.example.com"</span>
+    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">foo.bar.example.com</span>
+<span class="l-Scalar-Plain">static-hosts</span><span class="p-Indicator">:</span>
+    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">host</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">static.example.com</span>
+      <span class="l-Scalar-Plain">root</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">../static</span>
+<span class="l-Scalar-Plain">redirects</span><span class="p-Indicator">:</span>
+    <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">from</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">example.com</span>
+      <span class="l-Scalar-Plain">to</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">www.example.com</span>
+</pre></div>
+
+<p>Due to YAML parsing, wildcard hostnames will need to be quoted as above.
+Wildcard hostnames are not recursive, so <code>foo.bar.example.com</code> must be
+explicitly added as an extra hostname in the above example, or
+alternatively, <code>*.*.example.com</code> would cover all host names two levels
+deep. It would not cover host names only one level deep, such as
+<code>qux.example.com</code>. In this manner, wildcard hostnames correspond to the
+manner in which SSL certificates are handled per RFC2818. Wildcards may
+be used in only one level of a hostname, as in <code>foo.*.example.com</code>.</p>
+
+<p>Full RFC2818 compliance is not present - <code>f*.example.com</code> will not be
+handled as a wildcard with a prefix.</p>
+
+<p>A sample Bash script for producing a Keter bundle is:</p>
+
+<div class="highlight highlight-bash"><pre><span class="c">#!/bin/bash -ex</span>
+
+cabal build
+strip dist/build/yesodweb/yesodweb
+rm -rf static/tmp
+tar czfv yesodweb.keter dist/build/yesodweb/yesodweb config static
+</pre></div>
+
+<p>For users of Yesod, The <code>yesod</code> executable provides a <code>keter</code> command for
+creating the bundle, and the scaffolded site provides a <code>keter.yaml</code> file.</p>
+
+<h2>
+<a name="user-content-deploying" class="anchor" href="#deploying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploying</h2>
+
+<p>In order to deploy, you simply copy the keter bundle to <code>/opt/keter/incoming</code>.
+To update an app, copy in the new version. The old process will only be
+terminated after the new process has started answering requests. To stop an
+application, delete the file from incoming.</p>
+
+<h2>
+<a name="user-content-postgresql-support" class="anchor" href="#postgresql-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>PostgreSQL support</h2>
+
+<p>Keter ships by default with a PostgreSQL plugin, which will handle management of PostgreSQL databases for your application. To use this, make the following changes:</p>
+
+<ul class="task-list">
+<li>Add <code>postgres: true</code> to your <code>config/keter.yaml</code> file.</li>
+<li>
+<p>Modify your application to get its database connection settings from the following environment variables:</p>
+
+<ul class="task-list">
+<li><code>PGHOST</code></li>
+<li><code>PGPORT</code></li>
+<li><code>PGUSER</code></li>
+<li><code>PGPASS</code></li>
+<li><code>PGDATABASE</code></li>
+</ul>
+</li>
+<li><p>The Yesod scaffold site is already equipped to read these environment
+variables when they are set.</p></li>
+</ul><h2>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known issues</h2>
+
+<ul class="task-list">
+<li>
+<p>There are reports of Keter not working behind an nginx reverse proxy. From
+the reports, this appears to be a limitation in nginx's implementation, not a
+problem with Keter. Keter works fine behind other reverse proxies, including
+Apache and Amazon ELB.</p>
+
+<p>One possible workaround is to add the following lines to your nginx configuration:</p>
+
+<pre><code>proxy_set_header Connection "";
+proxy_http_version 1.1;
+</code></pre>
+
+<p>This has not yet been confirmed to work in production. If you use this,
+please report either its success or failure back to me.</p>
+</li>
+<li>
+<p>Keter does not handle password-protected SSL key files well.  When provided
+with such a key file, unlike Apache and Nginx, Keter will not pause to ask
+for the password.  Instead, your https connections will merely stall.</p>
+
+<p>To get around this, you need to create a copy of the key without password
+and deploy this new key:</p>
+
+<pre><code>openssl rsa -in original.key -out new.key
+</code></pre>
+
+<p>(Back up the original key first, just in case.)</p>
+</li>
+</ul></article></div>

@@ -1,0 +1,166 @@
+<div class="announce instapaper_body rst" data-path="README.rst" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-about" class="anchor" href="#about" aria-hidden="true"><span class="octicon octicon-link"></span></a>About</h2>
+<p>Gunicorn 'Green Unicorn' is a Python WSGI HTTP Server for UNIX. It's a pre-fork
+worker model ported from Ruby's <a href="http://unicorn.bogomips.org/">Unicorn</a> project. The Gunicorn server is broadly
+compatible with various web frameworks, simply implemented, light on server
+resource usage, and fairly speedy.</p>
+<p>Feel free to join us in <a href="http://webchat.freenode.net/?channels=gunicorn">#gunicorn</a> on <a href="http://freenode.net">freenode</a>.</p>
+<a href="https://travis-ci.org/benoitc/gunicorn"><img alt="Build Status" src="https://camo.githubusercontent.com/703f46f72f46e694aae673fbb49e19ca22b9a4f0/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f62656e6f6974632f67756e69636f726e2e706e673f6272616e63683d6d6173746572" data-canonical-src="https://secure.travis-ci.org/benoitc/gunicorn.png?branch=master" style="max-width:100%;"></a>
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+<p><a href="http://docs.gunicorn.org">http://docs.gunicorn.org</a></p>
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+<p>Gunicorn requires <strong>Python 2.x &gt;= 2.6</strong> or <strong>Python 3.x &gt;= 3.1</strong>.</p>
+<p>Install from sources:</p>
+<pre>
+$ python setup.py install
+</pre>
+<p>Or from Pypi:</p>
+<pre>
+$ pip install -U gunicorn
+</pre>
+<p>You may also want to install <a href="http://eventlet.net">Eventlet</a> or <a href="http://gevent.org">Gevent</a> if you expect that your
+application code may need to pause for extended periods of time during
+request processing. If you're on Python 3 you may also consider one othe <a href="https://docs.python.org/3/library/asyncio.html">Asyncio</a> workers. Check out the <a href="http://docs.gunicorn.org/en/latest/faq.html">FAQ</a> for more information on when you'll
+want to consider one of the alternate worker types.</p>
+<p>To install eventlet:</p>
+<pre>
+$ pip install -U eventlet
+</pre>
+<p>If you encounter errors when compiling the extensions for <a href="http://eventlet.net">Eventlet</a> or
+<a href="http://gevent.org">Gevent</a> you most likely need to install a newer version of <a href="http://software.schmorp.de/pkg/libev.html">libev</a> or <a href="http://monkey.org/~provos/libevent">libevent</a>.</p>
+<h2>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h2>
+<p>After installing Gunicorn you will have access to the command line script
+<tt>gunicorn</tt>.</p>
+<h3>
+<a name="user-content-commonly-used-arguments" class="anchor" href="#commonly-used-arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Commonly Used Arguments</h3>
+<blockquote>
+<ul>
+<li>
+<p><tt>-c CONFIG, --config=CONFIG</tt> - Specify the path to a <a href="http://docs.gunicorn.org/en/latest/configure.html">config file</a> or
+python module.</p>
+</li>
+<li>
+<p><tt>-b BIND, --bind=BIND</tt> - Specify a server socket to bind. Server sockets
+can be any of <tt>$(HOST)</tt>, <tt>$(HOST):$(PORT)</tt>, or <tt>unix:$(PATH)</tt>.
+An IP is a valid <tt>$(HOST)</tt>.</p>
+</li>
+<li>
+<p><tt>-w WORKERS, --workers=WORKERS</tt> - The number of worker processes. This
+number should generally be between 2-4 workers per core in the server.
+Check the <a href="http://docs.gunicorn.org/en/latest/faq.html">FAQ</a> for ideas on tuning this parameter.</p>
+</li>
+<li>
+<p><tt>-k WORKERCLASS, --worker-class=WORKERCLASS</tt> - The type of worker process
+to run. You'll definitely want to read the <a href="http://docs.gunicorn.org/en/latest/deploy.html">production page</a> for the
+implications of this parameter. You can set this to <tt>egg:gunicorn#$(NAME)</tt>
+where <tt>$(NAME)</tt> is one of <tt>sync</tt>, <tt>eventlet</tt>, <tt>gevent</tt>, or
+<tt>tornado</tt>, <tt>gthread</tt>, <tt>gaiohttp`. ``sync</tt> is the default.</p>
+</li>
+<li>
+<p><tt>-n APP_NAME, --name=APP_NAME</tt> - If <a href="http://pypi.python.org/pypi/setproctitle/">setproctitle</a> is installed you can
+adjust the name of Gunicorn process as they appear in the process system
+table (which affects tools like <tt>ps</tt> and <tt>top</tt>).</p>
+<p>sync=gunicorn.workers.sync:SyncWorker
+eventlet=gunicorn.workers.geventlet:EventletWorker
+gevent=gunicorn.workers.ggevent:GeventWorker
+tornado</p>
+</li>
+</ul>
+</blockquote>
+<p>There are various other parameters that affect user privileges, logging, etc.
+You can see the complete list with the expected:</p>
+<pre>
+$ gunicorn -h
+</pre>
+<h3>
+<a name="user-content-gunicorn" class="anchor" href="#gunicorn" aria-hidden="true"><span class="octicon octicon-link"></span></a>gunicorn</h3>
+<p>The first and most basic script is used to serve 'bare' WSGI applications
+that don't require a translation layer. Basic usage:</p>
+<pre>
+$ gunicorn [OPTIONS] APP_MODULE
+</pre>
+<p>Where <tt>APP_MODULE</tt> is of the pattern <tt>$(MODULE_NAME):$(VARIABLE_NAME)</tt>. The
+module name can be a full dotted path. The variable name refers to a WSGI
+callable that should be found in the specified module.</p>
+<p>Example with test app:</p>
+<pre>
+$ cd examples
+$ gunicorn --workers=2 test:app
+</pre>
+<h2>
+<a name="user-content-integration" class="anchor" href="#integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Integration</h2>
+<p>We also provide integration for both Django and Paster applications.</p>
+<h3>
+<a name="user-content-django" class="anchor" href="#django" aria-hidden="true"><span class="octicon octicon-link"></span></a>Django</h3>
+<p>gunicorn just needs to be called with a the location of a WSGI
+application object.:</p>
+<blockquote>
+gunicorn [OPTIONS] APP_MODULE</blockquote>
+<p>Where APP_MODULE is of the pattern MODULE_NAME:VARIABLE_NAME. The module
+name should be a full dotted path. The variable name refers to a WSGI
+callable that should be found in the specified module.</p>
+<p>So for a typical Django project, invoking gunicorn would look like:</p>
+<blockquote>
+gunicorn myproject.wsgi:application</blockquote>
+<p>(This requires that your project be on the Python path; the simplest way
+to ensure that is to run this command from the same directory as your
+manage.py file.)</p>
+<p>You can use the
+<a href="http://docs.gunicorn.org/en/latest/settings.html#raw-env">--env</a> option
+to set the path to load the settings. In case you need it you can also
+add your application path to PYTHONPATH using the
+<a href="http://docs.gunicorn.org/en/latest/settings.html#pythonpath">--pythonpath</a>
+option.</p>
+<h3>
+<a name="user-content-paste" class="anchor" href="#paste" aria-hidden="true"><span class="octicon octicon-link"></span></a>Paste</h3>
+<p>If you are a user/developer of a paste-compatible framework/app (as
+Pyramid, Pylons and Turbogears) you can use the gunicorn
+<a href="http://docs.gunicorn.org/en/latest/settings.html#paste">--paste</a> option
+to run your application.</p>
+<p>For example:</p>
+<blockquote>
+gunicorn --paste development.ini -b :8080 --chdir /path/to/project</blockquote>
+<p>It is all here. No configuration files nor additional python modules to
+write !!</p>
+<h2>
+<a name="user-content-instrumentation" class="anchor" href="#instrumentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instrumentation</h2>
+<p>Gunicorn provides an optional instrumentation of the arbiter and
+workers using the <a href="http://github.com/etsy/statsd">statsD</a> protocol over UDP. Thanks to the
+gunicorn.instrument.statsd module, Gunicorn becomes a statsD client
+The use of UDP cleanly isolates Gunicorn from the receiving end of the statsD
+metrics so that instrumentation does not cause Gunicorn to be heldeup by a slow
+statsD consumer.</p>
+<p>To use statsD, just tell gunicorn where the statsD server is:</p>
+<blockquote>
+$ gunicorn --statsd-host=localhost:8125 ...</blockquote>
+<p>The Statsd logger overrides gunicorn.glogging.Logger to track
+all requests. The following metrics are generated:</p>
+<blockquote>
+<ul>
+<li>
+<tt>gunicorn.requests</tt>: request rate per second</li>
+<li>
+<tt>gunicorn.request.duration</tt>: histogram of request duration (in millisecond)</li>
+<li>
+<tt>gunicorn.workers</tt>: number of workers managed by the arbiter (gauge)</li>
+<li>
+<tt>gunicorn.log.critical</tt>: rate of critical log messages</li>
+<li>
+<tt>gunicorn.log.error</tt>: rate of error log messages</li>
+<li>
+<tt>gunicorn.log.warning</tt>: rate of warning log messages</li>
+<li>
+<tt>gunicorn.log.exception</tt>: rate of exceptional log messages</li>
+</ul>
+</blockquote>
+<p>To generate new metrics you can log.info with a few additional keywords:</p>
+<pre>
+log.info("...", extra={"metric": "my.metric", "value": "1.2", "mtype": "gauge"})
+</pre>
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE</h2>
+<p>Gunicorn is released under the MIT License. See the <a href="http://github.com/benoitc/gunicorn/blob/master/LICENSE">LICENSE</a> file for more
+details.</p></article></div>

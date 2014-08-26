@@ -1,0 +1,166 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-view-flow-for-android" class="anchor" href="#view-flow-for-android" aria-hidden="true"><span class="octicon octicon-link"></span></a>View Flow for Android</h1>
+
+<p>ViewFlow is an Android UI widget providing a horizontally scrollable <a href="http://developer.android.com/reference/android/view/ViewGroup.html">ViewGroup</a> with items populated from an <a href="http://developer.android.com/reference/android/widget/Adapter.html">Adapter</a>. Scroll down to the bottom of the page for a screen shot.</p>
+
+<p>The component is a <a href="http://developer.android.com/guide/developing/eclipse-adt.html#libraryProject">Library Project</a>. This means that there's no need to copy-paste resources into your own project, simply add the viewflow component as a reference to any project.</p>
+
+<h2>
+<a name="user-content-when-to-use" class="anchor" href="#when-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>When to use</h2>
+
+<p>This library might be suitable if you have an indeterminate number of views in your viewflow, if instead you have a static numbers of views you ought to look at Fragments and the ViewPager in the Compatibility Library instead.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-in-your-layout" class="anchor" href="#in-your-layout" aria-hidden="true"><span class="octicon octicon-link"></span></a>In your layout</h3>
+
+<pre><code>&lt;org.taptwo.android.widget.ViewFlow
+    android:id="@+id/viewflow"
+    app:sidebuffer="5"
+    /&gt;
+</code></pre>
+
+<p>The use of <code>app:sidebuffer</code> is optional. It defines the number of Views to buffer on each side of the currently shown View. The default sidebuffer is 3, making up a grand total of 7 (3 * 2 + 1) Views loaded at a time (at max).
+To be able to use the more convenient <code>app:sidebuffer</code> attribute, the application namespace must be included in the same manner as the android namespace is. Please refer to the layout main.xml in the example project for a full example. Again, note that it's the application namespace and <em>not</em> the viewflow namespace that must be referred like <code>xmlns:app="http://schemas.android.com/apk/res/your.application.package.here"</code>.</p>
+
+<h3>
+<a name="user-content-in-your-activity" class="anchor" href="#in-your-activity" aria-hidden="true"><span class="octicon octicon-link"></span></a>In your activity</h3>
+
+<pre><code>ViewFlow viewFlow = (ViewFlow) findViewById(R.id.viewflow);
+viewFlow.setAdapter(myAdapter);
+</code></pre>
+
+<p>Setting a different initial position (0 being default) is as easy as:</p>
+
+<pre><code>viewFlow.setAdapter(myAdapter, 8);
+</code></pre>
+
+<p>Although possible, you should not call <code>setSelection(...)</code> immediately after calling <code>setAdapter(myAdapter)</code> as that might load unnecessary views giving you a decrease in performance.</p>
+
+<h3>
+<a name="user-content-listen-on-screen-change-events" class="anchor" href="#listen-on-screen-change-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listen on screen change events</h3>
+
+<p>If you need to listen to screen change events you would want to implement your own <code>ViewFlow.ViewSwitchListener</code> and pass it to the <code>setOnViewSwitchListener()</code> method.</p>
+
+<pre><code>viewFlow.setOnViewSwitchListener(new ViewSwitchListener() {
+    public void onSwitched(View v, int position) {
+        // Your code here
+    }
+});
+</code></pre>
+
+<h3>
+<a name="user-content-listen-on-initialize-view-events" class="anchor" href="#listen-on-initialize-view-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listen on initialize view events</h3>
+
+<p>If you need a lazy View initialization you would want to implement your own <code>ViewFlow.ViewLazyInitializeListener</code> and pass it to the <code>setOnViewLazyInitializeListener()</code> method.</p>
+
+<pre><code>viewFlow.setOnViewLazyInitializeListener(new ViewLazyInitializeListener() {
+    public void onViewLazyInitialize(View view, int position) {
+        // Your code here e.g.
+        ((MyAdapter)((AbsListView)view).getAdapter()).initializeData();
+    }
+});
+</code></pre>
+
+<h3>
+<a name="user-content-flow-indicator" class="anchor" href="#flow-indicator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Flow Indicator</h3>
+
+<p>It is also possible to add a flow view indicator to your layout. The purpose of a <code>FlowIndicator</code> is to present a visual representation of where in the item list focus is at. You may either implement a <code>FlowIndicator</code> yourself or use an implementation provided by the View Flow library. The View Flow library currently supports the following indicators:</p>
+
+<h4>
+<a name="user-content-circle-flow-indicator" class="anchor" href="#circle-flow-indicator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Circle Flow Indicator</h4>
+
+<p>This indicator shows a circle for each <code>View</code> in the adapter with a special circle representing the currently selected view (see screenshot below).</p>
+
+<pre><code>&lt;org.taptwo.android.widget.CircleFlowIndicator
+    android:padding="10dip" android:layout_height="wrap_content"
+    android:layout_width="wrap_content" android:id="@+id/viewflowindic"
+    android:background="#00000000"/&gt;
+</code></pre>
+
+<p>And then you'll need to connect your <code>ViewFlow</code> with the <code>FlowIndicator</code>:</p>
+
+<pre><code>CircleFlowIndicator indic = (CircleFlowIndicator) findViewById(R.id.viewflowindic);
+viewFlow.setFlowIndicator(indic);
+</code></pre>
+
+<p>By default, the 'active' indicator moves smoothly from one 'inactive' indicator
+to the next, as the user scrolls. If you set the <code>snap</code> attribute to <code>true</code>, it
+will instead jump to the next position when the flow settles at the next page.</p>
+
+<p>The following attributes are supported: <code>activeColor</code>, <code>inactiveColor</code>,
+<code>activeType</code> (either fill or stroke), <code>inactiveType</code> (either fill or stroke),
+<code>fadeOut</code> (time in ms until indicator fades out, 0 = never), <code>radius</code>, <code>sync</code>
+(see above).</p>
+
+<h4>
+<a name="user-content-title-flow-indicator" class="anchor" href="#title-flow-indicator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Title Flow Indicator</h4>
+
+<p>This indicator presents the title of the previous, current and next <code>View</code> in the adapter (see screenshot below).</p>
+
+<pre><code>    &lt;org.taptwo.android.widget.TitleFlowIndicator
+        android:id="@+id/viewflowindic" android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        app:footerLineHeight="2dp"
+        app:footerTriangleHeight="10dp" app:textColor="#FFFFFFFF" app:selectedColor="#FFFFC445"
+        app:footerColor="#FFFFC445" app:titlePadding="10dp" app:textSize="11dp" app:selectedSize="12dp"
+        android:layout_marginTop="10dip"
+        app:clipPadding="5dp" /&gt;
+</code></pre>
+
+<p>And then you'll need to connect your <code>ViewFlow</code> with the <code>FlowIndicator</code>:</p>
+
+<pre><code>    TitleFlowIndicator indicator = (TitleFlowIndicator) findViewById(R.id.viewflowindic);
+    indicator.setTitleProvider(myTitleProvider);
+    viewFlow.setFlowIndicator(indicator);
+</code></pre>
+
+<h2>
+<a name="user-content-building-a-jar-file" class="anchor" href="#building-a-jar-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building a jar file</h2>
+
+<p>If you rather want a jar file instead of a including the project as an android library, run <code>ant jar</code> in the <code>android-viewflow/viewflow</code> folder, to build a jar file.</p>
+
+<h2>
+<a name="user-content-caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
+
+<p>The manifest states a min sdk version of 4, which is true. But in any case you want to support an api level &lt; 8 you will have to forward an <code>onConfigurationChanged</code> event to the <code>ViewFlow</code> from your <code>Activity</code>. I know this isn't a very nice solution, feel free to propose better ones!</p>
+
+<pre><code>    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        viewFlow.onConfigurationChanged(newConfig);
+    }
+</code></pre>
+
+<h2>
+<a name="user-content-contributions" class="anchor" href="#contributions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributions</h2>
+
+<p>The following persons deserves a mention for their contributions:</p>
+
+<ul class="task-list">
+<li>Eric Taix</li>
+<li>Marc Reichelt, <a href="http://marcreichelt.blogspot.com/">http://marcreichelt.blogspot.com/</a>
+</li>
+</ul><h3>
+<a name="user-content-want-to-contribute" class="anchor" href="#want-to-contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Want to contribute?</h3>
+
+<p>GitHub has some great articles on <a href="http://help.github.com/">how to get started with Git and GitHub</a> and how to <a href="http://help.github.com/forking/">fork a project</a>.</p>
+
+<p>Contributers are recommended to fork the app on GitHub (but don't have too). Create a feature branch, push the branch to git hub, press Pull Request and write a simple explanation.</p>
+
+<p>One fix per commit. If let's say a commit closes the open issue 12. Just add <code>closes #12</code> in your commit message to close that issue automagically.</p>
+
+<p>If you still feel uncomfortable contributing the project github-wise, don't hesistate to send a regular patch.</p>
+
+<p>All code that is contributed must be compliant with <a href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache License 2.0</a>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2011 <a href="http://about.me/pakerfeldt">Patrik Åkerfeldt</a></p>
+
+<p>Licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache License, Version 2.0</a></p>
+
+<p><a href="https://github.com/pakerfeldt/android-viewflow/raw/master/viewflow-example/screen.png" target="_blank"><img src="https://github.com/pakerfeldt/android-viewflow/raw/master/viewflow-example/screen.png" alt="ViewFlow for Android" title="ViewFlow for Android" style="max-width:100%;"></a>    <a href="https://github.com/pakerfeldt/android-viewflow/raw/master/viewflow-example/screen2.png" target="_blank"><img src="https://github.com/pakerfeldt/android-viewflow/raw/master/viewflow-example/screen2.png" alt="ViewFlow for Android" title="ViewFlow for Android" style="max-width:100%;"></a></p></article></div>

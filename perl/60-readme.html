@@ -1,0 +1,510 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage">
+
+<h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a>Name</h1>
+
+<p><strong>ngx_headers_more</strong> - Set and clear input and output headers...more than "add"!</p>
+
+<p><em>This module is not distributed with the Nginx source.</em> See <a href="#installation">the installation instructions</a>.</p>
+
+<h1>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h1>
+
+<ul class="task-list">
+<li><a href="#version">Version</a></li>
+<li><a href="#synopsis">Synopsis</a></li>
+<li><a href="#description">Description</a></li>
+<li>
+<a href="#directives">Directives</a>
+
+<ul class="task-list">
+<li><a href="#more_set_headers">more_set_headers</a></li>
+<li><a href="#more_clear_headers">more_clear_headers</a></li>
+<li><a href="#more_set_input_headers">more_set_input_headers</a></li>
+<li><a href="#more_clear_input_headers">more_clear_input_headers</a></li>
+</ul>
+</li>
+<li><a href="#limitations">Limitations</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#compatibility">Compatibility</a></li>
+<li>
+<a href="#community">Community</a>
+
+<ul class="task-list">
+<li><a href="#english-mailing-list">English Mailing List</a></li>
+<li><a href="#chinese-mailing-list">Chinese Mailing List</a></li>
+</ul>
+</li>
+<li><a href="#bugs-and-patches">Bugs and Patches</a></li>
+<li><a href="#source-repository">Source Repository</a></li>
+<li><a href="#changes">Changes</a></li>
+<li><a href="#test-suite">Test Suite</a></li>
+<li><a href="#todo">TODO</a></li>
+<li><a href="#getting-involved">Getting involved</a></li>
+<li><a href="#authors">Authors</a></li>
+<li><a href="#copyright--license">Copyright &amp; License</a></li>
+<li><a href="#see-also">See Also</a></li>
+</ul><h1>
+<a name="user-content-version" class="anchor" href="#version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version</h1>
+
+<p>This document describes headers-more-nginx-module <a href="http://github.com/agentzh/headers-more-nginx-module/tags">v0.25</a> released on 10 January 2014.</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h1>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="c1"># set the Server output header</span>
+<span class="k">more_set_headers</span> <span class="s">'Server:</span> <span class="s">my-server'</span><span class="p">;</span>
+
+<span class="c1"># set and clear output headers</span>
+<span class="k">location</span> <span class="s">/bar</span> <span class="p">{</span>
+    <span class="kn">more_set_headers</span> <span class="s">'X-MyHeader:</span> <span class="s">blah'</span> <span class="s">'X-MyHeader2:</span> <span class="s">foo'</span><span class="p">;</span>
+    <span class="kn">more_set_headers</span> <span class="s">-t</span> <span class="s">'text/plain</span> <span class="s">text/css'</span> <span class="s">'Content-Type:</span> <span class="s">text/foo'</span><span class="p">;</span>
+    <span class="kn">more_set_headers</span> <span class="s">-s</span> <span class="s">'400</span> <span class="mi">404</span> <span class="mi">500</span> <span class="mi">503</span><span class="s">'</span> <span class="s">-s</span> <span class="mi">413</span> <span class="s">'Foo:</span> <span class="s">Bar'</span><span class="p">;</span>
+    <span class="kn">more_clear_headers</span> <span class="s">'Content-Type'</span><span class="p">;</span>
+
+    <span class="c1"># your proxy_pass/memcached_pass/or any other config goes here...</span>
+<span class="p">}</span>
+
+<span class="c1"># set output headers</span>
+<span class="k">location</span> <span class="s">/type</span> <span class="p">{</span>
+    <span class="kn">more_set_headers</span> <span class="s">'Content-Type:</span> <span class="s">text/plain'</span><span class="p">;</span>
+    <span class="c1"># ...</span>
+<span class="p">}</span>
+
+<span class="c1"># set input headers</span>
+<span class="k">location</span> <span class="s">/foo</span> <span class="p">{</span>
+    <span class="kn">set</span> <span class="nv">$my_host</span> <span class="s">'my</span> <span class="s">dog'</span><span class="p">;</span>
+    <span class="kn">more_set_input_headers</span> <span class="s">'Host:</span> <span class="nv">$my_host'</span><span class="p">;</span>
+    <span class="kn">more_set_input_headers</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">'X-Foo:</span> <span class="s">bah'</span><span class="p">;</span>
+
+    <span class="c1"># now $host and $http_host have their new values...</span>
+    <span class="c1"># ...</span>
+<span class="p">}</span>
+
+<span class="c1"># replace input header X-Foo *only* if it already exists</span>
+<span class="k">more_set_input_headers</span> <span class="s">-r</span> <span class="s">'X-Foo:</span> <span class="s">howdy'</span><span class="p">;</span>
+</pre></div>
+
+<h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h1>
+
+<p>This module allows you to add, set, or clear any output
+or input header that you specify.</p>
+
+<p>This is an enhanced version of the standard
+<a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html">headers</a> module because it provides more utilities like
+resetting or clearing "builtin headers" like <code>Content-Type</code>,
+<code>Content-Length</code>, and <code>Server</code>.</p>
+
+<p>It also allows you to specify an optional HTTP status code
+criteria using the <code>-s</code> option and an optional content
+type criteria using the <code>-t</code> option while modifying the
+output headers with the <a href="#more_set_headers">more_set_headers</a> and
+<a href="#more_clear_headers">more_clear_headers</a> directives. For example,</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">more_set_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/html'</span> <span class="s">'X-Foo:</span> <span class="s">Bar'</span><span class="p">;</span>
+</pre></div>
+
+<p>Input headers can be modified as well. For example</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">location</span> <span class="s">/foo</span> <span class="p">{</span>
+    <span class="kn">more_set_input_headers</span> <span class="s">'Host:</span> <span class="s">foo'</span> <span class="s">'User-Agent:</span> <span class="s">faked'</span><span class="p">;</span>
+    <span class="c1"># now $host, $http_host, $user_agent, and</span>
+    <span class="c1">#   $http_user_agent all have their new values.</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The option <code>-t</code> is also available in the
+<a href="#more_set_input_headers">more_set_input_headers</a> and
+<a href="#more_clear_input_headers">more_clear_input_headers</a> directives (for request header filtering) while the <code>-s</code> option
+is not allowed.</p>
+
+<p>Unlike the standard <a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html">headers</a> module, this module's directives will by
+default apply to all the status codes, including <code>4xx</code> and <code>5xx</code>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-directives" class="anchor" href="#directives" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directives</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-more_set_headers" class="anchor" href="#more_set_headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>more_set_headers</h2>
+
+<p><strong>syntax:</strong> <em>more_set_headers [-t &lt;content-type list&gt;]... [-s &lt;status-code list&gt;]... &lt;new-header&gt;...</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>Replaces (if any) or adds (if not any) the specified output headers when the response status code matches the codes specified by the <code>-s</code> option <em>AND</em> the response content type matches the types specified by the <code>-t</code> option.</p>
+
+<p>If either <code>-s</code> or <code>-t</code> is not specified or has an empty list value, then no match is required. Therefore, the following directive set the <code>Server</code> output header to the custom value for <em>any</em> status code and <em>any</em> content type:</p>
+
+<div class="highlight highlight-nginx"><pre>
+  <span class="k">more_set_headers</span>    <span class="s">"Server:</span> <span class="s">my_server"</span><span class="p">;</span>
+</pre></div>
+
+<p>Existing response headers with the same name are always overridden. If you want to add headers incrementally, use the standard <a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header">add_header</a> directive instead.</p>
+
+<p>A single directive can set/add multiple output headers. For example</p>
+
+<div class="highlight highlight-nginx"><pre>
+  <span class="k">more_set_headers</span> <span class="s">'Foo:</span> <span class="s">bar'</span> <span class="s">'Baz:</span> <span class="s">bah'</span><span class="p">;</span>
+</pre></div>
+
+<p>Multiple occurrences of the options are allowed in a single directive. Their values will be merged together. For instance</p>
+
+<div class="highlight highlight-nginx"><pre>
+  <span class="k">more_set_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-s</span> <span class="s">'500</span> <span class="mi">503</span><span class="s">'</span> <span class="s">'Foo:</span> <span class="s">bar'</span><span class="p">;</span>
+</pre></div>
+
+<p>is equivalent to</p>
+
+<div class="highlight highlight-nginx"><pre>
+  <span class="k">more_set_headers</span> <span class="s">-s</span> <span class="s">'404</span> <span class="mi">500</span> <span class="mi">503</span><span class="s">'</span> <span class="s">'Foo:</span> <span class="s">bar'</span><span class="p">;</span>
+</pre></div>
+
+<p>The new header should be the one of the forms:</p>
+
+<ol class="task-list">
+<li><code>Name: Value</code></li>
+<li><code>Name:</code></li>
+<li><code>Name</code></li>
+</ol><p>The last two effectively clear the value of the header <code>Name</code>.</p>
+
+<p>Nginx variables are allowed in header values. For example:</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">set</span> <span class="nv">$my_var</span> <span class="s">"dog"</span><span class="p">;</span>
+   <span class="k">more_set_headers</span> <span class="s">"Server:</span> <span class="nv">$my_var"</span><span class="p">;</span>
+</pre></div>
+
+<p>But variables won't work in header keys due to performance considerations.</p>
+
+<p>Multiple set/clear header directives are allowed in a single location, and they're executed sequentially.</p>
+
+<p>Directives inherited from an upper level scope (say, http block or server blocks) are executed before the directives in the location block.</p>
+
+<p>Note that although <code>more_set_headers</code> is allowed in <em>location</em> if blocks, it is <em>not</em> allowed in the <em>server</em> if blocks, as in</p>
+
+<div class="highlight highlight-nginx"><pre>
+  <span class="k">?</span>  <span class="c1"># This is NOT allowed!</span>
+  <span class="s">?</span>  <span class="s">server</span> <span class="p">{</span>
+  <span class="kn">?</span>      <span class="s">if</span> <span class="s">(</span><span class="nv">$args</span> <span class="p">~</span> <span class="sr">'download')</span> <span class="p">{</span>
+  <span class="kn">?</span>          <span class="s">more_set_headers</span> <span class="s">'Foo:</span> <span class="s">Bar'</span><span class="p">;</span>
+  <span class="kn">?</span>      <span class="err">}</span>
+  <span class="s">?</span>      <span class="s">...</span>
+  <span class="s">?</span>  <span class="err">}</span>
+</pre></div>
+
+<p>Behind the scene, use of this directive and its friend <a href="#more_clear_headers">more_clear_headers</a> will (lazily) register an ouput header filter that modifies <code>r-&gt;headers_out</code> the way you specify.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-more_clear_headers" class="anchor" href="#more_clear_headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>more_clear_headers</h2>
+
+<p><strong>syntax:</strong> <em>more_clear_headers [-t &lt;content-type list&gt;]... [-s &lt;status-code list&gt;]... &lt;new-header&gt;...</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>output-header-filter</em></p>
+
+<p>Clears the specified output headers.</p>
+
+<p>In fact,</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">more_clear_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">Foo</span> <span class="s">Baz</span><span class="p">;</span>
+</pre></div>
+
+<p>is exactly equivalent to</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">more_set_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">"Foo:</span> <span class="s">"</span> <span class="s">"Baz:</span> <span class="s">"</span><span class="p">;</span>
+</pre></div>
+
+<p>or</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">more_set_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">Foo</span> <span class="s">Baz</span>
+</pre></div>
+
+<p>See <a href="#more_set_headers">more_set_headers</a> for more details.</p>
+
+<p>Wildcard <code>*</code> can also be used to specify a header name pattern. For example, the following directive effectively clears <em>any</em> output headers starting by "<code>X-Hidden-</code>":</p>
+
+<div class="highlight highlight-nginx"><pre>
+<span class="k">more_clear_headers</span> <span class="s">'X-Hidden-*'</span><span class="p">;</span>
+</pre></div>
+
+<p>The <code>*</code> wildcard support was first introduced in <a href="#v009">v0.09</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-more_set_input_headers" class="anchor" href="#more_set_input_headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>more_set_input_headers</h2>
+
+<p><strong>syntax:</strong> <em>more_set_input_headers [-r] [-t &lt;content-type list&gt;]... &lt;new-header&gt;...</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>rewrite tail</em></p>
+
+<p>Very much like <a href="#more_set_headers">more_set_headers</a> except that it operates on input headers (or request headers) and it only supports the <code>-t</code> option.</p>
+
+<p>Note that using the <code>-t</code> option in this directive means filtering by the <code>Content-Type</code> <em>request</em> header, rather than the response header.</p>
+
+<p>Behind the scene, use of this directive and its friend <a href="#more_clear_input_headers">more_clear_input_headers</a> will (lazily) register a <code>rewrite phase</code> handler that modifies <code>r-&gt;headers_in</code> the way you specify. Note that it always run at the <em>end</em> of the <code>rewrite</code> so that it runs <em>after</em> the standard <a href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html">rewrite module</a> and works in subrequests as well.</p>
+
+<p>If the <code>-r</code> option is specified, then the headers will be replaced to the new values <em>only if</em> they already exist.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-more_clear_input_headers" class="anchor" href="#more_clear_input_headers" aria-hidden="true"><span class="octicon octicon-link"></span></a>more_clear_input_headers</h2>
+
+<p><strong>syntax:</strong> <em>more_clear_input_headers [-t &lt;content-type list&gt;]... &lt;new-header&gt;...</em></p>
+
+<p><strong>default:</strong> <em>no</em></p>
+
+<p><strong>context:</strong> <em>http, server, location, location if</em></p>
+
+<p><strong>phase:</strong> <em>rewrite tail</em></p>
+
+<p>Clears the specified input headers.</p>
+
+<p>In fact,</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">more_clear_input_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">Foo</span> <span class="s">Baz</span><span class="p">;</span>
+</pre></div>
+
+<p>is exactly equivalent to</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">more_set_input_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">"Foo:</span> <span class="s">"</span> <span class="s">"Baz:</span> <span class="s">"</span><span class="p">;</span>
+</pre></div>
+
+<p>or</p>
+
+<div class="highlight highlight-nginx"><pre>
+   <span class="k">more_set_input_headers</span> <span class="s">-s</span> <span class="mi">404</span> <span class="s">-t</span> <span class="s">'text/plain'</span> <span class="s">Foo</span> <span class="s">Baz</span>
+</pre></div>
+
+<p>See <a href="#more_set_input_headers">more_set_input_headers</a> for more details.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h1>
+
+<ul class="task-list">
+<li>Unlike the standard <a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html">headers</a> module, this module does not automatically take care of the constraint among the <code>Expires</code>, <code>Cache-Control</code>, and <code>Last-Modified</code> headers. You have to get them right yourself or use the <a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html">headers</a> module together with this module.</li>
+<li>You cannot remove the <code>Connection</code> response header using this module because the <code>Connection</code> response header is generated by the standard <code>ngx_http_header_filter_module</code> in the Nginx core, whose output header filter runs always <em>after</em> the filter of this module. The only way to actually remove the <code>Connection</code> header is to patch the Nginx core, that is, editing the C function <code>ngx_http_header_filter</code> in the <code>src/http/ngx_http_header_filter_module.c</code> file.</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>Grab the nginx source code from <a href="http://nginx.org/">nginx.org</a>, for example,
+the version 1.5.8 (see <a href="#compatibility">nginx compatibility</a>), and then build the source with this module:</p>
+
+<div class="highlight highlight-bash"><pre>
+wget <span class="s1">'http://nginx.org/download/nginx-1.5.8.tar.gz'</span>
+tar -xzvf nginx-1.5.8.tar.gz
+<span class="nb">cd </span>nginx-1.5.8/
+
+<span class="c"># Here we assume you would install you nginx under /opt/nginx/.</span>
+./configure --prefix<span class="o">=</span>/opt/nginx <span class="se">\</span>
+    --add-module<span class="o">=</span>/path/to/headers-more-nginx-module
+
+make
+make install
+</pre></div>
+
+<p>Download the latest version of the release tarball of this module from <a href="http://github.com/agentzh/headers-more-nginx-module/tags">headers-more-nginx-module file list</a>.</p>
+
+<p>Also, this module is included and enabled by default in the <a href="http://openresty.org">ngx_openresty bundle</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h1>
+
+<p>The following versions of Nginx should work with this module:</p>
+
+<ul class="task-list">
+<li>
+<strong>1.5.x</strong>                       (last tested: 1.5.8)</li>
+<li>
+<strong>1.4.x</strong>                       (last tested: 1.4.4)</li>
+<li>
+<strong>1.3.x</strong>                       (last tested: 1.3.7)</li>
+<li>
+<strong>1.2.x</strong>                       (last tested: 1.2.9)</li>
+<li>
+<strong>1.1.x</strong>                       (last tested: 1.1.5)</li>
+<li>
+<strong>1.0.x</strong>                       (last tested: 1.0.11)</li>
+<li>
+<strong>0.9.x</strong>                       (last tested: 0.9.4)</li>
+<li>
+<strong>0.8.x</strong>                       (last tested: 0.8.54)</li>
+<li>
+<strong>0.7.x &gt;= 0.7.44</strong>             (last tested: 0.7.68)</li>
+</ul><p>Earlier versions of Nginx like 0.6.x and 0.5.x will <em>not</em> work.</p>
+
+<p>If you find that any particular version of Nginx above 0.7.44 does not work with this module, please consider <a href="#report-bugs">reporting a bug</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-english-mailing-list" class="anchor" href="#english-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>English Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty-en">openresty-en</a> mailing list is for English speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-chinese-mailing-list" class="anchor" href="#chinese-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chinese Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty">openresty</a> mailing list is for Chinese speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-bugs-and-patches" class="anchor" href="#bugs-and-patches" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bugs and Patches</h1>
+
+<p>Please submit bug reports, wishlists, or patches by</p>
+
+<ol class="task-list">
+<li>creating a ticket on the <a href="http://github.com/chaoslawful/lua-nginx-module/issues">GitHub Issue Tracker</a>,</li>
+<li>or posting to the <a href="#community">OpenResty community</a>.</li>
+</ol><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-source-repository" class="anchor" href="#source-repository" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source Repository</h1>
+
+<p>Available on github at <a href="http://github.com/agentzh/headers-more-nginx-module">agentzh/headers-more-nginx-module</a>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-changes" class="anchor" href="#changes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changes</h1>
+
+<p>The changes of every release of this module can be obtained from the ngx_openresty bundle's change logs:</p>
+
+<p><a href="http://openresty.org/#Changes">http://openresty.org/#Changes</a></p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-test-suite" class="anchor" href="#test-suite" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test Suite</h1>
+
+<p>This module comes with a Perl-driven test suite. The <a href="http://github.com/agentzh/headers-more-nginx-module/tree/master/t/">test cases</a> are
+<a href="http://github.com/agentzh/headers-more-nginx-module/blob/master/t/sanity.t">declarative</a> too. Thanks to the <a href="http://search.cpan.org/perldoc?Test::Nginx">Test::Nginx</a> module in the Perl world.</p>
+
+<p>To run it on your side:</p>
+
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ PATH</span><span class="o">=</span>/path/to/your/nginx-with-headers-more-module:<span class="nv">$PATH</span> prove -r t
+</pre></div>
+
+<p>To run the test suite with valgrind's memcheck, use the following commands:</p>
+
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ </span><span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span>/path/to/your/nginx-with-headers-more-module:<span class="nv">$PATH</span>
+<span class="nv">$ TEST_NGINX_USE_VALGRIND</span><span class="o">=</span><span class="m">1</span> prove -r t
+</pre></div>
+
+<p>You need to terminate any Nginx processes before running the test suite if you have changed the Nginx server binary.</p>
+
+<p>Because a single nginx server (by default, <code>localhost:1984</code>) is used across all the test scripts (<code>.t</code> files), it's meaningless to run the test suite in parallel by specifying <code>-jN</code> when invoking the <code>prove</code> utility.</p>
+
+<p>Some parts of the test suite requires modules <a href="http://nginx.org/en/docs/http/ngx_http_proxy_module.html">proxy</a>, <a href="http://nginx.org/en/docs/http/ngx_http_rewrite_module.html">rewrite</a>, and <a href="http://github.com/openresty/echo-nginx-module">echo</a> to be enabled as well when building Nginx.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h1>
+
+<ul class="task-list">
+<li>Support variables in new headers' keys.</li>
+</ul><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-getting-involved" class="anchor" href="#getting-involved" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting involved</h1>
+
+<p>You'll be very welcomed to submit patches to the <a href="#author">author</a> or just ask for a commit bit to the <a href="#source-repository">source repository</a> on GitHub.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors</h1>
+
+<ul class="task-list">
+<li>Yichun "agentzh" Zhang (章亦春) <em>&lt;<a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>&gt;</em>, CloudFlare Inc.</li>
+<li>Bernd Dorn ( <a href="http://www.lovelysystems.com/">http://www.lovelysystems.com/</a> )</li>
+</ul><p>This wiki page is also maintained by the author himself, and everybody is encouraged to improve this page as well.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-copyright--license" class="anchor" href="#copyright--license" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright &amp; License</h1>
+
+<p>The code base is borrowed directly from the standard <a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html">headers</a> module in Nginx 0.8.24. This part of code is copyrighted by Igor Sysoev.</p>
+
+<p>Copyright (c) 2009-2014, Yichun "agentzh" Zhang (章亦春) <a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>, CloudFlare Inc.</p>
+
+<p>Copyright (c) 2010-2013, Bernd Dorn.</p>
+
+<p>This module is licensed under the terms of the BSD license.</p>
+
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:</p>
+
+<ul class="task-list">
+<li>Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</li>
+</ul><p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>See Also</h1>
+
+<ul class="task-list">
+<li>The original thread on the Nginx mailing list that inspires this module's development: <a href="http://forum.nginx.org/read.php?2,11206,11738">"A question about add_header replication"</a>.</li>
+<li>The orginal announcement thread on the Nginx mailing list: <a href="http://forum.nginx.org/read.php?2,23460">"The "headers_more" module: Set and clear output headers...more than 'add'!"</a>.</li>
+<li>The original <a href="http://agentzh.blogspot.com/2009/11/headers-more-module-scripting-input-and.html">blog post</a> about this module's initial development.</li>
+<li>The <a href="http://github.com/openresty/echo-nginx-module">echo module</a> for Nginx module's automated testing.</li>
+<li>The standard <a href="http://nginx.org/en/docs/http/ngx_http_headers_module.html">headers</a> module.</li>
+</ul></article></div>

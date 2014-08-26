@@ -1,0 +1,202 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-passport" class="anchor" href="#passport" aria-hidden="true"><span class="octicon octicon-link"></span></a>Passport</h1>
+
+<p><a href="https://travis-ci.org/jaredhanson/passport"><img src="https://camo.githubusercontent.com/fbc4f0a658c252df9a6f838bb5d444727b8e41fe/68747470733a2f2f7472617669732d63692e6f72672f6a6172656468616e736f6e2f70617373706f72742e706e67" alt="Build" data-canonical-src="https://travis-ci.org/jaredhanson/passport.png" style="max-width:100%;"></a>
+<a href="https://coveralls.io/r/jaredhanson/passport"><img src="https://camo.githubusercontent.com/4283829f502395896db74e4598fc321ec19cd918/68747470733a2f2f636f766572616c6c732e696f2f7265706f732f6a6172656468616e736f6e2f70617373706f72742f62616467652e706e67" alt="Coverage" data-canonical-src="https://coveralls.io/repos/jaredhanson/passport/badge.png" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/jaredhanson/passport"><img src="https://camo.githubusercontent.com/017af586087ea6ee159474acb4c0b42f7b7e0454/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f6a6172656468616e736f6e2f70617373706f72742e706e67" alt="Quality" data-canonical-src="https://codeclimate.com/github/jaredhanson/passport.png" style="max-width:100%;"></a>
+<a href="https://david-dm.org/jaredhanson/passport"><img src="https://camo.githubusercontent.com/2d4e877eafc3ec24b6ad4b15a275c10fadc1e4e5/68747470733a2f2f64617669642d646d2e6f72672f6a6172656468616e736f6e2f70617373706f72742e706e67" alt="Dependencies" data-canonical-src="https://david-dm.org/jaredhanson/passport.png" style="max-width:100%;"></a>
+<a href="https://www.gittip.com/jaredhanson/"><img src="https://camo.githubusercontent.com/55744a8c31a0c63d3c18ffbb91be41584e6504e2/687474703a2f2f696d672e736869656c64732e696f2f6769747469702f6a6172656468616e736f6e2e706e67" alt="Tips" data-canonical-src="http://img.shields.io/gittip/jaredhanson.png" style="max-width:100%;"></a></p>
+
+<p>Passport is <a href="http://expressjs.com/">Express</a>-compatible authentication
+middleware for <a href="http://nodejs.org/">Node.js</a>.</p>
+
+<p>Passport's sole purpose is to authenticate requests, which it does through an
+extensible set of plugins known as <em>strategies</em>.  Passport does not mount
+routes or assume any particular database schema, which maximizes flexiblity and
+allows application-level decisions to be made by the developer.  The API is
+simple: you provide Passport a request to authenticate, and Passport provides
+hooks for controlling what occurs when authentication succeeds or fails.</p>
+
+<h2>
+<a name="user-content-install" class="anchor" href="#install" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install</h2>
+
+<pre><code>$ npm install passport
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h4>
+<a name="user-content-strategies" class="anchor" href="#strategies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Strategies</h4>
+
+<p>Passport uses the concept of strategies to authenticate requests.  Strategies
+can range from verifying username and password credentials, delegated
+authentication using <a href="http://oauth.net/">OAuth</a> (for example, via <a href="http://www.facebook.com/">Facebook</a>
+or <a href="http://twitter.com/">Twitter</a>), or federated authentication using <a href="http://openid.net/">OpenID</a>.</p>
+
+<p>Before authenticating requests, the strategy (or strategies) used by an
+application must be configured.</p>
+
+<pre><code>passport.use(new LocalStrategy(
+  function(username, password, done) {
+    User.findOne({ username: username, password: password }, function (err, user) {
+      done(err, user);
+    });
+  }
+));
+</code></pre>
+
+<h4>
+<a name="user-content-sessions" class="anchor" href="#sessions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sessions</h4>
+
+<p>Passport will maintain persistent login sessions.  In order for persistent
+sessions to work, the authenticated user must be serialized to the session, and
+deserialized when subsequent requests are made.</p>
+
+<p>Passport does not impose any restrictions on how your user records are stored.
+Instead, you provide functions to Passport which implements the necessary
+serialization and deserialization logic.  In a typical application, this will be
+as simple as serializing the user ID, and finding the user by ID when
+deserializing.</p>
+
+<pre><code>passport.serializeUser(function(user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+  User.findById(id, function (err, user) {
+    done(err, user);
+  });
+});
+</code></pre>
+
+<h4>
+<a name="user-content-middleware" class="anchor" href="#middleware" aria-hidden="true"><span class="octicon octicon-link"></span></a>Middleware</h4>
+
+<p>To use Passport in an <a href="http://expressjs.com/">Express</a> or
+<a href="http://senchalabs.github.com/connect/">Connect</a>-based application, configure it
+with the required <code>passport.initialize()</code> middleware.  If your application uses
+persistent login sessions (recommended, but not required), <code>passport.session()</code>
+middleware must also be used.</p>
+
+<pre><code>app.configure(function() {
+  app.use(express.static(__dirname + '/../../public'));
+  app.use(express.cookieParser());
+  app.use(express.bodyParser());
+  app.use(express.session({ secret: 'keyboard cat' }));
+  app.use(passport.initialize());
+  app.use(passport.session());
+  app.use(app.router);
+});
+</code></pre>
+
+<h4>
+<a name="user-content-authenticate-requests" class="anchor" href="#authenticate-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authenticate Requests</h4>
+
+<p>Passport provides an <code>authenticate()</code> function, which is used as route
+middleware to authenticate requests.</p>
+
+<pre><code>app.post('/login', 
+  passport.authenticate('local', { failureRedirect: '/login' }),
+  function(req, res) {
+    res.redirect('/');
+  });
+</code></pre>
+
+<h2>
+<a name="user-content-strategies-1" class="anchor" href="#strategies-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Strategies</h2>
+
+<p>Passport has a comprehensive set of <strong>over 140</strong> authentication strategies
+covering social networking, enterprise integration, API services, and more.
+The <a href="https://github.com/jaredhanson/passport/wiki/Strategies">complete list</a> is
+available on the <a href="https://github.com/jaredhanson/passport/wiki">wiki</a>.</p>
+
+<p>The following table lists commonly used strategies:</p>
+
+<table>
+<thead><tr>
+<th>Strategy</th>
+<th>Protocol</th>
+<th>Developer</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-local">Local</a></td>
+<td>HTML form</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-openid">OpenID</a></td>
+<td>OpenID</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-browserid">BrowserID</a></td>
+<td>BrowserID</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-facebook">Facebook</a></td>
+<td>OAuth 2.0</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-google">Google</a></td>
+<td>OpenID</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-google-oauth">Google</a></td>
+<td>OAuth / OAuth 2.0</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaredhanson/passport-twitter">Twitter</a></td>
+<td>OAuth</td>
+<td><a href="https://github.com/jaredhanson">Jared Hanson</a></td>
+</tr>
+</tbody>
+</table><h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<ul class="task-list">
+<li>For a complete, working example, refer to the <a href="https://github.com/jaredhanson/passport-local/tree/master/examples/login">login example</a>
+included in <a href="https://github.com/jaredhanson/passport-local">passport-local</a>.</li>
+<li>
+<strong>Local Strategy</strong>: Refer to this <a href="http://mherman.org/blog/2013/11/11/user-authentication-with-passport-dot-js/">tutorial</a> on setting up user authentication via LocalStrategy (<code>passport-local</code>), including a working example found on this <a href="https://github.com/mjhea0/passport-local">repo</a>.</li>
+<li>
+<strong>Social Authentication</strong>: Refer to this <a href="http://mherman.org/blog/2013/11/10/social-authentication-with-passport-dot-js/">tutorial</a> for setting up various social authentication strategies, including a working example found on this <a href="https://github.com/mjhea0/passport-examples">repo</a>.</li>
+</ul><h2>
+<a name="user-content-related-modules" class="anchor" href="#related-modules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related Modules</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/jaredhanson/locomotive">Locomotive</a> — Powerful MVC web framework</li>
+<li>
+<a href="https://github.com/jaredhanson/oauthorize">OAuthorize</a> — OAuth service provider toolkit</li>
+<li>
+<a href="https://github.com/jaredhanson/oauth2orize">OAuth2orize</a> — OAuth 2.0 authorization server toolkit</li>
+<li>
+<a href="https://github.com/jaredhanson/connect-ensure-login">connect-ensure-login</a>  — middleware to ensure login sessions</li>
+</ul><p>The <a href="https://github.com/jaredhanson/passport/wiki/Modules">modules</a> page on the
+<a href="https://github.com/jaredhanson/passport/wiki">wiki</a> lists other useful modules
+that build upon or integrate with Passport.</p>
+
+<h2>
+<a name="user-content-tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tests</h2>
+
+<pre><code>$ npm install
+$ make test
+</code></pre>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<ul class="task-list">
+<li><a href="http://github.com/jaredhanson">Jared Hanson</a></li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><a href="http://opensource.org/licenses/MIT">The MIT License</a></p>
+
+<p>Copyright (c) 2011-2014 Jared Hanson &lt;<a href="http://jaredhanson.net/">http://jaredhanson.net/</a>&gt;</p></article></div>

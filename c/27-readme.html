@@ -1,0 +1,324 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-redcarpet-is-written-with-sugar-spice-and-everything-nice" class="anchor" href="#redcarpet-is-written-with-sugar-spice-and-everything-nice" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redcarpet is written with sugar, spice and everything nice</h1>
+
+<p><a href="https://travis-ci.org/vmg/redcarpet"><img src="https://camo.githubusercontent.com/d56d00a5188ad633586bfd0db8e4c74bfee1c06e/68747470733a2f2f7472617669732d63692e6f72672f766d672f7265646361727065742e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/vmg/redcarpet.svg?branch=master" style="max-width:100%;"></a></p>
+
+<p>Redcarpet is a Ruby library for Markdown processing that smells like
+butterflies and popcorn.</p>
+
+<h2>
+<a name="user-content-this-library-is-written-by-people" class="anchor" href="#this-library-is-written-by-people" aria-hidden="true"><span class="octicon octicon-link"></span></a>This library is written by people</h2>
+
+<p>Redcarpet was written by <a href="https://github.com/vmg">Vicent Martí</a>. It is maintained by
+<a href="https://github.com/robin850">Robin Dupret</a> and <a href="https://github.com/mattr-">Matt Rogers</a>.</p>
+
+<p>Redcarpet would not be possible without the <a href="https://www.github.com/vmg/sundown">Sundown</a>
+library and its authors (Natacha Porté, Vicent Martí, and its many awesome contributors).</p>
+
+<h2>
+<a name="user-content-you-can-totally-install-it-as-a-gem" class="anchor" href="#you-can-totally-install-it-as-a-gem" aria-hidden="true"><span class="octicon octicon-link"></span></a>You can totally install it as a Gem</h2>
+
+<p>Redcarpet is readily available as a Ruby gem. It will build some native
+extensions, but the parser is standalone and requires no installed libraries.
+Starting with Redcarpet 3.0, the minimum required Ruby version is 1.9.2 (or Rubinius in 1.9 mode).</p>
+
+<pre><code>$ [sudo] gem install redcarpet
+</code></pre>
+
+<p>If you need to use it with Ruby 1.8.7, you will need to stick with 2.3.0:</p>
+
+<pre><code>$ [sudo] gem install redcarpet -v 2.3.0
+</code></pre>
+
+<p>The Redcarpet source is available at GitHub:</p>
+
+<pre><code>$ git clone git://github.com/vmg/redcarpet.git
+</code></pre>
+
+<h2>
+<a name="user-content-and-its-like-really-simple-to-use" class="anchor" href="#and-its-like-really-simple-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>And it's like <em>really</em> simple to use</h2>
+
+<p>The core of the Redcarpet library is the <code>Redcarpet::Markdown</code> class. Each
+instance of the class is attached to a <code>Renderer</code> object; the Markdown class
+performs parsing of a document and uses the attached renderer to generate
+output.</p>
+
+<p>The <code>Redcarpet::Markdown</code> object is encouraged to be instantiated once with the
+required settings, and reused between parses.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Initializes a Markdown parser</span>
+<span class="n">markdown</span> <span class="o">=</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Markdown</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">renderer</span><span class="p">,</span> <span class="n">extensions</span> <span class="o">=</span> <span class="p">{})</span>
+</pre></div>
+
+<p>Here, the <code>renderer</code> variable refers to a renderer object, inheriting
+from <code>Redcarpet::Render::Base</code>. If the given object has not been
+instantiated, the library will do it with default arguments.</p>
+
+<p>Rendering with the <code>Markdown</code> object is done through <code>Markdown#render</code>.
+Unlike in the RedCloth API, the text to render is passed as an argument
+and not stored inside the <code>Markdown</code> instance, to encourage reusability.
+Example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">markdown</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="s2">"This is *bongos*, indeed."</span><span class="p">)</span>
+<span class="c1"># =&gt; "&lt;p&gt;This is &lt;em&gt;bongos&lt;/em&gt;, indeed.&lt;/p&gt;"</span>
+</pre></div>
+
+<p>You can also specify a hash containing the Markdown extensions which the
+parser will identify. The following extensions are accepted:</p>
+
+<ul class="task-list">
+<li><p><code>:no_intra_emphasis</code>: do not parse emphasis inside of words.
+Strings such as <code>foo_bar_baz</code> will not generate <code>&lt;em&gt;</code> tags.</p></li>
+<li><p><code>:tables</code>: parse tables, PHP-Markdown style.</p></li>
+<li><p><code>:fenced_code_blocks</code>: parse fenced code blocks, PHP-Markdown
+style. Blocks delimited with 3 or more <code>~</code> or backticks will be considered
+as code, without the need to be indented. An optional language name may
+be added at the end of the opening fence for the code block.</p></li>
+<li><p><code>:autolink</code>: parse links even when they are not enclosed in <code>&lt;&gt;</code>
+characters. Autolinks for the http, https and ftp protocols will be
+automatically detected. Email addresses and http links without protocol,
+but starting with <code>www</code> are also handled.</p></li>
+<li><p><code>:disable_indented_code_blocks</code>: do not parse usual markdown
+code blocks. Markdown converts text with four spaces at
+the front of each line to code blocks. This options
+prevents it from doing so. Recommended to use
+with <code>fenced_code_blocks: true</code>.</p></li>
+<li><p><code>:strikethrough</code>: parse strikethrough, PHP-Markdown style.
+Two <code>~</code> characters mark the start of a strikethrough,
+e.g. <code>this is ~~good~~ bad</code>.</p></li>
+<li><p><code>:lax_spacing</code>: HTML blocks do not require to be surrounded by an
+empty line as in the Markdown standard.</p></li>
+<li><p><code>:space_after_headers</code>: A space is always required between the hash
+at the beginning of a header and its name, e.g. <code>#this is my header</code>
+would not be a valid header.</p></li>
+<li><p><code>:superscript</code>: parse superscripts after the <code>^</code> character; contiguous superscripts
+are nested together, and complex values can be enclosed in parenthesis, e.g.
+<code>this is the 2^(nd) time</code>.</p></li>
+<li><p><code>:underline</code>: parse underscored emphasis as underlines.
+<code>This is _underlined_ but this is still *italic*</code>.</p></li>
+<li><p><code>:highlight</code>: parse highlights.
+<code>This is ==highlighted==</code>. It looks like this: <code>&lt;mark&gt;highlighted&lt;/mark&gt;</code></p></li>
+<li><p><code>:quote</code>: parse quotes.
+<code>This is a "quote"</code>. It looks like this: <code>&lt;q&gt;quote&lt;/q&gt;</code></p></li>
+<li><p><code>:footnotes</code>: parse footnotes, PHP-Markdown style. A footnote works very much
+like a reference-style link: it consists of a  marker next to the text (e.g.
+<code>This is a sentence.[^1]</code>) and a footnote definition on its own line anywhere
+within the document (e.g. <code>[^1]: This is a footnote.</code>).</p></li>
+</ul><p>Example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">markdown</span> <span class="o">=</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Markdown</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">HTML</span><span class="p">,</span> <span class="ss">autolink</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span> <span class="ss">tables</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-darling-i-packed-you-a-couple-renderers-for-lunch" class="anchor" href="#darling-i-packed-you-a-couple-renderers-for-lunch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Darling, I packed you a couple renderers for lunch</h2>
+
+<p>Redcarpet comes with two built-in renderers, <code>Redcarpet::Render::HTML</code> and
+<code>Redcarpet::Render::XHTML</code>, which output HTML and XHTML, respectively. These
+renderers are actually implemented in C and hence offer brilliant
+performance — several degrees of magnitude faster than other Ruby Markdown
+solutions.</p>
+
+<p>All the rendering flags that previously applied only to HTML output have
+now been moved to the <code>Redcarpet::Render::HTML</code> class, and may be enabled when
+instantiating the renderer:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">HTML</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">render_options</span> <span class="o">=</span> <span class="p">{})</span>
+</pre></div>
+
+<p>Initializes an HTML renderer. The following flags are available:</p>
+
+<ul class="task-list">
+<li><p><code>:filter_html</code>: do not allow any user-inputted HTML in the output.</p></li>
+<li><p><code>:no_images</code>: do not generate any <code>&lt;img&gt;</code> tags.</p></li>
+<li><p><code>:no_links</code>: do not generate any <code>&lt;a&gt;</code> tags.</p></li>
+<li><p><code>:no_styles</code>: do not generate any <code>&lt;style&gt;</code> tags.</p></li>
+<li><p><code>:escape_html</code>: escape any HTML tags. This option has precedence over
+<code>:no_styles</code>, <code>:no_links</code>, <code>:no_images</code> and <code>:filter_html</code> which means
+that any existing tag will be escaped instead of being removed.</p></li>
+<li><p><code>:safe_links_only</code>: only generate links for protocols which are considered
+safe.</p></li>
+<li><p><code>:with_toc_data</code>: add HTML anchors to each header in the output HTML,
+to allow linking to each section.</p></li>
+<li><p><code>:hard_wrap</code>: insert HTML <code>&lt;br&gt;</code> tags inside on paragraphs where the origin
+Markdown document had newlines (by default, Markdown ignores these newlines).</p></li>
+<li><p><code>:xhtml</code>: output XHTML-conformant tags. This option is always enabled in the
+<code>Render::XHTML</code> renderer.</p></li>
+<li><p><code>:prettify</code>: add prettyprint classes to <code>&lt;code&gt;</code> tags for google-code-prettify.</p></li>
+<li><p><code>:link_attributes</code>: hash of extra attributes to add to links.</p></li>
+</ul><p>Example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">renderer</span> <span class="o">=</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">HTML</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">no_links</span><span class="p">:</span> <span class="kp">true</span><span class="p">,</span> <span class="ss">hard_wrap</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<p>The <code>HTML</code> renderer has an alternate version, <code>Redcarpet::Render::HTML_TOC</code>,
+which will output a table of contents in HTML based on the headers of the
+Markdown document.</p>
+
+<p>When instantiating this render object, you can optionally pass a <code>nesting_level</code>
+option which takes an integer and allows you to make it render only headers
+until a specific level.</p>
+
+<p>Furthermore, the abstract base class <code>Redcarpet::Render::Base</code> can be used
+to write a custom renderer purely in Ruby, or extending an existing renderer.
+See the following section for more information.</p>
+
+<h2>
+<a name="user-content-and-you-can-even-cook-your-own" class="anchor" href="#and-you-can-even-cook-your-own" aria-hidden="true"><span class="octicon octicon-link"></span></a>And you can even cook your own</h2>
+
+<p>Custom renderers are created by inheriting from an existing renderer. The
+built-in renderers, <code>HTML</code> and <code>XHTML</code> may be extended as such:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># create a custom renderer that allows highlighting of code blocks</span>
+<span class="k">class</span> <span class="nc">HTMLwithPygments</span> <span class="o">&lt;</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">HTML</span>
+  <span class="k">def</span> <span class="nf">block_code</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">language</span><span class="p">)</span>
+    <span class="no">Pygments</span><span class="o">.</span><span class="n">highlight</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="ss">lexer</span><span class="p">:</span> <span class="n">language</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">markdown</span> <span class="o">=</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Markdown</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="no">HTMLwithPygments</span><span class="p">,</span> <span class="ss">fenced_code_blocks</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<p>But new renderers can also be created from scratch (see <code>lib/redcarpet/render_man.rb</code> for
+an example implementation of a Manpage renderer)</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ManPage</span> <span class="o">&lt;</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">Base</span>
+  <span class="c1"># you get the drill -- keep going from here</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The following instance methods may be implemented by the renderer:</p>
+
+<h3>
+<a name="user-content-block-level-calls" class="anchor" href="#block-level-calls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Block-level calls</h3>
+
+<p>If the return value of the method is <code>nil</code>, the block will be skipped.
+Therefore, make sure that your renderer has at least a <code>paragraph</code> method
+implemented. If the method for a document element is not implemented, the
+block will be skipped.</p>
+
+<p>Example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">RenderWithoutCode</span> <span class="o">&lt;</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">HTML</span>
+  <span class="k">def</span> <span class="nf">block_code</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">language</span><span class="p">)</span>
+    <span class="kp">nil</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<ul class="task-list">
+<li>block_code(code, language)</li>
+<li>block_quote(quote)</li>
+<li>block_html(raw_html)</li>
+<li>footnotes(content)</li>
+<li>footnote_def(content, number)</li>
+<li>header(text, header_level)</li>
+<li>hrule()</li>
+<li>list(contents, list_type)</li>
+<li>list_item(text, list_type)</li>
+<li>paragraph(text)</li>
+<li>table(header, body)</li>
+<li>table_row(content)</li>
+<li>table_cell(content, alignment)</li>
+</ul><h3>
+<a name="user-content-span-level-calls" class="anchor" href="#span-level-calls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Span-level calls</h3>
+
+<p>A return value of <code>nil</code> will not output any data. If the method for
+a document element is not implemented, the contents of the span will
+be copied verbatim:</p>
+
+<ul class="task-list">
+<li>autolink(link, link_type)</li>
+<li>codespan(code)</li>
+<li>double_emphasis(text)</li>
+<li>emphasis(text)</li>
+<li>image(link, title, alt_text)</li>
+<li>linebreak()</li>
+<li>link(link, title, content)</li>
+<li>raw_html(raw_html)</li>
+<li>triple_emphasis(text)</li>
+<li>strikethrough(text)</li>
+<li>superscript(text)</li>
+<li>underline(text)</li>
+<li>highlight(text)</li>
+<li>quote(text)</li>
+<li>footnote_ref(number)</li>
+</ul><p><strong>Note</strong>: When overriding a renderer's method, be sure to return a HTML
+element with a level that matches the level of that method (e.g. return a
+block element when overriding a block-level callback). Otherwise, the output
+may be unexpected.</p>
+
+<h3>
+<a name="user-content-low-level-rendering" class="anchor" href="#low-level-rendering" aria-hidden="true"><span class="octicon octicon-link"></span></a>Low level rendering</h3>
+
+<ul class="task-list">
+<li>entity(text)</li>
+<li>normal_text(text)</li>
+</ul><h3>
+<a name="user-content-header-of-the-document" class="anchor" href="#header-of-the-document" aria-hidden="true"><span class="octicon octicon-link"></span></a>Header of the document</h3>
+
+<p>Rendered before any another elements:</p>
+
+<ul class="task-list">
+<li>doc_header()</li>
+</ul><h3>
+<a name="user-content-footer-of-the-document" class="anchor" href="#footer-of-the-document" aria-hidden="true"><span class="octicon octicon-link"></span></a>Footer of the document</h3>
+
+<p>Rendered after all the other elements:</p>
+
+<ul class="task-list">
+<li>doc_footer()</li>
+</ul><h3>
+<a name="user-content-prepost-process" class="anchor" href="#prepost-process" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pre/post-process</h3>
+
+<p>Special callback: preprocess or postprocess the whole document before
+or after the rendering process begins:</p>
+
+<ul class="task-list">
+<li>preprocess(full_document)</li>
+<li>postprocess(full_document)</li>
+</ul><p>You can look at
+<a href="http://dev.af83.com/2012/02/27/howto-extend-the-redcarpet2-markdown-lib.html">"How to extend the Redcarpet 2 Markdown library?"</a>
+for some more explanations.</p>
+
+<h2>
+<a name="user-content-also-now-our-pants-are-much-smarter" class="anchor" href="#also-now-our-pants-are-much-smarter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Also, now our Pants are much smarter</h2>
+
+<p>Redcarpet 2 comes with a standalone <a href="http://daringfireball.net/projects/smartypants/">SmartyPants</a> implementation. It is fully
+compliant with the original implementation. It is the fastest SmartyPants
+parser there is, with a difference of several orders of magnitude.</p>
+
+<p>The SmartyPants parser can be found in <code>Redcarpet::Render::SmartyPants</code>. It has
+been implemented as a module, so it can be used standalone or as a mixin.</p>
+
+<p>When mixed with a Renderer class, it will override the <code>postprocess</code> method
+to perform SmartyPants replacements once the rendering is complete.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Mixin</span>
+<span class="k">class</span> <span class="nc">HTMLWithPants</span> <span class="o">&lt;</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">HTML</span>
+  <span class="kp">include</span> <span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">SmartyPants</span>
+<span class="k">end</span>
+
+<span class="c1"># Standalone</span>
+<span class="no">Redcarpet</span><span class="o">::</span><span class="no">Render</span><span class="o">::</span><span class="no">SmartyPants</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="s2">"&lt;p&gt;Oh SmartyPants, you're so crazy...&lt;/p&gt;"</span><span class="p">)</span>
+</pre></div>
+
+<p>SmartyPants works on top of already-rendered HTML, and will ignore replacements
+inside the content of HTML tags and inside specific HTML blocks such as
+<code>&lt;code&gt;</code> or <code>&lt;pre&gt;</code>.</p>
+
+<h2>
+<a name="user-content-boring-legal-stuff" class="anchor" href="#boring-legal-stuff" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boring legal stuff</h2>
+
+<p>Copyright (c) 2011-2014, Vicent Martí</p>
+
+<p>Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.</p></article></div>

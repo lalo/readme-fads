@@ -1,0 +1,148 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-node-memwatch-leak-detection-and-heap-diffing-for-nodejs" class="anchor" href="#node-memwatch-leak-detection-and-heap-diffing-for-nodejs" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>node-memwatch</code>: Leak Detection and Heap Diffing for Node.JS</h1>
+
+<p><a href="http://travis-ci.org/lloyd/node-memwatch"><img src="https://camo.githubusercontent.com/7be03e72f637281dd4a07938d5da5a6caa68e965/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6c6c6f79642f6e6f64652d6d656d77617463682e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/lloyd/node-memwatch.png" style="max-width:100%;"></a></p>
+
+<p><code>node-memwatch</code> is here to help you detect and find memory leaks in
+Node.JS code.  It provides:</p>
+
+<ul class="task-list">
+<li><p>A <code>leak</code> event, emitted when it appears your code is leaking memory.</p></li>
+<li><p>A <code>stats</code> event, emitted occasionally, giving you
+data describing your heap usage and trends over time.</p></li>
+<li><p>A <code>HeapDiff</code> class that lets you compare the state of your heap between
+two points in time, telling you what has been allocated, and what
+has been released.</p></li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<ul class="task-list">
+<li><code>npm install memwatch</code></li>
+</ul><p>or</p>
+
+<ul class="task-list">
+<li><code>git clone git://github.com/lloyd/node-memwatch.git</code></li>
+</ul><h2>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h2>
+
+<p>There are a growing number of tools for debugging and profiling memory
+usage in Node.JS applications, but there is still a need for a
+platform-independent native module that requires no special
+instrumentation.  This module attempts to satisfy that need.</p>
+
+<p>To get started, import <code>node-memwatch</code> like so:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">memwatch</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'memwatch'</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-leak-detection" class="anchor" href="#leak-detection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Leak Detection</h3>
+
+<p>You can then subscribe to <code>leak</code> events.  A <code>leak</code> event will be
+emitted when your heap usage has increased for five consecutive
+garbage collections:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">memwatch</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'leak'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">info</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">});</span>
+</pre></div>
+
+<p>The <code>info</code> object will look something like:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span> <span class="nx">start</span><span class="o">:</span> <span class="nx">Fri</span><span class="p">,</span> <span class="mi">29</span> <span class="nx">Jun</span> <span class="mi">2012</span> <span class="mi">14</span><span class="o">:</span><span class="mi">12</span><span class="o">:</span><span class="mi">13</span> <span class="nx">GMT</span><span class="p">,</span>
+  <span class="nx">end</span><span class="o">:</span> <span class="nx">Fri</span><span class="p">,</span> <span class="mi">29</span> <span class="nx">Jun</span> <span class="mi">2012</span> <span class="mi">14</span><span class="o">:</span><span class="mi">12</span><span class="o">:</span><span class="mi">33</span> <span class="nx">GMT</span><span class="p">,</span>
+  <span class="nx">growth</span><span class="o">:</span> <span class="mi">67984</span><span class="p">,</span>
+  <span class="nx">reason</span><span class="o">:</span> <span class="s1">'heap growth over 5 consecutive GCs (20s) - 11.67 mb/hr'</span> <span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-heap-usage" class="anchor" href="#heap-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Heap Usage</h3>
+
+<p>The best way to evaluate your memory footprint is to look at heap
+usage right aver V8 performs garbage collection.  <code>memwatch</code> does
+exactly this - it checks heap usage only after GC to give you a stable
+baseline of your actual memory usage.</p>
+
+<p>When V8 performs a garbage collection (technically, we're talking
+about a full GC with heap compaction), <code>memwatch</code> will emit a <code>stats</code>
+event.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">memwatch</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'stats'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">stats</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">});</span>
+</pre></div>
+
+<p>The <code>stats</code> data will look something like this:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"num_full_gc"</span><span class="o">:</span> <span class="mi">17</span><span class="p">,</span>
+  <span class="s2">"num_inc_gc"</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span>
+  <span class="s2">"heap_compactions"</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span>
+  <span class="s2">"estimated_base"</span><span class="o">:</span> <span class="mi">2592568</span><span class="p">,</span>
+  <span class="s2">"current_base"</span><span class="o">:</span> <span class="mi">2592568</span><span class="p">,</span>
+  <span class="s2">"min"</span><span class="o">:</span> <span class="mi">2499912</span><span class="p">,</span>
+  <span class="s2">"max"</span><span class="o">:</span> <span class="mi">2592568</span><span class="p">,</span>
+  <span class="s2">"usage_trend"</span><span class="o">:</span> <span class="mi">0</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><code>estimated_base</code> and <code>usage_trend</code> are tracked over time.  If usage
+trend is consistently positive, it indicates that your base heap size
+is continuously growing and you might have a leak.</p>
+
+<p>V8 has its own idea of when it's best to perform a GC, and under a
+heavy load, it may defer this action for some time.  To aid in
+speedier debugging, <code>memwatch</code> provides a <code>gc()</code> method to force V8 to
+do a full GC and heap compaction.</p>
+
+<h3>
+<a name="user-content-heap-diffing" class="anchor" href="#heap-diffing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Heap Diffing</h3>
+
+<p>So far we have seen how <code>memwatch</code> can aid in leak detection.  For
+leak isolation, it provides a <code>HeapDiff</code> class that takes two snapshots
+and computes a diff between them.  For example:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="c1">// Take first snapshot</span>
+<span class="kd">var</span> <span class="nx">hd</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">memwatch</span><span class="p">.</span><span class="nx">HeapDiff</span><span class="p">();</span>
+
+<span class="c1">// do some things ...</span>
+
+<span class="c1">// Take the second snapshot and compute the diff</span>
+<span class="kd">var</span> <span class="nx">diff</span> <span class="o">=</span> <span class="nx">hd</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+</pre></div>
+
+<p>The contents of <code>diff</code> will look something like:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"before"</span><span class="o">:</span> <span class="p">{</span> <span class="s2">"nodes"</span><span class="o">:</span> <span class="mi">11625</span><span class="p">,</span> <span class="s2">"size_bytes"</span><span class="o">:</span> <span class="mi">1869904</span><span class="p">,</span> <span class="s2">"size"</span><span class="o">:</span> <span class="s2">"1.78 mb"</span> <span class="p">},</span>
+  <span class="s2">"after"</span><span class="o">:</span>  <span class="p">{</span> <span class="s2">"nodes"</span><span class="o">:</span> <span class="mi">21435</span><span class="p">,</span> <span class="s2">"size_bytes"</span><span class="o">:</span> <span class="mi">2119136</span><span class="p">,</span> <span class="s2">"size"</span><span class="o">:</span> <span class="s2">"2.02 mb"</span> <span class="p">},</span>
+  <span class="s2">"change"</span><span class="o">:</span> <span class="p">{</span> <span class="s2">"size_bytes"</span><span class="o">:</span> <span class="mi">249232</span><span class="p">,</span> <span class="s2">"size"</span><span class="o">:</span> <span class="s2">"243.39 kb"</span><span class="p">,</span> <span class="s2">"freed_nodes"</span><span class="o">:</span> <span class="mi">197</span><span class="p">,</span>
+    <span class="s2">"allocated_nodes"</span><span class="o">:</span> <span class="mi">10007</span><span class="p">,</span>
+    <span class="s2">"details"</span><span class="o">:</span> <span class="p">[</span>
+      <span class="p">{</span> <span class="s2">"what"</span><span class="o">:</span> <span class="s2">"String"</span><span class="p">,</span>
+        <span class="s2">"size_bytes"</span><span class="o">:</span> <span class="o">-</span><span class="mi">2120</span><span class="p">,</span>  <span class="s2">"size"</span><span class="o">:</span> <span class="s2">"-2.07 kb"</span><span class="p">,</span>  <span class="s2">"+"</span><span class="o">:</span> <span class="mi">3</span><span class="p">,</span>    <span class="s2">"-"</span><span class="o">:</span> <span class="mi">62</span>
+      <span class="p">},</span>
+      <span class="p">{</span> <span class="s2">"what"</span><span class="o">:</span> <span class="s2">"Array"</span><span class="p">,</span>
+        <span class="s2">"size_bytes"</span><span class="o">:</span> <span class="mi">66687</span><span class="p">,</span>  <span class="s2">"size"</span><span class="o">:</span> <span class="s2">"65.13 kb"</span><span class="p">,</span>  <span class="s2">"+"</span><span class="o">:</span> <span class="mi">4</span><span class="p">,</span>    <span class="s2">"-"</span><span class="o">:</span> <span class="mi">78</span>
+      <span class="p">},</span>
+      <span class="p">{</span> <span class="s2">"what"</span><span class="o">:</span> <span class="s2">"LeakingClass"</span><span class="p">,</span>
+        <span class="s2">"size_bytes"</span><span class="o">:</span> <span class="mi">239952</span><span class="p">,</span> <span class="s2">"size"</span><span class="o">:</span> <span class="s2">"234.33 kb"</span><span class="p">,</span> <span class="s2">"+"</span><span class="o">:</span> <span class="mi">9998</span><span class="p">,</span> <span class="s2">"-"</span><span class="o">:</span> <span class="mi">0</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+  <span class="p">}</span>
+</pre></div>
+
+<p>The diff shows that during the sample period, the total number of
+allocated <code>String</code> and <code>Array</code> classes decreased, but <code>Leaking Class</code>
+grew by 9998 allocations.  Hmmm.</p>
+
+<p>You can use <code>HeapDiff</code> in your <code>on('stats')</code> callback; even though it
+takes a memory snapshot, which triggers a V8 GC, it will not trigger
+the <code>stats</code> event itself.  Because that would be silly.</p>
+
+<h2>
+<a name="user-content-future-work" class="anchor" href="#future-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Future Work</h2>
+
+<p>Please see the Issues to share suggestions and contribute!</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><a href="http://wtfpl.org">http://wtfpl.org</a></p></article></div>

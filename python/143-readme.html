@@ -1,0 +1,154 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-xmltodict" class="anchor" href="#xmltodict" aria-hidden="true"><span class="octicon octicon-link"></span></a>xmltodict</h1>
+
+<p><code>xmltodict</code> is a Python module that makes working with XML feel like you are working with <a href="http://docs.python.org/library/json.html">JSON</a>, as in this <a href="http://www.xml.com/pub/a/2006/05/31/converting-between-xml-and-json.html">"spec"</a>:</p>
+
+<p><a href="http://travis-ci.org/martinblech/xmltodict"><img src="https://camo.githubusercontent.com/617b4bf2b1bf2fe092b589df67e8c6f7630d2b6a/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6d617274696e626c6563682f786d6c746f646963742e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/martinblech/xmltodict.png" style="max-width:100%;"></a></p>
+
+<div class="highlight highlight-python"><pre><span class="o">&gt;&gt;&gt;</span> <span class="n">doc</span> <span class="o">=</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">"""</span>
+<span class="s">... &lt;mydocument has="an attribute"&gt;</span>
+<span class="s">...   &lt;and&gt;</span>
+<span class="s">...     &lt;many&gt;elements&lt;/many&gt;</span>
+<span class="s">...     &lt;many&gt;more elements&lt;/many&gt;</span>
+<span class="s">...   &lt;/and&gt;</span>
+<span class="s">...   &lt;plus a="complex"&gt;</span>
+<span class="s">...     element as well</span>
+<span class="s">...   &lt;/plus&gt;</span>
+<span class="s">... &lt;/mydocument&gt;</span>
+<span class="s">... """</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">doc</span><span class="p">[</span><span class="s">'mydocument'</span><span class="p">][</span><span class="s">'@has'</span><span class="p">]</span>
+<span class="s">u'an attribute'</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">doc</span><span class="p">[</span><span class="s">'mydocument'</span><span class="p">][</span><span class="s">'and'</span><span class="p">][</span><span class="s">'many'</span><span class="p">]</span>
+<span class="p">[</span><span class="s">u'elements'</span><span class="p">,</span> <span class="s">u'more elements'</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">doc</span><span class="p">[</span><span class="s">'mydocument'</span><span class="p">][</span><span class="s">'plus'</span><span class="p">][</span><span class="s">'@a'</span><span class="p">]</span>
+<span class="s">u'complex'</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">doc</span><span class="p">[</span><span class="s">'mydocument'</span><span class="p">][</span><span class="s">'plus'</span><span class="p">][</span><span class="s">'#text'</span><span class="p">]</span>
+<span class="s">u'element as well'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-namespace-support" class="anchor" href="#namespace-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Namespace support</h2>
+
+<p>By default, <code>xmltodict</code> does no XML namespace processing (it just treats namespace declarations as regular node attributes), but passing <code>process_namespaces=True</code> will make it expand namespaces for you:</p>
+
+<div class="highlight highlight-python"><pre><span class="o">&gt;&gt;&gt;</span> <span class="n">xml</span> <span class="o">=</span> <span class="s">"""</span>
+<span class="s">... &lt;root xmlns="http://defaultns.com/"</span>
+<span class="s">...       xmlns:a="http://a.com/"</span>
+<span class="s">...       xmlns:b="http://b.com/"&gt;</span>
+<span class="s">...   &lt;x&gt;1&lt;/x&gt;</span>
+<span class="s">...   &lt;a:y&gt;2&lt;/a:y&gt;</span>
+<span class="s">...   &lt;b:z&gt;3&lt;/b:z&gt;</span>
+<span class="s">... &lt;/root&gt;</span>
+<span class="s">... """</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">process_namespaces</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span>
+<span class="o">...</span>     <span class="s">'http://defaultns.com/:root'</span><span class="p">:</span> <span class="p">{</span>
+<span class="o">...</span>         <span class="s">'http://defaultns.com/:x'</span><span class="p">:</span> <span class="s">'1'</span><span class="p">,</span>
+<span class="o">...</span>         <span class="s">'http://a.com/:y'</span><span class="p">:</span> <span class="s">'2'</span><span class="p">,</span>
+<span class="o">...</span>         <span class="s">'http://b.com/:z'</span><span class="p">:</span> <span class="s">'3'</span><span class="p">,</span>
+<span class="o">...</span>     <span class="p">}</span>
+<span class="o">...</span> <span class="p">}</span>
+<span class="bp">True</span>
+</pre></div>
+
+<p>It also lets you collapse certain namespaces to shorthand prefixes, or skip them altogether:</p>
+
+<div class="highlight highlight-python"><pre><span class="o">&gt;&gt;&gt;</span> <span class="n">namespaces</span> <span class="o">=</span> <span class="p">{</span>
+<span class="o">...</span>     <span class="s">'http://defaultns.com/'</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span> <span class="c"># skip this namespace</span>
+<span class="o">...</span>     <span class="s">'http://a.com/'</span><span class="p">:</span> <span class="s">'ns_a'</span><span class="p">,</span> <span class="c"># collapse "http://a.com/" -&gt; "ns_a"</span>
+<span class="o">...</span> <span class="p">}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xml</span><span class="p">,</span> <span class="n">process_namespaces</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">namespaces</span><span class="o">=</span><span class="n">namespaces</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span>
+<span class="o">...</span>     <span class="s">'root'</span><span class="p">:</span> <span class="p">{</span>
+<span class="o">...</span>         <span class="s">'x'</span><span class="p">:</span> <span class="s">'1'</span><span class="p">,</span>
+<span class="o">...</span>         <span class="s">'ns_a:y'</span><span class="p">:</span> <span class="s">'2'</span><span class="p">,</span>
+<span class="o">...</span>         <span class="s">'http://b.com/:z'</span><span class="p">:</span> <span class="s">'3'</span><span class="p">,</span>
+<span class="o">...</span>     <span class="p">},</span>
+<span class="o">...</span> <span class="p">}</span>
+<span class="bp">True</span>
+</pre></div>
+
+<h2>
+<a name="user-content-streaming-mode" class="anchor" href="#streaming-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Streaming mode</h2>
+
+<p><code>xmltodict</code> is very fast (<a href="http://docs.python.org/library/pyexpat.html">Expat</a>-based) and has a streaming mode with a small memory footprint, suitable for big XML dumps like <a href="http://discogs.com/data/">Discogs</a> or <a href="http://dumps.wikimedia.org/">Wikipedia</a>:</p>
+
+<div class="highlight highlight-python"><pre><span class="o">&gt;&gt;&gt;</span> <span class="k">def</span> <span class="nf">handle_artist</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">artist</span><span class="p">):</span>
+<span class="o">...</span>     <span class="k">print</span> <span class="n">artist</span><span class="p">[</span><span class="s">'name'</span><span class="p">]</span>
+<span class="o">...</span>     <span class="k">return</span> <span class="bp">True</span>
+<span class="o">&gt;&gt;&gt;</span> 
+<span class="o">&gt;&gt;&gt;</span> <span class="n">xmltodict</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">GzipFile</span><span class="p">(</span><span class="s">'discogs_artists.xml.gz'</span><span class="p">),</span>
+<span class="o">...</span>     <span class="n">item_depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">item_callback</span><span class="o">=</span><span class="n">handle_artist</span><span class="p">)</span>
+<span class="n">A</span> <span class="n">Perfect</span> <span class="n">Circle</span>
+<span class="n">Fant</span><span class="err">ô</span><span class="n">mas</span>
+<span class="n">King</span> <span class="n">Crimson</span>
+<span class="n">Chris</span> <span class="n">Potter</span>
+<span class="o">...</span>
+</pre></div>
+
+<p>It can also be used from the command line to pipe objects to a script like this:</p>
+
+<div class="highlight highlight-python"><pre><span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">marshal</span>
+<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">article</span> <span class="o">=</span> <span class="n">marshal</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="p">)</span>
+    <span class="k">print</span> <span class="n">article</span><span class="p">[</span><span class="s">'title'</span><span class="p">]</span>
+</pre></div>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>cat enwiki-pages-articles.xml.bz2 <span class="p">|</span> bunzip2 <span class="p">|</span> xmltodict.py <span class="m">2</span> <span class="p">|</span> myscript.py
+AccessibleComputing
+Anarchism
+AfghanistanHistory
+AfghanistanGeography
+AfghanistanPeople
+AfghanistanCommunications
+Autism
+...
+</pre></div>
+
+<p>Or just cache the dicts so you don't have to parse that big XML file again. You do this only once:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>cat enwiki-pages-articles.xml.bz2 <span class="p">|</span> bunzip2 <span class="p">|</span> xmltodict.py <span class="m">2</span> <span class="p">|</span> gzip &gt; enwiki.dicts.gz
+</pre></div>
+
+<p>And you reuse the dicts with every script that needs them:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>cat enwiki.dicts.gz <span class="p">|</span> gunzip <span class="p">|</span> script1.py
+<span class="nv">$ </span>cat enwiki.dicts.gz <span class="p">|</span> gunzip <span class="p">|</span> script2.py
+...
+</pre></div>
+
+<h2>
+<a name="user-content-roundtripping" class="anchor" href="#roundtripping" aria-hidden="true"><span class="octicon octicon-link"></span></a>Roundtripping</h2>
+
+<p>You can also convert in the other direction, using the <code>unparse()</code> method:</p>
+
+<div class="highlight highlight-python"><pre><span class="o">&gt;&gt;&gt;</span> <span class="n">mydict</span> <span class="o">=</span> <span class="p">{</span>
+<span class="o">...</span>     <span class="s">'response'</span><span class="p">:</span> <span class="p">{</span>
+<span class="o">...</span>             <span class="s">'status'</span><span class="p">:</span> <span class="s">'good'</span><span class="p">,</span>
+<span class="o">...</span>             <span class="s">'last_updated'</span><span class="p">:</span> <span class="s">'2014-02-16T23:10:12Z'</span><span class="p">,</span>
+<span class="o">...</span>     <span class="p">}</span>
+<span class="o">...</span> <span class="p">}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span> <span class="n">unparse</span><span class="p">(</span><span class="n">mydict</span><span class="p">,</span> <span class="n">pretty</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="o">&lt;</span><span class="err">?</span><span class="n">xml</span> <span class="n">version</span><span class="o">=</span><span class="s">"1.0"</span> <span class="n">encoding</span><span class="o">=</span><span class="s">"utf-8"</span><span class="err">?</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">response</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">status</span><span class="o">&gt;</span><span class="n">good</span><span class="o">&lt;/</span><span class="n">status</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">last_updated</span><span class="o">&gt;</span><span class="mi">2014</span><span class="o">-</span><span class="mo">02</span><span class="o">-</span><span class="mi">16</span><span class="n">T23</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">12</span><span class="n">Z</span><span class="o">&lt;/</span><span class="n">last_updated</span><span class="o">&gt;</span>
+<span class="o">&lt;/</span><span class="n">response</span><span class="o">&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-ok-how-do-i-get-it" class="anchor" href="#ok-how-do-i-get-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ok, how do I get it?</h2>
+
+<p>You just need to</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>pip install xmltodict
+</pre></div>
+
+<p>There is an <a href="https://admin.fedoraproject.org/pkgdb/acls/name/python-xmltodict">official Fedora package for xmltodict</a>. If you are on Fedora or RHEL, you can do:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>sudo yum install python-xmltodict
+</pre></div>
+
+<h2>
+<a name="user-content-donate" class="anchor" href="#donate" aria-hidden="true"><span class="octicon octicon-link"></span></a>Donate</h2>
+
+<p>If you love <code>xmltodict</code>, consider supporting the author <a href="https://www.gittip.com/martinblech/">on Gittip</a>.</p></article></div>

@@ -1,0 +1,119 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-nodecs" class="anchor" href="#nodecs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Node.cs</h1>
+
+<h3>
+<a name="user-content-evented-io-for-c-net" class="anchor" href="#evented-io-for-c-net" aria-hidden="true"><span class="octicon octicon-link"></span></a>Evented I/O for C# .net</h3>
+
+<p>Node.cs takes it's inspriation from node.js, providing an extremely simple mechanism for building high performance single threaded applications. Node.cs is built on the event loop and http stack from Manos De Mono (see <a href="https://github.com/jacksonh/manos">https://github.com/jacksonh/manos</a>). Node.cs will also allow for interaction with threads, where interaction with the loop for asynchronous operation is not possible. </p>
+
+<pre><code>public class Webserver : INodeProgram
+{
+    public int Main( string[] args )
+    {
+        new HttpServer( ( IHttpTransaction t ) =&gt;
+        {
+            Console.WriteLine( "got connection {0}", t.Request.Path );
+
+            t.Response.Write( "&lt;H1&gt;Hello World!&lt;/H1&gt;" );
+            t.Response.End();
+
+        }, IOLoop.Instance ).Listen( "10.0.2.15", 8080 );
+
+        Console.WriteLine( "listening on 8080" );
+
+        return 0;
+    }
+}
+</code></pre>
+
+<p>to run this you would simply call node against your compiled assembly - </p>
+
+<pre><code>% node example.webserver.dll
+    listening on 8080
+</code></pre>
+
+<h3>
+<a name="user-content-timers" class="anchor" href="#timers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Timers</h3>
+
+<p>Node.cs defines a simple mechanism to have an action take place after some
+specified time in the future</p>
+
+<pre><code>var timers = Timers.Instance;
+int handle = timers.ScheduleTimer( TimeSpan.FromSeconds( 5 ),
+             Console.WriteLine( "hello in the future" );
+</code></pre>
+
+<p>Scheduling a timer returns a handle to that timer that can be used to cancel it
+before it fires</p>
+
+<pre><code>timers.CancelTimer( handle );
+</code></pre>
+
+<h3>
+<a name="user-content-task-completion" class="anchor" href="#task-completion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Task Completion</h3>
+
+<p>A common issue with frameworks such as this are the deep, deep nests that get
+created as a result of chaining multiple indipendant async calls within calls.
+Another common issue is the ability to know when a loop of async calls have completed so that further action can be taken. </p>
+
+<p>Node.cs defines a class Complete that allows you to indicate when an async
+method is executing and when that method has completed.</p>
+
+<pre><code>Complete c = new Complete();
+Timers t = Timers.Instance;
+
+var ts = TimeSpan.FromSeconds( 5 );
+
+int ii = 0;
+
+c.AsyncWork( () =&gt; t.ScheduleTimer( ts, h =&gt; {ii++; c.AsyncWorkComplete();} ));
+c.AsyncWork( () =&gt; t.ScheduleTimer( ts, h =&gt; {ii++;c.AsyncWorkComplete();} ));
+
+c.OnComplete( () =&gt; Console.WriteLine( "Completed " + ii));
+</code></pre>
+
+<p>A timeout can also be specified to call you back if the async actions have not 
+completed in the specified time :</p>
+
+<pre><code>c.OnComplete( (rec ) =&gt; Console.WriteLine( "Completed " + ii + res ),TimeSpan.FromSeconds( 2 ));
+</code></pre>
+
+<h3>
+<a name="user-content-threading" class="anchor" href="#threading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Threading</h3>
+
+<p>Even though Node.cs is aimed at single threaded use cases, there might be times
+where you'll want to kick off another thread for async functionality that is 
+not yet provided by the framework.</p>
+
+<p>Node.cs defines a class Boundary that aims to make interacting with your main
+node app from other threads simple.</p>
+
+<pre><code>Thread.CurrentThread.Name = "LoopThread";
+var boundary = Boundary.Instance;
+Thread t = new Thread( () =&gt; 
+{
+    Console.WriteLine( "{0} thread running", Thread.CurrentThread.Name );
+    boundary.ExecuteOnTargetLoop( () =&gt; 
+    {
+        Console.WriteLine( "Boundary call executed on  {0}", 
+                Thread.CurrentThread.Name );
+    });
+});
+t.Name = "BH Thread";
+t.Start();
+
+% node example.multithreaded.dll
+Starting program
+BH Thread thread running
+Boundary call executed on  LoopThread
+</code></pre>
+
+<h3>
+<a name="user-content-udp" class="anchor" href="#udp" aria-hidden="true"><span class="octicon octicon-link"></span></a>UDP</h3>
+
+<p>UDP Message Receiving is supported, sending support will be added shortly.</p>
+
+<pre><code>UDPReceiver rec = new UDPReceiver( loop );
+rec.Listen( "10.0.2.15", 6656 );
+rec.OnRead( ( u, b, c, rep ) =&gt; Console.WriteLine( rep + " " + Encoding.ASCII.GetString( b, 0, c )));
+</code></pre></article></div>

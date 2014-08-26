@@ -1,0 +1,368 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-simple-python-version-management-pyenv" class="anchor" href="#simple-python-version-management-pyenv" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple Python Version Management: pyenv</h1>
+
+<p><a href="https://travis-ci.org/yyuu/pyenv"><img src="https://camo.githubusercontent.com/339020c15e31a010fdf4f1ac179880840ac99c6e/68747470733a2f2f7472617669732d63692e6f72672f797975752f7079656e762e706e67" alt="Build Status" data-canonical-src="https://travis-ci.org/yyuu/pyenv.png" style="max-width:100%;"></a></p>
+
+<p>pyenv lets you easily switch between multiple versions of Python. It's
+simple, unobtrusive, and follows the UNIX tradition of single-purpose
+tools that do one thing well.</p>
+
+<p>This project was forked from <a href="https://github.com/sstephenson/rbenv">rbenv</a> and
+<a href="https://github.com/sstephenson/ruby-build">ruby-build</a>, and modified for Python.</p>
+
+<p><a href="https://camo.githubusercontent.com/b92579e6602ff49094d6ecd60aa55429e1b434bf/687474703a2f2f6779617a6f2e636f6d2f39633832396661666466356535383838306338323033343963346539313937652e706e673f31333436343134323637" target="_blank"><img src="https://camo.githubusercontent.com/b92579e6602ff49094d6ecd60aa55429e1b434bf/687474703a2f2f6779617a6f2e636f6d2f39633832396661666466356535383838306338323033343963346539313937652e706e673f31333436343134323637" width="849" height="454" data-canonical-src="http://gyazo.com/9c829fafdf5e58880c820349c4e9197e.png?1346414267" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-pyenv-does" class="anchor" href="#pyenv-does" aria-hidden="true"><span class="octicon octicon-link"></span></a>pyenv <em>does...</em>
+</h3>
+
+<ul class="task-list">
+<li>Let you <strong>change the global Python version</strong> on a per-user basis.</li>
+<li>Provide support for <strong>per-project Python versions</strong>.</li>
+<li>Allow you to <strong>override the Python version</strong> with an environment
+variable.</li>
+<li>Search commands from <strong>multiple versions of Python at a time</strong>.
+This may be helpful to test across Python versions with <a href="http://pypi.python.org/pypi/tox">tox</a>.</li>
+</ul><h3>
+<a name="user-content-in-contrast-with-pythonbrew-and-pythonz-pyenv-does-not" class="anchor" href="#in-contrast-with-pythonbrew-and-pythonz-pyenv-does-not" aria-hidden="true"><span class="octicon octicon-link"></span></a>In contrast with pythonbrew and pythonz, pyenv <em>does not...</em>
+</h3>
+
+<ul class="task-list">
+<li>
+<strong>Depend on Python itself.</strong> pyenv was made from pure shell scripts.
+There is no bootstrap problem of Python.</li>
+<li>
+<strong>Need to be loaded into your shell.</strong> Instead, pyenv's shim
+approach works by adding a directory to your <code>$PATH</code>.</li>
+<li>
+<strong>Manage virtualenv.</strong> Of course, you can create <a href="http://pypi.python.org/pypi/virtualenv">virtualenv</a>
+yourself, or <a href="https://github.com/yyuu/pyenv-virtualenv">pyenv-virtualenv</a>
+to automate the process.</li>
+</ul><hr><h2>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h2>
+
+<ul class="task-list">
+<li>
+<strong><a href="#how-it-works">How It Works</a></strong>
+
+<ul class="task-list">
+<li><a href="#understanding-path">Understanding PATH</a></li>
+<li><a href="#understanding-shims">Understanding Shims</a></li>
+<li><a href="#choosing-the-python-version">Choosing the Python Version</a></li>
+<li><a href="#locating-the-python-installation">Locating the Python Installation</a></li>
+</ul>
+</li>
+<li>
+<strong><a href="#installation">Installation</a></strong>
+
+<ul class="task-list">
+<li>
+<a href="#basic-github-checkout">Basic GitHub Checkout</a>
+
+<ul class="task-list">
+<li><a href="#upgrading">Upgrading</a></li>
+<li><a href="#homebrew-on-mac-os-x">Homebrew on Mac OS X</a></li>
+<li><a href="#neckbeard-configuration">Neckbeard Configuration</a></li>
+<li><a href="#uninstalling-python-versions">Uninstalling Python Versions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><a href="#command-reference">Command Reference</a></strong></li>
+<li>
+<strong><a href="#development">Development</a></strong>
+
+<ul class="task-list">
+<li><a href="#version-history">Version History</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+</li>
+</ul><hr><h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How It Works</h2>
+
+<p>At a high level, pyenv intercepts Python commands using shim
+executables injected into your <code>PATH</code>, determines which Python version
+has been specified by your application, and passes your commands along
+to the correct Python installation.</p>
+
+<h3>
+<a name="user-content-understanding-path" class="anchor" href="#understanding-path" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding PATH</h3>
+
+<p>When you run a command like <code>python</code> or <code>pip</code>, your operating system
+searches through a list of directories to find an executable file with
+that name. This list of directories lives in an environment variable
+called <code>PATH</code>, with each directory in the list separated by a colon:</p>
+
+<pre><code>/usr/local/bin:/usr/bin:/bin
+</code></pre>
+
+<p>Directories in <code>PATH</code> are searched from left to right, so a matching
+executable in a directory at the beginning of the list takes
+precedence over another one at the end. In this example, the
+<code>/usr/local/bin</code> directory will be searched first, then <code>/usr/bin</code>,
+then <code>/bin</code>.</p>
+
+<h3>
+<a name="user-content-understanding-shims" class="anchor" href="#understanding-shims" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding Shims</h3>
+
+<p>pyenv works by inserting a directory of <em>shims</em> at the front of your
+<code>PATH</code>:</p>
+
+<pre><code>~/.pyenv/shims:/usr/local/bin:/usr/bin:/bin
+</code></pre>
+
+<p>Through a process called <em>rehashing</em>, pyenv maintains shims in that
+directory to match every Python command across every installed version
+of Python—<code>python</code>, <code>pip</code>, and so on.</p>
+
+<p>Shims are lightweight executables that simply pass your command along
+to pyenv. So with pyenv installed, when you run, say, <code>pip</code>, your
+operating system will do the following:</p>
+
+<ul class="task-list">
+<li>Search your <code>PATH</code> for an executable file named <code>pip</code>
+</li>
+<li>Find the pyenv shim named <code>pip</code> at the beginning of your <code>PATH</code>
+</li>
+<li>Run the shim named <code>pip</code>, which in turn passes the command along to
+pyenv</li>
+</ul><h3>
+<a name="user-content-choosing-the-python-version" class="anchor" href="#choosing-the-python-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing the Python Version</h3>
+
+<p>When you execute a shim, pyenv determines which Python version to use by
+reading it from the following sources, in this order:</p>
+
+<ol class="task-list">
+<li><p>The <code>PYENV_VERSION</code> environment variable (if specified). You can use
+the <a href="#pyenv-shell"><code>pyenv shell</code></a> command to set this environment
+variable in your current shell session.</p></li>
+<li><p>The application-specific <code>.python-version</code> file in the current
+directory (if present). You can modify the current directory's
+<code>.python-version</code> file with the <a href="#pyenv-local"><code>pyenv local</code></a>
+command.</p></li>
+<li><p>The first <code>.python-version</code> file found (if any) by searching each parent
+directory, until reaching the root of your filesystem.</p></li>
+<li><p>The global <code>~/.pyenv/version</code> file. You can modify this file using
+the <a href="#pyenv-global"><code>pyenv global</code></a> command. If the global version
+file is not present, pyenv assumes you want to use the "system"
+Python. (In other words, whatever version would run if pyenv weren't in your
+<code>PATH</code>.)</p></li>
+</ol><h3>
+<a name="user-content-locating-the-python-installation" class="anchor" href="#locating-the-python-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Locating the Python Installation</h3>
+
+<p>Once pyenv has determined which version of Python your application has
+specified, it passes the command along to the corresponding Python
+installation.</p>
+
+<p>Each Python version is installed into its own directory under
+<code>~/.pyenv/versions</code>. </p>
+
+<p>For example, you might have these versions installed:</p>
+
+<ul class="task-list">
+<li><code>~/.pyenv/versions/2.7.6/</code></li>
+<li><code>~/.pyenv/versions/3.3.3/</code></li>
+<li><code>~/.pyenv/versions/pypy-2.2.1/</code></li>
+</ul><p>As far as pyenv is concerned, version names are simply the directories in
+<code>~/.pyenv/versions</code>.</p>
+
+<hr><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>If you're on Mac OS X, consider <a href="#homebrew-on-mac-os-x">installing with Homebrew</a>.</p>
+
+<h3>
+<a name="user-content-the-automatic-installer" class="anchor" href="#the-automatic-installer" aria-hidden="true"><span class="octicon octicon-link"></span></a>The automatic installer</h3>
+
+<p>Visit my other project:
+<a href="https://github.com/yyuu/pyenv-installer">https://github.com/yyuu/pyenv-installer</a></p>
+
+<h3>
+<a name="user-content-basic-github-checkout" class="anchor" href="#basic-github-checkout" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic GitHub Checkout</h3>
+
+<p>This will get you going with the latest version of pyenv and make it
+easy to fork and contribute any changes back upstream.</p>
+
+<ol class="task-list">
+<li>
+<p><strong>Check out pyenv where you want it installed.</strong> 
+A good place to choose is <code>$HOME/.pyenv</code> (but you can install it somewhere else).</p>
+
+<pre><code>$ cd
+$ git clone git://github.com/yyuu/pyenv.git .pyenv
+</code></pre>
+</li>
+<li>
+<p><strong>Define environment variable <code>PYENV_ROOT</code></strong> to point to the path where
+pyenv repo is cloned and add <code>$PYENV_ROOT/bin</code> to your <code>$PATH</code> for access 
+to the <code>pyenv</code> command-line utility.</p>
+
+<pre><code>$ echo 'export PYENV_ROOT="$HOME/.pyenv"' &gt;&gt; ~/.bash_profile
+$ echo 'export PATH="$PYENV_ROOT/bin:$PATH"' &gt;&gt; ~/.bash_profile
+</code></pre>
+
+<p><strong>Zsh note</strong>: Modify your <code>~/.zshenv</code> file instead of <code>~/.bash_profile</code>.
+<strong>Ubuntu note</strong>: Modify your <code>~/.bashrc</code> file instead of <code>~/.bash_profile</code>.</p>
+</li>
+<li>
+<p><strong>Add <code>pyenv init</code> to your shell</strong> to enable shims and autocompletion.</p>
+
+<pre><code>$ echo 'eval "$(pyenv init -)"' &gt;&gt; ~/.bash_profile
+</code></pre>
+
+<p><strong>Zsh note</strong>: Modify your <code>~/.zshenv</code> file instead of <code>~/.bash_profile</code>.
+<strong>Ubuntu note</strong>: Modify your <code>~/.bashrc</code> file instead of <code>~/.bash_profile</code>.</p>
+</li>
+<li>
+<p><strong>Restart your shell so the path changes take effect.</strong> 
+You can now begin using pyenv.</p>
+
+<pre><code>$ exec $SHELL
+</code></pre>
+</li>
+<li>
+<p><strong>Install Python versions into <code>$PYENV_ROOT/versions</code>.</strong> 
+For example, to install Python 2.7.6, download and unpack the source, then run:</p>
+
+<pre><code>$ pyenv install 2.7.6
+</code></pre>
+
+<p><strong>NOTE:</strong> If you need to pass configure option to build, please use
+<code>CONFIGURE_OPTS</code> environment variable.</p>
+
+<p><strong>NOTE:</strong> If you are having trouble installing a python version, 
+please visit the wiki page about 
+<a href="https://github.com/yyuu/pyenv/wiki/Common-build-problems">Common Build Problems</a></p>
+</li>
+<li>
+<p><strong>Rebuild the shim binaries.</strong> 
+You should do this any time you install a new Python binary. 
+(Examples: installing a new Python version, or installing a package that provides a binary.)</p>
+
+<pre><code>$ pyenv rehash
+</code></pre>
+</li>
+</ol><h4>
+<a name="user-content-upgrading" class="anchor" href="#upgrading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading</h4>
+
+<p>If you've installed pyenv using the instructions above, you can
+upgrade your installation at any time using git.</p>
+
+<p>To upgrade to the latest development version of pyenv, use <code>git pull</code>:</p>
+
+<pre><code>$ cd ~/.pyenv
+$ git pull
+</code></pre>
+
+<p>To upgrade to a specific release of pyenv, check out the corresponding tag:</p>
+
+<pre><code>$ cd ~/.pyenv
+$ git fetch
+$ git tag
+v0.1.0
+$ git checkout v0.1.0
+</code></pre>
+
+<h3>
+<a name="user-content-homebrew-on-mac-os-x" class="anchor" href="#homebrew-on-mac-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Homebrew on Mac OS X</h3>
+
+<p>You can also install pyenv using the <a href="http://brew.sh">Homebrew</a> 
+package manager for Mac OS X.</p>
+
+<pre><code>$ brew update
+$ brew install pyenv
+</code></pre>
+
+<p>To upgrade pyenv in the future, just use <code>upgrade</code> instead of <code>install</code>.</p>
+
+<p>After installation, you'll still need to add <code>eval "$(pyenv init -)"</code> to your
+profile (as stated in the caveats). You'll only ever have to do this
+once.</p>
+
+<h3>
+<a name="user-content-neckbeard-configuration" class="anchor" href="#neckbeard-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Neckbeard Configuration</h3>
+
+<p>Skip this section unless you must know what every line in your shell
+profile is doing.</p>
+
+<p><code>pyenv init</code> is the only command that crosses the line of loading
+extra commands into your shell. Coming from rvm, some of you might be
+opposed to this idea. Here's what <code>pyenv init</code> actually does:</p>
+
+<ol class="task-list">
+<li><p><strong>Sets up your shims path.</strong> This is the only requirement for pyenv to
+function properly. You can do this by hand by prepending
+<code>~/.pyenv/shims</code> to your <code>$PATH</code>.</p></li>
+<li><p><strong>Installs autocompletion.</strong> This is entirely optional but pretty
+useful. Sourcing <code>~/.pyenv/completions/pyenv.bash</code> will set that
+up. There is also a <code>~/.pyenv/completions/pyenv.zsh</code> for Zsh
+users.</p></li>
+<li><p><strong>Rehashes shims.</strong> From time to time you'll need to rebuild your
+shim files. Doing this on init makes sure everything is up to
+date. You can always run <code>pyenv rehash</code> manually.</p></li>
+<li><p><strong>Installs the sh dispatcher.</strong> This bit is also optional, but allows
+pyenv and plugins to change variables in your current shell, making
+commands like <code>pyenv shell</code> possible. The sh dispatcher doesn't do
+anything crazy like override <code>cd</code> or hack your shell prompt, but if
+for some reason you need <code>pyenv</code> to be a real script rather than a
+shell function, you can safely skip it.</p></li>
+</ol><p>To see exactly what happens under the hood for yourself, run <code>pyenv init -</code>.</p>
+
+<h3>
+<a name="user-content-uninstalling-python-versions" class="anchor" href="#uninstalling-python-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Uninstalling Python Versions</h3>
+
+<p>As time goes on, you will accumulate Python versions in your
+<code>~/.pyenv/versions</code> directory.</p>
+
+<p>To remove old Python versions, <code>pyenv uninstall</code> command to automate
+the removal process.</p>
+
+<p>Alternatively, simply <code>rm -rf</code> the directory of the version you want 
+to remove. You can find the directory of a particular Python version 
+with the <code>pyenv prefix</code> command, e.g. <code>pyenv prefix 2.6.8</code>.</p>
+
+<hr><h2>
+<a name="user-content-command-reference" class="anchor" href="#command-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Reference</h2>
+
+<p>See <a href="COMMANDS.md">COMMANDS.md</a>.</p>
+
+<hr><h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<p>The pyenv source code is <a href="https://github.com/yyuu/pyenv">hosted on GitHub</a>. 
+It's clean, modular, and easy to understand--even if you're not a shell hacker.</p>
+
+<p>Please feel free to submit Pull Requests and report bugs on the 
+<a href="https://github.com/yyuu/pyenv/issues">issue tracker</a>.</p>
+
+<h3>
+<a name="user-content-version-history" class="anchor" href="#version-history" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version History</h3>
+
+<p>See <a href="CHANGELOG.md">CHANGELOG.md</a>.</p>
+
+<h3>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h3>
+
+<p>(The MIT license)</p>
+
+<ul class="task-list">
+<li>Copyright (c) 2013 Yamashita, Yuu</li>
+<li>Copyright (c) 2013 Sam Stephenson</li>
+</ul><p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

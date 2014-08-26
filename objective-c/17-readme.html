@@ -1,0 +1,536 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-mantle" class="anchor" href="#mantle" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mantle</h1>
+
+<p>Mantle makes it easy to write a simple model layer for your Cocoa or Cocoa Touch
+application.</p>
+
+<h2>
+<a name="user-content-the-typical-model-object" class="anchor" href="#the-typical-model-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Typical Model Object</h2>
+
+<p>What's wrong with the way model objects are usually written in Objective-C?</p>
+
+<p>Let's use the <a href="http://developer.github.com">GitHub API</a> for demonstration. How
+would one typically represent a <a href="http://developer.github.com/v3/issues/#get-a-single-issue">GitHub
+issue</a> in
+Objective-C?</p>
+
+<div class="highlight highlight-objc"><pre><span class="k">typedef</span> <span class="k">enum</span> <span class="o">:</span> <span class="bp">NSUInteger</span> <span class="p">{</span>
+    <span class="n">GHIssueStateOpen</span><span class="p">,</span>
+    <span class="n">GHIssueStateClosed</span>
+<span class="p">}</span> <span class="n">GHIssueState</span><span class="p">;</span>
+
+<span class="k">@interface</span> <span class="nc">GHIssue</span> : <span class="bp">NSObject</span> <span class="o">&lt;</span><span class="bp">NSCoding</span><span class="p">,</span> <span class="bp">NSCopying</span><span class="o">&gt;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSURL</span> <span class="o">*</span><span class="n">URL</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSURL</span> <span class="o">*</span><span class="n">HTMLURL</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSNumber</span> <span class="o">*</span><span class="n">number</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="n">GHIssueState</span> <span class="n">state</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">reporterLogin</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSDate</span> <span class="o">*</span><span class="n">updatedAt</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="n">GHUser</span> <span class="o">*</span><span class="n">assignee</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSDate</span> <span class="o">*</span><span class="n">retrievedAt</span><span class="p">;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">title</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">body</span><span class="p">;</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">initWithDictionary:</span><span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">dictionary</span><span class="p">;</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<div class="highlight highlight-objc"><pre><span class="k">@implementation</span> <span class="nc">GHIssue</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSDateFormatter</span> <span class="o">*</span><span class="p">)</span><span class="nf">dateFormatter</span> <span class="p">{</span>
+    <span class="bp">NSDateFormatter</span> <span class="o">*</span><span class="n">dateFormatter</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSDateFormatter</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+    <span class="n">dateFormatter</span><span class="p">.</span><span class="n">locale</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSLocale</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithLocaleIdentifier</span><span class="p">:</span><span class="s">@"en_US_POSIX"</span><span class="p">];</span>
+    <span class="n">dateFormatter</span><span class="p">.</span><span class="n">dateFormat</span> <span class="o">=</span> <span class="s">@"yyyy-MM-dd'T'HH:mm:ss'Z'"</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">dateFormatter</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">initWithDictionary:</span><span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">dictionary</span> <span class="p">{</span>
+    <span class="nb">self</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">init</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="nb">nil</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+
+    <span class="n">_URL</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSURL</span> <span class="nl">URLWithString</span><span class="p">:</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"url"</span><span class="p">]];</span>
+    <span class="n">_HTMLURL</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSURL</span> <span class="nl">URLWithString</span><span class="p">:</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"html_url"</span><span class="p">]];</span>
+    <span class="n">_number</span> <span class="o">=</span> <span class="n">dictionary</span><span class="p">[</span><span class="s">@"number"</span><span class="p">];</span>
+
+    <span class="k">if</span> <span class="p">([</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"state"</span><span class="p">]</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@"open"</span><span class="p">])</span> <span class="p">{</span>
+        <span class="n">_state</span> <span class="o">=</span> <span class="n">GHIssueStateOpen</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">([</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"state"</span><span class="p">]</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@"closed"</span><span class="p">])</span> <span class="p">{</span>
+        <span class="n">_state</span> <span class="o">=</span> <span class="n">GHIssueStateClosed</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">_title</span> <span class="o">=</span> <span class="p">[</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"title"</span><span class="p">]</span> <span class="k">copy</span><span class="p">];</span>
+    <span class="n">_retrievedAt</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">];</span>
+    <span class="n">_body</span> <span class="o">=</span> <span class="p">[</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"body"</span><span class="p">]</span> <span class="k">copy</span><span class="p">];</span>
+    <span class="n">_reporterLogin</span> <span class="o">=</span> <span class="p">[</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"user"</span><span class="p">][</span><span class="s">@"login"</span><span class="p">]</span> <span class="k">copy</span><span class="p">];</span>
+    <span class="n">_assignee</span> <span class="o">=</span> <span class="p">[[</span><span class="n">GHUser</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithDictionary</span><span class="p">:</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"assignee"</span><span class="p">]];</span>
+
+    <span class="n">_updatedAt</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="k">class</span><span class="p">.</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="n">dictionary</span><span class="p">[</span><span class="s">@"updated_at"</span><span class="p">]];</span>
+
+    <span class="k">return</span> <span class="nb">self</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">initWithCoder:</span><span class="p">(</span><span class="bp">NSCoder</span> <span class="o">*</span><span class="p">)</span><span class="nv">coder</span> <span class="p">{</span>
+    <span class="nb">self</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">init</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="nb">nil</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+
+    <span class="n">_URL</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"URL"</span><span class="p">];</span>
+    <span class="n">_HTMLURL</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"HTMLURL"</span><span class="p">];</span>
+    <span class="n">_number</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"number"</span><span class="p">];</span>
+    <span class="n">_state</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeUnsignedIntegerForKey</span><span class="p">:</span><span class="s">@"state"</span><span class="p">];</span>
+    <span class="n">_title</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"title"</span><span class="p">];</span>
+    <span class="n">_retrievedAt</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">];</span>
+    <span class="n">_body</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"body"</span><span class="p">];</span>
+    <span class="n">_reporterLogin</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"reporterLogin"</span><span class="p">];</span>
+    <span class="n">_assignee</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"assignee"</span><span class="p">];</span>
+    <span class="n">_updatedAt</span> <span class="o">=</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">decodeObjectForKey</span><span class="p">:</span><span class="s">@"updatedAt"</span><span class="p">];</span>
+
+    <span class="k">return</span> <span class="nb">self</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">encodeWithCoder:</span><span class="p">(</span><span class="bp">NSCoder</span> <span class="o">*</span><span class="p">)</span><span class="nv">coder</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">URL</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">URL</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"URL"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">HTMLURL</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">HTMLURL</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"HTMLURL"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">number</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">number</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"number"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">title</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">title</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"title"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">body</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">body</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"body"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">reporterLogin</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">reporterLogin</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"reporterLogin"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">assignee</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">assignee</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"assignee"</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">updatedAt</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeObject</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">updatedAt</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"updatedAt"</span><span class="p">];</span>
+
+    <span class="p">[</span><span class="n">coder</span> <span class="nl">encodeUnsignedInteger</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">state</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"state"</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nf">copyWithZone:</span><span class="p">(</span><span class="n">NSZone</span> <span class="o">*</span><span class="p">)</span><span class="nv">zone</span> <span class="p">{</span>
+    <span class="n">GHIssue</span> <span class="o">*</span><span class="n">issue</span> <span class="o">=</span> <span class="p">[[</span><span class="nb">self</span><span class="p">.</span><span class="k">class</span> <span class="nl">allocWithZone</span><span class="p">:</span><span class="n">zone</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_URL</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">URL</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_HTMLURL</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">HTMLURL</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_number</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">number</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_state</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">state</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_reporterLogin</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">reporterLogin</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_assignee</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">assignee</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_updatedAt</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">updatedAt</span><span class="p">;</span>
+
+    <span class="n">issue</span><span class="p">.</span><span class="n">title</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">title</span><span class="p">;</span>
+    <span class="n">issue</span><span class="o">-&gt;</span><span class="n">_retrievedAt</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">];</span>
+    <span class="n">issue</span><span class="p">.</span><span class="n">body</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">body</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">issue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="bp">NSUInteger</span><span class="p">)</span><span class="nf">hash</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">number</span><span class="p">.</span><span class="n">hash</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">isEqual:</span><span class="p">(</span><span class="n">GHIssue</span> <span class="o">*</span><span class="p">)</span><span class="nv">issue</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">[</span><span class="n">issue</span> <span class="nl">isKindOfClass</span><span class="p">:</span><span class="n">GHIssue</span><span class="p">.</span><span class="k">class</span><span class="p">])</span> <span class="k">return</span> <span class="nb">NO</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">number</span> <span class="nl">isEqual</span><span class="p">:</span><span class="n">issue</span><span class="p">.</span><span class="n">number</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">title</span> <span class="nl">isEqual</span><span class="p">:</span><span class="n">issue</span><span class="p">.</span><span class="n">title</span><span class="p">]</span> <span class="o">&amp;&amp;</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">body</span> <span class="nl">isEqual</span><span class="p">:</span><span class="n">issue</span><span class="p">.</span><span class="n">body</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<p>Whew, that's a lot of boilerplate for something so simple! And, even then, there
+are some problems that this example doesn't address:</p>
+
+<ul class="task-list">
+<li>There's no way to update a <code>GHIssue</code> with new data from the server.</li>
+<li>There's no way to turn a <code>GHIssue</code> <em>back</em> into JSON.</li>
+<li>
+<code>GHIssueState</code> shouldn't be encoded as-is. If the enum changes in the future,
+existing archives might break.</li>
+<li>If the interface of <code>GHIssue</code> changes down the road, existing archives might
+break.</li>
+</ul><h2>
+<a name="user-content-why-not-use-core-data" class="anchor" href="#why-not-use-core-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Not Use Core Data?</h2>
+
+<p>Core Data solves certain problems very well. If you need to execute complex
+queries across your data, handle a huge object graph with lots of relationships,
+or support undo and redo, Core Data is an excellent fit.</p>
+
+<p>It does, however, come with a couple of pain points:</p>
+
+<ul class="task-list">
+<li>
+<strong>There's still a lot of boilerplate.</strong> Managed objects reduce some of the
+boilerplate seen above, but Core Data has plenty of its own. Correctly
+setting up a Core Data stack (with a persistent store and persistent store
+coordinator) and executing fetches can take many lines of code.</li>
+<li>
+<strong>It's hard to get right.</strong> Even experienced developers can make mistakes
+when using Core Data, and the framework is not forgiving.</li>
+</ul><p>If you're just trying to access some JSON objects, Core Data can be a lot of
+work for little gain.</p>
+
+<p>Nonetheless, if you're using or want to use Core Data in your app already,
+Mantle can still be a convenient translation layer between the API and your
+managed model objects.</p>
+
+<h2>
+<a name="user-content-mtlmodel" class="anchor" href="#mtlmodel" aria-hidden="true"><span class="octicon octicon-link"></span></a>MTLModel</h2>
+
+<p>Enter
+<strong><a href="https://github.com/github/Mantle/blob/master/Mantle/MTLModel.h">MTLModel</a></strong>.
+This is what <code>GHIssue</code> looks like inheriting from <code>MTLModel</code>:</p>
+
+<div class="highlight highlight-objc"><pre><span class="k">typedef</span> <span class="k">enum</span> <span class="o">:</span> <span class="bp">NSUInteger</span> <span class="p">{</span>
+    <span class="n">GHIssueStateOpen</span><span class="p">,</span>
+    <span class="n">GHIssueStateClosed</span>
+<span class="p">}</span> <span class="n">GHIssueState</span><span class="p">;</span>
+
+<span class="k">@interface</span> <span class="nc">GHIssue</span> : <span class="nc">MTLModel</span> <span class="o">&lt;</span><span class="n">MTLJSONSerializing</span><span class="o">&gt;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSURL</span> <span class="o">*</span><span class="n">URL</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSURL</span> <span class="o">*</span><span class="n">HTMLURL</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSNumber</span> <span class="o">*</span><span class="n">number</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="n">GHIssueState</span> <span class="n">state</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">reporterLogin</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="n">GHUser</span> <span class="o">*</span><span class="n">assignee</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSDate</span> <span class="o">*</span><span class="n">updatedAt</span><span class="p">;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">title</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">body</span><span class="p">;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">,</span> <span class="k">readonly</span><span class="p">)</span> <span class="bp">NSDate</span> <span class="o">*</span><span class="n">retrievedAt</span><span class="p">;</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<div class="highlight highlight-objc"><pre><span class="k">@implementation</span> <span class="nc">GHIssue</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSDateFormatter</span> <span class="o">*</span><span class="p">)</span><span class="nf">dateFormatter</span> <span class="p">{</span>
+    <span class="bp">NSDateFormatter</span> <span class="o">*</span><span class="n">dateFormatter</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSDateFormatter</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+    <span class="n">dateFormatter</span><span class="p">.</span><span class="n">locale</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">NSLocale</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithLocaleIdentifier</span><span class="p">:</span><span class="s">@"en_US_POSIX"</span><span class="p">];</span>
+    <span class="n">dateFormatter</span><span class="p">.</span><span class="n">dateFormat</span> <span class="o">=</span> <span class="s">@"yyyy-MM-dd'T'HH:mm:ss'Z'"</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">dateFormatter</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nf">JSONKeyPathsByPropertyKey</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="l">@{</span>
+        <span class="s">@"URL"</span><span class="o">:</span> <span class="s">@"url"</span><span class="p">,</span>
+        <span class="s">@"HTMLURL"</span><span class="o">:</span> <span class="s">@"html_url"</span><span class="p">,</span>
+        <span class="s">@"reporterLogin"</span><span class="o">:</span> <span class="s">@"user.login"</span><span class="p">,</span>
+        <span class="s">@"assignee"</span><span class="o">:</span> <span class="s">@"assignee"</span><span class="p">,</span>
+        <span class="s">@"updatedAt"</span><span class="o">:</span> <span class="s">@"updated_at"</span>
+    <span class="l">}</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSValueTransformer</span> <span class="o">*</span><span class="p">)</span><span class="nf">URLJSONTransformer</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">NSValueTransformer</span> <span class="nl">valueTransformerForName</span><span class="p">:</span><span class="n">MTLURLValueTransformerName</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSValueTransformer</span> <span class="o">*</span><span class="p">)</span><span class="nf">HTMLURLJSONTransformer</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">NSValueTransformer</span> <span class="nl">valueTransformerForName</span><span class="p">:</span><span class="n">MTLURLValueTransformerName</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSValueTransformer</span> <span class="o">*</span><span class="p">)</span><span class="nf">stateJSONTransformer</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">NSValueTransformer</span> <span class="nl">mtl_valueMappingTransformerWithDictionary</span><span class="p">:</span><span class="l">@{</span>
+        <span class="s">@"open"</span><span class="o">:</span> <span class="l">@(</span><span class="n">GHIssueStateOpen</span><span class="l">)</span><span class="p">,</span>
+        <span class="s">@"closed"</span><span class="o">:</span> <span class="l">@(</span><span class="n">GHIssueStateClosed</span><span class="l">)</span>
+    <span class="l">}</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSValueTransformer</span> <span class="o">*</span><span class="p">)</span><span class="nf">assigneeJSONTransformer</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">NSValueTransformer</span> <span class="nl">mtl_JSONDictionaryTransformerWithModelClass</span><span class="p">:</span><span class="n">GHUser</span><span class="p">.</span><span class="k">class</span><span class="p">];</span>
+<span class="p">}</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSValueTransformer</span> <span class="o">*</span><span class="p">)</span><span class="nf">updatedAtJSONTransformer</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTLValueTransformer</span> <span class="nl">reversibleTransformerWithForwardBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="n">str</span><span class="p">];</span>
+    <span class="p">}</span> <span class="nl">reverseBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSDate</span> <span class="o">*</span><span class="n">date</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">dateFormatter</span> <span class="nl">stringFromDate</span><span class="p">:</span><span class="n">date</span><span class="p">];</span>
+    <span class="p">}];</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">instancetype</span><span class="p">)</span><span class="nf">initWithDictionary:</span><span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">dictionaryValue</span> <span class="nf">error:</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">**</span><span class="p">)</span><span class="nv">error</span> <span class="p">{</span>
+    <span class="nb">self</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">initWithDictionary</span><span class="p">:</span><span class="n">dictionaryValue</span> <span class="nl">error</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="nb">nil</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+
+    <span class="c1">// Store a value that needs to be determined locally upon initialization.</span>
+    <span class="n">_retrievedAt</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSDate</span> <span class="n">date</span><span class="p">];</span>
+
+    <span class="k">return</span> <span class="nb">self</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<p>Notably absent from this version are implementations of <code>&lt;NSCoding&gt;</code>,
+<code>&lt;NSCopying&gt;</code>, <code>-isEqual:</code>, and <code>-hash</code>. By inspecting the <code>@property</code>
+declarations you have in your subclass, <code>MTLModel</code> can provide default
+implementations for all these methods.</p>
+
+<p>The problems with the original example all happen to be fixed as well:</p>
+
+<blockquote>
+<p>There's no way to update a <code>GHIssue</code> with new data from the server.</p>
+</blockquote>
+
+<p><code>MTLModel</code> has an extensible <code>-mergeValuesForKeysFromModel:</code> method, which makes
+it easy to specify how new model data should be integrated.</p>
+
+<blockquote>
+<p>There's no way to turn a <code>GHIssue</code> <em>back</em> into JSON.</p>
+</blockquote>
+
+<p>This is where reversible transformers really come in handy. <code>+[MTLJSONAdapter
+JSONDictionaryFromModel:]</code> can transform any model object conforming to
+<code>&lt;MTLJSONSerializing&gt;</code> back into a JSON dictionary. <code>+[MTLJSONAdapter
+JSONArrayForModels:]</code> is the same but turns an array of model objects into an JSON array of dictionaries.</p>
+
+<blockquote>
+<p>If the interface of <code>GHIssue</code> changes down the road, existing archives might break.</p>
+</blockquote>
+
+<p><code>MTLModel</code> automatically saves the version of the model object that was used for
+archival. When unarchiving, <code>-decodeValueForKey:withCoder:modelVersion:</code> will
+be invoked if overridden, giving you a convenient hook to upgrade old data.</p>
+
+<h2>
+<a name="user-content-mtljsonserializing" class="anchor" href="#mtljsonserializing" aria-hidden="true"><span class="octicon octicon-link"></span></a>MTLJSONSerializing</h2>
+
+<p>In order to serialize your model objects from or into JSON, you need to
+implement <code>&lt;MTLJSONSerializing&gt;</code> in your <code>MTLModel</code> subclass. This allows you to
+use <code>MTLJSONAdapter</code> to convert your model objects from JSON and back:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="n">XYUser</span> <span class="o">*</span><span class="n">user</span> <span class="o">=</span> <span class="p">[</span><span class="n">MTLJSONAdapter</span> <span class="nl">modelOfClass</span><span class="p">:</span><span class="n">XYUser</span><span class="p">.</span><span class="k">class</span> <span class="nl">fromJSONDictionary</span><span class="p">:</span><span class="n">JSONDictionary</span> <span class="nl">error</span><span class="p">:</span><span class="o">&amp;</span><span class="n">error</span><span class="p">];</span>
+</pre></div>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">JSONDictionary</span> <span class="o">=</span> <span class="p">[</span><span class="n">MTLJSONAdapter</span> <span class="nl">JSONDictionaryFromModel</span><span class="p">:</span><span class="n">user</span><span class="p">];</span>
+</pre></div>
+
+<h3>
+<a name="user-content-jsonkeypathsbypropertykey" class="anchor" href="#jsonkeypathsbypropertykey" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>+JSONKeyPathsByPropertyKey</code>
+</h3>
+
+<p>The dictionary returned by this method specifies how your model object's
+properties map to the keys in the JSON representation. Properties that map to
+<code>NSNull</code> will not be present in the JSON representation, for example:</p>
+
+<div class="highlight highlight-objc"><pre>
+<span class="k">@interface</span> <span class="nc">XYUser</span> : <span class="nc">MTLModel</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">readonly</span><span class="p">,</span> <span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">readonly</span><span class="p">,</span> <span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="bp">NSDate</span> <span class="o">*</span><span class="n">createdAt</span><span class="p">;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">readonly</span><span class="p">,</span> <span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">,</span> <span class="k">getter</span> <span class="o">=</span> <span class="n">isMeUser</span><span class="p">)</span> <span class="kt">BOOL</span> <span class="n">meUser</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">readonly</span><span class="p">,</span> <span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="n">XYHelper</span> <span class="o">*</span><span class="n">helper</span><span class="p">;</span>
+
+<span class="k">@end</span>
+
+<span class="k">@implementation</span> <span class="nc">XYUser</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nf">JSONKeyPathsByPropertyKey</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="l">@{</span>
+        <span class="s">@"createdAt"</span><span class="o">:</span> <span class="s">@"created_at"</span><span class="p">,</span>
+        <span class="s">@"meUser"</span><span class="o">:</span> <span class="bp">NSNull</span><span class="p">.</span><span class="n">null</span>
+    <span class="l">}</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="kt">instancetype</span><span class="p">)</span><span class="nf">initWithDictionary:</span><span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">dictionaryValue</span> <span class="nf">error:</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">**</span><span class="p">)</span><span class="nv">error</span> <span class="p">{</span>
+    <span class="nb">self</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span> <span class="nl">initWithDictionary</span><span class="p">:</span><span class="n">dictionaryValue</span> <span class="nl">error</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">self</span> <span class="o">==</span> <span class="nb">nil</span><span class="p">)</span> <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+
+    <span class="n">_helper</span> <span class="o">=</span> <span class="p">[</span><span class="n">XYHelper</span> <span class="nl">helperWithName</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">name</span> <span class="nl">createdAt</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">createdAt</span><span class="p">];</span>
+
+    <span class="k">return</span> <span class="nb">self</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<p>In this example, the <code>XYUser</code> class declares four properties that Mantle
+handles in different ways:</p>
+
+<ul class="task-list">
+<li>
+<code>name</code> is implicitly mapped to a key of the same name in the JSON
+representation.</li>
+<li>
+<code>createdAt</code> is converted to its snake case equivalent.</li>
+<li>
+<code>meUser</code> is not serialized into JSON.</li>
+<li>
+<code>helper</code> is initialized exactly once after JSON deserialization.</li>
+</ul><p>Use <code>-[NSDictionary mtl_dictionaryByAddingEntriesFromDictionary:]</code> if your
+model's superclass also implements <code>MTLJSONSerializing</code> to merge their mappings.</p>
+
+<p>When deserializing JSON using
+<code>+[MTLJSONAdapter modelOfClass:fromJSONDictionary:error:]</code>, JSON keys that don't
+correspond to a property name or have an explicit mapping are ignored:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">JSONDictionary</span> <span class="o">=</span> <span class="l">@{</span>
+    <span class="s">@"name"</span><span class="o">:</span> <span class="s">@"john"</span><span class="p">,</span>
+    <span class="s">@"created_at"</span><span class="o">:</span> <span class="s">@"2013/07/02 16:40:00 +0000"</span><span class="p">,</span>
+    <span class="s">@"plan"</span><span class="o">:</span> <span class="s">@"lite"</span>
+<span class="l">}</span><span class="p">;</span>
+
+<span class="n">XYUser</span> <span class="o">*</span><span class="n">user</span> <span class="o">=</span> <span class="p">[</span><span class="n">MTLJSONAdapter</span> <span class="nl">modelOfClass</span><span class="p">:</span><span class="n">XYUser</span><span class="p">.</span><span class="k">class</span> <span class="nl">fromJSONDictionary</span><span class="p">:</span><span class="n">JSONDictionary</span> <span class="nl">error</span><span class="p">:</span><span class="o">&amp;</span><span class="n">error</span><span class="p">];</span>
+</pre></div>
+
+<p>Here, the <code>plan</code> would be ignored since it neither matches a property name of
+<code>XYUser</code> nor is it otherwise mapped in <code>+JSONKeyPathsByPropertyKey</code>.</p>
+
+<h3>
+<a name="user-content-jsontransformerforkey" class="anchor" href="#jsontransformerforkey" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>+JSONTransformerForKey:</code>
+</h3>
+
+<p>Implement this optional method to convert a property from a different type when
+deserializing from JSON.</p>
+
+<pre><code>+ (NSValueTransformer *)JSONTransformerForKey:(NSString *)key {
+    if ([key isEqualToString:@"createdAt"]) {
+        return [NSValueTransformer valueTransformerForName:XYDateValueTransformerName];
+    }
+
+    return nil;
+}
+</code></pre>
+
+<p>For added convenience, if you implement <code>+&lt;key&gt;JSONTransformer</code>,
+<code>MTLJSONAdapter</code> will use the result of that method instead. For example, dates
+that are commonly represented as strings in JSON can be transformed to <code>NSDate</code>s
+like so:</p>
+
+<div class="highlight highlight-objc"><pre><span class="p">+</span> <span class="p">(</span><span class="bp">NSValueTransformer</span> <span class="o">*</span><span class="p">)</span><span class="nf">createdAtJSONTransformer</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">MTLValueTransformer</span> <span class="nl">reversibleTransformerWithForwardBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="n">str</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">dateFormatter</span> <span class="nl">dateFromString</span><span class="p">:</span><span class="n">str</span><span class="p">];</span>
+    <span class="p">}</span> <span class="nl">reverseBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSDate</span> <span class="o">*</span><span class="n">date</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">dateFormatter</span> <span class="nl">stringFromDate</span><span class="p">:</span><span class="n">date</span><span class="p">];</span>
+    <span class="p">}];</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>If the transformer is reversible, it will also be used when serializing the
+object into JSON.</p>
+
+<h3>
+<a name="user-content-classforparsingjsondictionary" class="anchor" href="#classforparsingjsondictionary" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>+classForParsingJSONDictionary:</code>
+</h3>
+
+<p>If you are implementing a class cluster, implement this optional method to
+determine which subclass of your base class should be used when deserializing an
+object from JSON.</p>
+
+<div class="highlight highlight-objc"><pre><span class="k">@interface</span> <span class="nc">XYMessage</span> : <span class="nc">MTLModel</span>
+
+<span class="k">@end</span>
+
+<span class="k">@interface</span> <span class="nc">XYTextMessage</span>: <span class="nc">XYMessage</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">readonly</span><span class="p">,</span> <span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">body</span><span class="p">;</span>
+
+<span class="k">@end</span>
+
+<span class="k">@interface</span> <span class="nc">XYPictureMessage</span> : <span class="nc">XYMessage</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">readonly</span><span class="p">,</span> <span class="k">nonatomic</span><span class="p">,</span> <span class="k">strong</span><span class="p">)</span> <span class="bp">NSURL</span> <span class="o">*</span><span class="n">imageURL</span><span class="p">;</span>
+
+<span class="k">@end</span>
+
+<span class="k">@implementation</span> <span class="nc">XYMessage</span>
+
+<span class="p">+</span> <span class="p">(</span><span class="kt">Class</span><span class="p">)</span><span class="nf">classForParsingJSONDictionary:</span><span class="p">(</span><span class="bp">NSDictionary</span> <span class="o">*</span><span class="p">)</span><span class="nv">JSONDictionary</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">JSONDictionary</span><span class="p">[</span><span class="s">@"image_url"</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">XYPictureMessage</span><span class="p">.</span><span class="k">class</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">JSONDictionary</span><span class="p">[</span><span class="s">@"body"</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">nil</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">XYTextMessage</span><span class="p">.</span><span class="k">class</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">NSAssert</span><span class="p">(</span><span class="nb">NO</span><span class="p">,</span> <span class="s">@"No matching class for the JSON dictionary '%@'."</span><span class="p">,</span> <span class="n">JSONDictionary</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nb">self</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<p><code>MTLJSONAdapter</code> will then pick the class based on the JSON dictionary you pass
+in:</p>
+
+<div class="highlight highlight-objc"><pre><span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">textMessage</span> <span class="o">=</span> <span class="l">@{</span>
+    <span class="s">@"id"</span><span class="o">:</span> <span class="mi">@1</span><span class="p">,</span>
+    <span class="s">@"body"</span><span class="o">:</span> <span class="s">@"Hello World!"</span>
+<span class="l">}</span><span class="p">;</span>
+
+<span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">pictureMessage</span> <span class="o">=</span> <span class="l">@{</span>
+    <span class="s">@"id"</span><span class="o">:</span> <span class="mi">@2</span><span class="p">,</span>
+    <span class="s">@"image_url"</span><span class="o">:</span> <span class="s">@"http://example.com/lolcat.gif"</span>
+<span class="l">}</span><span class="p">;</span>
+
+<span class="n">XYTextMessage</span> <span class="o">*</span><span class="n">messageA</span> <span class="o">=</span> <span class="p">[</span><span class="n">MTLJSONAdapter</span> <span class="nl">modelOfClass</span><span class="p">:</span><span class="n">XYMessage</span><span class="p">.</span><span class="k">class</span> <span class="nl">fromJSONDictionary</span><span class="p">:</span><span class="n">textMessage</span> <span class="nl">error</span><span class="p">:</span><span class="nb">NULL</span><span class="p">];</span>
+
+<span class="n">XYPictureMessage</span> <span class="o">*</span><span class="n">messageB</span> <span class="o">=</span> <span class="p">[</span><span class="n">MTLJSONAdapter</span> <span class="nl">modelOfClass</span><span class="p">:</span><span class="n">XYMessage</span><span class="p">.</span><span class="k">class</span> <span class="nl">fromJSONDictionary</span><span class="p">:</span><span class="n">pictureMessage</span> <span class="nl">error</span><span class="p">:</span><span class="nb">NULL</span><span class="p">];</span>
+</pre></div>
+
+<h2>
+<a name="user-content-persistence" class="anchor" href="#persistence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Persistence</h2>
+
+<p>Mantle doesn't automatically persist your objects for you. However, <code>MTLModel</code>
+does conform to <code>&lt;NSCoding&gt;</code>, so model objects can be archived to disk using
+<code>NSKeyedArchiver</code>.</p>
+
+<p>If you need something more powerful, or want to avoid keeping your whole model
+in memory at once, Core Data may be a better choice.</p>
+
+<h2>
+<a name="user-content-system-requirements" class="anchor" href="#system-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>System Requirements</h2>
+
+<p>Mantle supports OS X 10.7+ and iOS 5.0+.</p>
+
+<h2>
+<a name="user-content-importing-mantle" class="anchor" href="#importing-mantle" aria-hidden="true"><span class="octicon octicon-link"></span></a>Importing Mantle</h2>
+
+<p>To add Mantle to your application:</p>
+
+<ol class="task-list">
+<li>Add the Mantle repository as a submodule of your application's repository.</li>
+<li>Run <code>script/bootstrap</code> from within the Mantle folder.</li>
+<li>Drag and drop <code>Mantle.xcodeproj</code> into your application's Xcode project or
+workspace.</li>
+<li>On the "Build Phases" tab of your application target, add Mantle to the
+"Link Binary With Libraries" phase.
+
+<ul class="task-list">
+<li>
+<strong>On iOS</strong>, add <code>libMantle.a</code>.</li>
+<li>
+<strong>On OS X</strong>, add <code>Mantle.framework</code>. Mantle must also be added to any
+"Copy Frameworks" build phase. If you don't already have one, simply add a
+"Copy Files" build phase and target the "Frameworks" destination.</li>
+</ul>
+</li>
+<li>Add <code>"$(BUILD_ROOT)/../IntermediateBuildFilesPath/UninstalledProducts/include" $(inherited)</code>
+to the "Header Search Paths" build setting (this is only
+necessary for archive builds, but it has no negative effect otherwise).</li>
+<li>
+<strong>For iOS targets</strong>, add <code>-ObjC</code> to the "Other Linker Flags" build setting.</li>
+<li>
+<strong>If you added Mantle to a project (not a workspace)</strong>, you will also need
+to add the appropriate Mantle target to the "Target Dependencies" of your
+application.</li>
+</ol><p>If you would prefer to use <a href="http://cocoapods.org">CocoaPods</a>, there are some
+<a href="https://github.com/CocoaPods/Specs/tree/master/Mantle">Mantle podspecs</a> that
+have been generously contributed by third parties.</p>
+
+<p>If you’re instead developing Mantle on its own, use the <code>Mantle.xcworkspace</code> file.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Mantle is released under the MIT license. See
+<a href="https://github.com/github/Mantle/blob/master/LICENSE.md">LICENSE.md</a>.</p>
+
+<h2>
+<a name="user-content-more-info" class="anchor" href="#more-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>More Info</h2>
+
+<p>Have a question? Please <a href="https://github.com/Mantle/Mantle/issues/new">open an issue</a>!</p>
+
+<p>Mantle also has a chat room on <a href="https://slack.com/">Slack</a>. If you'd like
+to join, just <a href="https://github.com/Mantle/Mantle/pull/357">provide your email address</a>
+and we'll happily send you an invite!</p></article></div>

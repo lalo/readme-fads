@@ -1,0 +1,788 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>See <a href="http://servicestack.net/features">servicestack.net/features</a> for an overview.</p>
+
+<p>Join the <a href="https://plus.google.com/u/0/communities/112445368900682590445">ServiceStack Google+ Community</a> or
+follow <a href="http://twitter.com/servicestack">@ServiceStack</a> for project updates. 
+You can catch some community members hanging out on <a href="http://jabbr.net/#/rooms/servicestack">JabbR</a>.</p>
+
+<p>Service Stack is a high-performance .NET web services platform that simplifies the development of high-performance 
+REST (JSON, XML, JSV, HTML, MsgPack, ProtoBuf, CSV) and WCF SOAP <a href="https://github.com/ServiceStack/ServiceStack/wiki/Service-Stack-Web-Services">Web Services</a>. </p>
+
+<h1>
+<a name="user-content-simple-rest-service-example" class="anchor" href="#simple-rest-service-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple REST service example</h1>
+
+<p>This example is also available as a <a href="https://github.com/ServiceStack/ServiceStack/blob/master/tests/ServiceStack.WebHost.Endpoints.Tests/NewApiTodos.cs">stand-alone integration test</a>:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="c1">//Web Service Host Configuration</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">AppHost</span> <span class="p">:</span> <span class="n">AppSelfHostBase</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="nf">AppHost</span><span class="p">()</span> <span class="p">:</span> <span class="k">base</span><span class="p">(</span><span class="s">"TODOs Tests"</span><span class="p">,</span> <span class="k">typeof</span><span class="p">(</span><span class="n">Todo</span><span class="p">).</span><span class="n">Assembly</span><span class="p">)</span> <span class="p">{}</span>
+
+    <span class="k">public</span> <span class="k">override</span> <span class="k">void</span> <span class="nf">Configure</span><span class="p">(</span><span class="n">Container</span> <span class="n">container</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">container</span><span class="p">.</span><span class="n">Register</span><span class="p">(</span><span class="k">new</span> <span class="n">TodoRepository</span><span class="p">());</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">//REST Resource DTO</span>
+<span class="na">[Route("/todos")]</span>
+<span class="na">[Route("/todos/{Ids}")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">Todos</span> <span class="p">:</span> <span class="n">IReturn</span><span class="p">&lt;</span><span class="n">List</span><span class="p">&lt;</span><span class="n">Todo</span><span class="p">&gt;&gt;</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">long</span><span class="p">[]</span> <span class="n">Ids</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="nf">Todos</span><span class="p">(</span><span class="k">params</span> <span class="kt">long</span><span class="p">[]</span> <span class="n">ids</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="n">Ids</span> <span class="p">=</span> <span class="n">ids</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="na">[Route("/todos", "POST")]</span>
+<span class="na">[Route("/todos/{Id}", "PUT")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">Todo</span> <span class="p">:</span> <span class="n">IReturn</span><span class="p">&lt;</span><span class="n">Todo</span><span class="p">&gt;</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="kt">long</span> <span class="n">Id</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">Content</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">int</span> <span class="n">Order</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="k">public</span> <span class="kt">bool</span> <span class="n">Done</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">TodosService</span> <span class="p">:</span> <span class="n">Service</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="n">TodoRepository</span> <span class="n">Repository</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>  <span class="c1">//Injected by IOC</span>
+
+    <span class="k">public</span> <span class="kt">object</span> <span class="nf">Get</span><span class="p">(</span><span class="n">Todos</span> <span class="n">request</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">return</span> <span class="n">request</span><span class="p">.</span><span class="n">Ids</span><span class="p">.</span><span class="n">IsEmpty</span><span class="p">()</span>
+            <span class="p">?</span> <span class="n">Repository</span><span class="p">.</span><span class="n">GetAll</span><span class="p">()</span>
+            <span class="p">:</span> <span class="n">Repository</span><span class="p">.</span><span class="n">GetByIds</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="n">Ids</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="kt">object</span> <span class="nf">Post</span><span class="p">(</span><span class="n">Todo</span> <span class="n">todo</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">return</span> <span class="n">Repository</span><span class="p">.</span><span class="n">Store</span><span class="p">(</span><span class="n">todo</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="kt">object</span> <span class="nf">Put</span><span class="p">(</span><span class="n">Todo</span> <span class="n">todo</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">return</span> <span class="n">Repository</span><span class="p">.</span><span class="n">Store</span><span class="p">(</span><span class="n">todo</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">void</span> <span class="nf">Delete</span><span class="p">(</span><span class="n">Todos</span> <span class="n">request</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Repository</span><span class="p">.</span><span class="n">DeleteByIds</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="n">Ids</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-calling-the-above-todo-rest-service-from-any-cnet-client" class="anchor" href="#calling-the-above-todo-rest-service-from-any-cnet-client" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="https://github.com/ServiceStack/ServiceStack/wiki/C%23-client">Calling the above TODO REST service from any C#/.NET Client</a>
+</h3>
+
+<div class="highlight highlight-csharp"><pre><span class="c1">//no code-gen required, can re-use above DTO's</span>
+
+<span class="kt">var</span> <span class="n">client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">JsonServiceClient</span><span class="p">(</span><span class="n">BaseUri</span><span class="p">);</span>
+<span class="n">List</span><span class="p">&lt;</span><span class="n">Todo</span><span class="p">&gt;</span> <span class="n">all</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">Get</span><span class="p">(</span><span class="k">new</span> <span class="n">Todos</span><span class="p">());</span>           <span class="c1">// Count = 0</span>
+
+<span class="kt">var</span> <span class="n">todo</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">Post</span><span class="p">(</span>
+    <span class="k">new</span> <span class="n">Todo</span> <span class="p">{</span> <span class="n">Content</span> <span class="p">=</span> <span class="s">"New TODO"</span><span class="p">,</span> <span class="n">Order</span> <span class="p">=</span> <span class="m">1</span> <span class="p">});</span>  <span class="c1">// todo.Id = 1</span>
+<span class="n">all</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">Get</span><span class="p">(</span><span class="k">new</span> <span class="n">Todos</span><span class="p">());</span>                      <span class="c1">// Count = 1</span>
+
+<span class="n">todo</span><span class="p">.</span><span class="n">Content</span> <span class="p">=</span> <span class="s">"Updated TODO"</span><span class="p">;</span>
+<span class="n">todo</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">Put</span><span class="p">(</span><span class="n">todo</span><span class="p">);</span>                            <span class="c1">// todo.Content = Updated TODO</span>
+
+<span class="n">client</span><span class="p">.</span><span class="n">Delete</span><span class="p">(</span><span class="k">new</span> <span class="n">Todos</span><span class="p">(</span><span class="n">todo</span><span class="p">.</span><span class="n">Id</span><span class="p">));</span>
+<span class="n">all</span> <span class="p">=</span> <span class="n">client</span><span class="p">.</span><span class="n">Get</span><span class="p">(</span><span class="k">new</span> <span class="n">Todos</span><span class="p">());</span>                      <span class="c1">// Count = 0</span>
+</pre></div>
+
+<h3>
+<a name="user-content-calling-the-todo-rest-service-from-jquery" class="anchor" href="#calling-the-todo-rest-service-from-jquery" aria-hidden="true"><span class="octicon octicon-link"></span></a>Calling the TODO REST service from jQuery</h3>
+
+<pre><code>$.getJSON(baseUri + "/todos", function(todos) {
+    alert(todos.length == 1);
+});
+</code></pre>
+
+<h3>
+<a name="user-content-calling-the-todo-rest-service-from-dart-jsonclient" class="anchor" href="#calling-the-todo-rest-service-from-dart-jsonclient" aria-hidden="true"><span class="octicon octicon-link"></span></a>Calling the TODO REST service from <a href="https://github.com/mythz/DartJsonClient">Dart JsonClient</a>
+</h3>
+
+<pre><code>var client = new JsonClient(baseUri);
+client.todos()
+    .then((todos) =&gt; alert(todos.length == 1)); 
+</code></pre>
+
+<p>That's all the application code required to create a simple REST web service.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/ServiceStack/ServiceStack/wiki">Start with the <strong>Getting Started</strong> section on the Wiki</a></li>
+<li><a href="http://stackoverflow.com/questions/15862634/in-what-order-are-the-servicestack-examples-supposed-to-be-grokked/15869816#15869816">Example Apps and Demos</a></li>
+<li><a href="https://github.com/ServiceStack/ServiceStack/wiki/Community-Resources">Community resources</a></li>
+</ul><h3>
+<a name="user-content-release-notes" class="anchor" href="#release-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="https://github.com/ServiceStack/ServiceStack/blob/master/release-notes.md">Release Notes</a>
+</h3>
+
+<h2>
+<a name="user-content-download" class="anchor" href="#download" aria-hidden="true"><span class="octicon octicon-link"></span></a>Download</h2>
+
+<p>If you have <a href="http://nuget.org">NuGet</a> installed, the easiest way to get started is to: </p>
+
+<h3>
+<a name="user-content-install-servicestack-via-nuget" class="anchor" href="#install-servicestack-via-nuget" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<a href="https://servicestack.net/download">Install ServiceStack via NuGet</a>.</h3>
+
+<p><em>Latest v4+ on NuGet is a commercial release with <a href="https://servicestack.net/download#free-quotas">free quotas</a>.</em></p>
+
+<h3>
+<a name="user-content-docs-and-downloads-for-older-v3-bsd-releases" class="anchor" href="#docs-and-downloads-for-older-v3-bsd-releases" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="https://github.com/ServiceStackV3/ServiceStackV3">Docs and Downloads for older v3 BSD releases</a>
+</h3>
+
+<h3>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h3>
+
+<p><strong>The <a href="http://stackoverflow.com/a/15869816">Definitive list of Example Projects, Use-Cases, Demos, Starter Templates</a></strong></p>
+
+<h2>
+<a name="user-content-download-published-nuget-binaries-without-nuget" class="anchor" href="#download-published-nuget-binaries-without-nuget" aria-hidden="true"><span class="octicon octicon-link"></span></a>Download published NuGet binaries without NuGet</h2>
+
+<p>GitHub has disabled its download feature so currently NuGet is the best way to get ServiceStack published releases.
+For environments that don't have NuGet installed (e.g. OSX/Linux) you can still download the published binaries by 
+extracting them from the published NuGet packages. The url to download a nuget package is: </p>
+
+<pre><code>http://packages.nuget.org/api/v1/package/{PackageName}/{Version}
+</code></pre>
+
+<p>So to get the core ServiceStack and ServiceStack.Text libs in OSX/Linux (or using gnu tools for Windows) you can just do:</p>
+
+<pre><code>wget -O ServiceStack http://packages.nuget.org/api/v1/package/ServiceStack/3.9.71
+unzip ServiceStack 'lib/*'
+
+wget -O ServiceStack.Text http://packages.nuget.org/api/v1/package/ServiceStack.Text/3.9.71
+unzip ServiceStack.Text 'lib/*'
+</code></pre>
+
+<p>which will download and extract the dlls into your local local <code>lib/</code> folder.</p>
+
+<h2>
+<a name="user-content-copying" class="anchor" href="#copying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copying</h2>
+
+<p>Since September 2013, ServiceStack source code is available under GNU Affero General Public License/FOSS License Exception, see license.txt in the source. 
+Alternative commercial licensing is also available, see <a href="https://servicestack.net/pricing">https://servicestack.net/pricing</a> for details.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Contributors need to approve the <a href="https://docs.google.com/forms/d/16Op0fmKaqYtxGL4sg7w_g-cXXyCoWjzppgkuqzOeKyk/viewform">Contributor License Agreement</a> before any code will be reviewed, see the <a href="https://github.com/ServiceStack/ServiceStack/wiki/Contributing">Contributing wiki</a> for more details. All contributions must include tests verifying the desired behavior.</p>
+
+<h2>
+<a name="user-content-oss-libraries-used" class="anchor" href="#oss-libraries-used" aria-hidden="true"><span class="octicon octicon-link"></span></a>OSS Libraries used</h2>
+
+<p>ServiceStack includes source code of the great libraries below for some of its core functionality. 
+Each library is released under its respective licence:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/mono/mono">Mono</a> <a href="https://github.com/mono/mono/blob/master/LICENSE">(License)</a>
+</li>
+<li>
+<a href="http://funq.codeplex.com">Funq IOC</a> <a href="http://funq.codeplex.com/license">(License)</a>
+</li>
+<li>
+<a href="http://fluentvalidation.codeplex.com">Fluent Validation</a> <a href="http://fluentvalidation.codeplex.com/license">(License)</a>
+</li>
+<li>
+<a href="http://code.google.com/p/mvc-mini-profiler/">Mini Profiler</a> <a href="http://www.apache.org/licenses/LICENSE-2.0">(License)</a>
+</li>
+<li>
+<a href="http://code.google.com/p/dapper-dot-net/">Dapper</a> <a href="http://www.apache.org/licenses/LICENSE-2.0">(License)</a>
+</li>
+<li>
+<a href="https://github.com/migueldeicaza/TweetStation">TweetStation's OAuth library</a> <a href="https://github.com/migueldeicaza/TweetStation/blob/master/LICENSE">(License)</a>
+</li>
+<li>
+<a href="http://code.google.com/p/markdownsharp/">MarkdownSharp</a> <a href="http://opensource.org/licenses/mit-license.php">(License)</a>
+</li>
+<li>
+<a href="https://github.com/toptensoftware/markdowndeep">MarkdownDeep</a> <a href="http://www.toptensoftware.com/markdowndeep/license">(License)</a>
+</li>
+</ul><h2>
+<a name="user-content-similar-open-source-projects" class="anchor" href="#similar-open-source-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Similar open source projects</h2>
+
+<p>Similar Open source .NET projects for developing or accessing web services include:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://nancyfx.org">Nancy Fx</a> - A Sinatra-inspired lightweight Web Framework for .NET:</li>
+<li>
+<a href="http://mvc.fubu-project.org">Fubu MVC</a> - A "Front Controller" pattern-style MVC framework designed for use in web applications built on ASP.NET:</li>
+<li>
+<a href="http://restsharp.org">Rest Sharp</a> - An open source REST client for .NET</li>
+</ul><h2>
+<a name="user-content-find-out-more" class="anchor" href="#find-out-more" aria-hidden="true"><span class="octicon octicon-link"></span></a>Find out More</h2>
+
+<p>Follow <a href="http://twitter.com/ServiceStack">@ServiceStack</a> and 
+<a href="https://plus.google.com/u/0/communities/112445368900682590445">+ServiceStack</a> for project updates.</p>
+
+<hr><h2>
+<a name="user-content-core-team" class="anchor" href="#core-team" aria-hidden="true"><span class="octicon octicon-link"></span></a>Core Team</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/mythz">mythz</a> (Demis Bellot)</li>
+<li>
+<a href="https://github.com/arxisos">arxisos</a> (Steffen Müller) / <a href="https://twitter.com/arxisos">@arxisos</a>
+</li>
+<li>
+<a href="https://github.com/desunit">desunit</a> (Sergey Bogdanov) / <a href="https://twitter.com/desunit">@desunit</a>
+</li>
+</ul><h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>A big thanks to GitHub and all of ServiceStack's contributors:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/bman654">bman654</a> (Brandon Wallace)</li>
+<li>
+<a href="https://github.com/iristyle">iristyle</a> (Ethan Brown)</li>
+<li>
+<a href="https://github.com/superlogical">superlogical</a> (Jake Scott)</li>
+<li><a href="https://github.com/itamar82">itamar82</a></li>
+<li><a href="https://github.com/chadwackerman">chadwackerman</a></li>
+<li><a href="https://github.com/derfsplat">derfsplat</a></li>
+<li>
+<a href="https://github.com/johnacarruthers">johnacarruthers</a> (John Carruthers)</li>
+<li>
+<a href="https://github.com/mvitorino">mvitorino</a> (Miguel Vitorino)</li>
+<li>
+<a href="https://github.com/bsiegel">bsiegel</a> (Brandon Siegel)</li>
+<li>
+<a href="https://github.com/mdavid">mdavid</a> (M. David Peterson)</li>
+<li>
+<a href="https://github.com/lhaussknecht">lhaussknecht</a> (Louis Haussknecht)</li>
+<li>
+<a href="https://github.com/grendello">grendello</a> (Marek Habersack)</li>
+<li>
+<a href="https://github.com/SteveDunn">SteveDunn</a> (Steve Dunn)</li>
+<li>
+<a href="https://github.com/kcherenkov">kcherenkov</a> (Konstantin Cherenkov)</li>
+<li>
+<a href="https://github.com/timryan">timryan</a> (Tim Ryan)</li>
+<li>
+<a href="https://github.com/letssellsomebananas">letssellsomebananas</a> (Tymek Majewski)</li>
+<li>
+<a href="https://github.com/danbarua">danbarua</a> (Dan Barua)</li>
+<li>
+<a href="https://github.com/JonCanning">JonCanning</a> (Jon Canning)</li>
+<li>
+<a href="https://github.com/paegun">paegun</a> (James Gorlick)</li>
+<li>
+<a href="https://github.com/pvasek">pvasek</a> (pvasek)</li>
+<li>
+<a href="https://github.com/derfsplat">derfsplat</a> (derfsplat)</li>
+<li>
+<a href="https://github.com/justinrolston">justinrolston</a> (Justin Rolston)</li>
+<li>
+<a href="https://github.com/danmiser">danmiser</a> (Dan Miser)</li>
+<li>
+<a href="https://github.com/danatkinson">danatkinson</a> (Dan Atkinson)</li>
+<li>
+<a href="https://github.com/brainless83">brainless83</a> (Thomas Grassauer)</li>
+<li>
+<a href="https://github.com/angelcolmenares">angelcolmenares</a> (angel colmenares)</li>
+<li>
+<a href="https://github.com/dbeattie71">dbeattie71</a> (Derek Beattie)</li>
+<li>
+<a href="https://github.com/danielwertheim">danielwertheim</a> (Daniel Wertheim)</li>
+<li>
+<a href="https://github.com/greghroberts">greghroberts</a> (Gregh Roberts)</li>
+<li>
+<a href="https://github.com/int03">int03</a> (Selim Selçuk)</li>
+<li>
+<a href="https://github.com/AndiDog">andidog</a> (AndiDog)</li>
+<li>
+<a href="https://github.com/chuckb">chuckb</a> (chuckb)</li>
+<li>
+<a href="https://github.com/niemyjski">niemyjski</a> (Blake Niemyjski)</li>
+<li>
+<a href="https://github.com/mj1856">mj1856</a> (Matt Johnson)</li>
+<li>
+<a href="https://github.com/matthieugd">matthieugd</a> (Matthieu)</li>
+<li>
+<a href="https://github.com/tomaszkubacki">tomaszkubacki</a> (Tomasz Kubacki)</li>
+<li>
+<a href="https://github.com/e11137">e11137</a> (Rogelio Canedo)</li>
+<li>
+<a href="https://github.com/davidroth">davidroth</a> (David Roth)</li>
+<li>
+<a href="https://github.com/meebey">meebey</a> (Mirco Bauer)</li>
+<li>
+<a href="https://github.com/codedemonuk">codedemonuk</a> (Pervez Choudhury)</li>
+<li>
+<a href="https://github.com/jrosskopf">jrosskopf</a> (Joachim Rosskopf)</li>
+<li>
+<a href="https://github.com/friism">friism</a> (Michael Friis)</li>
+<li><a href="https://github.com/mp3125">mp3125</a></li>
+<li><a href="https://github.com/aurimas86">aurimas86</a></li>
+<li>
+<a href="https://github.com/parnham">parnham</a> (Dan Parnham)</li>
+<li>
+<a href="https://github.com/yeurch">yeurch</a> (Richard Fawcett)</li>
+<li>
+<a href="https://github.com/damianh">damianh</a> (Damian Hickey)</li>
+<li>
+<a href="https://github.com/freeman">freeman</a> (Michel Rasschaert)</li>
+<li>
+<a href="https://github.com/kvervo">kvervo</a> (Kvervo)</li>
+<li>
+<a href="https://github.com/pauldbau">pauldbau</a> (Paul Du Bois)</li>
+<li>
+<a href="https://github.com/JustinPihony">justinpihony</a> (Justin Pihony) </li>
+<li>
+<a href="https://github.com/bokmadsen">bokmadsen</a> (Bo Kingo Damgaard)</li>
+<li>
+<a href="https://github.com/dragan">dragan</a> (Dale Ragan)</li>
+<li>
+<a href="https://github.com/sneal">sneal</a> (Shawn Neal)</li>
+<li>
+<a href="https://github.com/johnsheehan">johnsheehan</a> (John Sheehan)</li>
+<li>
+<a href="https://github.com/jschlicht">jschlicht</a> (Jared Schlicht)</li>
+<li>
+<a href="https://github.com/kumarnitin">kumarnitin</a> (Nitin Kumar)</li>
+<li>
+<a href="https://github.com/davidchristiansen">davidchristiansen</a> (David Christiansen)<br>
+</li>
+<li>
+<a href="https://github.com/paulecoyote">paulecoyote</a> (Paul Evans)</li>
+<li>
+<a href="https://github.com/kongo2002">kongo2002</a> (Gregor Uhlenheuer)</li>
+<li>
+<a href="https://github.com/brannonking">brannonking</a> (Brannon King)</li>
+<li>
+<a href="https://github.com/alexandrerocco">alexandrerocco</a> (Alexandre Rocco)</li>
+<li><a href="https://github.com/cbarbara">cbarbara</a></li>
+<li>
+<a href="https://github.com/assaframan">assaframan</a> (Assaf Raman)</li>
+<li>
+<a href="https://github.com/csakshaug">csakshaug</a> (Christian Sakshaug)</li>
+<li><a href="https://github.com/johnman">johnman</a></li>
+<li><a href="https://github.com/jarroda">jarroda</a></li>
+<li>
+<a href="https://github.com/ssboisen">ssboisen</a> (Simon Skov Boisen)</li>
+<li>
+<a href="https://github.com/paulduran">paulduran</a> (Paul Duran)</li>
+<li>
+<a href="https://github.com/pruiz">pruiz</a> (Pablo Ruiz García)</li>
+<li><a href="https://github.com/fantasticjamieburns">fantasticjamieburns</a></li>
+<li><a href="https://github.com/pseabury">pseabury</a></li>
+<li>
+<a href="https://github.com/kevingessner">kevingessner</a> (Kevin Gessner)</li>
+<li>
+<a href="https://github.com/iskomorokh">iskomorokh</a> (Igor Skomorokh)</li>
+<li>
+<a href="https://github.com/royjacobs">royjacobs</a> (Roy Jacobs)</li>
+<li>
+<a href="https://github.com/robertmircea">robertmircea</a> (Robert Mircea)</li>
+<li>
+<a href="https://github.com/markswiatek">markswiatek</a> (Mark Swiatek)</li>
+<li>
+<a href="https://github.com/flq">flq</a> (Frank Quednau)</li>
+<li>
+<a href="https://github.com/ashd">ashd</a> (Ash D)</li>
+<li><a href="https://github.com/thanhhh">thanhhh</a></li>
+<li>
+<a href="https://github.com/algra">algra</a> (Alexey Gravanov)</li>
+<li>
+<a href="https://github.com/jimschubert">jimschubert</a> (Jim Schubert)</li>
+<li><a href="https://github.com/gkathire">gkathire</a></li>
+<li>
+<a href="https://github.com/mikaelwaltersson">mikaelwaltersson</a> (Mikael Waltersson)</li>
+<li>
+<a href="https://github.com/asunar">asunar</a> (Alper)</li>
+<li>
+<a href="https://github.com/chucksavage">chucksavage</a> (Chuck Savage)</li>
+<li>
+<a href="https://github.com/sashagit">sashagit</a> (Sasha)</li>
+<li>
+<a href="https://github.com/froyke">froyke</a> (Froyke)</li>
+<li>
+<a href="https://github.com/dbhobbs">dbhobbs</a> (Daniel Hobbs)</li>
+<li>
+<a href="https://github.com/bculberson">bculberson</a> (Brad Culberson)</li>
+<li>
+<a href="https://github.com/awr">awr</a> (Andrew)</li>
+<li>
+<a href="https://github.com/pingvinen">pingvinen</a> (Patrick)</li>
+<li>
+<a href="https://github.com/CITnDev">citndev</a> (Sebastien Curutchet)</li>
+<li><a href="https://github.com/cyberprune">cyberprune</a></li>
+<li>
+<a href="https://github.com/jorbor">jorbor</a> (Jordan Hayashi)</li>
+<li><a href="https://github.com/bojanv55">bojanv55</a></li>
+<li>
+<a href="https://github.com/i-e-b">i-e-b</a> (Iain Ballard)</li>
+<li>
+<a href="https://github.com/pietervp">pietervp</a> (Pieter Van Parys)</li>
+<li><a href="https://github.com/franklinwise">franklinwise</a></li>
+<li>
+<a href="https://github.com/ckasabula">ckasabula</a> (Chuck Kasabula)</li>
+<li>
+<a href="https://github.com/dortzur">dortzur</a> (Dor Tzur)</li>
+<li>
+<a href="https://github.com/allenarthurgay">allenarthurgay</a> (Allen Gay)</li>
+<li>
+<a href="https://github.com/vIceBerg">viceberg</a> </li>
+<li>
+<a href="https://github.com/vansha">vansha</a> (Ivan Korneliuk)</li>
+<li>
+<a href="https://github.com/aaronlerch">aaronlerch</a> (Aaron Lerch)</li>
+<li><a href="https://github.com/glikoz">glikoz</a></li>
+<li>
+<a href="https://github.com/danielcrenna">danielcrenna</a> (Daniel Crenna)</li>
+<li>
+<a href="https://github.com/stevegraygh">stevegraygh</a> (Steve Graygh)</li>
+<li>
+<a href="https://github.com/jrmitch120">jrmitch120</a> (Jeff Mitchell)</li>
+<li>
+<a href="https://github.com/manuelnelson">manuelnelson</a> (Manuel Nelson)</li>
+<li>
+<a href="https://github.com/babcca">babcca</a> (Petr Babicka)</li>
+<li>
+<a href="https://github.com/jgeurts">jgeurts</a> (Jim Geurts)</li>
+<li>
+<a href="https://github.com/driis">driis</a> (Dennis Riis)</li>
+<li>
+<a href="https://github.com/gshackles">gshackles</a> (Greg Shackles)</li>
+<li>
+<a href="https://github.com/jsonmez">jsonmez</a> (John Sonmez)</li>
+<li>
+<a href="https://github.com/dchurchland">dchurchland</a> (David Churchland)</li>
+<li>
+<a href="https://github.com/softwx">softwx</a> (Steve Hatchett)</li>
+<li>
+<a href="https://github.com/ggeurts">ggeurts</a> (Gerke Geurts)</li>
+<li>
+<a href="https://github.com/AndrewRissing">andrewrissing</a> (Andrew Rissing)</li>
+<li>
+<a href="https://github.com/jjavery">jjavery</a> (James Javery)</li>
+<li>
+<a href="https://github.com/suremaker">suremaker</a> (Wojtek)</li>
+<li>
+<a href="https://github.com/cheesebaron">cheesebaron</a> (Tomasz Cielecki)</li>
+<li>
+<a href="https://github.com/mikkelfish">mikkelfish</a> (Mikkel Fishman)</li>
+<li>
+<a href="https://github.com/johngibb">johngibb</a> (John Gibb)</li>
+<li>
+<a href="https://github.com/stabbylambda">stabbylambda</a> (David Stone)</li>
+<li>
+<a href="https://github.com/mikepugh">mikepugh</a> (Mike Pugh)</li>
+<li>
+<a href="https://github.com/permalmberg">permalmberg</a> (Per Malmberg)</li>
+<li>
+<a href="https://github.com/adamralph">adamralph</a> (Adam Ralph)</li>
+<li>
+<a href="https://github.com/shamsulamry">shamsulamry</a> (Shamsul Amry)</li>
+<li>
+<a href="https://github.com/peterlazzarino">peterlazzarino</a> (Peter Lazzarino)</li>
+<li>
+<a href="https://github.com/kevin-montrose">kevin-montrose</a> (Kevin Montrose)</li>
+<li>
+<a href="https://github.com/msarchet">msarchet</a> (Michael Sarchet)</li>
+<li>
+<a href="https://github.com/jeffgabhart">jeffgabhart</a> (Jeff Gabhart)</li>
+<li>
+<a href="https://github.com/pkudinov">pkudinov</a> (Pavel Kudinov)</li>
+<li>
+<a href="https://github.com/permalmberg">permalmberg</a> (Per Malmberg)</li>
+<li>
+<a href="https://github.com/namman">namman</a> (Nick Miller)</li>
+<li>
+<a href="https://github.com/leon-andria">leon-andria</a> (Leon Andria)</li>
+<li>
+<a href="https://github.com/kkolstad">kkolstad</a> (Kenneth Kolstad)</li>
+<li>
+<a href="https://github.com/electricshaman">electricshaman</a> (Jeff Smith)</li>
+<li>
+<a href="https://github.com/ecgan">ecgan</a> (Gan Eng Chin)</li>
+<li>
+<a href="https://github.com/its-tyson">its-tyson</a> (Tyson Stolarski)</li>
+<li>
+<a href="https://github.com/tischlda">tischlda</a> (David Tischler)</li>
+<li>
+<a href="https://github.com/connectassist">connectassist</a> (Carl Healy)</li>
+<li><a href="https://github.com/starteleport">starteleport</a></li>
+<li>
+<a href="https://github.com/jfoshee">jfoshee</a> (Jacob Foshee)</li>
+<li>
+<a href="https://github.com/nardin">nardin</a> (Mamaev Michail)</li>
+<li><a href="https://github.com/cliffstill">cliffstill</a></li>
+<li>
+<a href="https://github.com/somya">somya</a> (Somya Jain)</li>
+<li>
+<a href="https://github.com/thinkbeforecoding">thinkbeforecoding</a> (Jérémie Chassaing)</li>
+<li>
+<a href="https://github.com/paksys">paksys</a> (Khalil Ahmad)</li>
+<li>
+<a href="https://github.com/mcguinness">mcguinness</a> (Karl McGuinness)</li>
+<li>
+<a href="https://github.com/jpasichnyk">jpasichnyk</a> (Jesse Pasichnyk)</li>
+<li>
+<a href="https://github.com/waynebrantley">waynebrantley</a> (Wayne Brantley)</li>
+<li>
+<a href="https://github.com/dcartoon">dcartoon</a> (Dan Cartoon)</li>
+<li>
+<a href="https://github.com/alexvodovoz">alexvodovoz</a> (Alex Vodovoz)</li>
+<li>
+<a href="https://github.com/jluchiji">jluchiji</a> (Denis Luchkin-Zhou)</li>
+<li><a href="https://github.com/grexican">grexican</a></li>
+<li>
+<a href="https://github.com/akoslukacs">akoslukacs</a> (Ákos Lukács)</li>
+<li>
+<a href="https://github.com/medianick">medianick</a> (Nick Jones)</li>
+<li><a href="https://github.com/arhoads76">arhoads76</a></li>
+<li>
+<a href="https://github.com/dylanvdmerwe">dylanvdmerwe</a> (Dylan v.d Merwe)</li>
+<li>
+<a href="https://github.com/mattiasw2">mattiasw2</a> (Mattias)</li>
+<li>
+<a href="https://github.com/paultyng">paultyng</a> (Paul Tyng)</li>
+<li>
+<a href="https://github.com/h2oman">h2oman</a> (Jason Waterman)</li>
+<li>
+<a href="https://github.com/anewton">anewton</a> (Allen Newton)</li>
+<li><a href="https://github.com/sami1971">sami1971</a></li>
+<li>
+<a href="https://github.com/russellchadwick">russellchadwick</a> (Russell Chadwick)</li>
+<li>
+<a href="https://github.com/cyberzed">cyberzed</a> (Stefan Daugaard Poulsen)</li>
+<li>
+<a href="https://github.com/filipw">filipw</a> (Filip Wojcieszyn)</li>
+<li>
+<a href="https://github.com/ghuntley">ghuntley</a> (Geoffrey Huntley)</li>
+<li><a href="https://github.com/baramuse">baramuse</a></li>
+<li>
+<a href="https://github.com/pdegenhardt">pdegenhardt</a> (Phil Degenhardt)</li>
+<li>
+<a href="https://github.com/captncraig">captncraig</a> (Craig Peterson)</li>
+<li>
+<a href="https://github.com/abattery">abattery</a> (Jae sung Chung)</li>
+<li><a href="https://github.com/biliktamas79">biliktamas79</a></li>
+<li>
+<a href="https://github.com/garuma">garuma</a> (Jérémie Laval)</li>
+<li><a href="https://github.com/dsimunic">dsimunic</a></li>
+<li>
+<a href="https://github.com/adamfowleruk">adamfowleruk</a> (Adam Fowler)</li>
+<li>
+<a href="https://github.com/bfriesen">bfriesen</a> (Brian Friesen)</li>
+<li>
+<a href="https://github.com/roryf">roryf</a> (Rory Fitzpatrick)</li>
+<li><a href="https://github.com/stefandevo">stefandevo</a></li>
+<li><a href="https://github.com/gdassac">gdassac</a></li>
+<li><a href="https://github.com/metal10k">metal10k</a></li>
+<li><a href="https://github.com/cmelgarejo">cmelgarejo</a></li>
+<li><a href="https://github.com/skaman">skaman</a></li>
+<li>
+<a href="https://github.com/rossipedia">rossipedia</a> (Bryan J. Ross)</li>
+<li>
+<a href="https://github.com/wimatihomer">wimatihomer</a> (Wim Pool)</li>
+<li><a href="https://github.com/sword-breaker">sword-breaker</a></li>
+<li>
+<a href="https://github.com/adebisi-fa">adebisi-fa</a> (Adebisi Foluso A.)</li>
+<li>
+<a href="https://github.com/mbischoff">mbischoff</a> (M. Bischoff)</li>
+<li>
+<a href="https://github.com/ivanfioravanti">ivanfioravanti</a> (Ivan Fioravanti)</li>
+<li>
+<a href="https://github.com/inhibition">inhibition</a> (Keith Hassen)</li>
+<li>
+<a href="https://github.com/joshearl">joshearl</a> (Josh Earl)</li>
+<li>
+<a href="https://github.com/friism">friism</a> (Michael Friis)</li>
+<li><a href="https://github.com/corkupine">corkupine</a></li>
+<li>
+<a href="https://github.com/bchavez">bchavez</a> (Brian Chavez)</li>
+<li>
+<a href="https://github.com/nhhagen">nhhagen</a> (Niels Henrik Hagen)</li>
+<li>
+<a href="https://github.com/daggmano">daggmano</a> (Darren Oster)</li>
+<li>
+<a href="https://github.com/chappoo">chappoo</a> (Steve Chapman)</li>
+<li>
+<a href="https://github.com/julrichkieffer">julrichkieffer</a> (Julrich Kieffer)</li>
+<li>
+<a href="https://github.com/adamclarsen">adamclarsen</a> (Adam Larsen)</li>
+<li>
+<a href="https://github.com/joero74">joero74</a> (Joerg Rosenkranz)</li>
+<li>
+<a href="https://github.com/ddotlic">ddotlic</a> (Drazen Dotlic)</li>
+<li>
+<a href="https://github.com/chrismcv">chrismcv</a> (Chris McVittie)</li>
+<li>
+<a href="https://github.com/marcioalthmann">marcioalthmann</a> (Márcio Fábio Althmann)</li>
+<li>
+<a href="https://github.com/mmertsock">mmertsock</a> (Mike Mertsock)</li>
+<li>
+<a href="https://github.com/johnkamau">johnkamau</a> (John Kamau)</li>
+<li>
+<a href="https://github.com/uhaciogullari">uhaciogullari</a> (Ufuk Hacıoğulları)</li>
+<li>
+<a href="https://github.com/davybrion">davybrion</a> (Davy Brion)</li>
+<li>
+<a href="https://github.com/aleshi">aleshi</a> (Alexander Shiryaev)</li>
+<li>
+<a href="https://github.com/alexandryz">alexandryz</a> (Alexandr Zaozerskiy)</li>
+<li>
+<a href="https://github.com/mistobaan">mistobaan</a> (Fabrizio Milo)</li>
+<li>
+<a href="https://github.com/niemyjski">niemyjski</a> (Blake Niemyjski)</li>
+<li>
+<a href="https://github.com/alexandernyquist">alexandernyquist</a> (Alexander Nyquist)</li>
+<li><a href="https://github.com/mcduck76">mcduck76</a></li>
+<li><a href="https://github.com/kojoru">kojoru</a></li>
+<li>
+<a href="https://github.com/jeremy-bridges">jeremy-bridges</a> (Jeremy Bridges)</li>
+<li>
+<a href="https://github.com/andreabalducci">andreabalducci</a> (Andrea Balducci)</li>
+<li>
+<a href="https://github.com/RobertTheGrey">robertthegrey</a> (Robert Greyling)</li>
+<li>
+<a href="https://github.com/robertbeal">robertbeal</a> (Robert Beal)</li>
+<li>
+<a href="https://github.com/improvedk">improvedk</a> (Mark Rasmussen)</li>
+<li>
+<a href="https://github.com/foresterh">foresterh</a> (Jamie Houston)</li>
+<li>
+<a href="https://github.com/peterkahl">peterkahl</a> (Peter Kahl)</li>
+<li><a href="https://github.com/helgel">helgel</a></li>
+<li>
+<a href="https://github.com/anthonycarl">anthonycarl</a> (Anthony Carl)</li>
+<li>
+<a href="https://github.com/mrjul">mrjul</a> (Julien Lebosquain)</li>
+<li>
+<a href="https://github.com/pwhe23">pwhe23</a> (Paul Wheeler)</li>
+<li><a href="https://github.com/aleksd">aleksd</a></li>
+<li>
+<a href="https://github.com/miketrebilcock">miketrebilcock</a> (Mike Trebilcock)</li>
+<li>
+<a href="https://github.com/markwoodhall">markwoodhall</a> (Mark Woodhall)</li>
+<li>
+<a href="https://github.com/theonlylawislove">theonlylawislove</a> (Paul Knopf)</li>
+<li>
+<a href="https://github.com/callumvass">callumvass</a> (Callum Vass)</li>
+<li><a href="https://github.com/bpruitt-goddard">bpruitt-goddard</a></li>
+<li>
+<a href="https://github.com/gregpakes">gregpakes</a> (Greg Pakes)</li>
+<li>
+<a href="https://github.com/caspiancanuck">caspiancanuck</a> (Caspian Canuck)</li>
+<li><a href="https://github.com/merwer">merwer</a></li>
+<li>
+<a href="https://github.com/pavelsavara">pavelsavara</a> (Pavel Savara)</li>
+<li>
+<a href="https://github.com/markwalls">markwalls</a> (Mark Walls)</li>
+<li>
+<a href="https://github.com/prasannavl">prasannavl</a> (Prasanna Loganathar)</li>
+<li><a href="https://github.com/wilfrem">wilfrem</a></li>
+<li><a href="https://github.com/emiba">emiba</a></li>
+<li>
+<a href="https://github.com/lucky-ly">lucky-ly</a> (Dmitry Svechnikov)</li>
+<li>
+<a href="https://github.com/hhandoko">hhandoko</a> (Herdy Handoko)</li>
+<li><a href="https://github.com/datawingsoftware">datawingsoftware</a></li>
+<li><a href="https://github.com/tal952">tal952</a></li>
+<li><a href="https://github.com/bretternst">bretternst</a></li>
+<li>
+<a href="https://github.com/kevinhoward">kevinhoward</a> (Kevin Howard)</li>
+<li>
+<a href="https://github.com/mattbutton">mattbutton</a> (Matt Button)</li>
+<li>
+<a href="https://github.com/torbenrahbekkoch">torbenrahbekkoch</a> (Torben Rahbek Koch)</li>
+<li>
+<a href="https://github.com/pilotmartin">pilotmartin</a> (Pilot Martin)</li>
+<li><a href="https://github.com/catlion">catlion</a></li>
+<li>
+<a href="https://github.com/tstade">tstade</a> (Toft Stade)</li>
+<li>
+<a href="https://github.com/niltz">niltz</a> (Jeff Sawatzky)</li>
+<li><a href="https://github.com/nhalm">nhalm</a></li>
+<li>
+<a href="https://github.com/fhurta">fhurta</a> (Filip Hurta)</li>
+<li><a href="https://github.com/discobanan">discobanan</a></li>
+<li><a href="https://github.com/x-cray">x-cray</a></li>
+<li>
+<a href="https://github.com/jeremistadler">jeremistadler</a> (Jeremi Stadler)</li>
+<li><a href="https://github.com/bangbite">bangbite</a></li>
+<li>
+<a href="https://github.com/felipesabino">felipesabino</a> (Felipe Sabino)</li>
+<li>
+<a href="https://github.com/xelom">xelom</a> (Arıl Bozoluk)</li>
+<li>
+<a href="https://github.com/shiweichuan">shiweichuan</a> (Weichuan Shi)</li>
+<li>
+<a href="https://github.com/kojoru">kojoru</a> (Konstantin Yakushev)</li>
+<li>
+<a href="https://github.com/eddiegroves">eddiegroves</a> (Eddie Groves)</li>
+<li><a href="https://github.com/fetters5">fetters5</a></li>
+<li>
+<a href="https://github.com/rcollette">rcollette</a> (Richard Collette)</li>
+<li>
+<a href="https://github.com/urihendler">urihendler</a> (Uri Hendler)</li>
+<li>
+<a href="https://github.com/laurencee">laurencee</a> (Laurence Evans)</li>
+<li>
+<a href="https://github.com/m-andrew-albright">m-andrew-albright</a> (Andrew Albright)</li>
+<li>
+<a href="https://github.com/lee337">lee337</a> (Lee Venkatsamy)</li>
+<li><a href="https://github.com/kaza">kaza</a></li>
+<li><a href="https://github.com/mishfit">mishfit</a></li>
+<li>
+<a href="https://github.com/rfvgyhn">rfvgyhn</a> (Chris)</li>
+<li>
+<a href="https://github.com/caioproiete">caioproiete</a> (Caio Proiete)</li>
+<li>
+<a href="https://github.com/sjuxax">sjuxax</a> (Jeff Cook)</li>
+<li>
+<a href="https://github.com/madaleno">madaleno</a> (Luis Madaleno)</li>
+<li>
+<a href="https://github.com/yavosh">yavosh</a> (Yavor Shahpasov)</li>
+<li>
+<a href="https://github.com/fvoncina">fvoncina</a> (Facundo Voncina)</li>
+<li>
+<a href="https://github.com/devrios">devrios</a> (Dev Rios)</li>
+<li>
+<a href="https://github.com/bfkelsey">bfkelsey</a> (Ben Kelsey)</li>
+<li><a href="https://github.com/maksimenko">maksimenko</a></li>
+<li>
+<a href="https://github.com/dixon">dixon</a> (Jarrod Dixon)</li>
+<li>
+<a href="https://github.com/kal">kal</a> (Kal Ahmed)</li>
+<li>
+<a href="https://github.com/mhanney">mhanney</a> (Michael Hanney)</li>
+<li><a href="https://github.com/bcms">bcms</a></li>
+<li>
+<a href="https://github.com/mgravell">mgravell</a> (Marc Gravell)</li>
+<li>
+<a href="https://github.com/lafama">lafama</a> (Denis Ndwiga)</li>
+<li>
+<a href="https://github.com/jamesgroat">jamesgroat</a> (James Groat)</li>
+<li>
+<a href="https://github.com/jamesearl">jamesearl</a> (James Cunningham)</li>
+<li>
+<a href="https://github.com/remkoboschker">remkoboschker</a> (Remko Boschker)</li>
+<li><a href="https://github.com/shelakel">shelakel</a></li>
+<li>
+<a href="https://github.com/schmidt4brains">schmidt4brains</a> (Doug Schmidt)</li>
+<li><a href="https://github.com/joplaal">joplaal</a></li>
+<li>
+<a href="https://github.com/aifdsc">aifdsc</a> (Stephan Desmoulin)</li>
+<li>
+<a href="https://github.com/nicklarsen">nicklarsen</a> (NickLarsen)</li>
+<li>
+<a href="https://github.com/connectassist">connectassist</a> (Carl Healy)</li>
+<li>
+<a href="https://github.com/et1975">et1975</a> (Eugene Tolmachev)</li>
+<li><a href="https://github.com/barambani">barambani</a></li>
+<li><a href="https://github.com/et1975">nhalm</a></li>
+</ul><hr><p>Runs on both Mono and .NET <em>(Live preview hosted on Mono / Ubuntu)</em></p></article></div>

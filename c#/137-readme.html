@@ -1,0 +1,181 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-metricsnet" class="anchor" href="#metricsnet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Metrics.NET</h1>
+
+<p><em>Capturing CLR and application-level metrics. So you know what's going on.</em></p>
+
+<h4>
+<a name="user-content-this-work-began-as-a-port-of-codahales-metrics-for-scala-and-the-jvm" class="anchor" href="#this-work-began-as-a-port-of-codahales-metrics-for-scala-and-the-jvm" aria-hidden="true"><span class="octicon octicon-link"></span></a>(This work began as a port of @codahale's <a href="http://github.com/codahale/metrics">metrics</a> for Scala and the JVM.)</h4>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>In a post-agile world, we are asked to look beyond the technologies that enable our practice, and find ways to ensure 
+the choices we make are informed by customers and stand up to reality. Experiment-driven (or evidence-based) development
+is a way of combining run-time metrics with automated experiments, resulting in software that is “natural”, based on 
+actual use and runtime performance rather than the strongest opinion.</p>
+
+<p>This library fulfills the run-time aspect for practicing EDD in a .NET development environment.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>.NET 4.0 (reporting via HTTP available via <code>MetricsListener</code> class)</li>
+<li>ASP.NET MVC 3 (reporting via HTTP available via route registrations)</li>
+</ul><h2>
+<a name="user-content-how-to-use" class="anchor" href="#how-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Use</h2>
+
+<p><strong>First</strong>, specify Metrics as a dependency:</p>
+
+<pre><code>PM&gt; Install-Package Metrics
+PM&gt; Install-Package Metrics.Mvc
+</code></pre>
+
+<p><strong>Second</strong>, instrument your classes:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">using</span> <span class="nn">Metrics</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">ThingFinder</span>
+<span class="p">{</span>
+    <span class="c1">// Measure the # of records per second returned</span>
+    <span class="k">private</span> <span class="n">IMetric</span> <span class="n">_resultsMeter</span> <span class="p">=</span> <span class="n">Metrics</span><span class="p">.</span><span class="n">Meter</span><span class="p">(</span><span class="k">typeof</span><span class="p">(</span><span class="n">ThingFinder</span><span class="p">),</span> <span class="s">"results"</span><span class="p">,</span> <span class="n">TimeUnit</span><span class="p">.</span><span class="n">Seconds</span><span class="p">)</span>
+
+    <span class="c1">// Measure the # of milliseconds each query takes and the number of queries per second being performed</span>
+    <span class="k">private</span> <span class="n">IMetric</span> <span class="n">_dbTimer</span> <span class="p">=</span> <span class="n">Metrics</span><span class="p">.</span><span class="n">Timer</span><span class="p">(</span><span class="k">typeof</span><span class="p">(</span><span class="n">ThingFinder</span><span class="p">),</span> <span class="s">"database"</span><span class="p">,</span> <span class="n">TimeUnit</span><span class="p">.</span><span class="n">Milliseconds</span><span class="p">,</span> <span class="n">TimeUnit</span><span class="p">.</span><span class="n">Seconds</span><span class="p">)</span>
+
+    <span class="k">public</span> <span class="k">void</span> <span class="nf">FindThings</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="c1">// Perform an action which gets timed</span>
+        <span class="kt">var</span> <span class="n">results</span> <span class="p">=</span> <span class="n">_dbTimer</span><span class="p">.</span><span class="n">Time</span><span class="p">(()</span> <span class="p">=&gt;</span> <span class="p">{</span>                            
+            <span class="n">Database</span><span class="p">.</span><span class="n">Query</span><span class="p">(</span><span class="s">"SELECT Unicorns FROM Awesome"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">// Calculate the rate of new things found</span>
+        <span class="n">_resultsMeter</span><span class="p">.</span><span class="n">Mark</span><span class="p">(</span><span class="n">results</span><span class="p">.</span><span class="n">Count</span><span class="p">)</span>                
+
+        <span class="c1">// etc.</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Metrics comes with five types of metrics:</p>
+
+<ul class="task-list">
+<li>
+<strong>Gauges</strong> are instantaneous readings of values (e.g., a queue depth).</li>
+<li>
+<strong>Counters</strong> are 64-bit integers which can be incremented or decremented.</li>
+<li>
+<strong>Meters</strong> are increment-only counters which keep track of the rate of events.
+They provide mean rates, plus exponentially-weighted moving averages which
+use the same formula that the UNIX 1-, 5-, and 15-minute load averages use.</li>
+<li>
+<strong>Histograms</strong> capture distribution measurements about a metric: the count,
+maximum, minimum, mean, standard deviation, median, 75th percentile, 95th
+percentile, 98th percentile, 99th percentile, and 99.9th percentile of the
+recorded values. (They do so using a method called reservoir sampling which
+allows them to efficiently keep a small, statistically representative sample
+of all the measurements.)</li>
+<li>
+<strong>Timers</strong> record the duration as well as the rate of events. In addition to
+the rate information that meters provide, timers also provide the same metrics
+as histograms about the recorded durations. (The samples that timers keep in
+order to calculate percentiles and such are biased towards more recent data,
+since you probably care more about how your application is doing <em>now</em> as
+opposed to how it's done historically.)</li>
+</ul><p>Metrics also has support for health checks:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">HealthChecks</span><span class="p">.</span><span class="n">Register</span><span class="p">(</span><span class="s">"database"</span><span class="p">,</span> <span class="p">()</span> <span class="p">=&gt;</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">Database</span><span class="p">.</span><span class="n">IsConnected</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">return</span> <span class="n">HealthCheck</span><span class="p">.</span><span class="n">Healthy</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">else</span>
+    <span class="p">{</span>
+        <span class="k">return</span> <span class="n">HealthCheck</span><span class="p">.</span><span class="n">Unhealthy</span><span class="p">(</span><span class="s">"Not connected to database"</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+<p><strong>Third</strong>, start collecting your metrics.</p>
+
+<p>If you're simply running a benchmark, you can print registered metrics to 
+standard output, every 10 seconds like this:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="c1">// Print to Console.Out every 10 seconds</span>
+<span class="n">Metrics</span><span class="p">.</span><span class="n">EnableConsoleReporting</span><span class="p">(</span><span class="m">10</span><span class="p">,</span> <span class="n">TimeUnit</span><span class="p">.</span><span class="n">Seconds</span><span class="p">)</span> 
+</pre></div>
+
+<p>If you're writing a ASP.NET MVC-based web service, you can reference <code>Metrics.AspNetMvc</code> in
+your web application project and register default routes:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">using</span> <span class="nn">metrics</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">MvcApplication</span> <span class="p">:</span> <span class="n">HttpApplication</span>
+<span class="p">{</span>
+    <span class="c1">// ...</span>
+
+    <span class="k">protected</span> <span class="k">void</span> <span class="nf">Application_Start</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="n">AspNetMvc</span><span class="p">.</span><span class="n">Metrics</span><span class="p">.</span><span class="n">RegisterRoutes</span><span class="p">();</span>
+
+        <span class="c1">// ...            </span>
+    <span class="p">}</span>
+
+    <span class="c1">// ...</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The default routes will respond to the following URIs:</p>
+
+<ul class="task-list">
+<li>
+<code>/metrics/metrics</code>: A JSON object of all registered metrics and a host of CLR metrics.</li>
+<li>
+<code>/metrics/ping</code>: A simple <code>text/plain</code> "pong" for load-balancers.</li>
+<li>
+<code>/metrics/healthcheck</code>: Runs through all registered <code>HealthCheck</code> instances and reports the results. Returns a <code>200 OK</code> if all succeeded, or a <code>500 Internal Server Error</code> if any failed.</li>
+<li>
+<code>/metrics/threads</code>: A <code>text/plain</code> dump of all threads and their stack traces.</li>
+</ul><p>The URIs of these resources can be configured by setting properties prior to registering routes.
+You may also choose to protect these URIs with HTTP Basic authentication:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">using</span> <span class="nn">metrics</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">class</span> <span class="nc">MvcApplication</span> <span class="p">:</span> <span class="n">HttpApplication</span>
+<span class="p">{</span>
+    <span class="c1">// ...</span>
+
+    <span class="k">protected</span> <span class="k">void</span> <span class="nf">Application_Start</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="n">AspNetMvc</span><span class="p">.</span><span class="n">Metrics</span><span class="p">.</span><span class="n">HealthCheckPath</span> <span class="p">=</span> <span class="s">"my-healthcheck-uri"</span><span class="p">;</span>
+        <span class="n">AspNetMvc</span><span class="p">.</span><span class="n">Metrics</span><span class="p">.</span><span class="n">PingPath</span> <span class="p">=</span> <span class="s">"my-ping-uri"</span><span class="p">;</span>
+        <span class="n">AspNetMvc</span><span class="p">.</span><span class="n">Metrics</span><span class="p">.</span><span class="n">MetricsPath</span> <span class="p">=</span> <span class="s">"my-metrics-uri"</span><span class="p">;</span>
+        <span class="n">AspNetMvc</span><span class="p">.</span><span class="n">Metrics</span><span class="p">.</span><span class="n">ThreadsPath</span> <span class="p">=</span> <span class="s">"my-threads-uri"</span><span class="p">;</span>
+
+        <span class="n">AspNetMvc</span><span class="p">.</span><span class="n">Metrics</span><span class="p">.</span><span class="n">RegisterRoutes</span><span class="p">(</span><span class="s">"username"</span><span class="p">,</span> <span class="s">"password"</span><span class="p">);</span>
+
+        <span class="c1">// ...            </span>
+    <span class="p">}</span>
+
+    <span class="c1">// ...</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-known-deviations" class="anchor" href="#known-deviations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Deviations</h2>
+
+<ul class="task-list">
+<li>This implementation uses <code>ConcurrentDictionary</code> vs. Java's <code>ConcurrentSkipListMap</code>, so expect lookups to suffer</li>
+<li>This implementation uses <code>SortedDictionary</code> vs. Java's <code>TreeMap</code>
+</li>
+<li>The CLR is not as flexible when it comes to introspection; CLR metrics and thread dumps are a work in progress, but are largely based on PerformanceCounters</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>The original Metrics project is Copyright (c) 2010-2011 Coda Hale, Yammer.com</p>
+
+<p>This idiomatic port of Metrics to C# and .NET is Copyright (c) 2011 Daniel Crenna</p>
+
+<p>Both works are published under The MIT License, see LICENSE</p></article></div>

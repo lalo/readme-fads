@@ -1,0 +1,406 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-pyapns" class="anchor" href="#pyapns" aria-hidden="true"><span class="octicon octicon-link"></span></a>pyapns</h1>
+
+<p>A universal Apple Push Notification Service (APNS) provider.</p>
+
+<p>Features:</p>
+
+<ul class="task-list">
+<li>XML-RPC Based, works with any client in any language</li>
+  <li>Native Python API with Django and Pylons support</li>
+  <li>Native Ruby API with Rails/Rack support</li>
+  <li>Scalable, fast and easy to distribute behind a proxy</li>
+  <li>Based on Twisted</li>
+  <li>Multi-application and dual environment support</li>
+  <li>Simplified feedback interface</li>
+</ul><p>pyapns is an APNS provider that you install on your server and access through XML-RPC. To install you will need Python, <a href="http://pypi.python.org/pypi/Twisted">Twisted</a> and <a href="http://pypi.python.org/pypi/pyOpenSSL">pyOpenSSL</a>. It's also recommended to install <a href="http://pypi.python.org/pypi/python-epoll/">python-epoll</a> for best performance (if epoll is not available, like on Mac OS X, you may want to use another library, like <a href="http://pypi.python.org/pypi/py-kqueue/2.0.1">py-kqueue</a>). If you like easy_install try (it should take care of the dependancies for you):</p>
+
+<pre><code>$ sudo easy_install pyapns
+</code></pre>
+
+<p>pyapns is a service that runs persistently on your machine. To start it:</p>
+
+<pre><code>$ twistd -r epoll web --class=pyapns.server.APNSServer --port=7077
+</code></pre>
+
+<p>This will create a <code>twistd.pid</code> file in your current directory that can be used to kill the process. <code>twistd</code> is a launcher used for running network persistent network applications. It takes many more options that can be found by running <code>man twistd</code> or using a <a href="http://linux.die.net/man/1/twistd">web man page</a>.</p>
+
+<p>To get started right away, use the included client:</p>
+
+<pre><code>$ python
+&gt;&gt;&gt; from pyapns import configure, provision, notify
+&gt;&gt;&gt; configure({'HOST': 'http://localhost:7077/'})
+&gt;&gt;&gt; provision('myapp', open('cert.pem').read(), 'sandbox')
+&gt;&gt;&gt; notify('myapp', 'hexlified_token_str', {'aps':{'alert': 'Hello!'}})
+</code></pre>
+
+<h3>
+<a name="user-content-the-multi-application-model" class="anchor" href="#the-multi-application-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Multi-Application Model</h3>
+
+<p>pyapns supports multiple applications. Before pyapns can send notifications, you must first provision the application with an Application ID, the environment (either 'sandbox' or 'production') and the certificate file. The <code>provision</code> method takes 4 arguments, <code>app_id</code>, <code>path_to_cert_or_cert</code>, <code>environment</code> and <code>timeout</code>. A connection is kept alive for each application provisioned for the fastest service possible. The application ID is an arbitrary identifier and is not used in communication with the APNS servers.</p>
+
+<p>When a connection can not be made within the specified <code>timeout</code> a timeout error will be thrown by the server. This usually indicates that the wrong [type of] certification file is being used, a blocked port or the wrong environment.</p>
+
+<p>Attempts to provision the same application id multiple times are ignored.</p>
+
+<h3>
+<a name="user-content-sending-notifications" class="anchor" href="#sending-notifications" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sending Notifications</h3>
+
+<p>Calling <code>notify</code> will send the message immediately if a connection is already established. The first notification may be delayed a second while the server connects. <code>notify</code> takes <code>app_id</code>, <code>token_or_token_list</code> and <code>notification_or_notification_list</code>. Multiple notifications can be batched for better performance by using paired arrays of token/notifications. When performing batched notifications, the token and notification arrays must be exactly the same length.</p>
+
+<p>The full notification dictionary must be included as the notification:</p>
+
+<pre><code>{'aps': {
+    'sound': 'flynn.caf',
+    'badge': 0,
+    'message': 'Hello from pyapns :)'
+  }
+} # etc...
+</code></pre>
+
+<h3>
+<a name="user-content-retrieving-inactive-tokens" class="anchor" href="#retrieving-inactive-tokens" aria-hidden="true"><span class="octicon octicon-link"></span></a>Retrieving Inactive Tokens</h3>
+
+<p>Call <code>feedback</code> with the <code>app_id</code>. A list of tuples will be retrieved from the APNS server that it deems inactive. These are returned as a list of 2-element lists with a <code>Datetime</code> object and the token string.</p>
+
+<h3>
+<a name="user-content-xml-rpc-methods" class="anchor" href="#xml-rpc-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>XML-RPC Methods</h3>
+
+<p>These methods can be called on the server you started the server on. Be sure you are not including <code>/RPC2</code> in the URL.</p>
+
+<h3>
+<a name="user-content-provision" class="anchor" href="#provision" aria-hidden="true"><span class="octicon octicon-link"></span></a>provision</h3>
+
+<pre><code>  Arguments
+      app_id        String            the application id for the provided
+                                      certification
+      cert          String            a path to a .pem file or the a
+                                      string with the entie file
+      environment   String            the APNS server to use - either
+                                      'production' or 'sandbox'
+      timeout       Integer           timeout for connection attempts to
+                                      the APS servers
+  Returns
+      None
+</code></pre>
+
+<h3>
+<a name="user-content-notify" class="anchor" href="#notify" aria-hidden="true"><span class="octicon octicon-link"></span></a>notify</h3>
+
+<pre><code>  Arguments
+      app_id        String            the application id to send the
+                                      message to
+      tokens        String or Array   an Array of tokens or a single
+                                      token string
+      notifications String or Array   an Array of notification
+                                      dictionaries or a single
+                                      notification dictionary
+
+  Returns
+      None
+</code></pre>
+
+<h3>
+<a name="user-content-feedback" class="anchor" href="#feedback" aria-hidden="true"><span class="octicon octicon-link"></span></a>feedback</h3>
+
+<pre><code>  Arguments
+      app_id        String            the application id to retrieve
+                                      retrieve feedback for
+
+  Returns
+      Array(Array(Datetime(time_expired), String(token)), ...)
+</code></pre>
+
+<h3>
+<a name="user-content-the-python-api" class="anchor" href="#the-python-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Python API</h3>
+
+<p>pyapns also provides a Python API that makes the use of pyapns even simpler. The Python API must be configured before use but configuration files make it easier. The pyapns <code>client</code> module currently supports configuration from Django settings and Pylons config. To configure using Django, the following must be present in  your settings file:</p>
+
+<pre><code>PYAPNS_CONFIG = {
+  'HOST': 'http://localhost:8077/',
+  'TIMEOUT': 15,                    # OPTIONAL, host timeout in seconds
+  'INITIAL': [                      # OPTIONAL, see below
+    ('craigsfish', '/home/samsutch/craigsfish/apscert.pem', 'sandbox'),
+  ]
+}
+</code></pre>
+
+<p>Optionally, with Django settings, you can skip manual provisioning by including a list of <code>(name, path, environment)</code> tuples that are guaranteed to be provisioned by the time you call <code>notify</code> or <code>feedback</code>.</p>
+
+<p>Configuring for pylons is just as simple, but automatic provisioning isn't possible, in your configuration file include:</p>
+
+<pre><code>pyapns_host = http://localhost:8077/
+pyapns_timeout = 15
+</code></pre>
+
+<p>For explanations of the configuration variables see the docs for <code>pyapns.client.configure</code>.</p>
+
+<p>Each of these functions can be called synchronously and asynchronously. To make them perform asynchronously simply supply a callback and pass <code>async=True</code> to the function. The request will then be made in another thread and your callback will be executed with the results. When calling asynchronously no value will be returned:</p>
+
+<pre><code>def got_feedback(tuples):
+  trim_inactive_tokens(tuples)
+feedback('myapp', async=True, callback=got_feedback)
+</code></pre>
+
+<h3>
+<a name="user-content-pyapnsclientconfigureopts" class="anchor" href="#pyapnsclientconfigureopts" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>pyapns.client.configure(opts)</code>
+</h3>
+
+<pre><code>Takes a dictionary of options and configures the client. 
+Currently configurable options are 'HOST', 'TIMEOUT' and 'INITIAL' 
+the latter of which is only read once.
+
+Config Options:
+    HOST        - A full host name with port, ending with a forward slash
+    TIMEOUT     - An integer specifying how many seconds to timeout a
+                  connection to the pyapns server (prevents deadlocking
+                  the parent thread).
+    INITIAL     - A List of tuples to be supplied to provision when
+                  the first configuration happens.
+</code></pre>
+
+<h3>
+<a name="user-content-pyapnsclientprovisionapp_id-path_to_cert_or_cert-environment-timeout15-asyncfalse-callbacknone-errbacknone" class="anchor" href="#pyapnsclientprovisionapp_id-path_to_cert_or_cert-environment-timeout15-asyncfalse-callbacknone-errbacknone" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>pyapns.client.provision(app_id, path_to_cert_or_cert, environment, timeout=15, async=False, callback=None, errback=None)</code>
+</h3>
+
+<pre><code>Provisions the app_id and initializes a connection to the APNS server.
+Multiple calls to this function will be ignored by the pyapns daemon
+but are still sent so pick a good place to provision your apps, optimally
+once.
+
+Arguments:
+    app_id                 the app_id to provision for APNS
+    path_to_cert_or_cert   absolute path to the APNS SSL cert or a 
+                           string containing the .pem file
+    environment            either 'sandbox' or 'production'
+    timeout                number of seconds to timeout connection
+                           attempts to the APPLE APS SERVER
+    async                  pass something truthy to execute the request in a 
+                           background thread
+    callback               a function to be executed with the result
+    errback                a function to be executed with the error in case of an error
+
+Returns:
+    None
+</code></pre>
+
+<h3>
+<a name="user-content-pyapnsclientnotifyapp_id-tokens-notifications-asyncfalse-callbacknone-errbacknone" class="anchor" href="#pyapnsclientnotifyapp_id-tokens-notifications-asyncfalse-callbacknone-errbacknone" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>pyapns.client.notify(app_id, tokens, notifications, async=False, callback=None, errback=None)</code>
+</h3>
+
+<pre><code>Sends push notifications to the APNS server. Multiple 
+notifications can be sent by sending pairing the token/notification
+arguments in lists [token1, token2], [notification1, notification2].
+
+Arguments:
+    app_id                 provisioned app_id to send to
+    tokens                 token to send the notification or a 
+                           list of tokens
+    notifications          notification dict or a list of notification dicts
+    async                  pass something truthy to execute the request in a 
+                           background thread
+    callback               a function to be executed with the result when done
+    errback                a function to be executed with the error in case of an error
+
+  Returns:
+      None
+</code></pre>
+
+<h3>
+<a name="user-content-pyapnsclientfeedbackapp_id-asyncfalse-callbacknone-errbacknone" class="anchor" href="#pyapnsclientfeedbackapp_id-asyncfalse-callbacknone-errbacknone" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>pyapns.client.feedback(app_id, async=False, callback=None, errback=None)</code>
+</h3>
+
+<pre><code>Retrieves a list of inactive tokens from the APNS server and the times
+it thinks they went inactive.
+
+Arguments:
+    app_id                 the app_id to query
+    async                  pass something truthy to execute the request in 
+                           a background thread
+    callback               a function to be executed with the result when 
+                           feedbacks are done fetching
+    errback                a function to be executed with the error if there
+                           is one during the request
+
+Returns:
+    List of feedback tuples like [(datetime_expired, token_str), ...]
+</code></pre>
+
+<h2>
+<a name="user-content-the-ruby-api" class="anchor" href="#the-ruby-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Ruby API</h2>
+
+<h3>
+<a name="user-content-pyapnsclient" class="anchor" href="#pyapnsclient" aria-hidden="true"><span class="octicon octicon-link"></span></a>PYAPNS::Client</h3>
+
+<p>There's python in my ruby!</p>
+
+<p>The ruby gem can be installed from <a href="https://github.com/krasio/pyapns_gem">here</a></p>
+
+<p>This is a class used to send notifications, provision applications and
+retrieve feedback using the Apple Push Notification Service.</p>
+
+<p>PYAPNS is a multi-application APS provider, meaning it is possible to send
+notifications to any number of different applications from the same application
+and same server. It is also possible to scale the client to any number
+of processes and servers, simply balanced behind a simple web proxy.</p>
+
+<p>It may seem like overkill for such a bare interface - after all, the 
+APS service is rather simplistic. However, PYAPNS takes no shortcuts when it
+comes to completeness/compliance with the APNS protocol and allows the
+user many optimization and scaling vectors not possible with other libraries.
+No bandwidth is wasted, connections are persistent and the server is
+asynchronous therefore notifications are delivered immediately.</p>
+
+<p>PYAPNS takes after the design of 3rd party push notification service that
+charge a fee each time you push a notification, and charge extra for so-called
+'premium' service which supposedly gives you quicker access to the APS servers.
+However, PYAPNS is free, as in beer and offers more scaling opportunities without
+the financial draw.</p>
+
+<h3>
+<a name="user-content-provisioning" class="anchor" href="#provisioning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Provisioning</h3>
+
+<p>To add your app to the PYAPNS server, it must be <code>provisioned</code> at least once.
+Normally this is done once upon the start-up of your application, be it a web
+service, desktop application or whatever... It must be done at least once
+to the server you're connecting to. Multiple instances of PYAPNS will have
+to have their applications provisioned individually. To provision an application
+manually use the <code>PYAPNS::Client#provision</code> method.</p>
+
+<pre><code>require 'pyapns'
+client = PYAPNS::Client.configure
+client.provision :app_id =&gt; 'cf', :cert =&gt; '/home/ss/cert.pem', :env =&gt; 'sandbox', :timeout =&gt; 15
+</code></pre>
+
+<p>This basically says "add an app reference named 'cf' to the server and start
+a connection using the certification, and if it can't within 15 seconds, 
+raise a <code>PYAPNS::TimeoutException</code></p>
+
+<p>That's all it takes to get started. Of course, this can be done automatically
+by using PYAPNS::ClientConfiguration middleware. <code>PYAPNS::Client</code> is a singleton
+class that is configured using the class method <code>PYAPNS::Client#configure</code>. It
+is sensibly configured by default, but can be customized by specifying a hash
+See the docs on <code>PYAPNS::ClientConfiguration</code> for a list of available configuration
+parameters (some of these are important, and you can specify initial applications)
+to be configured by default.</p>
+
+<h3>
+<a name="user-content-sending-notifications-1" class="anchor" href="#sending-notifications-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sending Notifications</h3>
+
+<p>Once your client is configured, and application provisioned (again, these
+should be taken care of before you write notification code) you can begin
+sending notifications to users. If you're wondering how to acquire a notification
+token, you've come to the wrong place... I recommend using google. However,
+if you want to send hundreds of millions of notifications to users, here's how
+it's done, one at a time...</p>
+
+<p>The <code>PYAPNS::Client#notify</code> is a sort of polymorphic method which can notify
+any number of devices at a time. It's basic form is as follows:</p>
+
+<pre><code>client.notify 'cf', 'long ass app token', {:aps=&gt; {:alert =&gt; 'hello?'}}
+</code></pre>
+
+<p>However, as stated before, it is sort of polymorphic:</p>
+
+<pre><code>client.notify 'cf', ['token', 'token2', 'token3'], [alert, alert2, alert3]
+
+client.notify :app_id =&gt; 'cf', :tokens =&gt; 'mah token', :notifications =&gt; alertHash
+
+client.notify 'cf', 'token', PYAPNS::Notification('hello tits!')
+</code></pre>
+
+<p>As you can see, the method accepts paralell arrays of tokens and notifications
+meaning any number of notifications can be sent at once. Hashes will be automatically
+converted to <code>PYAPNS::Notification</code> objects so they can be optimized for the wire
+(nil values removed, etc...), and you can pass <code>PYAPNS::Notification</code> objects
+directly if you wish.</p>
+
+<h3>
+<a name="user-content-retrieving-feedback" class="anchor" href="#retrieving-feedback" aria-hidden="true"><span class="octicon octicon-link"></span></a>Retrieving Feedback</h3>
+
+<p>The APS service offers a feedback functionality that allows application servers
+to retrieve a list of device tokens it deems to be no longer in use, and the
+time it thinks they stopped being useful (the user uninstalled your app, better
+luck next time...) Sounds pretty straight forward, and it is. Apple recommends
+you do this at least once an hour. PYAPNS will return a list of 2-element lists
+with the date and the token:</p>
+
+<pre><code>feedbacks = client.feedback 'cf'
+</code></pre>
+
+<h3>
+<a name="user-content-asynchronous-calls" class="anchor" href="#asynchronous-calls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous Calls</h3>
+
+<p>PYAPNS::Client will, by default, perform no funny stuff and operate entirely
+within the calling thread. This means that certain applications may hang when,
+say, sending a notification, if only for a fraction of a second. Obviously 
+not a desirable trait, all <code>provision</code>, <code>feedback</code> and <code>notify</code>
+methods also take a block, which indicates to the method you want to call
+PYAPNS asynchronously, and it will be done so handily in another thread, calling
+back your block with a single argument when finished. Note that <code>notify</code> and <code>provision</code>
+return absolutely nothing (nil, for you rub--wait you are ruby developers!).
+It is probably wise to always use this form of operation so your calling thread
+is never blocked (especially important in UI-driven apps and asynchronous servers)
+Just pass a block to provision/notify/feedback like so:</p>
+
+<pre><code>PYAPNS::Client.instance.feedback do |feedbacks|
+  feedbacks.each { |f| trim_token f }
+end
+</code></pre>
+
+<h3>
+<a name="user-content-pyapnsclientconfiguration" class="anchor" href="#pyapnsclientconfiguration" aria-hidden="true"><span class="octicon octicon-link"></span></a>PYAPNS::ClientConfiguration</h3>
+
+<p>A middleware class to make <code>PYAPNS::Client</code> easy to use in web contexts</p>
+
+<p>Automates configuration of the client in Rack environments
+using a simple confiuration middleware. To use <code>PYAPNS::Client</code> in
+Rack environments with the least code possible <code>use PYAPNS::ClientConfiguration</code>
+(no, really, in some cases, that's all you need!) middleware with an optional
+hash specifying the client variables. Options are as follows:</p>
+
+<pre><code> use PYAPNS::ClientConfiguration(
+      :host =&gt; 'http://localhost/' 
+      :port =&gt; 7077,
+      :initial =&gt; [{
+          :app_id =&gt; 'myapp',
+          :cert =&gt; '/home/myuser/apps/myapp/cert.pem',
+          :env =&gt; 'sandbox',
+          :timeout =&gt; 15
+ }])
+</code></pre>
+
+<p>Where the configuration variables are defined:</p>
+
+<pre><code>:host     String      the host where the server can be found
+:port     Number      the port to which the client should connect
+:initial  Array       OPTIONAL - an array of INITIAL hashes
+
+INITIAL HASHES:
+
+:app_id   String      the id used to send messages with this certification
+                      can be a totally arbitrary value
+:cert     String      a path to the certification or the certification file
+                      as a string
+:env      String      the environment to connect to apple with, always
+                      either 'sandbox' or 'production'
+:timoeut  Number      The timeout for the server to use when connecting
+                      to the apple servers
+</code></pre>
+
+<h3>
+<a name="user-content-pyapnsnotification" class="anchor" href="#pyapnsnotification" aria-hidden="true"><span class="octicon octicon-link"></span></a>PYAPNS::Notification</h3>
+
+<p>An APNS Notification</p>
+
+<p>You can construct notification objects ahead of time by using this class.
+However unnecessary, it allows you to programmatically generate a Notification
+like so: </p>
+
+<pre><code>note = PYAPNS::Notification.new 'alert text', 9, 'flynn.caf', {:extra =&gt; 'guid'}
+
+-- or --
+note = PYAPNS::Notification.new 'alert text'
+</code></pre>
+
+<p>These can be passed to <code>PYAPNS::Client#notify</code> the same as hashes</p></article></div>

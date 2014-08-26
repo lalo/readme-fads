@@ -1,0 +1,248 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-use-2211-231-is-buggy" class="anchor" href="#use-2211-231-is-buggy" aria-hidden="true"><span class="octicon octicon-link"></span></a>USE 2.2.11, 2.3.1 IS BUGGY</h1>
+
+<p>and I do not have time soon to fix it properly. Sorry!</p>
+
+<h1>
+<a name="user-content-iiviewdeckcontroller" class="anchor" href="#iiviewdeckcontroller" aria-hidden="true"><span class="octicon octicon-link"></span></a>IIViewDeckController</h1>
+
+<p>When I saw the new UI in the Path 2.0 app, extending the sliding views UI found in the Facebook app, I wanted to recreate this effect and controller for myself. Mostly as an exercise, but it might come in handy later.
+A quick prototype was built in one evening, but the finetuning took a few more evenings.</p>
+
+<p>The ViewDeckController supports both a left and a right sideview (in any combination: you can leave one of them <code>nil</code> for example). You can pan the center view to the left or to the right. There's also a bunch of messages defined to open or close each side appropriately.</p>
+
+<p>The class is built so that it augments current navigation technologies found in IOS.</p>
+
+<h1>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h1>
+
+<p>The library supports both ARC and non-ARC projects (the ARC mode is detected automagically, and the code is modified where necessary according to the ARC mode in use).</p>
+
+<h1>
+<a name="user-content-demo-video--screenshots" class="anchor" href="#demo-video--screenshots" aria-hidden="true"><span class="octicon octicon-link"></span></a>Demo video &amp; Screenshots</h1>
+
+<p>You're probably curious how it looks. Here's some shots from the example app:</p>
+
+<p><a href="https://camo.githubusercontent.com/00b78ad3358991945d29f1d37d6dceac43234169/687474703a2f2f636c2e6c792f30363358343132613169325532653366334430322f496d616765253230323031322e30312e323625323032333a32363a35352e706e67" target="_blank"><img src="https://camo.githubusercontent.com/00b78ad3358991945d29f1d37d6dceac43234169/687474703a2f2f636c2e6c792f30363358343132613169325532653366334430322f496d616765253230323031322e30312e323625323032333a32363a35352e706e67" alt="Left opened" data-canonical-src="http://cl.ly/063X412a1i2U2e3f3D02/Image%202012.01.26%2023:26:55.png" style="max-width:100%;"></a><a href="https://camo.githubusercontent.com/b9e501ed8b54230a4b732071225f50d751d5b582/687474703a2f2f636c2e6c792f33383153306931633263315a326c3255333330332f496d616765253230323031322e30312e323625323032333a32393a33312e706e67" target="_blank"><img src="https://camo.githubusercontent.com/b9e501ed8b54230a4b732071225f50d751d5b582/687474703a2f2f636c2e6c792f33383153306931633263315a326c3255333330332f496d616765253230323031322e30312e323625323032333a32393a33312e706e67" alt="Right opened" data-canonical-src="http://cl.ly/381S0i1c2c1Z2l2U3303/Image%202012.01.26%2023:29:31.png" style="max-width:100%;"></a></p>
+
+<p>See the controller in action: <a href="http://vimeo.com/34538429">http://vimeo.com/34538429</a> (general demo) and <a href="http://vimeo.com/35716738">http://vimeo.com/35716738</a> (elasticity).
+These are demos of the included <code>ViewDeckExample</code> app.</p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<ul class="task-list">
+<li>Add <code>IIViewDeckController.h</code> and <code>IIViewDeckController.m</code> to your project.</li>
+<li>Link the <code>QuartzCore.framework</code>
+</li>
+<li>
+<code>#import "IIViewDeckController.h"</code> to use it in a class</li>
+</ul><h1>
+<a name="user-content-how-to-use-it" class="anchor" href="#how-to-use-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use it?</h1>
+
+<h2>
+<a name="user-content-factories" class="anchor" href="#factories" aria-hidden="true"><span class="octicon octicon-link"></span></a>Factories</h2>
+
+<p>The class currently supports a left and a right side controller. Each of these can be nil (if it is, no panning or opening to that side will work).</p>
+
+<pre><code>#import "IIViewDeckController.h"
+
+// prepare view controllers
+UIViewController* leftController = [[UIViewController alloc] init];
+UIViewController* rightController = [[UIViewController alloc] init];
+
+IIViewDeckController* deckController =  [[IIViewDeckController alloc] initWithCenterViewController:self.centerController leftViewController:leftController
+                                                  rightViewController:rightController];
+</code></pre>
+
+<p>There's also two convenience factory methods for just a left or right view controller.</p>
+
+<h2>
+<a name="user-content-switching-controllers" class="anchor" href="#switching-controllers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Switching controllers</h2>
+
+<p>You can also switch view controllers in mid flight. Just assign a viewcontroller to the appropriate property and the view deck controller will do the rest:</p>
+
+<pre><code>// prepare view controllers
+UIViewController* newController = [[UIViewController alloc] init];
+self.viewDeckController.leftController = newController;
+</code></pre>
+
+<p>You can also use this to remove a side controller: just set it to <code>nil</code>.</p>
+
+<h2>
+<a name="user-content-viewdeckcontroller-property" class="anchor" href="#viewdeckcontroller-property" aria-hidden="true"><span class="octicon octicon-link"></span></a>viewDeckController property</h2>
+
+<p>Like <code>UINavigationViewController</code> the <code>IIViewDeckController</code> assigns itself to its childviews. You can use the <code>viewDeckController</code> property to get access to the enclosing view deck controller:</p>
+
+<pre><code>[self.viewDeckController toggleLeftViewAnimated:YES]
+</code></pre>
+
+<p>If the controller is not enclosed by a IIViewDeckController, this property returns <code>nil</code>.</p>
+
+<h2>
+<a name="user-content-ledge-sizes" class="anchor" href="#ledge-sizes" aria-hidden="true"><span class="octicon octicon-link"></span></a>ledge sizes</h2>
+
+<p>You cannot close the centerview completely, since it would block the user from panning it back. You can set the ledge sizes yourself by assigning a value to the <code>leftSize</code> property for the left side and the <code>rightSize</code> property for the right side. It is possible to set a ledge size of 0.</p>
+
+<h3>
+<a name="user-content-maximum-ledge-size-or-gap-mode" class="anchor" href="#maximum-ledge-size-or-gap-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>maximum ledge size, or gap-mode</h3>
+
+<p>It is possible to have the viewController always show a side controller. You do this by setting the <code>maxSize</code> value to any (positive) nonzero value. This will force the centerview to be always opened, exposing a side controller permanently. <strong>This only works when you have ONE sidecontroller specified</strong> (this means either a left side controller or a right side controller), because this scenario does not make sense if you would be able to slide the center view in both directions. When you have 2 side controllers, this property is ignored.</p>
+
+<h2>
+<a name="user-content-bouncing-close" class="anchor" href="#bouncing-close" aria-hidden="true"><span class="octicon octicon-link"></span></a>bouncing close</h2>
+
+<p>The controller also allows you to close the side views with a bouncing animation like Path does. To achieve this, use the <code>closeLeftViewBouncing:</code> and <code>closeRightViewBouncing:</code> methods. These take a block as their only parameter: this block is executed while the animation is running, on the exact moment where the center view is completely hidden from the view (the animation first fully opens the side view, and then closes it). This block allows you to change the centerview controller, for example (since it's obscured). You can pass <code>nil</code> if you don't need to execute something in the middle of the animation.</p>
+
+<pre><code>[self.viewDeckController closeLeftViewBouncing:^(IIViewDeckController *controller) {
+    controller.centerController = [UIViewController alloc] init];
+    // ...
+}];
+</code></pre>
+
+<h2>
+<a name="user-content-openclose-animation-duration" class="anchor" href="#openclose-animation-duration" aria-hidden="true"><span class="octicon octicon-link"></span></a>open/close animation duration</h2>
+
+<p>The view deck controller allows you to set the speed at which the opening and closing animations play. To do so, use the following properties.</p>
+
+<pre><code>self.viewDeckController.openSlideAnimationDuration = 0.15f; // In seconds
+self.viewDeckController.closeSlideAnimationDuration = 0.25f;
+</code></pre>
+
+<p>The default speed of both, if not set, is 0.3f.</p>
+
+<h2>
+<a name="user-content-bounce-animation-duration" class="anchor" href="#bounce-animation-duration" aria-hidden="true"><span class="octicon octicon-link"></span></a>bounce animation duration</h2>
+
+<p>You can set the duration of the bounce animation as a factor (multiple) of the close/openSlideAnimationDurations. To control both the open and close of the bounce, you can simply use:
+    self.viewDeckController.bounceDurationFactor = 0.5; // Animate at twice the speed (half the duration)</p>
+
+<p>The default factor is 1.0 if bounceDurationFactor is not set.</p>
+
+<p>For even more control, you can also set the animation duration for the bounce open (the first part of the bounce):
+    self.viewDeckController.bounceOpenSideDurationFactor = 0.3f;</p>
+
+<p>If bounceOpenSideDurationFactor is not set, it will fallback to the bounceDurationFactor behavior. If bounceOpenSideDurationFactor is set, bounceDurationFactor affects only the "close" (2nd half) of the bounce animation.</p>
+
+<h2>
+<a name="user-content-shadow" class="anchor" href="#shadow" aria-hidden="true"><span class="octicon octicon-link"></span></a>shadow</h2>
+
+<p>The center controller view receives a shadow to give it an <em>on-top</em> appearance. The shadow is defined by the view deck controller.
+You can override the shadow (or leave it out alltogether) by assigning a delegate that implements the <code>viewDeckController:applyShadow:withBounds:</code> selector. You'll be passed the layer of the view on which the shadow should be set.  If you override said selector, setting the shadow is up to you, and the view deck controller will not apply any shadow itself.</p>
+
+<p>For example:</p>
+
+<pre><code>// applies a small, red shadow
+- (void)viewDeckController:(IIViewDeckController *)viewDeckController applyShadow:(CALayer *)shadowLayer withBounds:(CGRect)rect {
+    shadowLayer.masksToBounds = NO;
+    shadowLayer.shadowRadius = 5;
+    shadowLayer.shadowOpacity = 0.9;
+    shadowLayer.shadowColor = [[UIColor redColor] CGColor];
+    shadowLayer.shadowOffset = CGSizeZero;
+    shadowLayer.shadowPath = [[UIBezierPath bezierPathWithRect:rect] CGPath];
+}
+</code></pre>
+
+<p>The bounds passed in through <code>rect</code> can be used for setting the shadow path to the layer, for performance reasons. It will be set to the bounds of the center view.</p>
+
+<h2>
+<a name="user-content-elasticity" class="anchor" href="#elasticity" aria-hidden="true"><span class="octicon octicon-link"></span></a>elasticity</h2>
+
+<p>The controller supports "elasticity": when you pan the center view "over" one of the ledges, you'll see that it gets pulled a bit further, but you can't pull it all the way to the edge. When you let go, it jumps back to the set ledge size. This gives the controller behavior are a more lifelike feel.</p>
+
+<p>Of course, you can turn this behavior off. Just set <code>elasticity = NO</code> when loading the controller and you're set.</p>
+
+<p>When rotating, the controller will move the open center views to the correct location: the ledge will be the same before and after rotation (this means a different part of the underlying side view will be exposed). You can control this behavior through the <code>sizeMode</code> property. You can use one of the following values:
+    typdef enum {
+        IIViewDeckLedgeSizeMode, // when rotating, the ledge sizes are kept (side views are more/less visible)
+        IIViewDeckViewSizeMode  // when rotating, the size view sizes are kept (ledges change)
+    } IIViewDeckSizeMode;
+The default is <code>IIViewDeckLedgeSizeMode</code>, which keeps the sizes of the defined ledges the same when rotating.</p>
+
+<h2>
+<a name="user-content-panning" class="anchor" href="#panning" aria-hidden="true"><span class="octicon octicon-link"></span></a>panning</h2>
+
+<p>It is possible to control the panning behavior a bit. Set the <code>panningMode</code> on the controller to achieve 3 different modes:</p>
+
+<pre><code>typedef enum {
+    IIViewDeckNoPanning,              // no panning allowed
+    IIViewDeckFullViewPanning,        // the default: touch anywhere in the center view to drag the center view around
+    IIViewDeckNavigationBarPanning,   // panning only occurs when you start touching in the navigation bar (when the center controller is a UINavigationController with a visible navigation bar). Otherwise it will behave as IIViewDeckNoPanning.
+    IIViewDeckPanningViewPanning      // panning only occurs when you start touching in a UIView set in panningView property
+} IIViewDeckPanningMode;
+</code></pre>
+
+<p>When you specify <code>IIViewDeckPanningViewPanning</code>, you have to set the <code>panningView</code> property on the controller. This view will react to pan motions that will pan the view deck.</p>
+
+<h2>
+<a name="user-content-disabling-the-center-view" class="anchor" href="#disabling-the-center-view" aria-hidden="true"><span class="octicon octicon-link"></span></a>disabling the center view</h2>
+
+<p>The center view can be disabled if it is slided out of the way. You do this by setting the <code>centerhiddenInteractivity</code> property on the controller.</p>
+
+<pre><code>typedef enum {
+    IIViewDeckCenterHiddenUserInteractive,         // the center view stays interactive
+    IIViewDeckCenterHiddenNotUserInteractive,      // the center view will become nonresponsive to useractions
+    IIViewDeckCenterHiddenNotUserInteractiveWithTapToClose, // the center view will become nonresponsive to useractions, but will allow the user to tap it so that it closes
+    IIViewDeckCenterHiddenNotUserInteractiveWithTapToCloseBouncing, // same as IIViewDeckCenterHiddenNotUserInteractiveWithTapToClose, but closes the center view bouncing
+} IIViewDeckCenterHiddenInteractivity;
+</code></pre>
+
+<p>When you need to change the centercontroller (or something else) when the center view is bounced away, use the following message to react:</p>
+
+<pre><code> - (void)viewDeckController:(IIViewDeckController *)viewDeckController didBounceWithClosingController:(UIViewController*)openController;
+</code></pre>
+
+<h1>
+<a name="user-content-uinavigationcontroller" class="anchor" href="#uinavigationcontroller" aria-hidden="true"><span class="octicon octicon-link"></span></a>UINavigationController</h1>
+
+<p>The view deck controller has two integration modes to deal with <code>UINavigationController</code>. The first mode <code>IIViewDeckNavigationControllerContained</code> will have the navigation controller act as a normal "contained" view controller. All pushes and pops will remain in the centerview.</p>
+
+<p>The other mode <code>IIViewDeckNavigationControllerIntegrated</code> has different behavoir: it allows you to "inject" the viewdeck controller into an existing navigation controller hierarchy. The feature example (see below) has the simple scenario: the center view is a navigation controller. Any action in that navigation controller stays in the centerview.</p>
+
+<p>But if you push a <code>IIViewDeckController</code> onto a navigation controller, the sideviews will nestly themselves <em>below</em> the navigation view. This means that the animations regarding the navigation controller will be applied only to the center view controller and not to the side view controllers.
+There's currently no way to disable this behavior, but it will be added later.</p>
+
+<h1>
+<a name="user-content-viewdeckexample" class="anchor" href="#viewdeckexample" aria-hidden="true"><span class="octicon octicon-link"></span></a>ViewDeckExample</h1>
+
+<p>This is a simple example mimicing the Path 2.0 UI to a certain extent.</p>
+
+<h1>
+<a name="user-content-featureexample" class="anchor" href="#featureexample" aria-hidden="true"><span class="octicon octicon-link"></span></a>FeatureExample</h1>
+
+<p>This is a more extensive example. You can specify the different choices for the settable behavioral property and test them out live.</p>
+
+<h1>
+<a name="user-content-sizingeample" class="anchor" href="#sizingeample" aria-hidden="true"><span class="octicon octicon-link"></span></a>SizingEample</h1>
+
+<p>This is a test program to test out sizing behavior. It presents a view with a viewdeck controller in, and a zoom button. The zoom button enlarges/shrinks the view. The view deck controller should resize along.</p>
+
+<h1>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h1>
+
+<p>I'd appreciate it to mention the use of this code somewhere if you use it in an app. On a website, in an about page, in the app itself, whatever. Or let me know by email or through github. It's nice to know where one's code is used.</p>
+
+<h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p><strong>IIViewDeckController</strong> published under the MIT license:</p>
+
+<p><em>Copyright (C) 2011-2013, Tom Adriaenssen</em></p>
+
+<p><em>Permission is hereby granted, free of charge, to any person obtaining a copy of</em>
+<em>this software and associated documentation files (the "Software"), to deal in</em>
+<em>the Software without restriction, including without limitation the rights to</em>
+<em>use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies</em>
+<em>of the Software, and to permit persons to whom the Software is furnished to do</em>
+<em>so, subject to the following conditions:</em></p>
+
+<p><em>The above copyright notice and this permission notice shall be included in all</em>
+<em>copies or substantial portions of the Software.</em></p>
+
+<p><em>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</em>
+<em>IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</em>
+<em>FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</em>
+<em>AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</em>
+<em>LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</em>
+<em>OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</em>
+<em>SOFTWARE.</em></p></article></div>

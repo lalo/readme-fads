@@ -1,0 +1,183 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-authy-ssh" class="anchor" href="#authy-ssh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authy SSH</h1>
+
+<h2>
+<a name="user-content-pre-requisites" class="anchor" href="#pre-requisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pre-requisites.</h2>
+
+<ol class="task-list">
+<li>Authy API Key: <a href="https://www.authy.com/signup">https://www.authy.com/signup</a>
+</li>
+</ol><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation.</h2>
+
+<p>Type the following command in the terminal:</p>
+
+<pre><code>$ curl -O 'https://raw.github.com/authy/authy-ssh/master/authy-ssh'
+$ sudo bash authy-ssh install /usr/local/bin
+</code></pre>
+
+<p>Then enable two-factor for your user:</p>
+
+<pre><code>$ sudo /usr/local/bin/authy-ssh enable `whoami` &lt;your-email&gt; &lt;your-country-code&gt; &lt;your-cellphone&gt;
+</code></pre>
+
+<p>Test everything is working:</p>
+
+<pre><code>$ authy-ssh test
+</code></pre>
+
+<p>Restart your SSH server (look below if you are not on Ubuntu).</p>
+
+<pre><code>$ sudo service ssh restart
+</code></pre>
+
+<h5>
+<a name="user-content-restarting-your-ssh-server" class="anchor" href="#restarting-your-ssh-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Restarting your ssh server</h5>
+
+<p><strong>Ubuntu</strong></p>
+
+<pre><code>sudo service ssh restart
+</code></pre>
+
+<p><strong>Debian</strong></p>
+
+<pre><code>sudo /etc/init.d/sshd restart
+</code></pre>
+
+<p><strong>RedHat and Fedora Core Linux</strong></p>
+
+<pre><code>sudo /sbin/service sshd restart
+</code></pre>
+
+<p><strong>Suse linux</strong></p>
+
+<pre><code>sudo /etc/rc.d/sshd restart
+</code></pre>
+
+<h3>
+<a name="user-content-installing-without-root-privileges" class="anchor" href="#installing-without-root-privileges" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing without root privileges.</h3>
+
+<p>Type the following command in the terminal:</p>
+
+<pre><code>$ curl 'https://raw.github.com/authy/authy-ssh/master/authy-ssh' -o authy-ssh
+$ bash authy-ssh install ~/.authy-ssh/
+</code></pre>
+
+<p>Now protect your user:</p>
+
+<pre><code>$ bash ~/.authy-ssh/authy-ssh protect
+</code></pre>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<p>Authy-ssh uses the <code>sshd_config</code> directive <code>ForceCommand</code> to run itself before every login. Here's how your sshd_config will look after installing:</p>
+
+<pre><code>[root@ip-10-2-113-233 ~]# cat  /etc/ssh/sshd_config | grep ForceCommand
+ForceCommand /usr/local/bin/authy-ssh login
+</code></pre>
+
+<p>]
+Whenever  it  runs authy-ssh will read it's configuration from /usr/local/bin/authy-ssh.conf
+Here's an example:</p>
+
+<pre><code>[root@ip-10-2-113-233 ~]# cat /usr/local/bin/authy-ssh.conf
+banner=Good job! You've securely logged in with Authy.
+api_key=05c783f2db87b73b198f11fe45dd8bfb
+user=root:1
+user=daniel:1
+</code></pre>
+
+<p>In this case it means user root and daniel have two-factor enabled and that 1 is their <code>authy_id</code>. If a user is not in this list, <code>authy-ssh</code> will automatically let him in.</p>
+
+<h2>
+<a name="user-content-using-two-factor-auth-with-automated-deployment-tools" class="anchor" href="#using-two-factor-auth-with-automated-deployment-tools" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using two-factor auth with automated deployment tools.</h2>
+
+<p>If you use <strong>capybara</strong>, <strong>chef</strong>, <strong>puppet</strong>, <strong>cfengine</strong>, <strong>git</strong> you can create new users for these tools so they can enter the machine without requiring two-factor.
+Alternatively, you can match users using the <code>ForceCommand</code> directive.</p>
+
+<p>A good example is create a two-factor users group.</p>
+
+<pre><code>groupadd two-factor
+usermod  -a -G two-factor root
+</code></pre>
+
+<p>Now that my root user is in the two-factor group, I edit my /etc/ssh/sshd_config</p>
+
+<pre><code>[root@ip-10-2-113-233 ~]# cat /etc/ssh/sshd_config | grep ForceCommand -A 1 -B 1
+match Group two-factor
+    ForceCommand /usr/local/bin/authy-ssh login
+
+$ /sbin/service sshd restart
+Stopping sshd:                                             [  OK  ]
+Starting sshd:                                             [  OK  ]
+</code></pre>
+
+<p>Now force command will only operate on users that belong to the two-factor group.</p>
+
+<h2>
+<a name="user-content-enable-two-factor-auth-on-a-user" class="anchor" href="#enable-two-factor-auth-on-a-user" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enable two-factor auth on a user.</h2>
+
+<p>To enable users type the following command and fill the form:</p>
+
+<pre><code>$ sudo authy-ssh enable
+</code></pre>
+
+<p>If you want to do it in one line just type:</p>
+
+<pre><code>$ sudo authy-ssh enable &lt;local-username&gt; &lt;user-email&gt; &lt;user-cellphone-country-code&gt; &lt;user-cellphone&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-scp-mosh-and-git-push-with-two-factor-authentication" class="anchor" href="#scp-mosh-and-git-push-with-two-factor-authentication" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>scp</code>, <code>mosh</code> and <code>git push</code> with two-factor authentication.</h2>
+
+<p>To enable non-interactive commands like <code>scp</code>, <code>mosh</code> and <code>git clone|fetch|push</code> you have to allow to pass the environment variable <code>AUTHY_TOKEN</code> from the client. To do so edit your <code>sshd_config</code> (normally located at <code>/etc</code> or <code>/etc/ssh/</code>) and add <code>AUTHY_TOKEN</code> to the AcceptEnv directive:</p>
+
+<pre><code>AcceptEnv AUTHY_TOKEN
+</code></pre>
+
+<p>Then configure the client to send that variable to the server, to do so first open <code>~/.ssh/config</code> and then add the following:</p>
+
+<pre><code>Host *
+    SendEnv AUTHY_TOKEN
+</code></pre>
+
+<p>And finally pass the token before the command:</p>
+
+<pre><code>AUTHY_TOKEN="valid-token" git push origin master
+AUTHY_TOKEN="valid-token" scp server:path/to/file local-file
+AUTHY_TOKEN="valid-token" mosh server
+</code></pre>
+
+<h2>
+<a name="user-content-multiple-users-sharing-the-same-unix-account" class="anchor" href="#multiple-users-sharing-the-same-unix-account" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multiple users sharing the same unix account.</h2>
+
+<p>If you have many users that need to share a single login, you can still use strong two-factor authentication without sharing the same token. This means that every user can have their own Authy Token, ensuring non-repudiation.</p>
+
+<p>To achieve this, delete or comment out the <code>ForceCommand</code> directive from your <code>sshd_config</code>:</p>
+
+<pre><code>$ sudo sed -ie 's/^\(ForceCommand.*authy-ssh.*\)/#\1/g' /etc/ssh/sshd_config
+</code></pre>
+
+<p>and then for each person add their ssh key using the following command:</p>
+
+<pre><code>$ sudo authy-ssh protect
+</code></pre>
+
+<p>you should end up with an authorized_keys file that looks like:</p>
+
+<pre><code>command="/usr/local/bin/authy-ssh login 13386" ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGRJbWu+WLVXYVADY3iQPE1kA7CIOSqHmskPM8qIAzKzq+1eRdmPwDZNmAvIQnN/0N7317Rt1bmTRLBwhl6vfSgL6677vUwsevPo27tIxdja67ELTh55xVLcJ3O8x2qkZsySgkLP/n+w3MUwLe1ht31AZOAsV7J7imhWipDijiysNgvHyeSWsHqExaL1blPOYJVHcqPbKY4SxFRq/MWeyPf/Sm24MFSKEaY6u0kNx8MLJ1X9X/YxmY9rdvzsZdQ7Z/PYhYt2Ja/0mzfYx2leeP2JQBsVfZZzAoFEPpw6mSP9kJREGe2tXvS9cRenhz/+V0+mvSJKG0f0Zzh428pTzN
+command="/usr/local/bin/authy-ssh login 20" ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAyvj2d0rSDukDT04mK7njUxtXffUrOnDCm2Bqub0zN7LQS733nBHp89aMuBI5ENjw1SQ2qXhLxvK1Xhr0pQr+dOWNn3emQjQuiA+YL39yp2RLLpflerJ3KAVY09CHYLFxdKj/DJgXsH+LMAPe2uVmWCP2xAV5ZcLnz3CdS2SX/EVlbNrftesZx9uAbmwKPLY1pmW7q/75AhJRow8VTP7zM/VS7jEHkj03g51BZGB8tMI3G8RDVEDtu2jVwZiq+8BaNCyjYVlsLfu6uGhnXeeUS3swu/atlt+pxy+QTf/HGvrJR58tER+foqheWtV3LqXN4oLckzqTVkDDmnNJlmrpYQ==
+</code></pre>
+
+<p>The previous command will ask you the user ssh public key, cellphone and email.</p>
+
+<h2>
+<a name="user-content-uninstall" class="anchor" href="#uninstall" aria-hidden="true"><span class="octicon octicon-link"></span></a>Uninstall</h2>
+
+<p>To uninstall type:</p>
+
+<pre><code>$ sudo authy-ssh uninstall
+$ restart your SSH server
+</code></pre></article></div>

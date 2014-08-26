@@ -1,0 +1,304 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-crouton-chromium-os-universal-chroot-environment" class="anchor" href="#crouton-chromium-os-universal-chroot-environment" aria-hidden="true"><span class="octicon octicon-link"></span></a>crouton: Chromium OS Universal Chroot Environment</h1>
+
+<p>crouton is a set of scripts that bundle up into an easy-to-use,
+Chromium OS-centric chroot generator. Currently Ubuntu and Debian are
+supported (using debootstrap behind the scenes), but "Chromium OS Debian,
+Ubuntu, and Probably Other Distros Eventually Chroot Environment" doesn't
+acronymize as well (crodupodece is admittedly pretty fun to say, though).</p>
+
+<h2>
+<a name="user-content-croutonan-acronym" class="anchor" href="#croutonan-acronym" aria-hidden="true"><span class="octicon octicon-link"></span></a>"crouton"...an acronym?</h2>
+
+<p>It stands for <em>ChRomium Os Universal chrooT envirONment</em>
+...or something like that. Do capitals really matter if caps-lock has been
+(mostly) banished, and the keycaps are all lower-case?</p>
+
+<p>Moving on...</p>
+
+<h2>
+<a name="user-content-whos-this-for" class="anchor" href="#whos-this-for" aria-hidden="true"><span class="octicon octicon-link"></span></a>Who's this for?</h2>
+
+<p>Anyone who wants to run straight Linux on their Chromium OS device, and doesn't
+care about physical security. You're also better off having some knowledge of
+Linux tools and the command line in case things go funny, but it's not strictly
+necessary.</p>
+
+<h2>
+<a name="user-content-whats-a-chroot" class="anchor" href="#whats-a-chroot" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's a chroot?</h2>
+
+<p>Like virtualization, chroots provide the guest OS with their own, segregated
+file system to run in, allowing applications to run in a different binary
+environment from the host OS. Unlike virtualization, you are <em>not</em> booting a
+second OS; instead, the guest OS is running using the Chromium OS system. The
+benefit to this is that there is zero speed penalty since everything is run
+natively, and you aren't wasting RAM to boot two OSes at the same time. The
+downside is that you must be running the correct chroot for your hardware, the
+software must be compatible with Chromium OS's kernel, and machine resources are
+inextricably tied between the host Chromium OS and the guest OS. What this means
+is that while the chroot cannot directly access files outside of its view, it
+<em>can</em> access all of your hardware devices, including the entire contents of
+memory. A root exploit in your guest OS will essentially have unfettered access
+to the rest of Chromium OS.</p>
+
+<p>...but hey, you can run TuxRacer!</p>
+
+<h2>
+<a name="user-content-prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prerequisites</h2>
+
+<p>You need a device running Chromium OS that has been switched to developer mode.
+Note that developer mode, in its default configuration, is <em>completely
+insecure</em>, so don't expect a password in your chroot to keep anyone from your
+data. crouton does support encrypting chroots, but the encryption is only as
+strong as the quality of your passphrase. Consider this your warning.</p>
+
+<p>That's it! Surprised?</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>crouton is a powerful tool, and there are a <em>lot</em> of features, but basic usage
+is as simple as possible by design.</p>
+
+<p>If you're just here to use crouton, you can grab the latest release from
+<a href="http://goo.gl/fd3zc">goo.gl/fd3zc</a>. Download it, pop open a shell
+(Ctrl+Alt+T, type <code>shell</code> and hit enter), and run <code>sh ~/Downloads/crouton</code> to
+see the help text. See the "examples" section for some usage examples.</p>
+
+<p>If you're modifying crouton, you'll probably want to clone or download the repo
+and then either run <code>installer/main.sh</code> directly, or use <code>make</code> to build your
+very own <code>crouton</code>. You can also download the latest release, cd into the
+Downloads folder, and run <code>sh crouton -x</code> to extract out the juicy scripts
+contained within, but you'll be missing build-time stuff like the Makefile.</p>
+
+<p>crouton uses the concept of "targets" to decide what to install. While you will
+have apt-get in your chroot, some targets may need minor hacks to avoid issues
+when running in the chrooted environment. As such, if you expect to want
+something that is fulfilled by a target, install that target when you make the
+chroot and you'll have an easier time.  Don't worry if you forget to include a
+target; you can always update the chroot later and add it. You can see the list
+of available targets by running <code>sh ~/Downloads/crouton -t help</code>.</p>
+
+<p>Once you've set up your chroot, you can easily enter it using the
+newly-installed <code>enter-chroot</code> command, or one of the target-specific
+start* commands. Ta-da! That was easy.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<h3>
+<a name="user-content-the-easy-way-assuming-you-want-an-ubuntu-lts-with-xfce" class="anchor" href="#the-easy-way-assuming-you-want-an-ubuntu-lts-with-xfce" aria-hidden="true"><span class="octicon octicon-link"></span></a>The easy way (assuming you want an Ubuntu LTS with Xfce)</h3>
+
+<ol class="task-list">
+<li>Download <code>crouton</code>
+</li>
+<li>Open a shell (Ctrl+Alt+T, type <code>shell</code> and hit enter) and run
+ <code>sudo sh ~/Downloads/crouton -t xfce</code>
+</li>
+<li>Wait patiently and answer the prompts like a good person.</li>
+<li>Done! You can jump straight to your Xfce session by running
+ <code>sudo enter-chroot startxfce4</code> or, as a special shortcut, <code>sudo startxfce4</code>
+</li>
+<li>Cycle through Chromium OS and your running graphical chroots using
+ Ctrl+Alt+Shift+Back and Ctrl+Alt+Shift+Forward.</li>
+<li>Exit the chroot by logging out of Xfce.</li>
+</ol><h3>
+<a name="user-content-with-encryption" class="anchor" href="#with-encryption" aria-hidden="true"><span class="octicon octicon-link"></span></a>With encryption!</h3>
+
+<ol class="task-list">
+<li>Add the <code>-e</code> parameter when you run crouton to create an encrypted chroot.</li>
+<li>You can get some extra protection on your chroot by storing the decryption
+ key separately from the place the chroot is stored. Use the <code>-k</code> parameter
+ to specify a file or directory to store the keys in (such as a USB drive or
+ SD card) when you create the chroot. Beware that if you lose this file,
+ your chroot will not be decryptable. That's kind of the point, of course.</li>
+</ol><h3>
+<a name="user-content-hey-now-ubuntu-1204-is-pretty-old-im-young-and-hip" class="anchor" href="#hey-now-ubuntu-1204-is-pretty-old-im-young-and-hip" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hey now, Ubuntu 12.04 is pretty old; I'm young and hip</h3>
+
+<ol class="task-list">
+<li>The <code>-r</code> parameter specifies which distro release you want to use.</li>
+<li>Run <code>sh ~/Downloads/crouton -r list</code> to list the recognized releases and
+ which distros they belong to.</li>
+</ol><h3>
+<a name="user-content-i-dont-always-use-linux-but-when-i-do-i-use-cli" class="anchor" href="#i-dont-always-use-linux-but-when-i-do-i-use-cli" aria-hidden="true"><span class="octicon octicon-link"></span></a>I don't always use Linux, but when I do, I use CLI</h3>
+
+<ol class="task-list">
+<li>You can save a chunk of space by ditching X and just installing
+ command-line tools using <code>-t core</code> or <code>-t cli-extra</code>
+</li>
+<li>Enter the chroot in as many crosh shells as you want simultaneously using
+ <code>sudo enter-chroot</code>
+</li>
+<li>Use the <a href="http://goo.gl/eczLT">Crosh Window</a> extension to keep Chromium OS
+ from eating standard keyboard shortcuts.</li>
+</ol><h3>
+<a name="user-content-a-new-version-of-crouton-came-out-my-chroot-is-therefore-obsolete-and-sad" class="anchor" href="#a-new-version-of-crouton-came-out-my-chroot-is-therefore-obsolete-and-sad" aria-hidden="true"><span class="octicon octicon-link"></span></a>A new version of crouton came out; my chroot is therefore obsolete and sad</h3>
+
+<ol class="task-list">
+<li>Check for updates, download the latest version, and see what's new by
+ running <code>croutonversion -u -d -c</code> from the chroot (run <code>croutonversion -h</code>
+ to see what those parameters actually do).</li>
+<li>Exit the chroot and run <code>sudo sh ~/Downloads/crouton -u -n chrootname</code>.
+ It will update all installed targets.</li>
+<li>You can use this with <code>-e</code> to encrypt a non-encrypted chroot, but make sure
+ you don't interrupt the operation.</li>
+</ol><h3>
+<a name="user-content-a-backup-a-day-keeps-the-price-gouging-data-restoration-services-away" class="anchor" href="#a-backup-a-day-keeps-the-price-gouging-data-restoration-services-away" aria-hidden="true"><span class="octicon octicon-link"></span></a>A backup a day keeps the price-gouging data restoration services away</h3>
+
+<ol class="task-list">
+<li>
+<code>sudo edit-chroot -b chrootname</code> backs up your chroot to a timestamped
+ tarball in the current directory. Chroots are named either via the <code>-n</code>
+ parameter when created or by the release name if -n was not specified.</li>
+<li>
+<code>sudo edit-chroot -r chrootname</code> restores the chroot from the most recent
+ timestamped tarball. You can explicitly specify the tarball with <code>-f</code>
+</li>
+<li>If your machine is new, powerwashed, or held upside-down and shaken, you
+ can use the crouton installer to restore a chroot and relevant scripts:
+ <code>sudo sh ~/Downloads/crouton -f mybackup.tar.gz</code>
+</li>
+</ol><p><em>Unlike with Chromium OS, the data in your chroot isn't synced to the cloud.</em></p>
+
+<h3>
+<a name="user-content-this-chroots-namelocationpasswordexistence-sucks-how-to-fix" class="anchor" href="#this-chroots-namelocationpasswordexistence-sucks-how-to-fix" aria-hidden="true"><span class="octicon octicon-link"></span></a>This chroot's name/location/password/existence sucks. How to fix?</h3>
+
+<ol class="task-list">
+<li>Check out the <code>edit-chroot</code> command; it likely does what you need it to do.</li>
+<li>If you set a Chromium OS root password, you can change it with
+ <code>sudo chromeos-setdevpasswd</code>
+</li>
+<li>You can change the password inside your chroot with <code>passwd</code>
+</li>
+</ol><h3>
+<a name="user-content-i-want-to-install-the-chroot-to-another-location" class="anchor" href="#i-want-to-install-the-chroot-to-another-location" aria-hidden="true"><span class="octicon octicon-link"></span></a>I want to install the chroot to another location</h3>
+
+<ol class="task-list">
+<li>Use <code>-p</code> to specify the directory in which to install the chroot and
+ scripts. Be sure to quote or escape spaces.</li>
+<li>When entering the chroot, either specify the full path of the enter-chroot
+ or start* scripts (i.e. <code>sudo sh /path/to/enter-chroot</code>), or use the
+ <code>-c</code> parameter to explicitly specify the chroots directory.</li>
+</ol><h3>
+<a name="user-content-downloading-bootstrap-files-over-and-over-again-is-a-waste-of-time" class="anchor" href="#downloading-bootstrap-files-over-and-over-again-is-a-waste-of-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Downloading bootstrap files over and over again is a waste of time</h3>
+
+<ol class="task-list">
+<li>Download <code>crouton</code>
+</li>
+<li>Open a shell (Ctrl+Alt+T, type <code>shell</code> and hit enter) and run
+ <code>sudo sh ~/Downloads/crouton -d -f ~/Downloads/mybootstrap.tar.bz2</code>
+</li>
+<li>Include the <code>-r</code> parameter if you want to specify for which release to
+ prepare a bootstrap.</li>
+<li>You can then create chroots using the tarball by running
+ <code>sudo sh ~/Downloads/crouton -f ~/Downloads/mybootstrap.tar.bz2</code>
+</li>
+</ol><p><em>This is the quickest way to create multiple chroots at once, since you won't
+have to determine and download the bootstrap files every time.</em></p>
+
+<h3>
+<a name="user-content-targets-are-cool-abusing-them-for-fun-and-profit-is-even-cooler" class="anchor" href="#targets-are-cool-abusing-them-for-fun-and-profit-is-even-cooler" aria-hidden="true"><span class="octicon octicon-link"></span></a>Targets are cool. Abusing them for fun and profit is even cooler</h3>
+
+<ol class="task-list">
+<li>You can make your own target files (start by copying one of the existing
+ ones) and then use them with any version of crouton via the <code>-T</code> parameter.</li>
+</ol><p><em>This is great for automating common tasks when creating chroots.</em></p>
+
+<h3>
+<a name="user-content-help-ive-created-a-monster-that-must-be-slain" class="anchor" href="#help-ive-created-a-monster-that-must-be-slain" aria-hidden="true"><span class="octicon octicon-link"></span></a>Help! I've created a monster that must be slain!</h3>
+
+<ol class="task-list">
+<li>The delete-chroot command is your sword, shield, and only true friend.
+ <code>sudo delete-chroot evilchroot</code>
+</li>
+<li>It's actually just a shortcut to <code>sudo edit-chroot -d evilchroot</code>, which I
+ suppose makes it a bit of a deceptive swis-army-knife friend...still good?</li>
+</ol><h2>
+<a name="user-content-tips" class="anchor" href="#tips" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tips</h2>
+
+<ul class="task-list">
+<li>Chroots are cheap! Create multiple ones using <code>-n</code>, break them, then make
+new, better ones!</li>
+<li>You can change the distro mirror from the default by using <code>-m</code>
+</li>
+<li>Behind a proxy? <code>-P</code> lets you specify one.</li>
+<li>A script is installed in your chroot called <code>brightness</code>. You can assign
+this to keyboard shortcuts to adjust the brightness of the screen (e.g.
+<code>brightness up</code>) or keyboard (e.g. <code>brightness k down</code>).</li>
+<li>Multiple monitors will work fine in the chroot, but you may have to switch
+to Chromium OS and back to enable them.</li>
+<li>You can make commands run in the background so that you can close the
+terminal. This is particularly useful for desktop environments: try running
+<code>sudo startxfce4 -b</code>
+</li>
+<li>Want to disable Chromium OS's power management? Run <code>croutonpowerd -i</code>
+</li>
+<li>Only want power management disabled for the duration of a command?
+<code>croutonpowerd -i command and arguments</code> will automatically stop inhibiting
+power management when the command exits.</li>
+<li>Have a Pixel or two or 4.352 million? <code>-t touch</code> improves touch support.</li>
+<li>Want more tips? Check the <a href="https://github.com/dnschneid/crouton/wiki">wiki</a>.</li>
+</ul><h2>
+<a name="user-content-issues" class="anchor" href="#issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Issues?</h2>
+
+<p>Running another OS in a chroot is a pretty messy technique (although it's hidden
+behind very pretty scripts), and these scripts are relatively new, so problems
+are not surprising. Check the issue tracker and file a bug if your issue isn't
+there. When filing a new bug, include the output of <code>croutonversion</code> run from
+inside the chroot (if possible).</p>
+
+<h2>
+<a name="user-content-i-want-to-be-a-contributor" class="anchor" href="#i-want-to-be-a-contributor" aria-hidden="true"><span class="octicon octicon-link"></span></a>I want to be a Contributor!</h2>
+
+<p>That's great!  But before your code can be merged, you'll need to have signed
+the <a href="https://developers.google.com/open-source/cla/individual#sign-electronically">Individual Contributor License Agreement</a>.
+Don't worry, it only takes a minute and you'll definitely get to keep your
+firstborn, probably.  If you've already signed it for contributing to Chromium
+or Chromium OS, you're already done.</p>
+
+<p>If you don't know what to do with your time as an official Contributor, here's
+some suggestions:</p>
+
+<ul class="task-list">
+<li>Really like a certain desktop environment? Fork crouton, add the target, and
+create a pull request.</li>
+<li>Feel like hacking around with Chromium OS integration? Fork crouton, improve
+integration, and create a pull request.</li>
+<li>Is your distro underrepresented? Want to contribute to the elusive and
+mythical beast known as "croagh"? Fork crouton, add the distro, and create a
+pull request.</li>
+<li>Discovered a bug lurking within the scripts, or a papercut that bothers you
+just enough to make you want to actually do something about it? You guessed
+it: fork crouton, fix everything, and create a pull request.</li>
+</ul><h2>
+<a name="user-content-are-there-other-non-contributory-ways-i-can-help" class="anchor" href="#are-there-other-non-contributory-ways-i-can-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Are there other, non-Contributory ways I can help?</h2>
+
+<p>Yes!</p>
+
+<h2>
+<a name="user-content-but-how" class="anchor" href="#but-how" aria-hidden="true"><span class="octicon octicon-link"></span></a>But how?</h2>
+
+<p>There's a way For Everyone to help!</p>
+
+<ul class="task-list">
+<li>Something broken? File a bug! Bonus points if you try to fix it. It helps if
+you provide the output of <code>croutonversion</code> when you submit the bug.</li>
+<li>Want to try and break something? Look through <a href="https://github.com/dnschneid/crouton/issues?labels=needstesting&amp;state=open">requests for testing</a>
+and then do your best to brutally rip the author's work to shreds.</li>
+<li>Look through <a href="https://github.com/dnschneid/crouton/issues?state=open">open issues</a>
+and see if there's a topic or application you happen to have experience
+with. And then, preferably, share that experience with others.</li>
+<li>Find issues that need <a href="https://github.com/dnschneid/crouton/issues?labels=needswiki&amp;state=open,closed">wiki entries</a>
+and add the relevant info to the <a href="https://github.com/dnschneid/crouton/wiki">wiki</a>.
+Or just add things to/improve things in the wiki in general, but do try to
+keep it relevant and organized.</li>
+<li>Really like a certain desktop environment, but not up for coding? Open or
+comment on a bug with steps to get things working well.</li>
+<li>Hang out in the #crouton IRC channel on freenode.net!</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>crouton (including this eloquently-written README) is copyright © 2014 The
+crouton Authors. All rights reserved. Use of the source code included here is
+governed by a BSD-style license that can be found in the LICENSE file in the
+source tree.</p></article></div>

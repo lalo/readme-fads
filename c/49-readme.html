@@ -1,0 +1,143 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h3>
+<a name="user-content-wax-is-no-longer-being-maintained-by-probablycorey" class="anchor" href="#wax-is-no-longer-being-maintained-by-probablycorey" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wax is no longer being maintained by @probablycorey</h3>
+
+<p>I am no longer developing iOS applications and don't have time to work on Wax.
+If you would like to take over as the maintainer, <a href="https://github.com/probablycorey/wax/fork">fork</a> 
+Wax and maintain it there. If your fork becomes popular I will add a link to it to this Readme.</p>
+
+<h2>
+<a name="user-content-wax" class="anchor" href="#wax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wax</h2>
+
+<p>Wax is a framework that lets you write native iPhone apps in 
+<a href="http://www.lua.org/about.html">Lua</a>. It bridges Objective-C and Lua using the 
+Objective-C runtime. With Wax, <strong>anything</strong> you can do in Objective-C is <strong>automatically</strong>
+available in Lua! What are you waiting for, give it a shot!</p>
+
+<h2>
+<a name="user-content-why-write-iphone-apps-in-lua" class="anchor" href="#why-write-iphone-apps-in-lua" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why write iPhone apps in Lua?</h2>
+
+<p>I love writing iPhone apps, but would rather write them in a dynamic language than in Objective-C. Here 
+are some reasons why many people prefer Lua + Wax over Objective-C...</p>
+
+<ul class="task-list">
+<li><p>Automatic Garbage Collection! Gone are the days of alloc, retain, and release.</p></li>
+<li><p>Less Code! No more header files, no more static types, array and dictionary literals! 
+Lua enables you to get more power out of less lines of code.</p></li>
+<li><p>Access to every Cocoa, UITouch, Foundation, etc.. framework, if it's written in Objective-C, 
+Wax exposes it to Lua automatically. All the frameworks you love are all available to you!</p></li>
+<li><p>Super easy HTTP requests. Interacting with a REST webservice has never been eaiser</p></li>
+<li><p>Lua has closures, also known as blocks! Anyone who has used these before knows how powerful they can be.</p></li>
+<li><p>Lua has a build in Regex-like pattern matching library.</p></li>
+</ul><h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>For some simple Wax apps, check out the <a href="http://github.com/probablycorey/wax/tree/master/examples/">examples folder</a>.</p>
+
+<p>How would I create a UIView and color it red?</p>
+
+<pre><code>-- forget about using alloc! Memory is automatically managed by Wax
+view = UIView:initWithFrame(CGRect(0, 0, 320, 100))
+
+-- use a colon when sending a message to an Objective-C Object
+-- all methods available to a UIView object can be accessed this way
+view:setBackgroundColor(UIColor:redColor())
+</code></pre>
+
+<p>What about methods with multiple arguments?</p>
+
+<pre><code>-- Just add underscores to the method name, then write the arguments like
+-- you would in a regular C function
+UIApplication:sharedApplication():setStatusBarHidden_animated(true, false)
+</code></pre>
+
+<p>How do I send an array/string/dictionary</p>
+
+<pre><code>-- Wax automatically converts array/string/dictionary objects to NSArray,
+-- NSString and NSDictionary objects (and vice-versa)
+images = {"myFace.png", "yourFace.png", "theirFace.png"}
+imageView = UIImageView:initWithFrame(CGRect(0, 0, 320, 460))
+imageView:setAnimationImages(images)
+</code></pre>
+
+<p>What if I want to create a custom UIViewController?</p>
+
+<pre><code>-- Created in "MyController.lua"
+--
+-- Creates an Objective-C class called MyController with UIViewController
+-- as the parent. This is a real Objective-C object, you could even
+-- reference it from Objective-C code if you wanted to.
+waxClass{"MyController", UIViewController}
+
+function init()
+  -- to call a method on super, simply use self.super
+  self.super:initWithNibName_bundle("MyControllerView.xib", nil)
+  return self
+end
+
+function viewDidLoad()
+  -- Do all your other stuff here
+end
+</code></pre>
+
+<p>You said HTTP calls were easy, I don't believe you...</p>
+
+<pre><code>url = "http://search.twitter.com/trends/current.json"
+
+-- Makes an asyncronous call, the callback function is called when a
+-- response is received
+wax.http.request{url, callback = function(body, response)
+  -- request is just a NSHTTPURLResponse
+  puts(response:statusCode())
+
+  -- Since the content-type is json, Wax automatically parses it and places
+  -- it into a Lua table
+  puts(body)
+end}
+</code></pre>
+
+<p>Since Wax converts NSString, NSArray, NSDictionary and NSNumber to native Lua values, you have to force objects back to Objective-C sometimes. Here is an example.</p>
+
+<pre><code>local testString = "Hello lua!"
+local bigFont = UIFont:boldSystemFontOfSize(30)
+local size = toobjc(testString):sizeWithFont(bigFont)
+puts(size)
+</code></pre>
+
+<h2>
+<a name="user-content-setup--tutorials" class="anchor" href="#setup--tutorials" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup &amp; Tutorials</h2>
+
+<p><a href="https://github.com/probablycorey/wax/wiki/Installation">Setting up Wax</a></p>
+
+<p><a href="https://github.com/probablycorey/wax/wiki/Overview">How does Wax work?</a></p>
+
+<p><a href="https://github.com/probablycorey/wax/wiki/Twitter">Simple Twitter client in Wax</a></p>
+
+<h2>
+<a name="user-content-which-apis-are-included" class="anchor" href="#which-apis-are-included" aria-hidden="true"><span class="octicon octicon-link"></span></a>Which API's are included?</h2>
+
+<p>They all are! I can't stress this enough, anything that is written in Objective-C (even external frameworks) will work automatically in Wax! UIAcceleration works like UIAcceleration, MapKit works like MapKit, GameKit works like GameKit, Snozberries taste like Snozberries!</p>
+
+<h2>
+<a name="user-content-created-by" class="anchor" href="#created-by" aria-hidden="true"><span class="octicon octicon-link"></span></a>Created By</h2>
+
+<p>Corey Johnson (probablycorey at gmail dot com)</p>
+
+<h2>
+<a name="user-content-more" class="anchor" href="#more" aria-hidden="true"><span class="octicon octicon-link"></span></a>More</h2>
+
+<ul class="task-list">
+<li>
+<a href="http://github.com/probablycorey/wax/issues">Feature Requests? Bugs?</a> - Issue tracking and release planning.</li>
+<li><a href="http://groups.google.com/group/iphonewax">Mailing List</a></li>
+<li>IRC: #wax on <a href="http://freenode.net">http://freenode.net</a>
+</li>
+<li>Quick question or problem? IM <strong>probablyCorey</strong> on AIM</li>
+</ul><h2>
+<a name="user-content-contribute" class="anchor" href="#contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribute</h2>
+
+<p>Fork it, change it, commit it, push it, send pull request; instant glory!</p>
+
+<h2>
+<a name="user-content-the-mit-license" class="anchor" href="#the-mit-license" aria-hidden="true"><span class="octicon octicon-link"></span></a>The MIT License</h2>
+
+<p>Wax is Copyright (C) 2009 Corey Johnson See the file LICENSE for information of licensing and distribution.</p></article></div>

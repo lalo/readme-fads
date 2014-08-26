@@ -1,0 +1,182 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-bijection-" class="anchor" href="#bijection-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bijection <a href="http://travis-ci.org/twitter/bijection"><img src="https://camo.githubusercontent.com/3ffdf998c809c9bb6d33f33b982e6531b6af2428/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f747769747465722f62696a656374696f6e2e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/twitter/bijection.png" style="max-width:100%;"></a>
+</h2>
+
+<p>A Bijection is an invertible function that converts back and forth between two types, with
+the contract that a round-trip through the Bijection will bring back the original object. Moreover,
+the inverse has the same property.</p>
+
+<p>See the <a href="http://twitter.github.com/bijection">current API documentation</a> for more information.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples:</h2>
+
+<div class="highlight highlight-scala"><pre><span class="o">&gt;</span> <span class="o">./</span><span class="n">sbt</span> <span class="n">bijection</span><span class="o">-</span><span class="n">core</span><span class="o">/</span><span class="n">console</span>
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">com.twitter.bijection._</span>
+<span class="n">scala</span><span class="o">&gt;</span> <span class="nc">Bijection</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">java.lang.Integer</span><span class="o">](</span><span class="mi">42</span><span class="o">)</span>
+<span class="n">res0</span><span class="k">:</span> <span class="kt">java.lang.Integer</span> <span class="o">=</span> <span class="mi">42</span>
+</pre></div>
+
+<p>In addition to Bijection, we have Injection. An Injection embeds a type A in a larger space of type
+B. Every item from A can be round-tripped through B, but not every B can be mapped to A. So
+Injection is like a pair of function: <code>A =&gt; B, B =&gt; Try[A]</code>.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.bijection._</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="nc">Injection</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span><span class="o">](</span><span class="mi">100</span><span class="o">)</span>
+<span class="n">res0</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="mi">100</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="nc">Injection</span><span class="o">.</span><span class="n">invert</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span><span class="o">](</span><span class="n">res0</span><span class="o">)</span>
+<span class="n">res1</span><span class="k">:</span> <span class="kt">Try</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">100</span><span class="o">)</span>
+</pre></div>
+
+<p>If we want to treat an Injection like a Bijection (over a restricted subspace of the larger set),
+we use the <code>B @@ Rep[A]</code> syntax, for instance: <code>String @@ Rep[Int]</code></p>
+
+<div class="highlight highlight-scala"><pre><span class="nc">Bijection</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span> <span class="kt">@@</span> <span class="kt">Rep</span><span class="o">[</span><span class="kt">Int</span><span class="o">]](</span><span class="mi">100</span><span class="o">)</span>
+<span class="n">res2</span><span class="k">:</span> <span class="kt">com.twitter.bijection.package.@@</span><span class="o">[</span><span class="kt">String</span>,<span class="kt">com.twitter.bijection.Rep</span><span class="o">[</span><span class="kt">Int</span><span class="o">]]</span> <span class="k">=</span> <span class="mi">100</span>
+</pre></div>
+
+<p>Use <code>invert</code> to reverse the transformation:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">scala</span><span class="o">&gt;</span> <span class="nc">Bijection</span><span class="o">.</span><span class="n">invert</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span> <span class="kt">@@</span> <span class="kt">Rep</span><span class="o">[</span><span class="kt">Int</span><span class="o">]](</span><span class="n">res2</span><span class="o">)</span>
+<span class="n">res3</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">100</span>
+</pre></div>
+
+<p>If you <code>import Conversion.asMethod</code> you can use <code>.as[T]</code> to use an available Bijection/Injection to <code>T</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">com.twitter.bijection.Conversion.asMethod</span>
+<span class="k">import</span> <span class="nn">com.twitter.bijection.Conversion.asMethod</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="mf">1.</span><span class="n">as</span><span class="o">[</span><span class="kt">java.lang.Integer</span><span class="o">]</span>
+<span class="n">res6</span><span class="k">:</span> <span class="kt">java.lang.Integer</span> <span class="o">=</span> <span class="mi">1</span>
+</pre></div>
+
+<p>Bijections and Injections can also be composed. As with functions, <code>andThen</code> composes forward, <code>compose</code> composes backward.</p>
+
+<p>This example round-trips a long into a GZipped base64-encoded string:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">scala</span><span class="o">&gt;</span> <span class="k">val</span> <span class="n">injection</span> <span class="k">=</span> <span class="nc">Injection</span><span class="o">.</span><span class="n">long2BigEndian</span> <span class="n">andThen</span> <span class="nc">Bijection</span><span class="o">.</span><span class="n">bytes2GZippedBase64</span>
+<span class="n">injection</span><span class="k">:</span> <span class="kt">com.twitter.bijection.Injection</span><span class="o">[</span><span class="kt">Long</span>,<span class="kt">Array</span><span class="o">[</span><span class="kt">Byte</span><span class="o">]]</span> <span class="k">=</span> <span class="o">&lt;</span><span class="n">function1</span><span class="o">&gt;</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="n">injection</span><span class="o">(</span><span class="mi">123456789L</span><span class="o">)</span>
+<span class="n">res1</span><span class="k">:</span> <span class="kt">com.twitter.bijection.GZippedBase64String</span> <span class="o">=</span> <span class="nc">GZippedBase64String</span><span class="o">(</span><span class="n">H4sIAAAAAAAAAGNgYGBgjz4rCgBpa5WLCAAAAA</span><span class="o">==)</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="n">injection</span><span class="o">.</span><span class="n">invert</span><span class="o">(</span><span class="n">res1</span><span class="o">)</span>
+<span class="n">res2</span><span class="k">:</span> <span class="kt">Try</span><span class="o">[</span><span class="kt">Long</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">123456789</span><span class="o">)</span>
+</pre></div>
+
+<p>When you have bijections between a path of items you can <code>Bijection.connect</code> or <code>Injection.connect</code> them:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">com.twitter.bijection.Injection.connect</span>
+<span class="k">import</span> <span class="nn">com.twitter.bijection.Injection.connect</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">com.twitter.bijection.Base64String</span>
+<span class="k">import</span> <span class="nn">com.twitter.bijection.Base64String</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">import</span> <span class="nn">Conversion.asMethod</span>
+<span class="k">import</span> <span class="nn">Conversion.asMethod</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">implicit</span> <span class="k">val</span> <span class="n">long2String2Bytes2B64</span> <span class="k">=</span> <span class="n">connect</span><span class="o">[</span><span class="kt">Long</span>,<span class="kt">String</span>,<span class="kt">Array</span><span class="o">[</span><span class="kt">Byte</span><span class="o">]</span>,<span class="kt">Base64String</span><span class="o">]</span>
+<span class="n">string2Long2Bytes2B64</span><span class="k">:</span> <span class="kt">com.twitter.bijection.Bijection</span><span class="o">[</span><span class="kt">String</span>,<span class="kt">com.twitter.bijection.Base64String</span><span class="o">]</span> <span class="k">=</span> <span class="o">&lt;</span><span class="n">function1</span><span class="o">&gt;</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="mi">243L</span><span class="o">.</span><span class="n">as</span><span class="o">[</span><span class="kt">Base64String</span><span class="o">]</span>
+<span class="n">res0</span><span class="k">:</span> <span class="kt">com.twitter.bijection.Base64String</span> <span class="o">=</span> <span class="nc">Base64String</span><span class="o">(</span><span class="nc">MjQz</span><span class="o">)</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="n">long2String2Bytes2B64</span><span class="o">.</span><span class="n">invert</span><span class="o">(</span><span class="n">res5</span><span class="o">)</span>
+<span class="n">res1</span><span class="k">:</span> <span class="kt">Try</span><span class="o">[</span><span class="kt">Long</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Success</span><span class="o">(</span><span class="mi">243</span><span class="o">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-supported-bijectionsinjections" class="anchor" href="#supported-bijectionsinjections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Bijections/Injections</h2>
+
+<p>Bijection implicitly supplies Bijections between:</p>
+
+<ul class="task-list">
+<li>all numeric types &lt;-&gt; their boxed java counterparts</li>
+<li>containers/primitives &lt;-&gt; Json (Injections via bijection-json)</li>
+<li>thrift/protobuf/avro &lt;-&gt; <code>Array[Byte]</code> (Injections via bijection-protobuf/bijection-thrift/bijection-avro)</li>
+<li>all numeric types &lt;-&gt; big-endian <code>Array[Byte]</code> encodings (Injections)</li>
+<li>all numeric types &lt;-&gt; String (Injections)</li>
+<li>Bijections for all <code>asScala</code>, <code>asJava</code> pairs provided by <a href="http://www.scala-lang.org/api/current/scala/collection/JavaConverters%24.html">scala.collection.JavaConverters</a>
+</li>
+<li>String &lt;-&gt; utf8 encoded bytes</li>
+<li>
+<code>Array[Byte]</code> &lt;-&gt; <code>GZippedBytes</code>
+</li>
+<li>
+<code>Array[Byte]</code> &lt;-&gt; <code>Base64String</code>
+</li>
+<li>
+<code>Array[Byte]</code> &lt;-&gt; <code>GZippedBase64String</code>
+</li>
+<li>
+<code>Array[Byte]</code> &lt;-&gt; <code>java.nio.ByteBuffer</code>
+</li>
+<li>
+<code>Class[T]</code> &lt;-&gt; String (Injection)</li>
+<li>
+<code>A =&gt; B</code> &lt;-&gt; <code>C =&gt; D</code> (function conversion)</li>
+<li>Bijection/Injection builders for all tuples. (<code>(String,Int)</code> &lt;-&gt; <code>(Array[Byte], java.lang.Integer)</code> is built automatically, for example.)</li>
+</ul><p>Additionally there is a method to generate Bijections between most of Scala's built in types:
+<code>Bijection.toContainer[Int,String,List[Int],Vector[String]</code> returns
+<code>Bijection[List[Int], Vector[String]</code></p>
+
+<p>If you see a reversible conversion that is not here and related to types in the standard library
+of Java or Scala, please contribute!</p>
+
+<h2>
+<a name="user-content-serialization-via-bufferable" class="anchor" href="#serialization-via-bufferable" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serialization via Bufferable</h2>
+
+<p><code>Bufferable[T]</code> handles putting and getting a type <code>T</code> into a ByteBuffer in a composable way.
+<code>Bufferable[T]</code> instances for all primitives/tuples/containers are provided. Bijections and
+Injections to any of these types give you binary serialization via Bufferable.</p>
+
+<h2>
+<a name="user-content-community-and-documentation" class="anchor" href="#community-and-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community and Documentation</h2>
+
+<p>To learn more and find links to tutorials and information around the web, check out the <a href="https://github.com/twitter/bijection/wiki">Bijection Wiki</a>.</p>
+
+<p>The latest ScalaDocs are hosted on Bijection's <a href="http://twitter.github.io/bijection">Github Project Page</a>.</p>
+
+<p>Discussion occurs primarily on the <a href="https://groups.google.com/forum/#!forum/bijection">Bijection mailing list</a>. Issues should be reported on the <a href="https://github.com/twitter/bijection/issues">GitHub issue tracker</a>.</p>
+
+<h2>
+<a name="user-content-maven" class="anchor" href="#maven" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maven</h2>
+
+<p>Bijection modules are available on maven central. The current groupid and version for all modules is, respectively, <code>"com.twitter"</code> and  <code>0.6.2</code>.</p>
+
+<p>Current published artifacts are</p>
+
+<ul class="task-list">
+<li><code>bijection-core</code></li>
+<li><code>bijection-protobuf</code></li>
+<li><code>bijection-thrift</code></li>
+<li><code>bijection-guava</code></li>
+<li><code>bijection-scrooge</code></li>
+<li><code>bijection-json</code></li>
+<li><code>bijection-util</code></li>
+<li><code>bijection-clojure</code></li>
+<li><code>bijection-netty</code></li>
+<li><code>bijection-avro</code></li>
+<li><code>bijection-hbase</code></li>
+</ul><p>Every artifact is published against Scala <code>"2.9.3"</code> and <code>"2.10"</code>. To pull in the jars, make sure to add your desired scala version as a suffix, ie:</p>
+
+<p><code>bijection-core_2.9.3</code> or <code>bijection-core_2.10</code></p>
+
+<h2>
+<a name="user-content-authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors</h2>
+
+<ul class="task-list">
+<li>Oscar Boykin <a href="http://twitter.com/posco">http://twitter.com/posco</a>
+</li>
+<li>Marius Eriksen <a href="http://twitter.com/marius">http://twitter.com/marius</a>
+</li>
+<li>Sam Ritchie <a href="http://twitter.com/sritchie">http://twitter.com/sritchie</a>
+</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright 2012 Twitter, Inc.</p>
+
+<p>Licensed under the Apache License, Version 2.0: <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p></article></div>

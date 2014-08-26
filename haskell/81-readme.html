@@ -1,0 +1,193 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-compleat" class="anchor" href="#compleat" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compleat</h1>
+
+<p>Generate tab completion for any shell command by specifying its usage in a
+familiar manpage-like format.  For example, a usage specification for
+<code>top(1)</code>:</p>
+
+<pre><code>top [-b | -c | -H | -i | -s | -S | -d &lt;delay&gt; | -n &lt;num&gt; | -p &lt;pid&gt; ...] ... ;
+top (-h|-v)
+</code></pre>
+
+<p>The only supported shells at the moment are <code>bash</code> and <code>zsh</code>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Get the source code: <code>git clone git://github.com/mbrubeck/compleat.git</code></p>
+
+<p>Next, install GHC and Parsec.  OS X or Windows users, download the <a href="http://hackage.haskell.org/platform/">Haskell
+Platform</a>.  Debian/Ubuntu users, run: <code>sudo aptitude install
+libghc6-parsec2-dev</code></p>
+
+<p>To install Compleat in your system, run: </p>
+
+<pre><code>./Setup.lhs configure
+./Setup.lhs build
+sudo ./Setup.lhs install
+</code></pre>
+
+<p>This will install to <code>/usr/local</code> by default.   The "configure" command takes
+a <code>--prefix=PATH</code> option to change the location, and <code>--user</code> to install as a
+non-root user.</p>
+
+<p>(If you receive an error about the <code>ld --hash-size=31</code> option, make sure <code>ld</code>
+points to the linker from GNU binutils <a href="http://stackoverflow.com/questions/13046319/haskell-ghc-compiling-linking-error-not-creating-executable-linux">rather than the Gold linker</a>.)</p>
+
+<h3>
+<a name="user-content-bash" class="anchor" href="#bash" aria-hidden="true"><span class="octicon octicon-link"></span></a>bash</h3>
+
+<p>To enable compleat in bash, add the following line to your <code>.bashrc</code>.
+(Adjust the path if you configured with a custom prefix.)</p>
+
+<pre><code>source /usr/local/share/compleat-1.0/compleat_setup
+</code></pre>
+
+<p>and install your .usage files in a directory named <code>/etc/compleat.d</code> or
+<code>~/.compleat</code>:</p>
+
+<pre><code>mkdir ~/compleat
+cp examples/* ~/compleat
+</code></pre>
+
+<p>Restart your shell to begin using completions:</p>
+
+<pre><code>exec bash
+</code></pre>
+
+<h3>
+<a name="user-content-zsh" class="anchor" href="#zsh" aria-hidden="true"><span class="octicon octicon-link"></span></a>zsh</h3>
+
+<p>zsh support requires zsh &gt;= 4.2.1, and currently uses zsh's bash-compatibility
+mode rather than taking advantage of zsh's extended completion features.</p>
+
+<p>To enable compleat in zsh, make the following change to your <code>.zshrc</code>.
+(Adjust the path if you configured with a custom prefix.)</p>
+
+<p>If you used the zsh wizard (zsh-newuser-install) to set up your <code>zshrc</code>, it should contain lines
+like the following (if they don't exist, simply add the lines in the change below):</p>
+
+<pre><code>autoload -Uz compinit
+compinit
+</code></pre>
+
+<p>Change these to:</p>
+
+<pre><code>autoload -Uz compinit bashcompinit
+compinit
+bashcompinit
+
+source /usr/local/share/compleat-1.0/compleat_setup
+</code></pre>
+
+<p>and install your .usage files in a directory named <code>/etc/compleat.d</code> or
+<code>~/.compleat</code>:</p>
+
+<pre><code>sudo mkdir /etc/compleat.d
+sudo cp examples/* /etc/compleat.d
+</code></pre>
+
+<p>Restart your shell to begin using completions:</p>
+
+<pre><code>exec zsh
+</code></pre>
+
+<h3>
+<a name="user-content-fish" class="anchor" href="#fish" aria-hidden="true"><span class="octicon octicon-link"></span></a>fish</h3>
+
+<p>To enable compleat in fish, add the following line to your <code>~/.config/fish/config.fish</code>.
+(Adjust the path if you configured with a custom prefix.)</p>
+
+<pre><code>source /usr/local/share/compleat-1.0/compleat_setup.fish
+</code></pre>
+
+<p>and install your .usage files in a directory named <code>/etc/compleat.d</code> or
+<code>~/.compleat</code>:</p>
+
+<pre><code>mkdir ~/compleat
+cp examples/* ~/compleat
+</code></pre>
+
+<p>Restart your shell to begin using completions:</p>
+
+<pre><code>exec fish
+</code></pre>
+
+<h3>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h3>
+
+<p>Type <code>top</code> and then press Tab a few times to see the example files in action.</p>
+
+<h2>
+<a name="user-content-syntax" class="anchor" href="#syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Syntax</h2>
+
+<p>A usage file contains commands and definitions, separated by semicolons.</p>
+
+<p>A <em>command</em> consists of a <em>command name</em> followed by a <em>pattern</em>.  The command
+name can be any atom.  If there is more than one command in the file, compleat
+will attempt to match each of them against the input line.</p>
+
+<p>An <em>atom</em> consists of letters, numbers, and any of the characters <code>-_/@=+.,:</code>,
+or any string enclosed in double quotes with C/Java-style backslash escapes.</p>
+
+<p>The following are valid patterns:</p>
+
+<ul class="task-list">
+<li>Any atom matches itself: <code>foo</code> matches the string <code>foo</code>.  <code>"x\\y"</code> matches
+the string <code>x\y</code>.</li>
+<li>
+<code>a b</code> matches <code>a</code> followed by <code>b</code>.</li>
+<li>
+<code>a b | c</code> matches either <code>a b</code> or <code>c</code>.</li>
+<li>
+<code>[a]</code> matches zero or one occurrences of <code>a</code>.</li>
+<li>
+<code>a ...</code> matches one or more occurrences of <code>a</code>.</li>
+<li>
+<code>[a] ...</code> matches zero or more occurrences of <code>a</code>.</li>
+</ul><p>Use parentheses to group patterns:</p>
+
+<ul class="task-list">
+<li>
+<code>a (b | c)</code> matches <code>a</code> followed by either <code>b</code> or <code>c</code>.</li>
+<li>
+<code>(a | b) ...</code> matches <code>a</code> or <code>b</code> followed by any number of additional
+<code>a</code> or <code>b</code>.</li>
+</ul><p>Patterns may also include <em>variables</em>:</p>
+
+<ul class="task-list">
+<li><p><code>name = value;</code> defines a new variable.  The name can be any atom,
+and the value can be any pattern.  Then <code>&lt;name&gt;</code> in a pattern refers to the
+value as a sub-pattern.</p></li>
+<li><p><code>name = !command;</code> defines a variable that uses a shell command to
+generate suggested completions.  The shell command should print one
+suggested completion per line.  The <code>$COMP_LINE</code> and <code>$COMP_CWORD</code>
+environment will contain the input line and the current word being
+completed.</p></li>
+<li><p>If no value is defined for <code>name</code>, then the pattern <code>&lt;name&gt;</code> will match any
+word.</p></li>
+</ul><h2>
+<a name="user-content-copyright" class="anchor" href="#copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright</h2>
+
+<p>Copyright (c) 2009 Matt Brubeck</p>
+
+<p>Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

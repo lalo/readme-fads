@@ -1,0 +1,88 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-scalaz-stream" class="anchor" href="#scalaz-stream" aria-hidden="true"><span class="octicon octicon-link"></span></a>scalaz-stream</h1>
+
+<p><a href="http://travis-ci.org/scalaz/scalaz-stream"><img src="https://camo.githubusercontent.com/a96025bb506ff0490cc11995bd108b6f8acaab35/68747470733a2f2f7472617669732d63692e6f72672f7363616c617a2f7363616c617a2d73747265616d2e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/scalaz/scalaz-stream.png?branch=master" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-where-to-get-it" class="anchor" href="#where-to-get-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Where to get it</h3>
+
+<p>To get the latest version of the library, add the following to your SBT build:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"Scalaz Bintray Repo"</span> <span class="n">at</span> <span class="s">"http://dl.bintray.com/scalaz/releases"</span>
+</pre></div>
+
+<p>And use one of the following library dependencies:</p>
+
+<pre><code>// Against Scalaz 7.0.6, available for Scala 2.10.4 and 2.11.2
+libraryDependencies += "org.scalaz.stream" %% "scalaz-stream" % "0.5"
+
+// Against Scalaz 7.1, available for Scala 2.10.4 and 2.11.2
+libraryDependencies += "org.scalaz.stream" %% "scalaz-stream" % "0.5a"
+</code></pre>
+
+<h3>
+<a name="user-content-about-the-library" class="anchor" href="#about-the-library" aria-hidden="true"><span class="octicon octicon-link"></span></a>About the library</h3>
+
+<p><code>scalaz-stream</code> is a streaming I/O library. The design goals are compositionality, expressiveness, resource safety, and speed. The design is meant to supersede or replace older iteratee or iteratee-style libraries. Here's a simple example of its use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalaz.stream._</span>
+<span class="k">import</span> <span class="nn">scalaz.concurrent.Task</span>
+
+<span class="k">val</span> <span class="n">converter</span><span class="k">:</span> <span class="kt">Task</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span>
+  <span class="n">io</span><span class="o">.</span><span class="n">linesR</span><span class="o">(</span><span class="s">"testdata/fahrenheit.txt"</span><span class="o">)</span>
+    <span class="o">.</span><span class="n">filter</span><span class="o">(</span><span class="n">s</span> <span class="k">=&gt;</span> <span class="o">!</span><span class="n">s</span><span class="o">.</span><span class="n">trim</span><span class="o">.</span><span class="n">isEmpty</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">s</span><span class="o">.</span><span class="n">startsWith</span><span class="o">(</span><span class="s">"//"</span><span class="o">))</span>
+    <span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">line</span> <span class="k">=&gt;</span> <span class="n">fahrenheitToCelsius</span><span class="o">(</span><span class="n">line</span><span class="o">.</span><span class="n">toDouble</span><span class="o">).</span><span class="n">toString</span><span class="o">)</span>
+    <span class="o">.</span><span class="n">intersperse</span><span class="o">(</span><span class="s">"\n"</span><span class="o">)</span>
+    <span class="o">.</span><span class="n">pipe</span><span class="o">(</span><span class="n">text</span><span class="o">.</span><span class="n">utf8Encode</span><span class="o">)</span>
+    <span class="o">.</span><span class="n">to</span><span class="o">(</span><span class="n">io</span><span class="o">.</span><span class="n">fileChunkW</span><span class="o">(</span><span class="s">"testdata/celsius.txt"</span><span class="o">))</span>
+    <span class="o">.</span><span class="n">run</span>
+
+<span class="c1">// at the end of the universe...</span>
+<span class="k">val</span> <span class="n">u</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="n">converter</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<p>This will construct a <code>Task</code>, <code>converter</code>, which reads lines incrementally from <code>testdata/fahrenheit.txt</code>, skipping blanklines and commented lines. It then parses temperatures in degrees fahrenheit, converts these to celsius, UTF-8 encodes the output and writes incrementally to <code>testdata/celsius.txt</code>, using constant memory. The input and output files will be closed in the event of normal termination or exceptions.</p>
+
+<p>The library supports a number of other interesting use cases:</p>
+
+<ul class="task-list">
+<li>
+<em>Zipping and merging of streams:</em> A streaming computations may read from multiple sources in a streaming fashion, zipping or merging their elements using a arbitrary <code>Tee</code>. In general, clients have a great deal of flexibility in what sort of topologies they can define--source, sinks, and effectful channels are all first-class concepts in the library.</li>
+<li>
+<em>Dynamic resource allocation:</em> A streaming computation may allocate resources dynamically (for instance, reading a list of files to process from a stream built off a network socket), and the library will ensure these resources get released in the event of normal termination or when errors occur.</li>
+<li>
+<em>Nondeterministic and concurrent processing:</em> A computation may read from multiple input streams simultaneously, using whichever result comes back first, and a pipeline of transformation can allow for nondeterminism and queueing at each stage.</li>
+<li>
+<em>Streaming parsing (UPCOMING):</em> A separate layer handles constructing streaming parsers, for instance, for streaming JSON, XML, or binary parsing. See <a href="https://github.com/scalaz/scalaz-stream/wiki/Roadmap">the roadmap</a> for more information on this and other upcoming work.</li>
+</ul><h3>
+<a name="user-content-documentation-and-getting-help" class="anchor" href="#documentation-and-getting-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation and getting help</h3>
+
+<p>There are examples (with commentary) in the test directory <a href="https://github.com/scalaz/scalaz-stream/tree/master/src/test/scala/scalaz/stream/examples"><code>scalaz.stream.examples</code></a>. Also see <a href="https://github.com/scalaz/scalaz-stream/wiki">the wiki</a> for more documentation. If you use <code>scalaz.stream</code>, you're strongly encouraged to submit additional examples and add to the wiki!</p>
+
+<p>For questions about the library, use the <a href="https://groups.google.com/forum/#!forum/scalaz">scalaz mailing list</a> or the <a href="http://stackoverflow.com/questions/tagged/scalaz-stream">scalaz-stream tag on StackOverflow</a>.</p>
+
+<p>The API documentation of the latest release is available on <a href="http://docs.typelevel.org/api/scalaz-stream/stable/latest/doc/">docs.typelevel.org</a>.</p>
+
+<p>Blog posts and other external resources are listed on the <a href="https://github.com/scalaz/scalaz-stream/wiki/Additional-Resources">Additional Resources</a>  page.</p>
+
+<h3>
+<a name="user-content-projects-using-scalaz-stream" class="anchor" href="#projects-using-scalaz-stream" aria-hidden="true"><span class="octicon octicon-link"></span></a>Projects using scalaz-stream</h3>
+
+<p>If you have a project you'd like to include in this list, send a message to the <a href="https://groups.google.com/forum/#!forum/scalaz">scalaz mailing list</a> and we'll add a link to it here.</p>
+
+<ul class="task-list">
+<li>
+<a href="http://www.http4s.org">http4s</a>: Minimal, idiomatic Scala interface for HTTP services using scalaz-stream</li>
+<li>
+<a href="https://github.com/Spinoco/scalaz-stream-mongodb">scalaz-stream-mongodb</a>: Bindings to <a href="http://www.mongodb.org/">MongoDB</a> that use scalaz-stream</li>
+<li>
+<a href="https://github.com/scodec/scodec-stream">scodec-stream</a>: A library for streaming binary decoding and encoding, built using scalaz-stream and <a href="https://github.com/scodec/scodec">scodec</a>
+</li>
+<li>
+<a href="https://github.com/krasserm/streamz">streamz</a>: A library that allows a <code>Process</code> to consume from and produce to <a href="http://camel.apache.org/">Apache Camel</a> endpoints, <a href="http://doc.akka.io/docs/akka/2.3.5/scala/persistence.html">Akka Persistence</a> journals and snapshot stores and <a href="http://akka.io/docs/#akka-streams-and-http">Akka Stream</a> flows (reactive streams) with full back-pressure support.</li>
+</ul><h3>
+<a name="user-content-related-projects" class="anchor" href="#related-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related projects</h3>
+
+<p><a href="https://github.com/ekmett/machines/">Machines</a> is a Haskell library with the same basic design as <code>scalaz-stream</code>, though some of the particulars differ. There is also <a href="https://github.com/runarorama/scala-machines"><code>scala-machines</code></a>, which is an older, deprecated version of the basic design of <code>scalaz-stream</code>.</p>
+
+<p>There are various other iteratee-style libraries for doing compositional, streaming I/O in Scala, notably the <a href="https://github.com/scalaz/scalaz/tree/scalaz-seven/iteratee"><code>scalaz/iteratee</code></a> package and <a href="http://www.playframework.com/documentation/2.0/Iteratees">iteratees in Play</a>.</p></article></div>

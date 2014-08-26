@@ -1,0 +1,171 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-haskell-to-javascript-compiler" class="anchor" href="#haskell-to-javascript-compiler" aria-hidden="true"><span class="octicon octicon-link"></span></a>Haskell to JavaScript compiler</h1>
+
+<p>GHCJS is a Haskell to JavaScript compiler that uses the GHC API.</p>
+
+<p>GHCJS supports many modern Haskell features, including:</p>
+
+<ul class="task-list">
+<li>All type system extensions supported by GHC</li>
+<li>Lightweight preemptive threading with blackholes, MVar, STM, asynchronous exceptions</li>
+<li>Weak references, CAF deallocation, StableName, StablePtr</li>
+<li>Unboxed arrays, emulated pointers</li>
+<li>Integer support through <a href="http://www-cs-students.stanford.edu/%7Etjw/jsbn/">JSBN</a>, 32 and 64 bit signed and unsigned arithmetic (<code>Word64</code>, <code>Int32</code> etc.)</li>
+<li>Cost-centres, stack traces</li>
+<li>Cabal support, GHCJS has its own package database</li>
+</ul><p>And some JavaScript-specific features:</p>
+
+<ul class="task-list">
+<li>new JavaScriptFFI extension, with convenient import pattens, asynchronous FFI and a JSRef FFI type,</li>
+<li>synchronous and asynchronous threads.</li>
+</ul><h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>First install GHC 7.8.2 or later and check with <code>ghc --version</code> that it's the
+compiler in your <code>PATH</code>. Next, make sure that you have all the prerequisites for your platform.</p>
+
+<h3>
+<a name="user-content-platform-specific-requirements" class="anchor" href="#platform-specific-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Platform-specific requirements</h3>
+
+<h4>
+<a name="user-content-linux--os-x" class="anchor" href="#linux--os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Linux / OS X</h4>
+
+<ul class="task-list">
+<li>a recent version of <code>alex</code> and <code>happy</code> need to be in your <code>PATH</code>
+</li>
+<li>
+<code>git</code>, <code>make</code>, <code>cpp</code>, <code>autoreconf</code>, <code>patch</code> need to be in your <code>PATH</code>
+</li>
+<li>by default, <code>ghcjs-boot</code> will try to use the system GMP library, see
+<code>ghcjs-boot --help</code> for more info.</li>
+</ul><h4>
+<a name="user-content-windows" class="anchor" href="#windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows</h4>
+
+<ul class="task-list">
+<li>virus scanners often interfere with configure scripts (permission denied errors),
+disable on-access scanning before running <code>ghcjs-boot</code>.</li>
+<li>no extra programs need to be installed, <code>ghcjs-boot</code> will download an archive (around 100MB)
+with the required programs.</li>
+</ul><h3>
+<a name="user-content-installation-steps" class="anchor" href="#installation-steps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation steps</h3>
+
+<p>Run the following script to install an updated <code>Cabal</code> and <code>cabal-install</code> with GHCJS
+support. Note that this will overwrite the <code>cabal</code> executable in your cabal executable
+installation path (typically <code>~/.cabal/bin</code>), you might want to backup your current version.</p>
+
+<div class="highlight highlight-bash"><pre><span class="c">#!/bin/sh</span>
+git clone https://github.com/ghcjs/cabal.git
+<span class="nb">cd </span>cabal
+git checkout ghcjs
+cabal install ./Cabal ./cabal-install
+</pre></div>
+
+<p>Make sure that you're now running the new <code>cabal-install</code>, <code>GHCJS</code> support must be listed under the
+compiler flags:</p>
+
+<pre><code>$ cabal install --help
+...
+                                build files (default dist)
+ -g --ghc                           compile with GHC
+    --ghcjs                         compile with GHCJS
+    --nhc98                         compile with NHC
+...
+</code></pre>
+
+<p>Next, install the <code>ghcjs-prim</code> and <code>haddock-internal</code> dependencies:</p>
+
+<pre><code>$ git clone https://github.com/ghcjs/ghcjs-prim.git
+$ git clone https://github.com/ghcjs/haddock-internal.git
+$ cabal install ./ghcjs-prim ./haddock-internal
+</code></pre>
+
+<p>Now install <code>GHCJS</code> itself:</p>
+
+<pre><code>$ git clone https://github.com/ghcjs/ghcjs.git
+$ cabal install ./ghcjs
+</code></pre>
+
+<p>If <code>cabal install ./ghcjs</code> fails because cabal cannot resolve dependencies, try adding <code>--reorder-goals --max-backjumps=-1</code>. Sometimes the <code>transformers</code> package causes problms, since GHC ships with an older version. Try <code>--with-constraint=transformers==0.3.0.0</code> (or the version that came with your GHC) if the problem looks related to this package.</p>
+
+<p>Build the base libraries for <code>GHCJS</code>:</p>
+
+<pre><code>if you used the Git repository to install:
+$ ghcjs-boot --dev
+
+if you are using a package from hackage that includes the libraries:
+$ ghcjs-boot
+</code></pre>
+
+<p>Some distros install node.js as <code>nodejs</code> instead of <code>node</code>. Add <code>--with-node nodejs</code> to the <code>ghcjs-boot</code> command in that case.</p>
+
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p><code>ghcjs</code> can be invoked with the same command line arguments as <code>ghc</code>. The generated programs can be run directly from
+the shell with <a href="http://nodejs.org/">Node.js</a> and <a href="http://download.cdn.mozilla.net/pub/firefox/nightly/latest-mozilla-central/">SpiderMonkey jsshell</a>.
+for example:</p>
+
+<pre><code>$ ghcjs -o helloWorld helloWorld.hs
+$ node helloWorld.jsexe/all.js
+Hello world!
+</code></pre>
+
+<h3>
+<a name="user-content-cabal-support" class="anchor" href="#cabal-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cabal support</h3>
+
+<p>Use <code>cabal install --ghcjs packageName</code> to install a package</p>
+
+<p>Most packages from hackage should work out of the box. The main exception is packages with foreign (non-Haskell) dependencies.
+For these packages a JavaScript implementation of the dependencies must be provided. If a package you want to use does
+not work, please create a ticket.</p>
+
+<h3>
+<a name="user-content-sandboxes" class="anchor" href="#sandboxes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sandboxes</h3>
+
+<p>You can create a new sandbox or add GHCJS support to an existing sandbox with:</p>
+
+<pre><code>$ cabal sandbox init ghcjs
+</code></pre>
+
+<p>If you also want to set GHCJS as the default compiler in the sandbox, run:</p>
+
+<pre><code>$ cabal sandbox init ghcjs
+$ echo "compiler: ghcjs" &gt;&gt; cabal.config
+</code></pre>
+
+<h3>
+<a name="user-content-package-databases" class="anchor" href="#package-databases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Package databases</h3>
+
+<p>Use <code>ghcjs-pkg</code> to manipulate the GHCJS package database</p>
+
+<p>The package database and runtime files from the <a href="https://github.com/ghcjs/shims.git">shims</a> repository are kept in the
+GHCJS application data directory, typically <code>~/.ghcjs/</code>. Remove this directory to reset your GHCJS installation, you
+will need to run <code>ghcjs-boot --init</code> again.</p>
+
+<p>See <a href="http://weblog.luite.com/wordpress/?p=14">GHCJS introduction</a> for more examples.</p>
+
+<h1>
+<a name="user-content-hacking-ghcjs" class="anchor" href="#hacking-ghcjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hacking GHCJS</h1>
+
+<p>If you want to hack on GHCJS, please join our friendly community on IRC at <code>#ghcjs</code> on freenode (You're also
+welcome if you only use the compiler or just want to chat about it!). Read the <a href="HACKING.markdown">HACKING.markdown</a> document
+to get started. The <a href="https://github.com/ghcjs/ghcjs/wiki">wiki</a> may also contain useful information.</p>
+
+<h1>
+<a name="user-content-jsc-and-webkit" class="anchor" href="#jsc-and-webkit" aria-hidden="true"><span class="octicon octicon-link"></span></a>JSC and webkit</h1>
+
+<p>Applications that use the following libraries should compile with GHCJS
+and run in a modern web browser and interface with DOM and JavaScript
+in the browser.</p>
+
+<ul class="task-list">
+<li>
+<a href="https://patch-tag.com/r/hamish/webkit">webkit</a> - Bindings for WebKitGTK+ that provide a low level DOM interface.</li>
+<li>
+<a href="https://github.com/ghcjs/webkit-javascriptcore">webkit-javascriptcore</a> - Low level bindings for JavaScriptCore</li>
+<li>
+<a href="https://github.com/ghcjs/jsc">jsc</a> - Higher level interface for JavaScriptCore</li>
+</ul><p>You can use these libraries without GHCJS to build a native version of
+your application (it will use WebKitGTK+ to run without a browser).
+If you want to find out more about making GHCJS compatible Haskell
+applications check out the <a href="https://github.com/ghcjs/ghcjs-examples/">GHCJS Examples</a></p></article></div>

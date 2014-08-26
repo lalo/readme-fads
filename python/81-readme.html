@@ -1,0 +1,256 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>Murder by Larry Gadea <a href="mailto:lg@twitter.com">lg@twitter.com</a> and Matt Freels <a href="mailto:freels@twitter.com">freels@twitter.com</a>  </p>
+
+<p>Copyright 2010-2012 Twitter Inc.</p>
+
+<h2>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>DESCRIPTION</h2>
+
+<p>Murder is a method of using Bittorrent to distribute files to a large amount
+of servers within a production environment. This allows for scaleable and fast
+deploys in environments of hundreds to tens of thousands of servers where
+centralized distribution systems wouldn't otherwise function. A "Murder" is
+normally used to refer to a flock of crows, which in this case applies to a
+bunch of servers doing something.</p>
+
+<p>For an intro video, see:
+<a href="http://vimeo.com/11280885">Twitter - Murder Bittorrent Deploy System</a></p>
+
+<h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>QUICK START</h2>
+
+<p>For the impatient, <code>gem install murder</code> and add these lines to your Capfile:</p>
+
+<pre><code>require 'murder'
+
+set :deploy_via, :murder
+after 'deploy:setup', 'murder:distribute_files'
+before 'murder:start_seeding', 'murder:start_tracker'
+after 'murder:stop_seeding', 'murder:stop_tracker'
+</code></pre>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>HOW IT WORKS</h2>
+
+<p>In order to do a Murder transfer, there are several components required to be
+set up beforehand -- many the result of BitTorrent nature of the system. Murder
+is based on BitTornado.</p>
+
+<ul class="task-list">
+<li><p>A torrent tracker. This tracker, started by running the 'murder_tracker.py'
+script, runs a self-contained server on one machine. Although technically this
+is still a centralized system (everyone relying on this tracker), the
+communication between this server and the rest is minimal and normally
+acceptable. To keep things simple tracker-less distribution (DHT) is currently
+not supported. The tracker is actually just a mini-httpd that hosts a
+/announce path which the Bittorrent clients update their state onto.</p></li>
+<li><p>A seeder. This is the server which has the files that you'd like to
+deploy onto all other servers. The files are placed into a directory
+that a torrent gets created from. Murder will tgz up the directory and
+create a .torrent file (a very small file containing basic hash
+information about the tgz file). This .torrent file lets the peers
+know what they're downloading. The tracker keeps track of which
+.torrent files are currently being distributed. Once a Murder transfer
+is started, the seeder will be the first server many machines go to to
+get pieces. These pieces will then be distributed in a tree-fashion to
+the rest of the network, but without necessarily getting the parts
+from the seeder.</p></li>
+<li><p>Peers. This is the group of servers (hundreds to tens of thousands) which
+will be receiving the files and distributing the pieces amongst themselves.
+Once a peer is done downloading the entire tgz file, it will continue seeding
+for a while to prevent a hotspot effect on the seeder.</p></li>
+</ul><h2>
+<a name="user-content-configuration-and-usage" class="anchor" href="#configuration-and-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>CONFIGURATION AND USAGE</h2>
+
+<p>Murder integrates with Capistrano. The most simple way to use it is as
+a deploy strategy, by setting <code>:deploy_via</code> to <code>:murder</code>. By default,
+murder makes the same assumptions that cap makes. All servers without
+<code>:no_release =&gt; true</code> will act as peers. Additionally, murder will
+automatically use the first peer as both tracker and seeder. you may
+redefine the <code>tracker</code>, <code>seeder</code> and <code>peer</code> roles yourself to change
+these defaults, for instance, if you want to set up a dedicated
+tracker.</p>
+
+<p>All involved servers must have python installed and the related murder
+support files (BitTornado, etc.). To upload the support files to the
+tracker, seeder, and peers, run:</p>
+
+<pre><code>cap murder:distribute_files
+</code></pre>
+
+<p>By default, these will go in <code>shared/murder</code> in your apps deploy
+directory. Override this by setting the variable
+<code>remote_murder_path</code>. For convenience, you can add an after hook to
+run this on <code>deploy:setup</code>:</p>
+
+<pre><code>after 'deploy:setup', 'murder:distribute_files'
+</code></pre>
+
+<p>Before deploying, you must start the tracker:</p>
+
+<pre><code>cap murder:start_tracker
+</code></pre>
+
+<p>To have this happen automatically during a deploy, add the following hooks:</p>
+
+<pre><code>before 'murder:start_seeding', 'murder:start_tracker'
+after 'murder:stop_seeding', 'murder:stop_tracker'
+</code></pre>
+
+<p>At this point you should be able to deploy normally:</p>
+
+<pre><code>cap deploy
+</code></pre>
+
+<h2>
+<a name="user-content-manual-usage-murder-without-a-deploy-strategy" class="anchor" href="#manual-usage-murder-without-a-deploy-strategy" aria-hidden="true"><span class="octicon octicon-link"></span></a>MANUAL USAGE (murder without a deploy strategy)</h2>
+
+<p>Murder can also be used as a general mechanism to distribute files
+across a generic set of servers. To do so create a Capfile, require
+murder, and manually define roles:</p>
+
+<pre><code>require 'rubygems'
+require 'murder'
+
+set :remote_murder_path, '/opt/local/murder' # or some other directory
+
+role :peer, 'host1', 'host2', 'host3', 'host4', 'host5', host6', host7'
+role :seeder, 'host1'
+role :tracker, 'host1'
+</code></pre>
+
+<p>To distribute a directory of files, first make sure that murder is set
+up on all hosts, then manually run the murder cap tasks:</p>
+
+<ol class="task-list">
+<li>
+<p>Start the tracker:</p>
+
+<pre><code>cap murder:start_tracker
+</code></pre>
+</li>
+<li>
+<p>Create a torrent from a directory of files on the seeder, and start seeding:</p>
+
+<pre><code>scp -r ./files host1:~/files
+cap murder:create_torrent tag="Deploy1" files_path="~/files"
+cap murder:start_seeding tag="Deploy1"
+</code></pre>
+</li>
+<li>
+<p>Distribute the torrent to all peers:</p>
+
+<pre><code>cap murder:peer tag="Deploy1" destination_path="/tmp"
+</code></pre>
+</li>
+<li>
+<p>Stop the seeder and tracker:</p>
+
+<pre><code>cap murder:stop_seeding tag="Deploy1"
+cap murder:stop_tracker
+</code></pre>
+</li>
+</ol><p>When this finishes, all peers will have the files in /tmp/Deploy1</p>
+
+<h2>
+<a name="user-content-task-reference" class="anchor" href="#task-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>TASK REFERENCE</h2>
+
+<p><code>distribute_files</code>:
+  SCPs a compressed version of all files from ./dist (the python Bittorrent
+library and custom scripts) to all server. The entire directory is sent,
+regardless of the role of each individual server. The path on the server is
+specified by remote_murder_path and will be cleared prior to transferring
+files over.</p>
+
+<p><code>start_tracker</code>:
+  Starts the Bittorrent tracker (essentially a mini-web-server) listening on
+port 8998.</p>
+
+<p><code>stop_tracker</code>:
+  If the Bittorrent tracker is running, this will kill the process. Note that
+if it is not running you will receive an error.</p>
+
+<p><code>create_torrent</code>:
+  Compresses the directory specified by the passed-in argument 'files_path'
+and creates a .torrent file identified by the 'tag' argument. Be sure to use
+the same 'tag' value with any following commands. Any .git directories will be
+skipped. Once completed, the .torrent will be downloaded to your local
+/tmp/TAG.tgz.torrent.</p>
+
+<p><code>download_torrent</code>:
+  Although not necessary to run, if the file from create_torrent was lost, you
+can redownload it from the seeder using this task. You must specify a valid
+'tag' argument.</p>
+
+<p><code>start_seeding</code>:
+  Will cause the seeder machine to connect to the tracker and start seeding.
+The ip address returned by the 'host' bash command will be announced to the
+tracker. The server will not stop seeding until the stop_seeding task is
+called. You must specify a valid 'tag' argument (which identifies the .torrent
+in /tmp to use)</p>
+
+<p><code>stop_seeding</code>:
+  If the seeder is currently seeding, this will kill the process. Note that if
+it is not running, you will receive an error. If a peer was downloading from
+this seed, the peer will find another host to receive any remaining data. You
+must specify a valid 'tag' argument.</p>
+
+<p><code>stop_all_seeding</code>:
+  Identical to stop_seeding, except this will kill all seeding processes. No
+'tag' argument is needed.</p>
+
+<p><code>peer</code>:
+  Instructs all the peer servers to connect to the tracker and start download
+and spreading pieces and files amongst themselves. You must specify a valid
+'tag' argument. Once the download is complete on a server, that server will
+fork the download process and seed for 30 seconds while returning control to
+Capistrano. Cap will then extract the files to the passed in
+'destination_path' argument to destination_path/TAG/*. To not create this tag
+named directory, pass in the 'no_tag_directory=1' argument. If the directory
+is empty, this command will fail. To clean it, pass in the
+'unsafe_please_delete=1' argument. The compressed tgz in /tmp is never
+removed. When this task completes, all files have been transferred and moved
+into the requested directory.</p>
+
+<p><code>stop_all_peering</code>:
+  Sometimes peers can go on forever (usually because of an error). This
+command will forcibly kill all "murder_client.py peer" commands that are
+running.</p>
+
+<h2>
+<a name="user-content-config-reference" class="anchor" href="#config-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>CONFIG REFERENCE</h2>
+
+<h2>
+<a name="user-content-variables" class="anchor" href="#variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Variables</h2>
+
+<p><code>default_tag</code>:
+  A tag name to use by default such that a tag parameter doesn't need to be
+manually entered on every task. Not recommended to be used since files will be
+overwritten.</p>
+
+<p><code>default_seeder_files_path</code>:
+  A path on the seeder's file system where the files to be distributed are
+stored.</p>
+
+<p><code>default_destination_path</code>:
+  A path on the peers' file system where the files that were distributed
+should be decompressed into.</p>
+
+<p><code>remote_murder_path</code>:
+ A path where murder will look for its support files on each host. <code>cap
+murder:distribute_files</code> will upload murder support files here.</p>
+
+<p><code>default_temp_path</code>:
+  The base path to use for temporary files, the default for this is <code>/tmp</code>.
+This can be overridden with the <code>temp_path</code> environment variable.</p>
+
+<h2>
+<a name="user-content-roles" class="anchor" href="#roles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Roles</h2>
+
+<p><code>tracker</code>:
+  Host on which to run the BitTorrent tracker</p>
+
+<p><code>seeder</code>:
+  Host which will be the source of the files to be distributed via BitTorrent</p>
+
+<p><code>peers</code>:
+  All hosts to which files should be distributed</p></article></div>

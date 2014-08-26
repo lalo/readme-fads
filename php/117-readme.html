@@ -1,0 +1,79 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-password_compat" class="anchor" href="#password_compat" aria-hidden="true"><span class="octicon octicon-link"></span></a>password_compat</h1>
+
+<p><a href="https://travis-ci.org/ircmaxell/password_compat"><img src="https://camo.githubusercontent.com/b514df7009c06e4bc0b478f147f2865cd8a8da62/68747470733a2f2f7472617669732d63692e6f72672f6972636d6178656c6c2f70617373776f72645f636f6d7061742e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/ircmaxell/password_compat.png?branch=master" style="max-width:100%;"></a></p>
+
+<p>This library is intended to provide forward compatibility with the <a href="http://php.net/password">password_*</a> functions being worked on for PHP 5.5.</p>
+
+<p>See <a href="https://wiki.php.net/rfc/password_hash">the RFC</a> for more detailed information.</p>
+
+<h1>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h1>
+
+<p>This library requires <code>PHP &gt;= 5.3.7</code> OR a version that has the <code>$2y</code> fix backported into it (such as RedHat provides). Note that Debian's 5.3.3 version is <strong>NOT</strong> supported.</p>
+
+<p>The runtime checks have been removed due to this version issue. To see if password_compat is available for your system, run the included <code>version-test.php</code>. If it outputs "Pass", you can safely use the library. If not, you cannot. </p>
+
+<p>If you attempt to use password-compat on an unsupported version, attempts to create or verify hashes will return <code>false</code>. You have been warned!</p>
+
+<p>The reason for this is that PHP prior to 5.3.7 contains a <a href="http://php.net/security/crypt_blowfish.php">security issue with its BCRYPT implementation</a>. Therefore, it's highly recommended that you upgrade to a newer version of PHP prior to using this layer.</p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>To install, simply <code>require</code> the <code>password.php</code> file under <code>lib</code>. </p>
+
+<p>You can also install it via <code>Composer</code> by using the <a href="http://packagist.org/packages/ircmaxell/password-compat">Packagist archive</a>.</p>
+
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p><strong>Creating Password Hashes</strong></p>
+
+<p>To create a password hash from a password, simply use the <code>password_hash</code> function.</p>
+
+<div class="highlight highlight-PHP"><pre>    <span class="nv">$hash</span> <span class="o">=</span> <span class="nb">password_hash</span><span class="p">(</span><span class="nv">$password</span><span class="p">,</span> <span class="nx">PASSWORD_BCRYPT</span><span class="p">);</span>
+</pre></div>
+
+<p>Note that the algorithm that we chose is <code>PASSWORD_BCRYPT</code>. That's the current strongest algorithm supported. This is the <code>BCRYPT</code> crypt algorithm. It produces a 60 character hash as the result.</p>
+
+<p><code>BCRYPT</code> also allows for you to define a <code>cost</code> parameter in the options array. This allows for you to change the CPU cost of the algorithm:</p>
+
+<div class="highlight highlight-PHP"><pre>    <span class="nv">$hash</span> <span class="o">=</span> <span class="nb">password_hash</span><span class="p">(</span><span class="nv">$password</span><span class="p">,</span> <span class="nx">PASSWORD_BCRYPT</span><span class="p">,</span> <span class="k">array</span><span class="p">(</span><span class="s2">"cost"</span> <span class="o">=&gt;</span> <span class="mi">10</span><span class="p">));</span>
+</pre></div>
+
+<p>That's the same as the default. The cost can range from <code>4</code> to <code>31</code>. I would suggest that you use the highest cost that you can, while keeping response time reasonable (I target between 0.1 and 0.5 seconds for a hash, depending on use-case).</p>
+
+<p>Another algorithm name is supported:</p>
+
+<div class="highlight highlight-PHP"><pre>    <span class="nx">PASSWORD_DEFAULT</span>
+</pre></div>
+
+<p>This will use the strongest algorithm available to PHP at the current time. Presently, this is the same as specifying <code>PASSWORD_BCRYPT</code>. But in future versions of PHP, it may be updated to use a stronger algorithm if one is introduced. It can also be changed if a problem is identified with the BCRYPT algorithm. Note that if you use this option, you are <strong>strongly</strong> encouraged to store it in a <code>VARCHAR(255)</code> column to avoid truncation issues if a future algorithm increases the length of the generated hash.</p>
+
+<p>It is very important that you should check the return value of <code>password_hash</code> prior to storing it, because a <code>false</code> may be returned if it encountered an error.</p>
+
+<p><strong>Verifying Password Hashes</strong></p>
+
+<p>To verify a hash created by <code>password_hash</code>, simply call:</p>
+
+<div class="highlight highlight-PHP"><pre>    <span class="k">if</span> <span class="p">(</span><span class="nb">password_verify</span><span class="p">(</span><span class="nv">$password</span><span class="p">,</span> <span class="nv">$hash</span><span class="p">))</span> <span class="p">{</span>
+        <span class="cm">/* Valid */</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="cm">/* Invalid */</span>
+    <span class="p">}</span>
+</pre></div>
+
+<p>That's all there is to it.</p>
+
+<p><strong>Rehashing Passwords</strong></p>
+
+<p>From time to time you may update your hashing parameters (algorithm, cost, etc). So a function to determine if rehashing is necessary is available:</p>
+
+<div class="highlight highlight-PHP"><pre>    <span class="k">if</span> <span class="p">(</span><span class="nb">password_verify</span><span class="p">(</span><span class="nv">$password</span><span class="p">,</span> <span class="nv">$hash</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">password_needs_rehash</span><span class="p">(</span><span class="nv">$hash</span><span class="p">,</span> <span class="nv">$algorithm</span><span class="p">,</span> <span class="nv">$options</span><span class="p">))</span> <span class="p">{</span>
+            <span class="nv">$hash</span> <span class="o">=</span> <span class="nb">password_hash</span><span class="p">(</span><span class="nv">$password</span><span class="p">,</span> <span class="nv">$algorithm</span><span class="p">,</span> <span class="nv">$options</span><span class="p">);</span>
+            <span class="cm">/* Store new hash in db */</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+</pre></div></article></div>

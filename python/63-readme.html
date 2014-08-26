@@ -1,0 +1,725 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-ios-universal-framework-mk-8" class="anchor" href="#ios-universal-framework-mk-8" aria-hidden="true"><span class="octicon octicon-link"></span></a>iOS Universal Framework Mk 8</h1>
+
+<p>An XCode project template to build universal (arm6, arm7, and simulator)
+frameworks for iOS.</p>
+
+<p><a href="https://github.com/kstenerud/iOS-Universal-Framework/raw/master/screenshot.png" target="_blank"><img src="https://github.com/kstenerud/iOS-Universal-Framework/raw/master/screenshot.png" alt="screenshot" style="max-width:100%;"></a></p>
+
+<p>By Karl Stenerud</p>
+
+<h2>
+<a name="user-content-notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes</h2>
+
+<h3>
+<a name="user-content-2013-10-14" class="anchor" href="#2013-10-14" aria-hidden="true"><span class="octicon octicon-link"></span></a>2013-10-14:</h3>
+
+<h4>
+<a name="user-content-mk-8-is-now-out-of-beta" class="anchor" href="#mk-8-is-now-out-of-beta" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 8 is now out of beta!</h4>
+
+<p>I haven't been able to solve the problem of deeply nested projects within projects,
+but the new python scripts have been working in my other projects for over a year now and
+are quite stable for 90% of use cases.</p>
+
+<p>Unfortunately, I don't have the time to solve the last 10% of use cases. As a compromise,
+I've created a branch "mk7" which contains the shell script version of the build system.
+If Mk8 doesn't work for your unique case, give Mk7 a try.</p>
+
+<p>Development will continue in order to keep things working for the other 90% of use cases.</p>
+
+<p>If you can help, please feel free to contact me or send pull requests. All scripting is done
+in Python now. All template development happens within the "devel" directory. build.py
+builds the templates and all template source files are in "src".</p>
+
+<h3>
+<a name="user-content-2012-06-16" class="anchor" href="#2012-06-16" aria-hidden="true"><span class="octicon octicon-link"></span></a>2012-06-16:</h3>
+
+<h4>
+<a name="user-content-updating-your-project-to-use-the-new-scripts" class="anchor" href="#updating-your-project-to-use-the-new-scripts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Updating your project to use the new scripts</h4>
+
+<p>You can now update existing projects to use the newest build scripts.
+Running the <strong>update_project.py</strong> script will replace your project's universal
+framework build script with the script in devel/src/BuildFW.py.</p>
+
+<p><strong>Before upgrading, please back up your project file!</strong></p>
+
+<h5>
+<a name="user-content-steps-to-upgrade-mk-7-or-earlier" class="anchor" href="#steps-to-upgrade-mk-7-or-earlier" aria-hidden="true"><span class="octicon octicon-link"></span></a>Steps to Upgrade (Mk 7 or earlier):</h5>
+
+<p>If your project was built using Mk 7 or earlier, delete the first two universal
+framework build scripts. The first will be right after "Target Dependencies"
+and starts with the following (or something close):</p>
+
+<pre><code>set -e
+
+set +u
+if [[ $UFW_MASTER_SCRIPT_RUNNING ]]
+then
+    # Nothing for the slave script to do
+    exit 0
+fi
+set -u
+</code></pre>
+
+<p>The second script is after "Copy Bundle Resources" and starts with the
+following (or something close). Note that this script may not exist in very
+early versions of the framework project:</p>
+
+<pre><code>HEADERS_ROOT=$SRCROOT/$PRODUCT_NAME
+FRAMEWORK_HEADERS_DIR="$BUILT_PRODUCTS_DIR/$WRAPPER_NAME/Versions/$FRAMEWORK_VERSION/Headers"
+
+## only header files expected at this point
+PUBLIC_HEADERS=$(find $FRAMEWORK_HEADERS_DIR/. -not -type d 2&gt; /dev/null | sed -e "s@.*/@@g")
+</code></pre>
+
+<p>The final script (the one you want to keep) will start with something similar
+to the first script you deleted.</p>
+
+<p>Now proceed with the next steps below.</p>
+
+<h5>
+<a name="user-content-steps-to-upgrade-all-versions" class="anchor" href="#steps-to-upgrade-all-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Steps to Upgrade (All versions)</h5>
+
+<ul class="task-list">
+<li><p>Make sure the top of the "Run Script" phase for the universal framework
+script starts with the following comment: "# TAG: BUILD SCRIPT". If it
+doesn't, add it in!</p></li>
+<li><p>Close your project</p></li>
+<li><p>Run the project update script from shell:
+$ ./update_project.py ~/Projects/MyProj/MyProj.xcodeproj/project.pbxproj</p></li>
+<li><p>Reopen your project</p></li>
+</ul><p>The project update script will create a backup (project.pbxproj.orig) of the
+old project file. To disable this behavior, use the "-n" switch.</p>
+
+<h3>
+<a name="user-content-selecting-framework-type" class="anchor" href="#selecting-framework-type" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selecting Framework Type</h3>
+
+<p>The script now requires you to select which kind of framework (normal or
+embedded) you will be creating, using the <strong>config_framework_type</strong>
+configuration variable. Only the selected framework type will be created and
+shown to the user.</p>
+
+<p><strong>Note:</strong> Xcode requires the normal framework dir to exist, so when building an
+embedded framework, the script simply creates a symlink to the copy inside the
+embeddedframework. Be sure to tell your users not to to copy the regular
+"framework" symlink by mistake!</p>
+
+<h3>
+<a name="user-content-2012-06-12" class="anchor" href="#2012-06-12" aria-hidden="true"><span class="octicon octicon-link"></span></a>2012-06-12:</h3>
+
+<h4>
+<a name="user-content-new-build-process" class="anchor" href="#new-build-process" aria-hidden="true"><span class="octicon octicon-link"></span></a>New Build Process</h4>
+
+<p>When you build normally (by selecting Build or CMD-B), the project will <strong>NO
+LONGER</strong> build a universal framework. It will build for the <strong>CURRENT
+ARCHITECTURE ONLY</strong>!</p>
+
+<p>To build a universal framework, you must select <strong>Archive</strong> from the
+<strong>Product</strong> menu. Upon completing the archive build, it will automatically open
+the folder containing the fully built framework.</p>
+
+<p>This cuts the compilation time down by 2/3, since it no longer has to do a full
+build process when building as a dependency.</p>
+
+<h4>
+<a name="user-content-building-from-command-line" class="anchor" href="#building-from-command-line" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building From Command Line</h4>
+
+<p>Since "archive" is not a supported xcodebuild build action, you must specify
+the env variable "UFW_ACTION=archive" in your xcodebuild command to build it as
+a universal framework.</p>
+
+<p>To avoid opening the destination folder when building from command line, set
+the env variable "UFW_OPEN_BUILD_DIR=False" in your xcodebuild command.</p>
+
+<h3>
+<a name="user-content-only-one-script" class="anchor" href="#only-one-script" aria-hidden="true"><span class="octicon octicon-link"></span></a>Only One Script</h3>
+
+<p>The initial beta version had 2 scripts: a clean script and a build script. Mk 7
+has 3 scripts. With the new build process there is only need for one script.</p>
+
+<h3>
+<a name="user-content-older-stuff" class="anchor" href="#older-stuff" aria-hidden="true"><span class="octicon octicon-link"></span></a>Older stuff:</h3>
+
+<h4>
+<a name="user-content-xcode-bugs-and-their-workarounds" class="anchor" href="#xcode-bugs-and-their-workarounds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Xcode Bugs and their Workarounds</h4>
+
+<p>When Xcode creates the initial header and module file for a framework, the
+header file won't be included as a member of the framework target (This is a
+bug in Xcode; it does the same thing with Mac frameworks), so you need to do
+this manually. In <strong>Build Phases</strong> under <strong>Copy Headers</strong>, click the + and add
+the header, then drag it to the <strong>Public</strong> section.</p>
+
+<p>The <strong>Run Script</strong> build phases will have the option <strong>Show environment
+variables in build log</strong> checked. A bug in Xcode causes it to ignore the
+template setting and leave it checked always. This can cause issues when
+diagnosing a build failure because Xcode will only show the first 200 log
+entries in a build phase, most of which are taken up by spitting out all of
+the environment variables! So be sure to turn it off manually.</p>
+
+<p>So to sum up, when starting a new framework project, always do the following:</p>
+
+<ul class="task-list">
+<li>Manually add the header file it creates to your build target and mark it
+public.</li>
+<li>Uncheck <strong>Show environment variables in build log</strong> in all <strong>Run Script</strong>
+build phases.</li>
+</ul><h2>
+<a name="user-content-why-a-framework" class="anchor" href="#why-a-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why a Framework?</h2>
+
+<p>Distributing libraries in a developer-friendly manner is tricky. You need to
+include not only the library itself, but also any public include files,
+resources, scripts etc.</p>
+
+<p>Apple's solution to this problem is frameworks, which are basically folders
+that follow a standard structure to include everything required to use a
+library. Unfortunately, in disallowing dynamically linked libraries in iOS,
+Apple also removed static iOS framework creation functionality in XCode.</p>
+
+<p>Xcode is still technically capable of building frameworks for iOS, and with a
+little tweaking it can be re-enabled.</p>
+
+<p>Static frameworks are perfectly acceptable for packaging code intended for the
+app store. Despite appearances, it's just a static library at the core.</p>
+
+<h2>
+<a name="user-content-kinds-of-frameworks" class="anchor" href="#kinds-of-frameworks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Kinds of Frameworks</h2>
+
+<h4>
+<a name="user-content-dynamic-framework" class="anchor" href="#dynamic-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Framework</h4>
+
+<p>A dynamic framework is designed to be installed in your operating system and
+shared by many programs. By default, Xcode only supports dynamic frameworks,
+and only for Mac since you can't use dynamic frameworks in iOS.</p>
+
+<h4>
+<a name="user-content-static-framework" class="anchor" href="#static-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Static Framework</h4>
+
+<p>A static framework gets linked into your app like a static library would.
+However, Xcode doesn't include support for static frameworks. These templates
+add in that support. Frameworks are superior to libraries because they can
+include code as well as public headers in a single package.</p>
+
+<h4>
+<a name="user-content-embedded-framework" class="anchor" href="#embedded-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Embedded Framework</h4>
+
+<p>Although frameworks are an improvement over libraries, Xcode ignores any
+resources contained within frameworks. So if you have xibs, images, sounds, or
+other files in your framework, Xcode won't see them. An embedded framework is
+a way to trick Xcode into seeing the included resources. As far as Xcode is
+concerned, they are simply folders, and so there are a few minor issues with
+embedded frameworks:</p>
+
+<ul class="task-list">
+<li><p>They don't show up in the <strong>Products</strong> group.</p></li>
+<li><p>When you delete an embedded framework from a project, Xcode will not delete
+the outer folder (XX.embeddedframework), so if you try to re-add later, it
+will complain. You need to manually delete the XX.embeddedframework folder
+manually using Finder.</p></li>
+<li><p>Things get a little tricky when you have a framework project as a dependency
+if your framework has resources that the parent project needs. You may need
+to manually add the resources to the parent or sibling project.</p></li>
+</ul><h2>
+<a name="user-content-choosing-which-template-system-to-use" class="anchor" href="#choosing-which-template-system-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing Which Template System to Use</h2>
+
+<p>In this distribution are two template systems, each with their strengths and
+weaknesses. You should choose whichever one best suits your needs and
+constraints (or just install both).</p>
+
+<p>The biggest difference is that Xcode can't build real frameworks unless you
+install the static framework xcspec file inside the Xcode app, which might be
+a dealbreaker for some (this applies to the <em>PROJECT</em>, not the framework
+itself).</p>
+
+<h3>
+<a name="user-content-short-decision-chart-for-the-impatient" class="anchor" href="#short-decision-chart-for-the-impatient" aria-hidden="true"><span class="octicon octicon-link"></span></a>Short decision chart for the impatient</h3>
+
+<p>Note: Both types will build the exact same binary. The only difference is in
+how Xcode treats the project.</p>
+
+<ul class="task-list">
+<li><p>I don't want to modify Xcode: <strong>Fake framework</strong></p></li>
+<li><p>I'm just distributing the final framework binary (not the project):
+<strong>Either kind</strong></p></li>
+<li><p>I'm distributing my framework <strong>project</strong> to other developers who may not
+want to modify Xcode: <strong>Fake framework</strong></p></li>
+<li><p>I need to set up the framework project as a dependency of another project
+(in a workspace or as a child project): <strong>Real framework</strong>
+(or <strong>Fake framework</strong>, using the -framework trick - see below)</p></li>
+</ul><h3>
+<a name="user-content-fake-framework" class="anchor" href="#fake-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fake Framework</h3>
+
+<p>The fake framework is based on the well known "relocatable object file" bundle
+hack, which tricks Xcode into building something that mostly resembles a
+framework, but is really a bundle.</p>
+
+<p>The fake framework template takes this a step further, using some scripting to
+generate a real static framework (based on a static library rather than a
+relocatable object file). However, the framework's <strong>project</strong> still defines
+it to be of type 'wrapper.cfbundle', which makes it a second class citizen
+according to Xcode.</p>
+
+<p>So while it produces a proper static framework that works just as well as a
+"real" static framework, things can get tricky when you have dependencies.</p>
+
+<h4>
+<a name="user-content-the-problem-with-dependencies" class="anchor" href="#the-problem-with-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>The problem with dependencies</h4>
+
+<p>If you're just setting up a standalone project, then you're not using
+dependencies, so there's no problem.</p>
+
+<p>If, however, you use project dependencies (such as in workspaces), Xcode won't
+be happy. The fake framework won't show up in the list when you click the '+'
+button under "Link Binary With Libraries" in your main application project.
+You can manually drag it from "Products" under your fake framework project to
+add the dependency.</p>
+
+<p><strong>Note:</strong> In older versions of Xcode, you'd get warnings like the following:</p>
+
+<pre><code>warning: skipping file '/somewhere/MyFramework.framework'
+(unexpected file type 'wrapper.cfbundle' in Frameworks &amp; Libraries build phase)
+</code></pre>
+
+<p>This would be followed by linker errors for anything in your fake framework.
+As of Xcode 4.3.1, this doesn't seem to happen anymore.</p>
+
+<p>If you do encounter this issue, you can work around it by adding a "-framework"
+switch with your framework's name in "Other Linker Flags" in the project that
+uses the framework:</p>
+
+<pre><code>-framework MyFramework
+</code></pre>
+
+<p>It won't get rid of the warning, which is annoying, but it does link properly.</p>
+
+<h3>
+<a name="user-content-real-framework" class="anchor" href="#real-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Real Framework</h3>
+
+<p>The real framework is real in every sense of the word. It is a true static
+framework made by re-introducing specifications that Apple left out of Xcode.</p>
+
+<p>In order to be able to build a real framework project, you must install an
+xcspec file inside the Xcode installation.</p>
+
+<p>If you are releasing a <strong>project</strong> (rather than the built product) that builds
+a real framework, anyone who wishes to <strong>build</strong> that framework must also
+install the xcspec file (using the install script in this distribution) so
+that their Xcode can understand the target type.</p>
+
+<p>Note: If all you're doing is distributing the fully built framework, and not
+the framework's project, then the end user doesn't need to install anything.</p>
+
+<p>I've submitted a report to Apple in the hopes that they'll update the
+specification files in Xcode, but that could take awhile.
+<a href="http://openradar.appspot.com/radar?id=1194402">OpenRadar link here</a></p>
+
+<h2>
+<a name="user-content-upgrading-from-previous-ios-universal-framework-versions" class="anchor" href="#upgrading-from-previous-ios-universal-framework-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading from previous iOS-Universal-Framework versions</h2>
+
+<p>If you are upgrading from iOS-Universal-Framework <strong>Mk 6 or earlier</strong> and were
+using the <strong>Real Static Framework</strong>, and are still using <strong>Xcode 4.2.1</strong> or
+earlier, please run <strong>uninstall_legacy.sh</strong> first to remove any patches that
+were previously applied to Xcode, then run <strong>install.sh</strong> and restart Xcode.</p>
+
+<p>If you are using <strong>Xcode 4.3</strong> or later, just run <strong>install.sh</strong> and restart
+Xcode.</p>
+
+<h2>
+<a name="user-content-installing-the-template-system" class="anchor" href="#installing-the-template-system" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing the Template System</h2>
+
+<p>To install, run the <strong>install.sh</strong> script in either the "Real Framework" or
+"Fake Framework" folder (or both).</p>
+
+<p>Now restart Xcode and you'll see <strong>Static iOS Framework</strong> (or <strong>Fake Static
+iOS Framework</strong>) under <strong>Framework &amp; Library</strong> when creating a new project.</p>
+
+<p>To uninstall, run the <strong>uninstall.sh</strong> script and restart Xcode.</p>
+
+<h2>
+<a name="user-content-creating-an-ios-framework-project" class="anchor" href="#creating-an-ios-framework-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating an iOS Framework Project</h2>
+
+<ol class="task-list">
+<li><p>Start a new project.</p></li>
+<li><p>For the project type, choose <strong>Static iOS Framework</strong> (or <strong>Fake Static
+iOS Framework</strong>), which is under <strong>Framework &amp; Library</strong>.</p></li>
+<li><p>Optionally choose to include unit tests.</p></li>
+<li><p>Add the auto-generated header file to the <strong>Public</strong> section of the
+<strong>Copy Headers</strong> build phase (workaround for Xcode bug).</p></li>
+<li><p>Turn off <strong>Show environment variables in build log</strong> for both
+<strong>Run Script</strong> build phases (workaround for Xcode bug).</p></li>
+<li><p>Add your classes, resources, etc with your framework as the target.</p></li>
+<li><p>Any header files that need to be available to other projects must be
+declared public. To do so, go to <strong>Build Phases</strong> in your framework
+target, expand <strong>Copy Headers</strong>, then drag any header files you want to
+make public from the <strong>Project</strong> or <strong>Private</strong> section to the <strong>Public</strong>
+section.</p></li>
+<li><p>Any static libraries or static frameworks that you'd like to have linked
+into your framework must be included in the <strong>Link Binary With Libraries</strong>
+build phase. Be careful doing this, however, as it can cause linker issues
+if the users of your framework also try to include the same library in
+their project for other purposes.</p></li>
+</ol><h2>
+<a name="user-content-building-your-ios-framework" class="anchor" href="#building-your-ios-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building your iOS Framework</h2>
+
+<ol class="task-list">
+<li><p>Select your framework's scheme, iOS Device target.</p></li>
+<li><p>Under <strong>Product</strong>, select <strong>Archive</strong>.</p></li>
+<li><p>When the build finishes, it will open the folder containing the framework
+and embedded framework variants in Finder.</p></li>
+</ol><p>There will be two folders in the build location: <strong>(your framework).framework</strong>
+and <strong>(your framework).embeddedframework</strong></p>
+
+<p>If your framework has only code, and no resources (like images, scripts, xibs,
+core data momd files, etc), you can distribute <strong>(your framework).framework</strong>
+to your users and it will just work.</p>
+
+<p>If you have included resources in your framework, you <strong>MUST</strong> distribute
+<strong>(your framework).embeddedframework</strong>.</p>
+
+<h2>
+<a name="user-content-using-an-ios-framework" class="anchor" href="#using-an-ios-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using an iOS Framework</h2>
+
+<p>iOS frameworks are basically the same as regular dynamic Mac OS X frameworks,
+except they are statically linked.</p>
+
+<p>To add a framework to your project, simply drag it into your project.
+When including headers from your framework, remember to use angle bracket
+syntax rather than quotes.</p>
+
+<p>For example, with framework "MyFramework":</p>
+
+<pre><code>#import &lt;MyFramework/MyClass.h&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-template-development" class="anchor" href="#template-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Template Development</h2>
+
+<p>If you're interested in tinkering with the templates themselves, I've changed
+the way they are generated. There are now template metatemplates, which are
+used to build the Xcode templates. Inside the devel folder there is a script
+<strong>build.py</strong>, which rebuilds the templates under <strong>Fake Framework</strong> and
+<strong>Real Framework</strong>. The source files are under src:</p>
+
+<ul class="task-list">
+<li>
+<strong>CleanFW.py</strong>: The project clean script (the first script in a framework project)</li>
+<li>
+<strong>BuildFW.py</strong>: The project build script (the second script in a framework project)</li>
+<li>
+<strong>FakeFrameworkTemplateInfo.plist</strong>: The fake framework metatemplate</li>
+<li>
+<strong>RealFrameworkTemplateInfo.plist</strong>: The real framework metatemplate</li>
+</ul><h2>
+<a name="user-content-troubleshooting" class="anchor" href="#troubleshooting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Troubleshooting</h2>
+
+<h3>
+<a name="user-content-headers-not-found" class="anchor" href="#headers-not-found" aria-hidden="true"><span class="octicon octicon-link"></span></a>Headers Not Found</h3>
+
+<p>If Xcode can't find the header files from your framework, you've likely
+forgotten to make them public. See step 7 in <strong>Creating an iOS Framework Project</strong></p>
+
+<h3>
+<a name="user-content-no-such-product-type" class="anchor" href="#no-such-product-type" aria-hidden="true"><span class="octicon octicon-link"></span></a>No Such Product Type</h3>
+
+<p>If someone who has not installed iOS Universal Framework in their development
+environment attempts to build a universal framework project (for a real
+framework, not a fake framework), they'll get the following error:</p>
+
+<pre><code>target specifies product type 'com.apple.product-type.framework.static',
+but there's no such product type for the 'iphonesimulator' platform
+</code></pre>
+
+<p>Xcode requires some modification in order to be able to build true iOS static
+frameworks (see the two diff files in the "Real Framework" folder of this
+repository for the gory details), so please install it on all development
+machines that will build your real static framework projects (this
+isn't needed for users of your framework, only for builders of the framework).</p>
+
+<h3>
+<a name="user-content-the-selected-run-destination-is-not-valid-for-this-action" class="anchor" href="#the-selected-run-destination-is-not-valid-for-this-action" aria-hidden="true"><span class="octicon octicon-link"></span></a>The selected run destination is not valid for this action</h3>
+
+<p>Sometimes Xcode gets confused and loads the wrong active settings. The first
+thing to try is restarting Xcode. If it still fails, Xcode generated a bad
+project (this can happen with any kind of project due to a bug in Xcode 4).
+If this happens, you'll need to start over and create a new project.</p>
+
+<h3>
+<a name="user-content-linker-warnings" class="anchor" href="#linker-warnings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Linker Warnings</h3>
+
+<p>The first time you build your framework target, XCode may complain about
+missing folders during the linking phase:</p>
+
+<pre><code>ld: warning: directory not found for option
+'-L/Users/myself/Library/Developer/Xcode/DerivedData/MyFramework-ccahfoccjqiognaqraesrxdyqcne/Build/Products/Debug-iphoneos'
+</code></pre>
+
+<p>If this happens, simply clean and rebuild the target and the warnings should
+go away.</p>
+
+<h3>
+<a name="user-content-core-data-momd-not-found" class="anchor" href="#core-data-momd-not-found" aria-hidden="true"><span class="octicon octicon-link"></span></a>Core Data momd not found</h3>
+
+<p>Xcode builds managed object model files differently in a framework project than
+it does in an application project. Instead of creating a .momd directory
+containing VersionInfo.plist and the .mom file, it simply creates the .mom file
+in the root directory.</p>
+
+<p>This means that when initializing your NSManagedObjectModel from a model in an
+embedded framework, you must specify your model URL with an extension of "mom"
+rather than "momd":</p>
+
+<pre><code>NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"MyModel" withExtension:@"mom"];
+</code></pre>
+
+<h3>
+<a name="user-content-unknown-class-myclass-in-interface-builder-file" class="anchor" href="#unknown-class-myclass-in-interface-builder-file" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unknown class MyClass in Interface Builder file.</h3>
+
+<p>Since static frameworks are statically linked, the linker strips out any code
+it thinks is not being used. Unfortunately, the linker does not check xib
+files, and so if a class is referenced only in a xib, and not in objective-c
+code, the linker will drop that class from the final executable. This is a
+linker issue, not a framework issue (it also happens when you build a static
+library).</p>
+
+<p>Apple's built-in framworks don't suffer this problem because they are
+dynamically loaded at runtime and the complete, unstripped dynamic library
+exists in the iOS device's firmware.</p>
+
+<p>There are two ways around this:</p>
+
+<ol class="task-list">
+<li><p>Have end users of your framework disable linker optimizations by adding
+"-ObjC" and "-all_load" to "Other Linker Flags" in their project.</p></li>
+<li><p>Put a code reference to the class inside another class in your framework
+that always gets used. For example, suppose you have "MyTextField", which
+is getting stripped by the linker. Suppose you also have
+"MyViewController", which uses MyTextField in its xib file and doesn't get
+stripped. You could do the following:</p></li>
+</ol><p>In MyTextField:</p>
+
+<pre><code>+ (void) forceLinkerLoad_ {}
+</code></pre>
+
+<p>In MyViewController:</p>
+
+<pre><code>+ (void) initialize
+{
+    [MyTextField forceLinkerLoad_];
+}
+</code></pre>
+
+<p>They will still need to add "-ObjC" to their linker settings, but won't need
+to force all_load.</p>
+
+<p>Option 2 is more work for you, but if done right it saves the end user from
+having to disable linker optimizations (causing object file bloat) just to use
+your framework.</p>
+
+<h3>
+<a name="user-content-unexpected-file-type-wrappercfbundle-in-frameworks--libraries-build-phase" class="anchor" href="#unexpected-file-type-wrappercfbundle-in-frameworks--libraries-build-phase" aria-hidden="true"><span class="octicon octicon-link"></span></a>unexpected file type 'wrapper.cfbundle' in Frameworks &amp; Libraries build phase</h3>
+
+<p>This happens when you use a fake framework project as a dependency in a
+workspace, or as a child project (real framework projects don't have this
+issue). Even though the framework project produces a proper static framework,
+Xcode only looks at the project file, which says it's a bundle, and so it
+issues a warning during the dependency check and then skips it during the
+linker phase.</p>
+
+<p>You can get it to link properly by manually adding a command to link
+your framework during the linker phase. Add a command to link your framework
+in "Other Linker Flags" in the project that depends on the framework:</p>
+
+<pre><code>-framework MyFramework
+</code></pre>
+
+<p>You'll still get the warning, but it won't fail in the linker phase anymore.</p>
+
+<h3>
+<a name="user-content-libraries-being-linked-or-not-being-linked-into-the-final-framework" class="anchor" href="#libraries-being-linked-or-not-being-linked-into-the-final-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Libraries being linked or not being linked into the final framework</h3>
+
+<p>Unfortunately, due to the way Xcode works, the "Real Framework" and
+"Fake Framework" templates handle included static libraries/frameworks
+differently.</p>
+
+<p>The "Real Framework" template follows correct static library procedure, NOT
+linking other static libraries/frameworks into the final product.</p>
+
+<p>The "Fake Framework" template tricks Xcode into thinking that it's building a
+relocatable object file, and so the linking phase treats it as if it were
+building an executable, linking all static code sources into the final binary
+(although it doesn't check for missing object code). To get the
+"Real Framework" behavior, you should include only the header files from the
+library/framework in your framework project, not the static library or
+framework itself.</p>
+
+<h3>
+<a name="user-content-unrecognized-selector-in-some-class-with-a-category-method" class="anchor" href="#unrecognized-selector-in-some-class-with-a-category-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unrecognized selector in (some class with a category method)</h3>
+
+<p>If your static library or static framework contains a module with ONLY
+category code (no full class implementations), the linker will get confused,
+and will leave the code out of the final binary. Since it's not present in the
+final product, you'll get "unrecognized selector" exceptions when any call is
+made to those category methods.</p>
+
+<p>To get around this, put a dummy class into the module containing the category
+code. The linker, seeing a full Objective-C class, will link the module in,
+including the category code.</p>
+
+<p>I've made a header file <a href="https://github.com/kstenerud/Objective-Gems/blob/master/Objective-Gems/LoadableCategory.h">LoadableCategory.h</a>
+to make this easier to do:</p>
+
+<pre><code>#import "SomeConcreteClass+MyAdditions.h"
+#import "LoadableCategory.h"
+
+
+MAKE_CATEGORIES_LOADABLE(SomeConcreteClass_MyAdditions);
+
+
+@implementation SomeConcreteClass (MyAdditions)
+
+...
+
+@end
+</code></pre>
+
+<p>You will also need to add "-ObjC" to the "Other Linker Flags" build setting in
+any project that uses the framework.</p>
+
+<h3>
+<a name="user-content-unit-tests-crash-before-executing-any-code" class="anchor" href="#unit-tests-crash-before-executing-any-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unit tests crash before executing any code</h3>
+
+<p>If you make a new static framework (or static library) target with unit tests
+in Xcode 4.3, it will crash when you try to run the unit tests:</p>
+
+<pre><code>Thread 1: EXC_BAD_ACCESS (code=2, address=0x0)
+0 0x00000000
+---
+15 dyldbootstrap:start(...)
+</code></pre>
+
+<p>This is due to a bug in lldb. You can run the unit tests using GDB instead by
+editing your scheme, selecting "Test", and from the "Info" tab changing
+Debugger from <strong>LLDB</strong> to <strong>GDB</strong>.</p>
+
+<h2>
+<a name="user-content-history" class="anchor" href="#history" aria-hidden="true"><span class="octicon octicon-link"></span></a>History</h2>
+
+<h3>
+<a name="user-content-mk-1" class="anchor" href="#mk-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 1</h3>
+
+<p>The first incarnation. It used a bunch of script hackery to cobble together a
+fake framework. It exploited the "bundle" target, setting its type to a
+relocatable object file.</p>
+
+<h3>
+<a name="user-content-mk-2" class="anchor" href="#mk-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 2</h3>
+
+<p>This version took advantage of the template system to do most of the work
+that the script used to do. Everything (including the script) was embedded
+in the template.</p>
+
+<h3>
+<a name="user-content-mk-3" class="anchor" href="#mk-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 3</h3>
+
+<p>This version does away with the "relocatable object" hackery and builds a true
+static framework, with all the abilities of an OS X static framework.
+This solves a number of linker, unit testing, and workspace inclusion issues
+that plagued the previous hacky implementations.</p>
+
+<p>It also includes the concept of the embeddedframework, which allows you to
+include resources with your framework in a way that Xcode understands.</p>
+
+<p>Josh Weinberg also added some tweaks to make it build in the proper build
+directory with scheme-controlled configuration, and behave better as a
+subproject dependency.</p>
+
+<p>It now requires some small modifications to Xcode's specification files in
+order to support true static frameworks, and thus comes with an install and
+uninstall script.</p>
+
+<h3>
+<a name="user-content-mk-4" class="anchor" href="#mk-4" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 4</h3>
+
+<p>This version gives you the choice of installing the "real framework" template
+or the "fake framework" template. Both come with an install script, but only
+the "real framework" installer needs to modify Xcode.</p>
+
+<p>This also fixes some issues that the fake framework had in Mk 2 (such as
+the curious behavior of embedding the full path to the compiled files within
+the files themselves, resulting in warnings when building with that framework).</p>
+
+<h3>
+<a name="user-content-mk-5" class="anchor" href="#mk-5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 5</h3>
+
+<p>This version does away with the extra target and script. Everything is self
+contained in the framework target, and the framework under the "Products"
+group is actually the universal framework (no more Debug-univesal or
+Release-universal folders).</p>
+
+<p>You can build and clean like you would in any other project.</p>
+
+<p>As well, the "Fake" framework template now builds a proper static library
+instead of a relocatable object file (although Xcode still doesn't believe
+that it's real).</p>
+
+<h3>
+<a name="user-content-mk-6" class="anchor" href="#mk-6" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 6</h3>
+
+<p>This version makes the Xcode modifications for real static frameworks safer
+by simply adding an extra specification file instead of patching existing
+ones.</p>
+
+<h3>
+<a name="user-content-mk-7" class="anchor" href="#mk-7" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 7</h3>
+
+<p>This version was <em>supposed</em> to be the one that no longer modified Xcode, but
+alas, Xcode behaves differently depending on <em>WHERE</em> the xcspec file gets
+installed. Take a guess at which location doesn't work...</p>
+
+<p>@wtfxcode</p>
+
+<p>So instead, this version basically handles the new install location of
+Xcode4.3.</p>
+
+<p>Templates now build armv6 + armv7 by default instead of just armv7.</p>
+
+<p>Note: If you previously installed real framework supprt under the broken Mk 7
+(i.e. if you installed it on Feb 16th, or Feb 17th before 9:00 am PST, 2012),
+run uninstall_legacy.sh to uninstall the xcspec file from your home dir, then
+reinstall.</p>
+
+<h3>
+<a name="user-content-mk-8" class="anchor" href="#mk-8" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mk 8</h3>
+
+<p>This version replaces the bash scripts with Python scripts. This gives a LOT
+more control over the build process.</p>
+
+<p>To build the universal version of your framework, you must now use the
+<strong>Archive</strong> command rather than the <strong>Build</strong> command.  <strong>Build</strong> only builds
+for the current architecture (to speed up compilation when your framework
+project is a dependency of another project).</p>
+
+<p>Added a devel folder for template development.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2011 Karl Stenerud</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in
+the documentation of any redistributions of the template files themselves
+(but not in projects built using the templates).</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</p></article></div>

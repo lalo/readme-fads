@@ -1,0 +1,461 @@
+<div class="announce instapaper_body textile" data-path="README.textile" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-nginx-push-stream-module" class="anchor" href="#nginx-push-stream-module" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nginx Push Stream Module</h1>
+<p>A pure stream http push technology for your Nginx setup.</p>
+<p><a href="http://en.wikipedia.org/wiki/Comet_%28programming%29">Comet</a> made easy and <strong>really scalable</strong>.</p>
+<p>Supports <a href="http://dev.w3.org/html5/eventsource/">EventSource</a>, <a href="http://dev.w3.org/html5/websockets/">WebSocket</a>, Long Polling, and Forever Iframe. See <a href="#examples">some examples</a> bellow.</p>
+<p><em>This module is not distributed with the Nginx source. See <a href="#installation">the installation instructions</a>.</em></p>
+<p>Available on github at <a href="https://github.com/wandenberg/nginx-push-stream-module">nginx_push_stream_module</a></p>
+<h1>
+<a name="user-content-changelog" class="anchor" href="#changelog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changelog</h1>
+<p>Always take a look at <a href="CHANGELOG.textile">CHANGELOG.textile</a> to see what’s new.</p>
+<h1>
+<a name="user-content-contribute" class="anchor" href="#contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribute</h1>
+<p>After you try this module and like it, feel free to <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=4LP6P9A7BC37S">give something back</a>, and help in the maintenance of the project ;)<br><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=4LP6P9A7BC37S"><img src="https://camo.githubusercontent.com/13821bd119f74560d0032aeeda68c4954167de08/68747470733a2f2f7777772e70617970616c6f626a656374732e636f6d2f5745425343522d3634302d32303131303432392d312f656e5f55532f692f62746e2f62746e5f646f6e6174655f4c472e676966" alt="" data-canonical-src="https://www.paypalobjects.com/WEBSCR-640-20110429-1/en_US/i/btn/btn_donate_LG.gif" style="max-width:100%;"></a></p>
+<h1>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h1>
+<p>This module is considered production ready.</p>
+<h1>
+<a name="user-content-basic-configuration" class="anchor" href="#basic-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Configuration</h1>
+<pre>
+    location /channels-stats {
+        # activate channels statistics mode for this location
+        push_stream_channels_statistics;
+
+        # query string based channel id
+        push_stream_channels_path               $arg_id;
+    }
+
+    location /pub {
+        # activate publisher (admin) mode for this location
+        push_stream_publisher admin;
+
+        # query string based channel id
+        push_stream_channels_path               $arg_id;
+    }
+
+    location ~ /sub/(.*) {
+        # activate subscriber (streaming) mode for this location
+        push_stream_subscriber;
+
+        # positional channel path
+        push_stream_channels_path                   $1;
+    }
+</pre>
+<h1>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h1>
+<p>You can feel the flavor right now at the command line. Try using more than<br>
+one terminal and start playing http pubsub:</p>
+<pre>
+    # Subs
+    curl -s -v 'http://localhost/sub/my_channel_1'
+    curl -s -v 'http://localhost/sub/your_channel_1'
+    curl -s -v 'http://localhost/sub/your_channel_2'
+
+    # Pubs
+    curl -s -v -X POST 'http://localhost/pub?id=my_channel_1' -d 'Hello World!'
+    curl -s -v -X POST 'http://localhost/pub?id=your_channel_1' -d 'Hi everybody!'
+    curl -s -v -X POST 'http://localhost/pub?id=your_channel_2' -d 'Goodbye!'
+
+    # Channels Stats for publisher (json format)
+    curl -s -v 'http://localhost/pub?id=my_channel_1'
+
+    # All Channels Stats summarized (json format)
+    curl -s -v 'http://localhost/channels-stats'
+
+    # All Channels Stats detailed (json format)
+    curl -s -v 'http://localhost/channels-stats?id=ALL'
+
+    # Prefixed Channels Stats detailed (json format)
+    curl -s -v 'http://localhost/channels-stats?id=your_channel_*'
+
+    # Channels Stats (json format)
+    curl -s -v 'http://localhost/channels-stats?id=my_channel_1'
+
+    # Delete Channels
+    curl -s -v -X DELETE 'http://localhost/pub?id=my_channel_1'
+</pre>
+<h1>
+<a name="user-content-some-examples-" class="anchor" href="#some-examples-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Some Examples <a name="user-content-examples" href="#" aria-hidden="true"> </a>
+</h1>
+<ul>
+<li><a href="docs/examples/forever_iframe.textile#forever_iframe">Forever (hidden) iFrame</a></li>
+	<li><a href="docs/examples/event_source.textile#event_source">Event Source</a></li>
+	<li><a href="docs/examples/websocket.textile#websocket">WebSocket</a></li>
+	<li><a href="docs/examples/long_polling.textile#long_polling">Long Polling</a></li>
+	<li><a href="docs/examples/long_polling.textile#jsonp">JSONP</a></li>
+	<li><a href="https://github.com/wandenberg/nginx-push-stream-module/wiki/_pages">Other examples</a></li>
+</ul><h1>
+<a name="user-content-faq-" class="anchor" href="#faq-" aria-hidden="true"><span class="octicon octicon-link"></span></a>FAQ <a href="#"> </a>
+</h1>
+<p>Doubts?! Check the <a href="https://github.com/wandenberg/nginx-push-stream-module/wiki/_pages">FAQ</a>.</p>
+<h1>
+<a name="user-content-who-is-using-the-module-" class="anchor" href="#who-is-using-the-module-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Who is using the module? <a href="#"> </a>
+</h1>
+<p>Do you use this module? Put your name on the <a href="https://github.com/wandenberg/nginx-push-stream-module/wiki/_pages">list</a>.</p>
+<h1>
+<a name="user-content-javascript-client-" class="anchor" href="#javascript-client-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Javascript Client <a name="user-content-javascript_client" href="#" aria-hidden="true"> </a>
+</h1>
+<p>There is a javascript client implementation <a href="docs/javascript_client.textile#javascript_client">here</a>, which is framework independent. Try and help improve it. ;)</p>
+<h1>
+<a name="user-content-directives" class="anchor" href="#directives" aria-hidden="true"><span class="octicon octicon-link"></span></a>Directives</h1>
+<p>(1) Defining locations, (2) Main configuration, (3) Subscribers configuration, (4) Publishers configuration, (5) Channels Statistics configuration, (6) WebSocket configuration</p>
+<table>
+<tr>
+<td> Directive </td>
+		<td> (1) </td>
+		<td> (2) </td>
+		<td> (3) </td>
+		<td> (4) </td>
+		<td> (5) </td>
+		<td> (6) </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/channels_statistics.textile#push_stream_channels_statistics">push_stream_channels_statistics</a> </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/publishers.textile#push_stream_publisher">push_stream_publisher</a> </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_subscriber">push_stream_subscriber</a> </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_shared_memory_size">push_stream_shared_memory_size</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_channel_deleted_message_text">push_stream_channel_deleted_message_text</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_channel_inactivity_time">push_stream_channel_inactivity_time</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_ping_message_text">push_stream_ping_message_text</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_timeout_with_body">push_stream_timeout_with_body</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_message_ttl">push_stream_message_ttl</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_max_subscribers_per_channel">push_stream_max_subscribers_per_channel</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_max_messages_stored_per_channel">push_stream_max_messages_stored_per_channel</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_max_channel_id_length">push_stream_max_channel_id_length</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_max_number_of_channels">push_stream_max_number_of_channels</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_max_number_of_wildcard_channels">push_stream_max_number_of_wildcard_channels</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/main.textile#push_stream_wildcard_channel_prefix">push_stream_wildcard_channel_prefix</a> </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_channels_path">push_stream_channels_path</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   x </td>
+		<td>   x </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/publishers.textile#push_stream_store_messages">push_stream_store_messages</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/publishers.textile#push_stream_channel_info_on_publish">push_stream_channel_info_on_publish</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_authorized_channels_only">push_stream_authorized_channels_only</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_header_template">push_stream_header_template</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_message_template">push_stream_message_template</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_footer_template">push_stream_footer_template</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_wildcard_channel_max_qtd">push_stream_wildcard_channel_max_qtd</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_ping_message_interval">push_stream_ping_message_interval</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_subscriber_connection_ttl">push_stream_subscriber_connection_ttl</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_longpolling_connection_ttl">push_stream_longpolling_connection_ttl</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_websocket_allow_publish">push_stream_websocket_allow_publish</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_last_received_message_time">push_stream_last_received_message_time</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_last_received_message_tag">push_stream_last_received_message_tag</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_last_event_id">push_stream_last_event_id</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_user_agent">push_stream_user_agent</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_padding_by_user_agent">push_stream_padding_by_user_agent</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+<tr>
+<td> <a href="docs/directives/subscribers.textile#push_stream_allowed_origins">push_stream_allowed_origins</a> </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   x </td>
+		<td>   - </td>
+		<td>   - </td>
+		<td>   - </td>
+	</tr>
+</table><h1>
+<a name="user-content-installation-" class="anchor" href="#installation-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation <a name="user-content-installation" href="#" aria-hidden="true"> </a>
+</h1>
+<pre>
+    # clone the project
+    git clone http://github.com/wandenberg/nginx-push-stream-module.git
+    NGINX_PUSH_STREAM_MODULE_PATH=$PWD/nginx-push-stream-module
+
+    # get desired nginx version (works with 1.5.x, 1.4.x, 1.3.x, 1.2.x series)
+    wget http://nginx.org/download/nginx-1.2.0.tar.gz
+
+    # unpack, configure and build
+    tar xzvf nginx-1.2.0.tar.gz
+    cd nginx-1.2.0
+    ./configure --add-module=../nginx-push-stream-module
+    make
+
+    # install and finish
+    sudo make install
+
+    # check
+    sudo /usr/local/nginx/sbin/nginx -v
+        nginx version: nginx/1.2.0
+
+    # test configuration
+    sudo /usr/local/nginx/sbin/nginx -c $NGINX_PUSH_STREAM_MODULE_PATH/misc/nginx.conf -t
+        the configuration file $NGINX_PUSH_STREAM_MODULE_PATH/misc/nginx.conf syntax is ok
+        configuration file $NGINX_PUSH_STREAM_MODULE_PATH/misc/nginx.conf test is successful
+
+    # run
+    sudo /usr/local/nginx/sbin/nginx -c $NGINX_PUSH_STREAM_MODULE_PATH/misc/nginx.conf
+</pre>
+<h1>
+<a name="user-content-memory-usage" class="anchor" href="#memory-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memory usage</h1>
+<p>Just as information is listed below the minimum amount of memory used for each object:</p>
+<ul>
+<li>message on shared = 200 bytes</li>
+	<li>channel on shared = 270 bytes</li>
+	<li>subscriber
+	<ul>
+<li>on shared = 160 bytes</li>
+		<li>on system = 6550 bytes</li>
+	</ul>
+</li>
+</ul><h1>
+<a name="user-content-tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tests</h1>
+<p>The server tests for this module are written in Ruby, and are acceptance tests, click <a href="docs/server_tests.textile">here</a> for more details.</p>
+<h1>
+<a name="user-content-discussion" class="anchor" href="#discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion</h1>
+<p>Nginx Push Stream Module <a href="https://groups.google.com/group/nginxpushstream">Discussion Group</a></p>
+<h1>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h1>
+<p><a href="https://github.com/wandenberg/nginx-push-stream-module/contributors">People</a></p></article></div>

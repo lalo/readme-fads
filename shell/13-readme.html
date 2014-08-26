@@ -1,0 +1,195 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-boot2docker" class="anchor" href="#boot2docker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boot2Docker</h1>
+
+<p>Boot2Docker is a lightweight Linux distribution made specifically to run <a href="https://www.docker.io/">Docker</a> containers. It runs completely from RAM, is a small ~24MB
+download and boots in ~5s (YMMV).</p>
+
+<p>Installation instructions for <a href="http://docs.docker.io/installation/mac/">OS X</a> and <a href="http://docs.docker.io/installation/windows/">Windows</a> available on the Docker documentation site.</p>
+
+<p>The <a href="https://github.com/boot2docker/boot2docker/releases">ISO can be downloaded here</a>.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Kernel 3.16.1 with AUFS, Docker v1.2.0 - using libcontainer</li>
+<li>Container persistence via disk automount on <code>/var/lib/docker</code>
+</li>
+<li>SSH keys persistence via disk automount</li>
+</ul><blockquote>
+<p><strong>Note:</strong> This version of Docker uses port <strong>2375</strong>, the newly registered <a href="http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=docker">IANA
+port</a></p>
+</blockquote>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-all-in-one-installers-for-os-x-and-ms-windows" class="anchor" href="#all-in-one-installers-for-os-x-and-ms-windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>All in one Installers for OS X and MS Windows</h3>
+
+<p>We have built installers for <a href="https://github.com/boot2docker/osx-installer/releases">OS X</a> and <a href="https://github.com/boot2docker/windows-installer/releases">MS Windows</a> which will install
+the boot2docker management tool, VirtualBox and any tools needed to run Boot2Docker.</p>
+
+<h3>
+<a name="user-content-installation-using-the-boot2docker-management-tool" class="anchor" href="#installation-using-the-boot2docker-management-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation using the boot2docker management tool</h3>
+
+<p>If you have the prerequisites, or want to help develop Boot2Docker, you can 
+also download the appropriate <a href="https://github.com/boot2docker/boot2docker-cli/releases">boot2docker management release</a> and use it to download
+the <a href="https://github.com/boot2docker/boot2docker/releases"><code>boot2docker.iso</code></a>.</p>
+
+<h2>
+<a name="user-content-how-to-use" class="anchor" href="#how-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use</h2>
+
+<p>The <code>boot2docker</code> management tool leverages VirtualBox's <code>VBoxManage</code> to
+initialise, start, stop and delete the VM right from the command line.</p>
+
+<h4>
+<a name="user-content-initialize" class="anchor" href="#initialize" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initialize</h4>
+
+<pre><code>$ boot2docker init
+</code></pre>
+
+<h4>
+<a name="user-content-start-vm" class="anchor" href="#start-vm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Start VM</h4>
+
+<pre><code>$ boot2docker up
+</code></pre>
+
+<h4>
+<a name="user-content-upgrade-the-boot2docker-vm-image" class="anchor" href="#upgrade-the-boot2docker-vm-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrade the Boot2docker VM image</h4>
+
+<pre><code>$ boot2docker stop
+$ boot2docker download
+$ boot2docker up
+</code></pre>
+
+<p>If your Boot2Docker virtual machine was created prior to 0.11.1-pre1, it's best to
+delete -  <code>boot2docker delete</code> and then <code>boot2docker init</code> to create a new VM.</p>
+
+<p>The main changes are to add a <code>/var/lib/boot2docker/userdata.tar</code> file that is
+un-tarred into the <code>/home/docker</code> directory on boot. This file contains a
+<code>.ssh/authorized_keys</code> and <code>.ssh/authorized_keys2</code> files containing a public sshkey.</p>
+
+<h2>
+<a name="user-content-more-information" class="anchor" href="#more-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>More information</h2>
+
+<p>See <a href="doc/FAQ.md">Frequently asked questions</a> for more details.</p>
+
+<h4>
+<a name="user-content-boot-script-log" class="anchor" href="#boot-script-log" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boot script log</h4>
+
+<p>The bootup script output is logged to <code>/boot.log</code>, so you can see (and potentially debug)
+what happens. Note that this is not persistent between boots because we're logging
+from before the persistence partition is mounted (and it may not exist at all).</p>
+
+<h4>
+<a name="user-content-container-port-redirection" class="anchor" href="#container-port-redirection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Container Port redirection</h4>
+
+<p>The latest version of <code>boot2docker</code> sets up two network adaptors, one using NAT
+to allow the VM to download images and files from the internet, and a host only
+network that Docker container's ports will be exposed on.</p>
+
+<p>If you run a container with an exposed port:</p>
+
+<pre><code>   $ docker run --rm -i -t -p 80:80 apache
+</code></pre>
+
+<p>Then you should be able to access that apache server using the IP address reported
+to you using:</p>
+
+<pre><code>   $ boot2docker ip
+   192.168.59.103
+</code></pre>
+
+<p>Typically, it is 192.168.59.103, but it can change as its dynamically allocated
+by the VirtualBox DHCP server.</p>
+
+<p>If you want to share container ports with other computers on your LAN, you will
+need to set up <a href="https://github.com/boot2docker/boot2docker/blob/master/doc/WORKAROUNDS.md">NAT adaptor based port forwarding</a></p>
+
+<h4>
+<a name="user-content-folder-sharing" class="anchor" href="#folder-sharing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Folder sharing</h4>
+
+<p>Boot2Docker is essentially a remote Docker engine with a read only filesystem
+(other than Docker images, containers and volumes). The most scalable and portable
+way to share disk space between your local desktop and a Docker container is by
+creating a volume container and then sharing that to where it's needed.</p>
+
+<p>One well tested approach is to use a file sharing container like <code>svendowideit/samba</code></p>
+
+<p>e.g:</p>
+
+<pre><code>    # Make a volume container (only need to do this once)
+    $ docker run -v /data --name my-data busybox true
+    # Share it using Samba (Windows file sharing)
+    $ docker run --rm -v /usr/local/bin/docker:/docker -v /var/run/docker.sock:/docker.sock svendowideit/samba my-data
+    # then find out the IP address of your Boot2Docker host
+    $ boot2docker ip
+    192.168.59.103
+</code></pre>
+
+<p>Connect to the shared folder using Finder (OS X):</p>
+
+<pre><code> Connect to cifs://192.168.59.103/data
+ Once mounted, will appear as /Volumes/data
+</code></pre>
+
+<p>Or on Windows, use Explorer to Connect to:</p>
+
+<pre><code>\\192.168.59.103\data
+</code></pre>
+
+<p>You can then use your data container from any container you like:</p>
+
+<pre><code>    docker run -it --volumes-from my-data ubuntu 
+</code></pre>
+
+<p>You will find the "data" volume mounted as "/data" in that container. Note that "my-data" is the name of volume container, this is shared via the "network" by the "samba" container that refers to it by name. So, in this example, if you were on OS-X you now have /Volumes/data and /data in container being shared. You can change the paths as needed. </p>
+
+<h4>
+<a name="user-content-customize" class="anchor" href="#customize" aria-hidden="true"><span class="octicon octicon-link"></span></a>Customize</h4>
+
+<p>The <code>boot2docker</code> management tool allows you to customise many options from both the
+commandline, or by setting them in its configuration file.</p>
+
+<p>see <code>boot2docker config</code> for more (including the format of the configuration file).</p>
+
+<h4>
+<a name="user-content-ssh-into-vm" class="anchor" href="#ssh-into-vm" aria-hidden="true"><span class="octicon octicon-link"></span></a>SSH into VM</h4>
+
+<pre><code>$ boot2docker ssh
+</code></pre>
+
+<p>Boot2Docker auto logs in using the generated SSH key, but if you want to SSH into
+the machine manually (or you're not using a <code>boot2docker</code> managed VM), the credentials are:</p>
+
+<pre><code>user: docker
+pass: tcuser
+</code></pre>
+
+<h4>
+<a name="user-content-persist-data" class="anchor" href="#persist-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Persist data</h4>
+
+<p>When you run <code>boot2docker init</code>, the <code>boot2docker</code> tool auto-creates
+a disk that will be automounted and used to persist your docker data in
+<code>/var/lib/docker</code> and <code>/var/lib/boot2docker</code>.
+This virtual disk will be removed when you run <code>boot2docker delete</code>.
+It will also persist the SSH keys of the machine.</p>
+
+<p>If you are not using the <code>boot2docker</code> VirtualBox manage tool, you can create
+an <code>ext4</code> or <code>btrfs</code> formatted partition with the label <code>boot2docker-data</code>
+(<code>mkfs.ext4 -L boot2docker-data /dev/sdX5</code>) to your VM or host, and
+boot2docker will automount it on <code>/mnt/sdX</code> and then softlink
+<code>/mnt/sdX/var/lib/docker</code> to <code>/var/lib/docker</code>.</p>
+
+<h4>
+<a name="user-content-install-on-any-device" class="anchor" href="#install-on-any-device" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install on any device</h4>
+
+<p>To 'install' the ISO onto an SD card, USB-Stick or even empty hard disk, you can
+use <code>dd if=boot2docker.iso of=/dev/sdX</code>.
+This will create the small boot partition, and install an MBR.</p>
+
+<h4>
+<a name="user-content-build-your-own-boot2dockeriso" class="anchor" href="#build-your-own-boot2dockeriso" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build your own boot2docker.iso</h4>
+
+<p>Goto <a href="doc/BUILD.md">How to build</a> for Documentation on how to build your own boot2docker ISOs.</p></article></div>

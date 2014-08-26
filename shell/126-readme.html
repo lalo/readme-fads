@@ -1,0 +1,628 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-a-docker-base-image-for-ruby-python-nodejs-and-meteor-web-apps" class="anchor" href="#a-docker-base-image-for-ruby-python-nodejs-and-meteor-web-apps" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Docker base image for Ruby, Python, Node.js and Meteor web apps</h1>
+
+<p></p><a href="https://camo.githubusercontent.com/64ec0bc30be3fa7179576f5ed0638facce5faa9e/687474703a2f2f626c6f672e70687573696f6e2e6e6c2f77702d636f6e74656e742f75706c6f6164732f323031322f30372f50617373656e6765725f63686169725f323536783235362e6a7067" target="_blank"><img src="https://camo.githubusercontent.com/64ec0bc30be3fa7179576f5ed0638facce5faa9e/687474703a2f2f626c6f672e70687573696f6e2e6e6c2f77702d636f6e74656e742f75706c6f6164732f323031322f30372f50617373656e6765725f63686169725f323536783235362e6a7067" width="196" height="196" alt="Phusion Passenger" data-canonical-src="http://blog.phusion.nl/wp-content/uploads/2012/07/Passenger_chair_256x256.jpg" style="max-width:100%;"></a><a href="https://camo.githubusercontent.com/14b97ba4a1327c0db2200f3892788fd873a1ce20/687474703a2f2f626c6f672e70687573696f6e2e6e6c2f77702d636f6e74656e742f75706c6f6164732f323031332f31312f646f636b65722e706e67" target="_blank"><img src="https://camo.githubusercontent.com/14b97ba4a1327c0db2200f3892788fd873a1ce20/687474703a2f2f626c6f672e70687573696f6e2e6e6c2f77702d636f6e74656e742f75706c6f6164732f323031332f31312f646f636b65722e706e67" width="233" height="196" alt="Docker" data-canonical-src="http://blog.phusion.nl/wp-content/uploads/2013/11/docker.png" style="max-width:100%;"></a><p>Passenger-docker is a <a href="http://www.docker.io">Docker</a> image meant to serve as a good base for <strong>Ruby, Python, Node.js and Meteor</strong> web app images. In line with <a href="https://www.phusionpassenger.com/">Phusion Passenger</a>'s goal, passenger-docker's goal is to make Docker image building for web apps much easier and faster.</p>
+
+<p>Why is this image called "passenger"? It's to represent the ease: you just have to sit back and watch most of the heavy lifting being done for you. Passenger-docker is part of a larger and more ambitious project: to make web app deployment ridiculously simple, to heights never achieved before.</p>
+
+<p><strong>Relevant links:</strong>
+ <a href="https://github.com/phusion/passenger-docker">Github</a> |
+ <a href="https://index.docker.io/u/phusion/passenger-full/">Docker registry</a> |
+ <a href="https://groups.google.com/d/forum/passenger-docker">Discussion forum</a> |
+ <a href="https://twitter.com/phusion_nl">Twitter</a> |
+ <a href="http://blog.phusion.nl/">Blog</a></p>
+
+<hr><p><strong>Table of contents</strong></p>
+
+<ul class="task-list">
+<li><a href="#why_use">Why use passenger-docker?</a></li>
+<li>
+<a href="#about">About passenger-docker</a>
+
+<ul class="task-list">
+<li><a href="#whats_included">What's included?</a></li>
+<li><a href="#memory_efficiency">Memory efficiency</a></li>
+<li><a href="#image_variants">Image variants</a></li>
+</ul>
+</li>
+<li><a href="#inspecting_the_image">Inspecting the image</a></li>
+<li>
+<a href="#using">Using the image as base</a>
+
+<ul class="task-list">
+<li><a href="#getting_started">Getting started</a></li>
+<li><a href="#app_user">The <code>app</code> user</a></li>
+<li>
+<a href="#nginx_passenger">Using Nginx and Passenger</a>
+
+<ul class="task-list">
+<li><a href="#adding_web_app">Adding your web app to the image</a></li>
+<li><a href="#configuring_nginx">Configuring Nginx</a></li>
+<li><a href="#nginx_env_vars">Setting environment variables in Nginx</a></li>
+</ul>
+</li>
+<li><a href="#redis">Using Redis</a></li>
+<li><a href="#memcached">Using memcached</a></li>
+<li><a href="#additional_daemons">Additional daemons</a></li>
+<li><a href="#selecting_default_ruby">Selecting a default Ruby version</a></li>
+<li><a href="#running_startup_scripts">Running scripts during container startup</a></li>
+</ul>
+</li>
+<li>
+<a href="#administering">Administering the image's system</a>
+
+<ul class="task-list">
+<li>
+<a href="#login">Logging into the container with SSH</a>
+
+<ul class="task-list">
+<li><a href="#using_the_insecure_key_for_one_container_only">Using the insecure key for one container only</a></li>
+<li><a href="#enabling_the_insecure_key_permanently">Enabling the insecure key permanently</a></li>
+<li><a href="#using_your_own_key">Using your own key</a></li>
+<li><a href="#docker_bash">The <code>docker-bash</code> tool</a></li>
+</ul>
+</li>
+<li><a href="#inspecting_web_app_status">Inspecting the status of your web app</a></li>
+<li><a href="#logs">Logs</a></li>
+</ul>
+</li>
+<li><a href="#building">Building the image yourself</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul><hr><p><a name="user-content-why_use" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-why-use-passenger-docker" class="anchor" href="#why-use-passenger-docker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why use passenger-docker?</h2>
+
+<p>Why use passenger-docker instead of doing everything yourself in Dockerfile?</p>
+
+<ul class="task-list">
+<li>Your Dockerfile can be smaller.</li>
+<li>It reduces the time needed to write a correct Dockerfile. You won't have to worry about the base system and the stack, you can focus on just your app.</li>
+<li>It sets up the base system <strong>correctly</strong>. It's very easy to get the base system wrong, but this image does everything correctly. <a href="https://github.com/phusion/baseimage-docker#contents">Learn more.</a>
+</li>
+<li>It drastically reduces the time needed to run <code>docker build</code>, allowing you to iterate your Dockerfile more quickly.</li>
+<li>It reduces download time during redeploys. Docker only needs to download the base image once: during the first deploy. On every subsequent deploys, only the changes you make on top of the base image are downloaded.</li>
+</ul><p><a name="user-content-about" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-about-the-image" class="anchor" href="#about-the-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>About the image</h2>
+
+<p><a name="user-content-whats_included" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-whats-included" class="anchor" href="#whats-included" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's included?</h3>
+
+<p><em>Passenger-docker is built on top of a solid base: <a href="http://phusion.github.io/baseimage-docker/">baseimage-docker</a>.</em></p>
+
+<p>Basics (learn more at <a href="http://phusion.github.io/baseimage-docker/">baseimage-docker</a>):</p>
+
+<ul class="task-list">
+<li>Ubuntu 14.04 LTS as base system.</li>
+<li>A <strong>correct</strong> init process (<a href="http://phusion.github.io/baseimage-docker/">learn more</a>).</li>
+<li>Fixes APT incompatibilities with Docker.</li>
+<li>syslog-ng.</li>
+<li>The cron daemon.</li>
+<li>The SSH server, so that you can easily login to your container to inspect or administer things. Password and challenge-response authentication are disabled by default. Only key authentication is allowed.</li>
+<li>
+<a href="http://smarden.org/runit/">Runit</a> for service supervision and management.</li>
+</ul><p>Language support:</p>
+
+<ul class="task-list">
+<li>Ruby 1.9.3, 2.0.0 and 2.1.0.
+
+<ul class="task-list">
+<li>2.1.0 is configured as the default.</li>
+<li>Ruby is installed through <a href="https://launchpad.net/%7Ebrightbox/+archive/ruby-ng">the Brightbox APT repository</a>. We're not using RVM!</li>
+</ul>
+</li>
+<li>Python 2.7 and Python 3.0.</li>
+<li>Node.js 0.10, through <a href="https://launchpad.net/%7Echris-lea/+archive/node.js/">Chris Lea's Node.js PPA</a>.</li>
+<li>A build system, git, and development headers for many popular libraries, so that the most popular Ruby, Python and Node.js native extensions can be compiled without problems.</li>
+</ul><p>Web server and application server:</p>
+
+<ul class="task-list">
+<li>Nginx 1.6. Disabled by default.</li>
+<li>
+<a href="https://www.phusionpassenger.com/">Phusion Passenger 4</a>. Disabled by default (because it starts along with Nginx).
+
+<ul class="task-list">
+<li>This is a fast and lightweight tool for simplifying web application integration into Nginx.</li>
+<li>It adds many production-grade features, such as process monitoring, administration and status inspection.</li>
+<li>It replaces (G)Unicorn, Thin, Puma, uWSGI.</li>
+<li>Node.js users: <a href="http://vimeo.com/phusionnl/review/84945384/73fe7432ee">watch this 4 minute intro video</a> to learn why it's cool and useful.</li>
+</ul>
+</li>
+</ul><p>Auxiliary services and tools:</p>
+
+<ul class="task-list">
+<li>Redis 2.6, through <a href="https://launchpad.net/%7Erwky/+archive/redis">Rowan's Redis PPA</a>. Disabed by default.</li>
+<li>Memcached. Disabled by default.</li>
+<li>
+<a href="https://github.com/SamSaffron/pups">Pups</a>, a lightweight tool for bootstrapping images.</li>
+</ul><p><a name="user-content-memory_efficiency" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-memory-efficiency" class="anchor" href="#memory-efficiency" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memory efficiency</h3>
+
+<p>Passenger-docker is very lightweight on memory. In its default configuration, it only uses 10 MB of memory (the memory consumed by bash, runit, sshd, syslog-ng, etc).</p>
+
+<p><a name="user-content-image_variants" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-image-variants" class="anchor" href="#image-variants" aria-hidden="true"><span class="octicon octicon-link"></span></a>Image variants</h3>
+
+<p>Passenger-docker consists of several images, each one tailor made for a specific user group.</p>
+
+<p><strong>Ruby images</strong></p>
+
+<ul class="task-list">
+<li>
+<code>phusion/passenger-ruby19</code> - Ruby 1.9.</li>
+<li>
+<code>phusion/passenger-ruby20</code> - Ruby 2.0.</li>
+<li>
+<code>phusion/passenger-ruby21</code> - Ruby 2.1.</li>
+</ul><p><strong>Node.js and Meteor images</strong></p>
+
+<ul class="task-list">
+<li>
+<code>phusion/passenger-nodejs</code> - Node.js 0.11.</li>
+</ul><p><strong>Other images</strong></p>
+
+<ul class="task-list">
+<li>
+<code>phusion/passenger-full</code> - Contains everything in the above images. Ruby, Python, Node.js, all in a single image for your convenience.</li>
+<li>
+<code>phusion/passenger-customizable</code> - Contains only the base system, as described in "What's included?". Ruby, Python and Node.js are not preinstalled. This image is meant to be further customized through your Dockerfile. For example, using this image you can create a custom image that contains only Ruby 2.0, Ruby 2.1 and Node.js.</li>
+</ul><p>In the rest of this document we're going to assume that the reader will be using <code>phusion/passenger-full</code>, unless otherwise stated. Simply substitute the name if you wish to use another image.</p>
+
+<p><a name="user-content-inspecting_the_image" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-inspecting-the-image" class="anchor" href="#inspecting-the-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inspecting the image</h2>
+
+<p>To look around in the image, run:</p>
+
+<pre><code>docker run --rm -t -i phusion/passenger-full bash -l
+</code></pre>
+
+<p>You don't have to download anything manually. The above command will automatically pull the passenger-docker image from the Docker registry.</p>
+
+<p><a name="user-content-using" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-using-the-image-as-base" class="anchor" href="#using-the-image-as-base" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the image as base</h2>
+
+<p><a name="user-content-getting_started" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h3>
+
+<p>There are several images, e.g. <code>phusion/passenger-ruby21</code> and <code>phusion/passenger-nodejs</code>. Choose the one you want. See <a href="#image_variants">Image variants</a>.</p>
+
+<p>So put the following in your Dockerfile:</p>
+
+<pre><code># Use phusion/passenger-full as base image. To make your builds reproducible, make
+# sure you lock down to a specific version, not to `latest`!
+# See https://github.com/phusion/passenger-docker/blob/master/Changelog.md for
+# a list of version numbers.
+FROM phusion/passenger-full:&lt;VERSION&gt;
+# Or, instead of the 'full' variant, use one of these:
+#FROM phusion/passenger-ruby19:&lt;VERSION&gt;
+#FROM phusion/passenger-ruby20:&lt;VERSION&gt;
+#FROM phusion/passenger-ruby21:&lt;VERSION&gt;
+#FROM phusion/passenger-nodejs:&lt;VERSION&gt;
+#FROM phusion/passenger-customizable:&lt;VERSION&gt;
+
+# Set correct environment variables.
+ENV HOME /root
+
+# Use baseimage-docker's init process.
+CMD ["/sbin/my_init"]
+
+# If you're using the 'customizable' variant, you need to explicitly opt-in
+# for features. Uncomment the features you want:
+#
+#   Build system and git.
+#RUN /build/utilities.sh
+#   Ruby support.
+#RUN /build/ruby1.9.sh
+#RUN /build/ruby2.0.sh
+#RUN /build/ruby2.1.sh
+#   Python support.
+#RUN /build/python.sh
+#   Node.js and Meteor support.
+#RUN /build/nodejs.sh
+
+# ...put your own build instructions here...
+
+# Clean up APT when done.
+RUN apt-get clean &amp;&amp; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+</code></pre>
+
+<p><a name="user-content-app_user" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-the-app-user" class="anchor" href="#the-app-user" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>app</code> user</h3>
+
+<p>The image has an <code>app</code> user with UID 9999 and home directory <code>/home/app</code>. Your application is supposed to run as this user. Even though Docker itself provides some isolation from the host OS, running applications without root privileges is good security practice.</p>
+
+<p>Your application should be placed inside /home/app.</p>
+
+<p><a name="user-content-nginx_passenger" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-using-nginx-and-passenger" class="anchor" href="#using-nginx-and-passenger" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Nginx and Passenger</h3>
+
+<p>Before using Passenger, you should familiarise yourself with it by <a href="https://www.phusionpassenger.com">reading its documentation</a>.</p>
+
+<p>Nginx and Passenger are disabled by default. Enable them like so:</p>
+
+<pre><code>RUN rm -f /etc/service/nginx/down
+</code></pre>
+
+<p><a name="user-content-adding_web_app" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-adding-your-web-app-to-the-image" class="anchor" href="#adding-your-web-app-to-the-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding your web app to the image</h4>
+
+<p>Passenger works like a <code>mod_ruby</code>, <code>mod_node</code>, etc. It changes Nginx into an application server and runs your app from Nginx. So to get your web app up and running, you just have to add a virtual host entry to Nginx which describes where you app is, and Passenger will take care of the rest.</p>
+
+<p>You can add a virtual host entry (<code>server</code> block) by placing a .conf file in the directory <code>/etc/nginx/sites-enabled</code>. For example:</p>
+
+<pre><code># /etc/nginx/sites-enabled/webapp.conf:
+server {
+    listen 80;
+    server_name www.webapp.com;
+    root /home/app/webapp/public;
+
+    # The following deploys your Ruby/Python/Node.js/Meteor app on Passenger.
+
+    # Not familiar with Passenger, and used (G)Unicorn/Thin/Puma/pure Node before?
+    # Yes, this is all you need to deploy on Passenger! All the reverse proxying,
+    # socket setup, process management, etc are all taken care automatically for
+    # you! Learn more at https://www.phusionpassenger.com/.
+    passenger_enabled on;
+    passenger_user app;
+
+    # If this is a Ruby app, specify a Ruby version:
+    passenger_ruby /usr/bin/ruby2.1;
+    # For Ruby 2.0
+    passenger_ruby /usr/bin/ruby2.0;
+    # For Ruby 1.9.3 (you can ignore the "1.9.1" suffix)
+    #passenger_ruby /usr/bin/ruby1.9.1;
+}
+
+# Dockerfile:
+ADD webapp.conf /etc/nginx/sites-enabled/webapp.conf
+RUN mkdir /home/app/webapp
+RUN ...commands to place your web app in /home/app/webapp...
+</code></pre>
+
+<p><a name="user-content-configuring_nginx" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-configuring-nginx" class="anchor" href="#configuring-nginx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring Nginx</h4>
+
+<p>The best way to configure Nginx is by adding .conf files to <code>/etc/nginx/main.d</code> and <code>/etc/nginx/conf.d</code>. Files in <code>main.d</code> are included into the Nginx configuration's main context, while files in <code>conf.d</code> are included in the Nginx configuration's http context.</p>
+
+<p>For example:</p>
+
+<pre><code># /etc/nginx/main.d/secret_key.conf:
+env SECRET_KEY 123456;
+
+# /etc/nginx/conf.d/gzip_max.conf:
+gzip_comp_level 9;
+
+# Dockerfile:
+ADD secret_key.conf /etc/nginx/main.d/secret_key.conf
+ADD gzip_max.conf /etc/nginx/conf.d/gzip_max.conf
+</code></pre>
+
+<p><a name="user-content-nginx_env_vars" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-setting-environment-variables-in-nginx" class="anchor" href="#setting-environment-variables-in-nginx" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting environment variables in Nginx</h4>
+
+<p>By default Nginx <a href="http://nginx.org/en/docs/ngx_core_module.html#env">clears all environment variables</a> (except <code>TZ</code>) for its child processes (Passenger being one of them). That's why any environment variables you set with <code>docker run -e</code>, Docker linking and <code>/etc/container_environment</code>, won't reach Nginx.</p>
+
+<p>To preserve these variables, place a file ending in <code>*.conf</code> in the directory <code>/etc/nginx/main.d</code>. For example when linking a PostgreSQL container or MongoDB container:</p>
+
+<pre><code># /etc/nginx/main.d/postgres-env.conf:
+env POSTGRES_PORT_5432_TCP_ADDR;
+env POSTGRES_PORT_5432_TCP_PORT;
+
+# Dockerfile:
+ADD postgres-env.conf /etc/nginx/main.d/postgres-env.conf
+</code></pre>
+
+<p>By default, passenger-docker already contains a config file <code>/etc/nginx/main.d/default.conf</code> which preserves the <code>PATH</code> environment variable.</p>
+
+<p><a name="user-content-redis" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-using-redis" class="anchor" href="#using-redis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Redis</h3>
+
+<p><strong>Redis is only available in the passenger-customizable and passenger-full images!</strong></p>
+
+<p>Install and enable Redis:</p>
+
+<pre><code># Opt-in for Redis if you're using the 'customizable' image.
+#RUN /build/redis.sh
+
+# Enable the Redis service.
+RUN rm -f /etc/service/redis/down
+</code></pre>
+
+<p>The configuration file is in /etc/redis/redis.conf. Modify it as you see fit, but make sure <code>daemonize no</code> is set.</p>
+
+<p><a name="user-content-memcached" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-using-memcached" class="anchor" href="#using-memcached" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using memcached</h3>
+
+<p><strong>Memcached is only available in the passenger-customizable and passenger-full images!</strong></p>
+
+<p>Install and enable memcached:</p>
+
+<pre><code># Opt-in for Memcached if you're using the 'customizable' image.
+#RUN /build/memcached.sh
+
+# Enable the memcached service.
+RUN rm -f /etc/service/memcached/down
+</code></pre>
+
+<p>The configuration file is in /etc/memcached.conf. Note that it does not follow the Debian/Ubuntu format, but our own, in order to make it work well with runit. The default contents are:</p>
+
+<pre><code># These arguments are passed to the memcached daemon.
+MEMCACHED_OPTS="-l 127.0.0.1"
+</code></pre>
+
+<p><a name="user-content-additional_daemons" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-additional-daemons" class="anchor" href="#additional-daemons" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional daemons</h3>
+
+<p>You can add additional daemons to the image by creating runit entries. You only have to write a small shell script which runs your daemon, and runit will keep it up and running for you, restarting it when it crashes, etc.</p>
+
+<p>The shell script must be called <code>run</code>, must be executable, and is to be placed in the directory <code>/etc/service/&lt;NAME&gt;</code>.</p>
+
+<p>Here's an example showing you how to a memached server runit entry can be made.</p>
+
+<pre><code>### In memcached.sh (make sure this file is chmod +x):
+#!/bin/sh
+# `chpst` is part of running. `chpst -u memcache` runs the given command
+# as the user `memcache`. If you omit this, the command will be run as root.
+exec chpst -u memcache /usr/bin/memcached &gt;&gt;/var/log/memcached.log 2&gt;&amp;1
+
+### In Dockerfile:
+RUN mkdir /etc/service/memcached
+ADD memcached.sh /etc/service/memcached/run
+</code></pre>
+
+<p>Note that the shell script must run the daemon <strong>without letting it daemonize/fork it</strong>. Usually, daemons provide a command line flag or a config file option for that.</p>
+
+<p><strong>Tip</strong>: If you're thinking about running your web app, consider deploying it on Passenger instead of on runit. Passenger relieves you from even having to write a shell script, and adds all sorts of useful production features like process scaling, introspection, etc. These are not available when you're only using runit.</p>
+
+<p><a name="user-content-selecting_default_ruby" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-selecting-a-default-ruby-version" class="anchor" href="#selecting-a-default-ruby-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selecting a default Ruby version</h3>
+
+<p>The default Ruby (what the <code>/usr/bin/ruby</code> command executes) is the latest Ruby version that you've chosen to install. You can use <code>ruby-switch</code> to select a different version as default.</p>
+
+<pre><code># Ruby 1.9.3 (you can ignore the "1.9.1" suffix)
+RUN ruby-switch --set ruby1.9.1
+# Ruby 2.0.0
+RUN ruby-switch --set ruby2.0
+# Ruby 2.1.0
+RUN ruby-switch --set ruby2.1
+</code></pre>
+
+<p><a name="user-content-running_startup_scripts" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-running-scripts-during-container-startup" class="anchor" href="#running-scripts-during-container-startup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running scripts during container startup</h3>
+
+<p>passenger-docker uses the <a href="http://phusion.github.io/baseimage-docker/">baseimage-docker</a> init system, <code>/sbin/my_init</code>. This init system runs the following scripts during startup, in the following order:</p>
+
+<ul class="task-list">
+<li>All executable scripts in <code>/etc/my_init.d</code>, if this directory exists. The scripts are run during in lexicographic order.</li>
+<li>The script <code>/etc/rc.local</code>, if this file exists.</li>
+</ul><p>All scripts must exit correctly, e.g. with exit code 0. If any script exits with a non-zero exit code, the booting will fail.</p>
+
+<p>The following example shows how you can add a startup script. This script simply logs the time of boot to the file /tmp/boottime.txt.</p>
+
+<pre><code>### In logtime.sh (make sure this file is chmod +x):
+#!/bin/sh
+date &gt; /tmp/boottime.txt
+
+### In Dockerfile:
+RUN mkdir -p /etc/my_init.d
+ADD logtime.sh /etc/my_init.d/logtime.sh
+</code></pre>
+
+<p><a name="user-content-administering" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-administering-the-images-system" class="anchor" href="#administering-the-images-system" aria-hidden="true"><span class="octicon octicon-link"></span></a>Administering the image's system</h2>
+
+<p><a name="user-content-login" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-logging-into-the-container-with-ssh" class="anchor" href="#logging-into-the-container-with-ssh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging into the container with SSH</h3>
+
+<p>You can use SSH to login to any container that is based on passenger-docker-docker.</p>
+
+<p>The first thing that you need to do is to ensure that you have the right SSH keys installed inside the container. By default, no keys are installed, so you can't login. For convenience reasons, we provide <a href="https://github.com/phusion/baseimage-docker/blob/master/image/insecure_key">a pregenerated, insecure key</a> <a href="https://github.com/phusion/baseimage-docker/blob/master/image/insecure_key.ppk">(PuTTY format)</a> that you can easily enable. However, please be aware that using this key is for convenience only. It does not provide any security because this key (both the public and the private side) is publicly available. <strong>In production environments, you should use your own keys</strong>.</p>
+
+<p><a name="user-content-using_the_insecure_key_for_one_container_only" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-using-the-insecure-key-for-one-container-only" class="anchor" href="#using-the-insecure-key-for-one-container-only" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the insecure key for one container only</h4>
+
+<p>You can temporarily enable the insecure key for one container only. This means that the insecure key is installed at container boot. If you <code>docker stop</code> and <code>docker start</code> the container, the insecure key will still be there, but if you use <code>docker run</code> to start a new container then that container will not contain the insecure key.</p>
+
+<p>Start a container with <code>--enable-insecure-key</code>:</p>
+
+<pre><code>docker run YOUR_IMAGE /sbin/my_init --enable-insecure-key
+</code></pre>
+
+<p>Find out the ID of the container that you just ran:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Once you have the ID, look for its IP address with:</p>
+
+<pre><code>docker inspect &lt;ID&gt; | grep IPAddress
+</code></pre>
+
+<p>Now SSH into the container as follows:</p>
+
+<pre><code>curl -o insecure_key -fSL https://github.com/phusion/baseimage-docker/raw/master/image/insecure_key
+chmod 600 insecure_key
+ssh -i insecure_key root@&lt;IP address&gt;
+</code></pre>
+
+<p><a name="user-content-enabling_the_insecure_key_permanently" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-enabling-the-insecure-key-permanently" class="anchor" href="#enabling-the-insecure-key-permanently" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enabling the insecure key permanently</h4>
+
+<p>It is also possible to enable the insecure key in the image permanently. This is not generally recommended, but it suitable for e.g. temporary development or demo environments where security does not matter.</p>
+
+<p>Edit your Dockerfile to install the insecure key permanently:</p>
+
+<pre><code>RUN /usr/sbin/enable_insecure_key
+</code></pre>
+
+<p>Instructions for logging in the container is the same as in section <a href="#using_the_insecure_key_for_one_container_only">Using the insecure key for one container only</a>.</p>
+
+<p><a name="user-content-using_your_own_key" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-using-your-own-key" class="anchor" href="#using-your-own-key" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using your own key</h4>
+
+<p>Edit your Dockerfile to install an SSH key:</p>
+
+<pre><code>## Install an SSH of your choice.
+ADD your_key /tmp/your_key
+RUN cat /tmp/your_key &gt;&gt; /root/.ssh/authorized_keys &amp;&amp; rm -f /tmp/your_key
+</code></pre>
+
+<p>Then rebuild your image. Once you have that, start a container based on that image:</p>
+
+<pre><code>docker run your-image-name
+</code></pre>
+
+<p>Find out the ID of the container that you just ran:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Once you have the ID, look for its IP address with:</p>
+
+<pre><code>docker inspect &lt;ID&gt; | grep IPAddress
+</code></pre>
+
+<p>Now SSH into the container as follows:</p>
+
+<pre><code>ssh -i /path-to/your_key root@&lt;IP address&gt;
+</code></pre>
+
+<p><a name="user-content-docker_bash" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-the-docker-bash-tool" class="anchor" href="#the-docker-bash-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>docker-bash</code> tool</h4>
+
+<p>Looking up the IP of a container and running an SSH command quickly becomes tedious. Luckily, <a href="https://github.com/phusion/baseimage-docker">baseimage-docker</a> provides the <code>docker-bash</code> tool which automates this process. This tool is to be run on the <em>Docker host</em>, not inside a Docker container.</p>
+
+<p>First, install the tool on the Docker host:</p>
+
+<pre><code>curl --fail -L -O https://github.com/phusion/baseimage-docker/archive/master.tar.gz &amp;&amp; \
+tar xzf master.tar.gz &amp;&amp; \
+sudo ./baseimage-docker-master/install-tools.sh
+</code></pre>
+
+<p>Then run the tool as follows to login to a container using SSH:</p>
+
+<pre><code>docker-bash YOUR-CONTAINER-ID
+</code></pre>
+
+<p>You can lookup <code>YOUR-CONTAINER-ID</code> by running <code>docker ps</code>.</p>
+
+<p>By default, <code>docker-bash</code> will open a Bash session. You can also tell it to run a command, and then exit:</p>
+
+<pre><code>docker-bash YOUR-CONTAINER-ID echo hello world
+</code></pre>
+
+<p><a name="user-content-inspecting_web_app_status" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-inspecting-the-status-of-your-web-app" class="anchor" href="#inspecting-the-status-of-your-web-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inspecting the status of your web app</h3>
+
+<p>If you use Passenger to deploy your web app, run:</p>
+
+<pre><code>passenger-status
+passenger-memory-stats
+</code></pre>
+
+<p><a name="user-content-logs" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-logs" class="anchor" href="#logs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logs</h3>
+
+<p>If anything goes wrong, consult the log files in /var/log. The following log files are especially important:</p>
+
+<ul class="task-list">
+<li>/var/log/nginx/error.log</li>
+<li>/var/log/syslog</li>
+<li>Your app's log file in /home/app.</li>
+</ul><p><a name="user-content-building" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-building-the-image-yourself" class="anchor" href="#building-the-image-yourself" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building the image yourself</h2>
+
+<p>If for whatever reason you want to build the image yourself instead of downloading it from the Docker registry, follow these instructions.</p>
+
+<p>Clone this repository:</p>
+
+<pre><code>git clone https://github.com/phusion/passenger-docker.git
+cd passenger-docker
+</code></pre>
+
+<p>Start a virtual machine with Docker in it. You can use the Vagrantfile that we've already provided.</p>
+
+<pre><code>vagrant up
+vagrant ssh
+cd /vagrant
+</code></pre>
+
+<p>Build one of the images:</p>
+
+<pre><code>make build_ruby19
+make build_ruby20
+make build_ruby21
+make build_nodejs
+make build_customizable
+make build_full
+</code></pre>
+
+<p>If you want to call the resulting image something else, pass the NAME variable, like this:</p>
+
+<pre><code>make build NAME=joe/passenger
+</code></pre>
+
+<p><a name="user-content-conclusion" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusion</h2>
+
+<ul class="task-list">
+<li>Using passenger-docker? <a href="https://twitter.com/share">Tweet about us</a> or <a href="https://twitter.com/phusion_nl">follow us on Twitter</a>.</li>
+<li>Having problems? Please post a message at <a href="https://groups.google.com/d/forum/passenger-docker">the discussion forum</a>.</li>
+<li>Looking for a minimal image containing only a correct base system? Take a look at <a href="https://github.com/phusion/baseimage-docker">baseimage-docker</a>.</li>
+</ul><p><a href="http://www.phusion.nl/"><img src="https://camo.githubusercontent.com/4b39a2ed35659162772e2dfadc1005ab953d9839/687474703a2f2f7777772e70687573696f6e2e6e6c2f6173736574732f6c6f676f2e706e67" data-canonical-src="http://www.phusion.nl/assets/logo.png" style="max-width:100%;"></a></p>
+
+<p>Please enjoy passenger-docker, a product by <a href="http://www.phusion.nl/">Phusion</a>. :-)</p></article></div>

@@ -1,0 +1,292 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-eventbus" class="anchor" href="#eventbus" aria-hidden="true"><span class="octicon octicon-link"></span></a>EventBus</h1>
+
+<p>EventBus is an Android optimized publish/subscribe event bus. A typical use case for Android apps is gluing Activities, Fragments, and background threads together. Conventional wiring of those elements often introduces complex and error-prone dependencies and life cycle issues. With EventBus propagating listeners through all participants (e.g. background service -&gt; activity -&gt; multiple fragments or helper classes) becomes deprecated. EventBus decouples event senders and receivers and thus simplifies communication between app components. Less code, better quality. And you don't need to implement a single interface!</p>
+
+<h2>
+<a name="user-content-general-usage-and-api" class="anchor" href="#general-usage-and-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>General Usage and API</h2>
+
+<p>In EventBus, subscribers implement event handling methods and register themselves to the bus. Posted events are delivered to matching event handling methods based on their event type (the Java class/interfaces implemented by the event).</p>
+
+<p>Using EventBus takes four simple steps:</p>
+
+<ol class="task-list">
+<li>Implement any number of event handling methods in the subscriber:<br><code>public void onEvent(AnyEventType event) {}</code>
+</li>
+<li>Register subscribers:<br><code>eventBus.register(this);</code>
+</li>
+<li>Post events to the bus:<br><code>eventBus.post(event);</code>
+</li>
+<li>Unregister subscriber:<br><code>eventBus.unregister(this);</code>
+</li>
+</ol><h2>
+<a name="user-content-add-eventbus-to-your-project" class="anchor" href="#add-eventbus-to-your-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Add EventBus to your project</h2>
+
+<p>EventBus is pushed to <a href="http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.greenrobot%22%20AND%20a%3A%22eventbus%22">Maven Central</a> repository, so you can simply add a dependency (group ID "de.greenrobot" and arifact ID "eventbus"). If you do not use Maven or Gradle, download the jar from <a href="http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.greenrobot%22%20AND%20a%3A%22eventbus%22">Maven Central</a> and copy it into the libs folder of your Android project.</p>
+
+<p>Gradle template (<a href="http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.greenrobot%22%20AND%20a%3A%22eventbus%22">check current version</a>):</p>
+
+<pre><code>dependencies {
+    compile 'de.greenrobot:eventbus:2.2.1'
+}
+</code></pre>
+
+<p>Maven template (<a href="http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22de.greenrobot%22%20AND%20a%3A%22eventbus%22">check current version</a>):</p>
+
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;de.greenrobot&lt;/groupId&gt;
+    &lt;artifactId&gt;eventbus&lt;/artifactId&gt;
+    &lt;version&gt;2.2.1&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-delivery-threads" class="anchor" href="#delivery-threads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delivery Threads</h2>
+
+<p>EventBus can deliver events in other threads independently from the posting thread. Threading is crucial to all Android apps, and EventBus will make threading easier. In Android development, UI changes must be done in the UI thread, while networking is forbidden here. If you want to do both networking and UI using standard Android API, you will need to take care of thread transistions, e.g. by using AsyncTask. If you use an event-based approach using EventBus, this gets simpler.</p>
+
+<p>In EventBus, each event handling method is associated with a thread mode (have a look at the ThreadMode enum). The thread mode defines in which thread the event handling method is called:</p>
+
+<ul class="task-list">
+<li>
+<strong>PostThread:</strong> Subscriber will be called in the same thread, which is posting the event. This is the default. Event delivery implies the least overhead because it avoids thread switching completely. Thus this is the recommended mode for simple tasks that are known to complete is a very short time without requiring the main thread. Event handlers using this mode must return quickly to avoid blocking the posting thread, which may be the main thread.</li>
+<li>
+<strong>MainThread:</strong> Subscriber will be called in Android's main thread (sometimes referred to as UI thread). If the posting thread is the main thread, event handler methods will be called directly. Event handlers using this mode must return quickly to avoid blocking the main thread.</li>
+<li>
+<strong>BackgroundThread:</strong> Subscriber will be called in a background thread. If posting thread is not the main thread, event handler methods will be called directly in the posting thread. If the posting thread is the main thread, EventBus uses a single background thread that will deliver all its events sequentially. Event handlers using this mode should try to return quickly to avoid blocking the background thread.</li>
+<li>
+<strong>Async:</strong> Event handler methods are called in a separate thread. This is always independent from the posting thread and the main thread. Posting events never wait for event handler methods using this mode. Event handler methods should use this mode if their execution might take some time, e.g. for network access. Avoid triggering a large number of long running asynchronous handler methods at the same time to limit the number of concurrent threads. EventBus uses a thread pool to efficiently reuse threads from completed asynchronous event handler notifications.</li>
+</ul><p><em>Example:</em> Consider your subscriber updates the UI, but the triggering event is posted by a background thread (using <code>eventBus.post(event)</code>). The name of the event handling method should be <code>onEventMainThread</code>. EventBus takes care of calling the method in the main thread without any further code required</p>
+
+<h2>
+<a name="user-content-subscriber-priorities-and-ordered-event-delivery" class="anchor" href="#subscriber-priorities-and-ordered-event-delivery" aria-hidden="true"><span class="octicon octicon-link"></span></a>Subscriber priorities and ordered event delivery</h2>
+
+<p><em>TODO. For now, this is just the javadoc for the method register(Object subscriber, int priority):</em>
+Like register(Object) with an additional subscriber priority to influence the order of event delivery. Within the same delivery thread (ThreadMode), higher priority subscribers will receive events before others with a lower priority. The default priority is 0. Note: the priority does <em>NOT</em> affect the order of delivery among subscribers with different ThreadModes!</p>
+
+<h2>
+<a name="user-content-cancelling-further-event-delivery" class="anchor" href="#cancelling-further-event-delivery" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cancelling further event delivery</h2>
+
+<p><em>TODO. For now, this is just the javadoc for the method cancelEventDelivery(Object event):</em>
+Called from a subscriber's event handling method, further event delivery will be canceled. Subsequent subscribers won't receive the event. Events are usually canceled by higher priority subscribers (see register(Object, int)). Canceling is restricted to event handling methods running in posting thread ThreadMode.PostThread.</p>
+
+<h2>
+<a name="user-content-sticky-events" class="anchor" href="#sticky-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sticky Events</h2>
+
+<p>Some events carry information that is of interest after the event is posted. For example, this could be an event signalizing that some initialization is complete. Or if you have some sensor or location data and you want to hold on the most recent values. Instead of implementing your own caching, you can use sticky events. EventBus keeps the last sticky event of a certain type in memory. The sticky event can be delivered to subscribers or queried explicitly. Thus, you don't need any special logic to consider already available data.</p>
+
+<p>API-wise events are made sticky by using <code>postSticky(Object event)</code> instead of <code>post(Object event)</code>. Subscribers that want to get previously posted sticky events, use <code>registerSticky(...)</code> instead of <code>register(...)</code>. Alternatively, the last sticky event of a certain event type can be queried by using <code>getStickyEvent(Class&lt;?&gt; eventType)</code>.</p>
+
+<h2>
+<a name="user-content-additional-features-and-notes" class="anchor" href="#additional-features-and-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional Features and Notes</h2>
+
+<ul class="task-list">
+<li>
+<strong>NOT based on annotations:</strong> Querying annotations are slow on Android, especially before Android 4.0. Have a look at this <a href="http://code.google.com/p/android/issues/detail?id=7811">Android bug report</a>
+</li>
+<li>
+<strong>Based on conventions:</strong> Event handling methods are called "onEvent" (you could supply different names, but this is not encouraged).</li>
+<li>
+<strong>Performanced optimized:</strong> It's probably the fastest event bus for Android.</li>
+<li>
+<strong>Tiny:</strong> The jar is less than 50 KBytes.</li>
+<li>
+<strong>Convenience singleton:</strong> You can get a process wide event bus instance by calling EventBus.getDefault(). You can still call new EventBus() to create any number of local busses.</li>
+<li>
+<strong>Subscriber and event inheritance:</strong> Event handler methods may be defined in super classes, and events are posted to handlers of the event's super classes including any implemented interfaces. For example, subscriber may register to events of the type Object to receive all events posted on the event bus.</li>
+<li>
+<strong>Selective registration:</strong> It's possible to register only for specific event types. This also allows subscribers to register only some of their event handling methods for main thread event delivery.</li>
+</ul><h2>
+<a name="user-content-comparison-with-squares-otto" class="anchor" href="#comparison-with-squares-otto" aria-hidden="true"><span class="octicon octicon-link"></span></a>Comparison with Square's Otto</h2>
+
+<p>Otto is another event bus library for Android; actually it's a fork of Guava's EventBus. greenrobot's EventBus and Otto share some basic semantics (register, post, unregister, ...), but there are differences which the following table summarizes:</p>
+
+<table>
+<tr>
+<th></th>
+        <th>EventBus</th>
+        <th>Otto</th>
+    </tr>
+<tr>
+<th>Declare event handling methods</th>
+        <td>Name conventions</td>
+        <td>Annotations</td>
+    </tr>
+<tr>
+<th>Event inheritance</th>
+        <td>Yes</td>
+        <td>Yes</td>
+    </tr>
+<tr>
+<th>Subscriber inheritance</th>
+        <td>Yes</td>
+        <td>No</td>
+    </tr>
+<tr>
+<th>Cache most recent events</th>
+        <td>Yes, sticky events</td>
+        <td>No</td>
+    </tr>
+<tr>
+<th>Event producers (e.g. for coding cached events)</th>
+        <td>No</td>
+        <td>Yes</td>
+    </tr>
+<tr>
+<th>Event delivery in posting thread</th>
+        <td>Yes (Default)</td>
+        <td>Yes</td>
+    </tr>
+<tr>
+<th>Event delivery in main thread</th>
+        <td>Yes</td>
+        <td>No</td>
+    </tr>
+<tr>
+<th>Event delivery in background thread</th>
+        <td>Yes</td>
+        <td>No</td>
+    </tr>
+<tr>
+<th>Aynchronous event delivery</th>
+        <td>Yes</td>
+        <td>No</td>
+    </tr>
+</table><p>Besides features, performance is another differentiator. To compare performance, we created an Android application, which is also part of this repository (EventBusPerformance). You can also run the app on your phone to benchmark different scenarios.</p>
+
+<p>Benchmark results indicate that EventBus is significantly faster in almost every scenario:</p>
+
+<table>
+<tr>
+<th></th>
+        <th>EventBus</th>
+        <th>Otto</th>
+    </tr>
+<tr>
+<th>Posting 1000 events, Android 2.3 emulator</th>
+        <td>~70% faster</td>
+        <td></td>
+    </tr>
+<tr>
+<th>Posting 1000 events, S3 Android 4.0</th>
+        <td>~110% faster</td>
+        <td></td>
+    </tr>
+<tr>
+<th>Register 1000 subscribers, Android 2.3 emulator</th>
+        <td>~10% faster</td>
+        <td></td>
+    </tr>
+<tr>
+<th>Register 1000 subscribers, S3 Android 4.0</th>
+        <td>~70% faster</td>
+        <td></td>
+    </tr>
+<tr>
+<th>Register subscribers cold start, Android 2.3 emulator</th>
+        <td>~350% faster</td>
+        <td></td>
+    </tr>
+<tr>
+<th>Register subscribers cold start, S3 Android 4.0</th>
+        <td colspan="2">About the same</td>
+    </tr>
+</table><h2>
+<a name="user-content-proguard-configuration" class="anchor" href="#proguard-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>ProGuard configuration</h2>
+
+<p>ProGuard obfuscates method names. However, the onEvent methods must not renamed because they are accessed using reflection. Use the following snip in your ProGuard configuration file (proguard.cfg):</p>
+
+<pre><code>-keepclassmembers class ** {
+    public void onEvent*(**);
+}
+</code></pre>
+
+<h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p>TODO</p>
+
+<h2>
+<a name="user-content-faq" class="anchor" href="#faq" aria-hidden="true"><span class="octicon octicon-link"></span></a>FAQ</h2>
+
+<p><strong>Q:</strong> How's EventBus different to Android's BroadcastReceiver/Intent system?<br><strong>A:</strong> Unlike Android's BroadcastReceiver/Intent system, EventBus uses standard Java classes as events and offers a more convenient API. EventBus is intended for a lot more uses cases where you wouldn't want to go through the hassle of setting up Intents, preparing Intent extras, implementing broadcast receivers, and extracting Intent extras again. Also, EventBus comes with a much lower overhead. </p>
+
+<h2>
+<a name="user-content-release-history" class="anchor" href="#release-history" aria-hidden="true"><span class="octicon octicon-link"></span></a>Release History</h2>
+
+<h3>
+<a name="user-content-v221-2014-05-21-bug-fix-release" class="anchor" href="#v221-2014-05-21-bug-fix-release" aria-hidden="true"><span class="octicon octicon-link"></span></a>V2.2.1 (2014-05-21) Bug fix release</h3>
+
+<ul class="task-list">
+<li>Fixed an issue with AsyncExecutor and execution scope</li>
+</ul><h3>
+<a name="user-content-v220-2013-11-18-feature-release-subscriber-priority" class="anchor" href="#v220-2013-11-18-feature-release-subscriber-priority" aria-hidden="true"><span class="octicon octicon-link"></span></a>V2.2.0 (2013-11-18) Feature release, subscriber priority</h3>
+
+<ul class="task-list">
+<li>Register subscribers with a priority to to influence the order of event delivery (per delivery thread)</li>
+<li>Event delivery can be canceled by subscribers so subsequent subscribers will not receive the event</li>
+<li>Added "isRegistered" and "removeAllStickyEvents" methods</li>
+<li>Deprecated registration methods with custom method names and event class filters</li>
+<li>Starting with EventBus 2.2 we enforced methods to be public</li>
+<li>Fixed a race conditions with subscriber registration</li>
+<li>Fixed NoSubscriberEvent delivery after unregister</li>
+</ul><h3>
+<a name="user-content-v210-2013-11-15-bug-fix-release-experimental-util-package" class="anchor" href="#v210-2013-11-15-bug-fix-release-experimental-util-package" aria-hidden="true"><span class="octicon octicon-link"></span></a>V2.1.0 (2013-11-15) Bug fix release, experimental util package</h3>
+
+<ul class="task-list">
+<li>Experimental: AsyncExecutor executes RunnableEx and wraps exceptions into FailureEvents</li>
+<li>Experimental: exception to UI mapping (for now based on dialogs)</li>
+<li>Fixed race condition with queued events that were delivered after subscription was unregistered. This is important for main thread events tied to application life cycle.</li>
+<li>Fixed typos and improved readme (#17, #22, #37, #39)</li>
+<li>Make getStickyEvent and removeStickyEvent generic (#45)</li>
+<li>Fixed bug in SubscriberMethod.equals() (#38)</li>
+</ul><h3>
+<a name="user-content-v202-2013-03-02-bug-fix-release" class="anchor" href="#v202-2013-03-02-bug-fix-release" aria-hidden="true"><span class="octicon octicon-link"></span></a>V2.0.2 (2013-03-02) Bug fix release</h3>
+
+<ul class="task-list">
+<li>Fixed build dependencies, are "provided" now</li>
+</ul><h3>
+<a name="user-content-v201-2013-02-25-bug-fix-release-gradle-and-maven-central" class="anchor" href="#v201-2013-02-25-bug-fix-release-gradle-and-maven-central" aria-hidden="true"><span class="octicon octicon-link"></span></a>V2.0.1 (2013-02-25) Bug fix release, Gradle and Maven Central</h3>
+
+<ul class="task-list">
+<li>Fixed #15: removeStickyEvent(...) does not remove event the first time</li>
+<li>Introduced Gradle build scripts for main project</li>
+<li>Maven artifacts are pushed to Maven Central starting with this version</li>
+<li>Added Travis CI</li>
+</ul><h3>
+<a name="user-content-v200-2012-10-23-major-feature-release" class="anchor" href="#v200-2012-10-23-major-feature-release" aria-hidden="true"><span class="octicon octicon-link"></span></a>V2.0.0 (2012-10-23) Major feature release</h3>
+
+<ul class="task-list">
+<li>Event methods define for themselves in which thread they get called. This is done by providing "modifiers" to the method name, e.g. onEventMainThread is called by the main thread without further configuration. Have a look at the JavaDoc of the enum ThreadMode for all available thread modes.</li>
+<li>The event method modifiers replace registerForMainThread methods. Moving this information to the method itself should make things clearer.</li>
+<li>Using event method modifiers, subscribers can receive the same event type in different threads if they choose to.</li>
+<li>New "BackgroundThread" modifier for onEvent handler methods ensures that event handler methods are called in a background thread. If an event is posted from a non-main thread, handler methods will be called directly. If posted from the main thread, EventBus will use a background thread to call the handler methods.</li>
+<li>New "Async" modifier for onEvent handler methods ensures that each event handler method is called completely asynchronously.</li>
+<li>Better performance: Delivery of multiple events in the main thread got significantly faster.</li>
+<li>Added sticky events, which are inspired by sticky broadcasts of the Android system. EventBus keeps the most recent sticky events in memory. Subscribers registering with the new method registerSticky, will receive sticky events right away. You can also query and remove sticky events (methods getStickyEvent and removeStickyEvent).</li>
+<li>By listening to SubscriberExceptionEvent, it is possible to react to Exceptions occuring in subscribers.</li>
+<li>Bug fixes, and internal refactorings</li>
+</ul><h3>
+<a name="user-content-v101-2012-07-31-important-bug-fix-release" class="anchor" href="#v101-2012-07-31-important-bug-fix-release" aria-hidden="true"><span class="octicon octicon-link"></span></a>V1.0.1 (2012-07-31): Important bug fix release</h3>
+
+<p>Please update! Now, EventBus.unregister releases all internal references to the subscriber.</p>
+
+<h3>
+<a name="user-content-v100-2012-07-16-first-public-release" class="anchor" href="#v100-2012-07-16-first-public-release" aria-hidden="true"><span class="octicon octicon-link"></span></a>V1.0.0 (2012-07-16): First public release</h3>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (C) 2012-2014 Markus Junginger, greenrobot (<a href="http://greenrobot.de">http://greenrobot.de</a>)</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+
+<p><a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p></article></div>

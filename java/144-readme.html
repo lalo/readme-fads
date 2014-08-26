@@ -1,0 +1,551 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-eventhub" class="anchor" href="#eventhub" aria-hidden="true"><span class="octicon octicon-link"></span></a>EventHub</h1>
+
+<p>EventHub enables companies to do cross device event tracking. Events are joined by their associated user on EventHub and can be visualized by the built-in dashboard to answer the following common business questions</p>
+
+<ul class="task-list">
+<li>what is my funnel conversion rate?</li>
+<li>what is my cohorted KPI retention?</li>
+<li>which variant in my A/B test has a higher conversion rate?</li>
+</ul><p>Most important of all, EventHub is free and open source.</p>
+
+<p><strong>Table of Contents</strong></p>
+
+<ul class="task-list">
+<li><a href="#quick-start">Quick Start</a></li>
+<li><a href="#server">Server</a></li>
+<li><a href="#dashboard">Dashboard</a></li>
+<li><a href="#javascript-library">Javascript Library</a></li>
+<li><a href="#ruby-library">Ruby Library</a></li>
+</ul><h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start</h2>
+
+<h3>
+<a name="user-content-playground" class="anchor" href="#playground" aria-hidden="true"><span class="octicon octicon-link"></span></a>Playground</h3>
+
+<p>A <a href="http://codecademy:codecademy@floating-mesa-9408.herokuapp.com/">demo server</a> is available on Heroku and the username/password to access the dashboard is <code>codecademy/codecademy</code>.</p>
+
+<ul class="task-list">
+<li><a href="http://codecademy:codecademy@54.193.159.140/?start_date=20130101&amp;end_date=20130107&amp;num_days_to_complete_funnel=7&amp;funnel_steps%5B%5D=receive_email&amp;funnel_steps%5B%5D=view_track_page&amp;funnel_steps%5B%5D=finish_course&amp;type=funnel">Example funnel query</a></li>
+<li><a href="http://codecademy:codecademy@54.193.159.140/?start_date=20130101&amp;end_date=20130107&amp;row_event_type=receive_email&amp;column_event_type=start_track&amp;num_days_per_row=1&amp;num_columns=11&amp;type=cohort">Example cohort query</a></li>
+</ul><h3>
+<a name="user-content-screenshots" class="anchor" href="#screenshots" aria-hidden="true"><span class="octicon octicon-link"></span></a>Screenshots</h3>
+
+<p><a href="https://raw.githubusercontent.com/Codecademy/EventHub/master/funnel-screenshot.png" target="_blank"><img src="https://raw.githubusercontent.com/Codecademy/EventHub/master/funnel-screenshot.png" alt="Funnel screenshot" style="max-width:100%;"></a><a href="https://raw.githubusercontent.com/Codecademy/EventHub/master/cohort-screenshot.png" target="_blank"><img src="https://raw.githubusercontent.com/Codecademy/EventHub/master/cohort-screenshot.png" alt="Cohort screenshot" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-deploy-with-heroku" class="anchor" href="#deploy-with-heroku" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploy with Heroku</h3>
+
+<p>Developers who want to try EventHub can quickly set the server up on Heroku with the following commands. However, please be aware that Heroku's file system is ephemeral and your data will be wiped after the instance is closed.</p>
+
+<div class="highlight highlight-bash"><pre>git clone https://github.com/Codecademy/EventHub.git
+
+<span class="nb">cd </span>EventHub
+heroku create
+git push heroku master
+
+heroku open
+</pre></div>
+
+<h3>
+<a name="user-content-required-dependencies" class="anchor" href="#required-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Required dependencies</h3>
+
+<ul class="task-list">
+<li><a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html">java sdk7</a></li>
+<li><a href="http://maven.apache.org">maven</a></li>
+</ul><h3>
+<a name="user-content-compile-and-run" class="anchor" href="#compile-and-run" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compile and run</h3>
+
+<div class="highlight highlight-bash"><pre><span class="c"># set up proper JAVA_HOME for mac</span>
+<span class="nb">export </span><span class="nv">JAVA_HOME</span><span class="o">=</span><span class="k">$(</span>/usr/libexec/java_home<span class="k">)</span>
+
+git clone https://github.com/Codecademy/EventHub.git
+<span class="nb">cd </span>EventHub
+<span class="nb">export </span><span class="nv">EVENT_HUB_DIR</span><span class="o">=</span><span class="sb">`</span><span class="nb">pwd</span><span class="sb">`</span>
+mvn -am -pl web clean package
+java -jar web/target/web-1.0-SNAPSHOT.jar
+</pre></div>
+
+<h3>
+<a name="user-content-how-to-run-all-the-tests" class="anchor" href="#how-to-run-all-the-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to run all the tests</h3>
+
+<h4>
+<a name="user-content-unitintegrationfunctional-testing" class="anchor" href="#unitintegrationfunctional-testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unit/Integration/Functional testing</h4>
+
+<div class="highlight highlight-bash"><pre>mvn -am -pl web clean <span class="nb">test</span>
+</pre></div>
+
+<h4>
+<a name="user-content-manual-testing-with-curl" class="anchor" href="#manual-testing-with-curl" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual testing with curl</h4>
+
+<p>Comprehensive examples can be found in <code>script.sh</code>.</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd</span> <span class="k">${</span><span class="nv">EVENT_HUB_DIR</span><span class="k">}</span><span class="p">;</span> ./script.sh
+</pre></div>
+
+<p>Test all event related endpoints</p>
+
+<ul class="task-list">
+<li>
+<p>Add new event</p>
+
+<div class="highlight highlight-bash"><pre>curl -X POST http://localhost:8080/events/track --data <span class="s2">"event_type=signup&amp;external_user_id=foobar&amp;event_property_1=1"</span>
+</pre></div>
+</li>
+<li>
+<p>Batch add new event</p>
+
+<div class="highlight highlight-bash"><pre>curl -X POST http://localhost:8080/events/batch_track --data <span class="s2">"events=[{event_type: signup, external_user_id: foobar, date: 20130101, event_property_1: 1}]"</span>
+</pre></div>
+</li>
+<li>
+<p>Show all event types</p>
+
+<div class="highlight highlight-bash"><pre>curl http://localhost:8080/events/types
+</pre></div>
+</li>
+<li>
+<p>Show events for a given user</p>
+
+<div class="highlight highlight-bash"><pre>curl http://localhost:8080/users/timeline<span class="se">\?</span>external_user_id<span class="se">\=</span>chengtao@codecademy.com<span class="se">\&amp;</span>offset<span class="se">\=</span>0<span class="se">\&amp;</span>num_records<span class="se">\=</span>1
+</pre></div>
+</li>
+<li>
+<p>Show all property keys for the given event type</p>
+
+<div class="highlight highlight-bash"><pre>curl <span class="s1">'http://localhost:8080/events/keys?event_type=signup'</span>
+</pre></div>
+</li>
+<li>
+<p>Show all property values for the given event type and property key</p>
+
+<div class="highlight highlight-bash"><pre>curl <span class="s1">'http://localhost:8080/events/values?event_type=signup&amp;event_key=treatment'</span>
+</pre></div>
+</li>
+<li>
+<p>Show all property values for the given event type, property key and value prefix</p>
+
+<div class="highlight highlight-bash"><pre>curl <span class="s1">'http://localhost:8080/events/values?event_type=signup&amp;event_key=treatment&amp;prefix=fa'</span>
+</pre></div>
+</li>
+<li>
+<p>Show server stats</p>
+
+<div class="highlight highlight-bash"><pre>curl http://localhost:8080/varz
+</pre></div>
+</li>
+<li>
+<p>Funnel query</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">today</span><span class="o">=</span><span class="sb">`</span>date +<span class="s1">'%Y%m%d'</span><span class="sb">`</span>
+<span class="nv">end_date</span><span class="o">=</span><span class="sb">`</span><span class="o">(</span>date -d <span class="s1">'+7day'</span> +<span class="s1">'%Y%m%d'</span> <span class="o">||</span> date -v <span class="s1">'+7d'</span> +<span class="s1">'%Y%m%d'</span><span class="o">)</span> 2&gt; /dev/null<span class="sb">`</span>
+
+curl -X POST <span class="s2">"http://localhost:8080/events/funnel"</span> --data <span class="s2">"start_date=${today}&amp;end_date=${end_date}&amp;funnel_steps[]=signup&amp;funnel_steps[]=view_shopping_cart&amp;funnel_steps[]=checkout&amp;num_days_to_complete_funnel=7&amp;eck=event_property_1&amp;ecv=1"</span>
+</pre></div>
+</li>
+<li>
+<p>Retention query</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">today</span><span class="o">=</span><span class="sb">`</span>date +<span class="s1">'%Y%m%d'</span><span class="sb">`</span>
+<span class="nv">end_date</span><span class="o">=</span><span class="sb">`</span><span class="o">(</span>date -d <span class="s1">'+7day'</span> +<span class="s1">'%Y%m%d'</span> <span class="o">||</span> date -v <span class="s1">'+7d'</span> +<span class="s1">'%Y%m%d'</span><span class="o">)</span> 2&gt; /dev/null<span class="sb">`</span>
+
+curl -X POST <span class="s2">"http://localhost:8080/events/cohort"</span> --data <span class="s2">"start_date=${today}&amp;end_date=${end_date}&amp;row_event_type=signup&amp;column_event_type=view_shopping_cart&amp;num_days_per_row=1&amp;num_columns=2"</span>
+</pre></div>
+</li>
+</ul><p>Test all user related endpoints</p>
+
+<ul class="task-list">
+<li>
+<p>show paginated events for a given user</p>
+
+<div class="highlight highlight-bash"><pre>curl http://localhost:8080/users/timeline<span class="se">\?</span>external_user_id<span class="se">\=</span>chengtao@codecademy.com<span class="se">\&amp;</span>offset<span class="se">\=</span>0<span class="se">\&amp;</span>num_records<span class="se">\=</span>5
+</pre></div>
+</li>
+<li>
+<p>show information of users who have matched property keys &amp; values</p>
+
+<div class="highlight highlight-bash"><pre>curl -X POST http://localhost:8080/users/find --data <span class="s2">"ufk[]=external_user_id&amp;ufv[]=chengtao1@codecademy.com"</span>
+</pre></div>
+</li>
+<li>
+<p>add or update user information</p>
+
+<div class="highlight highlight-bash"><pre>curl -X POST http://localhost:8080/users/add_or_update --data <span class="s2">"external_user_id=chengtao@codecademy.com&amp;foo=bar&amp;hello=world"</span>
+</pre></div>
+</li>
+<li>
+<p>Show all property keys for users</p>
+
+<div class="highlight highlight-bash"><pre>curl <span class="err">'</span>http://localhost:8080/users/keys
+</pre></div>
+</li>
+<li>
+<p>Show all property values for users given property key and (optional) value prefix</p>
+
+<div class="highlight highlight-bash"><pre>curl <span class="s1">'http://localhost:8080/users/values?user_key=hello&amp;prefix=w'</span>
+</pre></div>
+</li>
+</ul><h4>
+<a name="user-content-load-testing-with-jmeter" class="anchor" href="#load-testing-with-jmeter" aria-hidden="true"><span class="octicon octicon-link"></span></a>Load testing with Jmeter</h4>
+
+<p>We use <a href="http://jmeter.apache.org">Apache Jmeter</a> for load testing, and the load testing script can be found in <code>${EVENT_HUB_DIR}/jmeter.jmx</code>.</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">export </span><span class="nv">JMETER_DIR</span><span class="o">=</span>~/Downloads/apache-jmeter-2.11/
+java -jar <span class="k">${</span><span class="nv">JMETER_DIR</span><span class="k">}</span>/bin/ApacheJMeter.jar -JnumThreads<span class="o">=</span><span class="m">1</span> -n -t jmeter.jmx -p jmeter.properties
+java -jar <span class="k">${</span><span class="nv">JMETER_DIR</span><span class="k">}</span>/bin/ApacheJMeter.jar -JnumThreads<span class="o">=</span><span class="m">5</span> -n -t jmeter.jmx -p jmeter.properties
+java -jar <span class="k">${</span><span class="nv">JMETER_DIR</span><span class="k">}</span>/bin/ApacheJMeter.jar -JnumThreads<span class="o">=</span><span class="m">10</span> -n -t jmeter.jmx -p jmeter.properties
+
+<span class="c"># generate graph (require matplotlib)</span>
+./plot_jmeter_performance.py 1-jmeter-performance.csv 5-jmeter-performance.csv 10-jmeter-performance.csv
+
+<span class="c"># open "Track Event.png"</span>
+</pre></div>
+
+<h2>
+<a name="user-content-server" class="anchor" href="#server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Server</h2>
+
+<h3>
+<a name="user-content-key-observations--design-decisions" class="anchor" href="#key-observations--design-decisions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Key observations &amp; design decisions</h3>
+
+<p>Our goal is to build something usable on a single machine with a reasonably large SSD drive. Let's say, hypothetically, the server receives 100M events monthly (might cost you few thousand dollars per month to use SAAS provider), and each event is 500 bytes without compression. In this situation, storing all the events likely only takes you few hundreds GB with compression, and chances are, only the data in recent months are of interest.</p>
+
+<p>Also, to efficiently run basic funnel and cohort queries without filtering, only two forward indices are needed, event index sharded by event types and event index sharded by users. Therefore, our strategy is to make those two indices as small as possible to fit in memory, and if the client wants to do filtering for events, we build a bloomfilter to reject most of the non exact-match. Imagine we are running another hypothetical query while assuming both indices and the bloomfilters can be fit in memory. Say there are 1M events that cannot be rejected and need to hit the disk, assuming each SSD disk read is 16 microseconds, we are talking about sub-minute query time, while assuming none of the data are in memory. In practice, this situation is likely much better as we cache all the recently hit records, and most of the queries likely only care the most recent data.</p>
+
+<p>To simplify the design of the server and store indices compactly so that they fit in memory, we made the following two assumptions.</p>
+
+<ol class="task-list">
+<li>Times are associated to events when the server receives the an event</li>
+<li>Date is the finest level of granularity</li>
+</ol><p>With the above two assumptions, we can rely on the server generated monotonically increasing id to maintain the total order for the events. In addition, as long as we track the id of the first event in any given date, we do not need to store the time information in the indices (which greatly reduces the size of the indices). The direct implication for those assumptions are, first, if the client chose to cache some events locally and sent them later, the timing for those events will be recorded as the server receives them, not when the user made those actions; second, though the server maintains the total ordering of all events, it cannot answer questions like what is the conversion rate for the given funnel between 2pm and 3pm on a given date.</p>
+
+<p>Lastly, for both indices, since they are sharded by event types or users, we can expect the size of the indices to reduce significantly with proper compression.</p>
+
+<h3>
+<a name="user-content-architecture" class="anchor" href="#architecture" aria-hidden="true"><span class="octicon octicon-link"></span></a>Architecture</h3>
+
+<p>At the highest level, <code>com.codecademy.evenhub.web.EventHubHandler</code> is the main entry point. It runs a <a href="http://www.eclipse.org/jetty">Jetty</a> server, reflectively collects supported commands under <code>com.codecademy.evenhub.web.commands</code>, handles JSONP request transparently, handles requests to static resources like the dashboard, and most importantly, act as a proxy which translates http request and respones to and from method calls to <code>com.codecademy.evenhub.EventHub</code>.</p>
+
+<p><code>com.codecademy.evenhub.EventHub</code> can be thought of as a facade to the key components of <code>UserStorage</code>, <code>EventStorage</code>, <code>ShardedEventIndex</code>, <code>DatedEventIndex</code>, <code>UserEventIndex</code> and <code>PropertiesIndex</code>.</p>
+
+<p>For <code>UserStorage</code> and <code>EventStorage</code>, at the lowest level, we implemented <code>Journal{User,Event}Storage</code> backed by <a href="https://github.com/fusesource/hawtjournal/">HawtJournal</a> to store underlying records reliably. In addition, when clients are quering records which cannot be filtered by the supported indices, the server will loop through all the potential hits, look up the properties from the <code>Journal</code> and then filter accordingly. For better performance, there are also decorators for each storage like <code>Cached{User,Event}Storage</code> to support caching and <code>BloomFiltered{User,Event}Storage</code> to support fast rejection for filters like <code>ExactMatch</code>. Please also beware that each <code>Storage</code> maintains a monotonically increasing counter as the internal id generator for each event and user received.</p>
+
+<p>To make the funnel and cohort queries fast, <code>EventHub</code> also maintains three indices, <code>ShardedEventIndex</code>, <code>UserEventIndex</code>, and <code>DatedEventIndex</code> behind the scene. <code>DatedEventIndex</code> simply tracks the mapping from a given date, the id of the first event received in that day. <code>ShardedEventIndex</code> can be thought of as sorted event ids sharded by event type. <code>UserEventIndex</code> can be thought of as sorted event ids sharded by users.</p>
+
+<p>Lastly, <code>EventHub</code> maintains a <code>PropertiesIndex</code> backed by <a href="https://github.com/fusesource/leveldbjni">LevelDB Jni</a> to track what properties keys are available for a given event type and what properties values are available for a given event type and a property key.</p>
+
+<h3>
+<a name="user-content-horizontal-scalabiltiy" class="anchor" href="#horizontal-scalabiltiy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Horizontal scalabiltiy</h3>
+
+<p>While EventHub does not need any information from different users, with a broker in front of EventHub servers, EventHub can be easily sharded by users and scale horizontally.</p>
+
+<h3>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h3>
+
+<p>In the following three experiments, the spec of the computer used can be found in the following table</p>
+
+<table>
+<thead><tr>
+<th>Component</th>
+<th>Spec</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Computer Model</td>
+<td>Mac Book Pro, Retina 15-inch, Late 2013</td>
+</tr>
+<tr>
+<td>Processor</td>
+<td>2GHz Intel Core i7</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>8GB 1600 MHz DDR3</td>
+</tr>
+<tr>
+<td>Software</td>
+<td>OS X 10.9.2</td>
+</tr>
+<tr>
+<td>Jvm</td>
+<td>Oracle JDK 1.7</td>
+</tr>
+</tbody>
+</table><h4>
+<a name="user-content-write-performance" class="anchor" href="#write-performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Write performance</h4>
+
+<p>The following graph is generated as described in <a href="#load-testing-with-jmeter">Load testing with Jmeter</a>. The graph shows both the throughput and latency of adding the first one million events (without batching) with different number of threads (1, 5, 10, 15).
+<a href="https://camo.githubusercontent.com/0303c409ef5d91da7684a47f8a818564c32caf39/687474703a2f2f6936302e74696e797069632e636f6d2f313661643636622e706e67" target="_blank"><img src="https://camo.githubusercontent.com/0303c409ef5d91da7684a47f8a818564c32caf39/687474703a2f2f6936302e74696e797069632e636f6d2f313661643636622e706e67" alt="Throughput and latency by threads" data-canonical-src="http://i60.tinypic.com/16ad66b.png" style="max-width:100%;"></a></p>
+
+<h4>
+<a name="user-content-query-performance" class="anchor" href="#query-performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Query performance</h4>
+
+<p>While it is difficult to come up with a generic benchmark, we would rather show something rather than show nothing. After generating about one million events with the load testing script as described in <a href="#load-testing-with-jmeter">Load testing with Jmeter</a>, we ran the four types of queries twice, once after the server starts cleanly and another time while the cache is still warm.</p>
+
+<table>
+<thead><tr>
+<th>Query</th>
+<th>1st execution</th>
+<th>2nd execution</th>
+<th>command</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Funnel without filters</td>
+<td>1.15s</td>
+<td>0.19s</td>
+<td>curl -X POST "http://localhost:8080/events/funnel" --data "start_date=20130101&amp;end_date=20130130&amp;funnel_steps[]=receive_email&amp;funnel_steps[]=view_track_page&amp;funnel_steps[]=start_track&amp;num_days_to_complete_funnel=30"</td>
+</tr>
+<tr>
+<td>Funnel with filters</td>
+<td>1.31s</td>
+<td>0.43s</td>
+<td>curl -X POST "http://localhost:8080/events/funnel" --data "start_date=20130101&amp;end_date=20130130&amp;funnel_steps[]=receive_email&amp;funnel_steps[]=view_track_page&amp;funnel_steps[]=start_track&amp;num_days_to_complete_funnel=30&amp;efk0[]=event_property_1&amp;efv0[]=1"</td>
+</tr>
+<tr>
+<td>Cohort without filters</td>
+<td>0.63s</td>
+<td>0.13s</td>
+<td>curl -X POST "http://localhost:8080/events/cohort" --data "start_date=20130101&amp;end_date=20130130&amp;row_event_type=receive_email&amp;column_event_type=start_track&amp;num_days_per_row=1&amp;num_columns=7"</td>
+</tr>
+<tr>
+<td>Cohort with filters</td>
+<td>1.20s</td>
+<td>0.32s</td>
+<td>curl -X POST "http://localhost:8080/events/cohort" --data "start_date=20130101&amp;end_date=20130130&amp;row_event_type=receive_email&amp;column_event_type=start_track&amp;num_days_per_row=1&amp;num_columns=7&amp;refk[]=event_property_1&amp;refv[]=1"</td>
+</tr>
+</tbody>
+</table><h4>
+<a name="user-content-memory-footprint" class="anchor" href="#memory-footprint" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memory footprint</h4>
+
+<p>In the experiment, the server was bootstrapped differently. Instead of using the load testing script, we used subset of data from Codecademy, which has around 53M events and 2.4M users. Please be aware that the current storage format on disk is fairly inefficient and has serious internal fragmentation. However, when the data are loaded to memory, it will be much more efficient as we would never load those "hole" pages into memory.</p>
+
+<table>
+<thead><tr>
+<th>Key Component</th>
+<th>Size in memory</th>
+<th>Note</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>ShardedEventIndex</td>
+<td>424Mb</td>
+<td>(data size) + (index size) <br>= (event id size * number of events) + negligible<br>= (8 * 53M)</td>
+</tr>
+<tr>
+<td>UserEventIndex</td>
+<td>722Mb</td>
+<td>(data size) + (index size) <br>= (event id size * number of events) + (index entry size * number of users)<br>= (8 * 53M) + ((numPointersPerIndexEntry * 2 + 1) * 8 + 4) * 2.4M)<br>= (8 * 53M) + (124 * 2.4M)</td>
+</tr>
+<tr>
+<td>BloomFilteredEventStorage</td>
+<td>848Mb</td>
+<td>(bloomfilter size) * (number of events) <br>= 16 * 53M</td>
+</tr>
+</tbody>
+</table><h2>
+<a name="user-content-dashboard" class="anchor" href="#dashboard" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dashboard</h2>
+
+<p>The server comes with a built-in dashboard which is simply some static resources stored in <code>/web/src/main/resources/frontend</code> and gets compiled into the server jar file. After running the server, the dashboard can be accessed at <a href="http://localhost:8080">http://localhost:8080</a>. Through the dashboard, you can access the server for your funnel and cohort analysis.</p>
+
+<h4>
+<a name="user-content-password-protection" class="anchor" href="#password-protection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Password protection</h4>
+
+<p>The dashboard comes with insecure basic authentication which send unencrypted information without SSL. Please use it at your own discretion. The default username/password is codecademy/codecademy and you can change it by modifying your web.properties file or use the following command to start your server</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">USERNAME</span><span class="o">=</span>foo
+<span class="nv">PASSWORD</span><span class="o">=</span>bar
+java -Deventhubhandler.username<span class="o">=</span><span class="k">${</span><span class="nv">USERNAME</span><span class="k">}</span> -Deventhubhandler.password<span class="o">=</span><span class="k">${</span><span class="nv">PASSWORD</span><span class="k">}</span> -jar web/target/web-1.0-SNAPSHOT.jar
+</pre></div>
+
+<h2>
+<a name="user-content-javascript-library" class="anchor" href="#javascript-library" aria-hidden="true"><span class="octicon octicon-link"></span></a>Javascript Library</h2>
+
+<p>The project comes with a javascript library which can be integrated with your website as a way to send events to your EventHub server. </p>
+
+<h3>
+<a name="user-content-how-to-run-js-tests" class="anchor" href="#how-to-run-js-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to run JS tests</h3>
+
+<h4>
+<a name="user-content-install-karma" class="anchor" href="#install-karma" aria-hidden="true"><span class="octicon octicon-link"></span></a>install <a href="http://karma-runner.github.io/0.12/index.html">karma</a>
+</h4>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd</span> <span class="k">${</span><span class="nv">EVENT_HUB_DIR</span><span class="k">}</span>
+
+npm install -g karma
+npm install -g karma-jasmine@2_0
+npm install -g karma-chrome-launcher
+
+karma start karma.conf.js
+</pre></div>
+
+<h3>
+<a name="user-content-api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h3>
+
+<p>The javascript library is extremely simple and heavily inspired by mixpanel. There are only five methods that a developer needs to understand. Beware that behind the scenes, the library maintains a queue backed by localStorage, buffers the events in the queue, and has a timer reguarly clear the queue. If the browser doesn't support localStorage, a in-memory queue will be created as EventHub is created. Also, our implementation relies on the server to track the timestamp of each event. Therefore, in the case of a browser session disconnected before all the events are sent, the remaining events will be sent in the next browser session and thus have the timestamp recorded as the next session starts.</p>
+
+<h4>
+<a name="user-content-windowneweventhub" class="anchor" href="#windowneweventhub" aria-hidden="true"><span class="octicon octicon-link"></span></a>window.newEventHub()</h4>
+
+<p>The method will create an EventHub and start the timer which clears out the event queue in every second (default)</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">name</span> <span class="o">=</span> <span class="s2">"EventHub"</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="nx">url</span><span class="o">:</span> <span class="s1">'http://example.com'</span><span class="p">,</span>
+  <span class="nx">flushInterval</span><span class="o">:</span> <span class="mi">10</span> <span class="cm">/* in seconds */</span>
+<span class="p">};</span>
+<span class="kd">var</span> <span class="nx">eventHub</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">newEventHub</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span>
+</pre></div>
+
+<h4>
+<a name="user-content-eventhubtrack" class="anchor" href="#eventhubtrack" aria-hidden="true"><span class="octicon octicon-link"></span></a>eventHub.track()</h4>
+
+<p>This method enqueues the given event which will be cleared in batch at every flushInterval. Beware that if there is no identify method called before the track method is called, the library will automatically generate an user id which remain the same for the entire session (clears after the browser tab is closed), and send the generated user id along with the queued event. On the other hand, if <code>eventhub.identify()</code> is called before the track method is called, the user information passed along with the identify method call will be merged to the queued event.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s2">"signup"</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">property_1</span><span class="o">:</span> <span class="s1">'value1'</span><span class="p">,</span>
+  <span class="nx">property_2</span><span class="o">:</span> <span class="s1">'value2'</span>
+<span class="p">});</span>
+</pre></div>
+
+<h4>
+<a name="user-content-eventhubalias" class="anchor" href="#eventhubalias" aria-hidden="true"><span class="octicon octicon-link"></span></a>eventHub.alias()</h4>
+
+<p>This method links the given user to the automatically generated user. Typically, you only want to call this method once -- right after the user successfully signs up.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">eventHub</span><span class="p">.</span><span class="nx">alias</span><span class="p">(</span><span class="s1">'chengtao@codecademy.com'</span><span class="p">);</span>
+</pre></div>
+
+<h4>
+<a name="user-content-eventhubidentify" class="anchor" href="#eventhubidentify" aria-hidden="true"><span class="octicon octicon-link"></span></a>eventHub.identify()</h4>
+
+<p>This method tells the library instead of using the automatically generated user information, use the given information instead.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">eventHub</span><span class="p">.</span><span class="nx">identify</span><span class="p">(</span><span class="s1">'chengtao@codecademy.com'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">user_property_1</span><span class="o">:</span> <span class="s1">'value1'</span><span class="p">,</span>
+  <span class="nx">user_property_2</span><span class="o">:</span> <span class="s1">'value2'</span>
+<span class="p">});</span>
+</pre></div>
+
+<h4>
+<a name="user-content-eventhubregister" class="anchor" href="#eventhubregister" aria-hidden="true"><span class="octicon octicon-link"></span></a>eventHub.register()</h4>
+
+<p>This method allows the developer to add additional information to the generated user.</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">eventHub</span><span class="p">.</span><span class="nx">register</span><span class="p">({</span>
+  <span class="nx">user_property_1</span><span class="o">:</span> <span class="s1">'value1'</span><span class="p">,</span>
+  <span class="nx">user_property_2</span><span class="o">:</span> <span class="s1">'value2'</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-scenario-and-receipes" class="anchor" href="#scenario-and-receipes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scenario and Receipes</h3>
+
+<h4>
+<a name="user-content-link-the-events-sent-before-and-after-an-user-sign-up" class="anchor" href="#link-the-events-sent-before-and-after-an-user-sign-up" aria-hidden="true"><span class="octicon octicon-link"></span></a>Link the events sent before and after an user sign up</h4>
+
+<p>The following code</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">eventHub</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">newEventHub</span><span class="p">(</span><span class="s1">'EventHub'</span><span class="p">,</span> <span class="p">{</span> <span class="nx">url</span><span class="o">:</span> <span class="s1">'http://example.com'</span> <span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s1">'pageview'</span><span class="p">,</span> <span class="p">{</span> <span class="nx">page</span><span class="o">:</span> <span class="s1">'home'</span> <span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">register</span><span class="p">({</span>
+  <span class="nx">ip</span><span class="o">:</span> <span class="s1">'10.0.0.1'</span>
+<span class="p">});</span>
+
+<span class="c1">// after user signup</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">alias</span><span class="p">(</span><span class="s1">'chengtao@codecademy.com'</span><span class="p">);</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">identify</span><span class="p">(</span><span class="s1">'chengtao@codecademy.com'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">gender</span><span class="o">:</span> <span class="s1">'male'</span>
+<span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s1">'pageview'</span><span class="p">,</span> <span class="p">{</span> <span class="nx">page</span><span class="o">:</span> <span class="s1">'learn'</span> <span class="p">});</span>
+</pre></div>
+
+<p>will result in a funnel like</p>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="nx">user</span><span class="o">:</span> <span class="s1">'something generated'</span><span class="p">,</span>
+  <span class="nx">event</span><span class="o">:</span> <span class="s1">'pageview'</span><span class="p">,</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'home'</span><span class="p">,</span>
+  <span class="nx">ip</span><span class="o">:</span> <span class="s1">'10.0.0.1'</span>
+<span class="p">}</span>
+<span class="nx">link</span> <span class="s1">'chengtao@codecademy.com'</span> <span class="nx">to</span> <span class="s1">'something generated'</span>
+<span class="p">{</span>
+  <span class="nx">user</span><span class="o">:</span> <span class="s1">'chengtao@codecademy.com'</span><span class="p">,</span>
+  <span class="nx">event</span><span class="o">:</span> <span class="s1">'pageview'</span><span class="p">,</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'learn'</span><span class="p">,</span>
+  <span class="nx">gender</span><span class="o">:</span> <span class="s1">'male'</span>
+<span class="p">}</span>
+</pre></div>
+
+<h4>
+<a name="user-content-ab-testing" class="anchor" href="#ab-testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>A/B testing</h4>
+
+<p>The following code</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">eventHub</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">newEventHub</span><span class="p">(</span><span class="s1">'EventHub'</span><span class="p">,</span> <span class="p">{</span> <span class="nx">url</span><span class="o">:</span> <span class="s1">'http://example.com'</span> <span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">identify</span><span class="p">(</span><span class="s1">'chengtao@codecademy.com'</span><span class="p">,</span> <span class="p">{});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s1">'pageview'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span><span class="p">,</span>
+  <span class="nx">experiment</span><span class="o">:</span> <span class="s1">'fancy feature'</span><span class="p">,</span>
+  <span class="nx">treatment</span><span class="o">:</span> <span class="s1">'new'</span>
+<span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s1">'submit'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>and</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">eventHub</span> <span class="o">=</span> <span class="nb">window</span><span class="p">.</span><span class="nx">newEventHub</span><span class="p">(</span><span class="s1">'EventHub'</span><span class="p">,</span> <span class="p">{</span> <span class="nx">url</span><span class="o">:</span> <span class="s1">'http://example.com'</span> <span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">identify</span><span class="p">(</span><span class="s1">'bob@codecademy.com'</span><span class="p">,</span> <span class="p">{});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s1">'pageview'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span><span class="p">,</span>
+  <span class="nx">experiment</span><span class="o">:</span> <span class="s1">'fancy feature'</span><span class="p">,</span>
+  <span class="nx">treatment</span><span class="o">:</span> <span class="s1">'control'</span>
+<span class="p">});</span>
+<span class="nx">eventHub</span><span class="p">.</span><span class="nx">track</span><span class="p">(</span><span class="s1">'skip'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>will result in two funnels like</p>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="nx">user</span><span class="o">:</span> <span class="s1">'chengtao@codecademy.com'</span><span class="p">,</span>
+  <span class="nx">event</span><span class="o">:</span> <span class="s1">'pageview'</span><span class="p">,</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span><span class="p">,</span>
+  <span class="nx">experiment</span><span class="o">:</span> <span class="s1">'fancy feature'</span><span class="p">,</span>
+  <span class="nx">treatment</span><span class="o">:</span> <span class="s1">'new'</span>
+<span class="p">}</span>
+<span class="p">{</span>
+  <span class="nx">user</span><span class="o">:</span> <span class="s1">'chengtao@codecademy.com'</span><span class="p">,</span>
+  <span class="nx">event</span><span class="o">:</span> <span class="s1">'submit'</span><span class="p">,</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>and</p>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="nx">user</span><span class="o">:</span> <span class="s1">'bob@codecademy.com'</span><span class="p">,</span>
+  <span class="nx">event</span><span class="o">:</span> <span class="s1">'pageview'</span><span class="p">,</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span><span class="p">,</span>
+  <span class="nx">experiment</span><span class="o">:</span> <span class="s1">'fancy feature'</span><span class="p">,</span>
+  <span class="nx">treatment</span><span class="o">:</span> <span class="s1">'control'</span>
+<span class="p">}</span>
+<span class="p">{</span>
+  <span class="nx">user</span><span class="o">:</span> <span class="s1">'bob@codecademy.com'</span><span class="p">,</span>
+  <span class="nx">event</span><span class="o">:</span> <span class="s1">'skip'</span><span class="p">,</span>
+  <span class="nx">page</span><span class="o">:</span> <span class="s1">'javascript exercise 1'</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-ruby-library" class="anchor" href="#ruby-library" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ruby Library</h2>
+
+<p>Separate ruby gem is also available at <a href="https://github.com/Codecademy/EventHubClient">https://github.com/Codecademy/EventHubClient</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>MIT License.<br>
+Copyright (c) 2014 Ryzac, Inc.</p></article></div>

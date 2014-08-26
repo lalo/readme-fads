@@ -1,0 +1,903 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-iscroll-smooth-scrolling-for-the-web" class="anchor" href="#iscroll-smooth-scrolling-for-the-web" aria-hidden="true"><span class="octicon octicon-link"></span></a>iScroll, smooth scrolling for the web</h1>
+
+<p>iScroll is a high performance, small footprint, dependency free, multi-platform javascript scroller.</p>
+
+<p>It works on desktop, mobile and smart TV. It has been vigorously optimized for performance and size so to offer the smoothest result on modern and old devices alike.</p>
+
+<p>iScroll does not just <em>scroll</em>. It can handle any element that needs to be moved with user interaction. It adds scrolling, zooming, panning, infinite scrolling, parallax scrolling, carousels to your projects and manages to do that in just 4kb. Give it a broom and it will also clean up your office.</p>
+
+<p>Even on platforms where native scrolling is good enough, iScroll adds features that wouldn't be possible otherwise. Specifically:</p>
+
+<ul class="task-list">
+<li>Granular control over the scroll position, even during momentum. You can always get and set the x,y coordinates of the scroller.</li>
+<li>Animation can be customized with user defined easing functions (bounce, elastic, back, ...).</li>
+<li>You can easily hook to a plethora of custom events (onBeforeScrollStart, onScrollStart, onScroll, onScrollEnd, flick, ...).</li>
+<li>Out of the box multi-platform support. From older Android devices to the latest iPhone, from Chrome to Internet Explorer.</li>
+</ul><h2>
+<a name="user-content-the-many-faces-of-iscroll" class="anchor" href="#the-many-faces-of-iscroll" aria-hidden="true"><span class="octicon octicon-link"></span></a>The many faces of iScroll</h2>
+
+<p>iScroll is all about optimization. To reach the highest performance it has been divided into multiple versions. You can pick the version that better suits your need.</p>
+
+<p>Currently we have the following fragrances:</p>
+
+<ul class="task-list">
+<li>
+<strong>iscroll.js</strong>, it is the general purpose script. It includes the most commonly used features and grants very high performance in a small footprint.</li>
+<li>
+<strong>iscroll-lite.js</strong>, it is a stripped down version of the main script. It doesn't support snap, scrollbars, mouse wheel, key bindings. But if all you need is scrolling (especially on mobile) <em>iScroll lite</em> is the smallest, fastest solution.</li>
+<li>
+<strong>iscroll-probe.js</strong>, probing the current scroll position is a demanding task, that's why I decided to build a dedicated version for it. If you need to know the scrolling position at any given time, this is the iScroll for you. (I'm making some more tests, this might end up in the regular <code>iscroll.js</code> script, so keep an eye on it).</li>
+<li>
+<strong>iscroll-zoom.js</strong>, adds zooming to the standard scroll.</li>
+<li>
+<strong>iscroll-infinite.js</strong>, can do infinite and cached scrolling. Handling very long lists of elements is no easy task for mobile devices. <em>iScroll infinite</em> uses a caching mechanism that lets you scroll a potentially infinite number of elements.</li>
+</ul><h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>So you want to be an iScroll master. Cool, because that is what I'll make you into.</p>
+
+<p>The best way to learn the iScroll is by looking at the demos. In the archive you'll find a <code>demo</code> folder <a href="https://github.com/cubiq/iscroll/tree/master/demos">stuffed with examples</a>. Most of the script features are outlined there.</p>
+
+<p><code>IScroll</code> is a class that needs to be initiated for each scrolling area. There's no limit to the number of iScrolls you can have in each page if not that imposed by the device CPU/Memory.</p>
+
+<p>Try to keep the DOM as simple as possible. iScroll uses the hardware compositing layer but there's a limit to the elements the hardware can handle.</p>
+
+<p>The optimal HTML structure is:</p>
+
+<pre><code>&lt;div id="wrapper"&gt;
+    &lt;ul&gt;
+        &lt;li&gt;...&lt;/li&gt;
+        &lt;li&gt;...&lt;/li&gt;
+        ...
+    &lt;/ul&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>iScroll must be applied to the wrapper of the scrolling area. In the above example the <code>UL</code> element will be scrolled. Only the first child of the container element is scrolled, additional children are simply ignored.</p>
+
+<div>
+<p><code>box-shadow</code>, <code>opacity</code>, <code>text-shadow</code> and alpha channels are all properties that don't go very well together with hardware acceleration. Scrolling might look good with few elements but as soon as your DOM becomes more complex you'll start experiencing lag and jerkiness.</p>
+
+<p>Sometimes a background image to simulate the shadow performs better than <code>box-shadow</code>. The bottom line is: experiment with CSS properties, you'll be surprised by the difference in performance a small CSS change can do.</p>
+</div>
+
+<p>The minimal call to initiate the script is as follow:</p>
+
+<pre><code>&lt;script type="text/javascript"&gt;
+var myScroll = new IScroll('#wrapper');
+&lt;/script&gt;
+</code></pre>
+
+<p>The first parameter can be a string representing the DOM selector of the scroll container element OR a reference to the element itself. The following is a valid syntax too:</p>
+
+<pre><code>var wrapper = document.getElementById('wrapper');
+var myScroll = new IScroll(wrapper);
+</code></pre>
+
+<p>So basically either you pass the element directly or a string that will be given to <code>querySelector</code>. Consequently to select a wrapper by its class name instead of the ID, you'd do:</p>
+
+<pre><code>var myScroll = new IScroll('.wrapper');
+</code></pre>
+
+<p>Note that iScroll uses <code>querySelector</code> not <code>querySelectorAll</code>, so only the first occurrence of the selector is used. If you need to apply iScroll to multiple objects you'll have to build your own cycle.</p>
+
+<div>
+<p>You don't strictly need to assign the instance to a variable (<code>myScroll</code>), but it is handy to keep a reference to the iScroll.</p>
+
+<p>For example you could later check the <a href="#scroller-info">scroller position</a> or <a href="#destroy">unload unnecessary events</a> when you don't need the iScroll anymore.</p>
+</div>
+
+<h2>
+<a name="user-content-initialization" class="anchor" href="#initialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initialization</h2>
+
+<p>The iScroll needs to be initiated when the DOM is ready. The safest bet is to start it on window <code>onload</code> event. <code>DOMContentLoaded</code> or inline initialization are also fine but remember that the script needs to know the height/width of the scrolling area. If you have images that don't have explicit width/height declaration, iScroll will most likely end up with a wrong scroller size.</p>
+
+<div>
+<p>Add <code>position:relative</code> or <code>absolute</code> to the scroll container (the wrapper). That alone usually solves most of the problems with wrongly calculated wrapper dimensions.</p>
+</div>
+
+<p>To sum up, the smallest iScroll configuration is:</p>
+
+<pre><code>&lt;head&gt;
+...
+&lt;script type="text/javascript" src="iscroll.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;
+var myScroll;
+function loaded() {
+    myScroll = new IScroll('#wrapper');
+}
+&lt;/script&gt;
+&lt;/head&gt;
+...
+&lt;body onload="loaded()"&gt;
+&lt;div id="wrapper"&gt;
+    &lt;ul&gt;
+        &lt;li&gt;...&lt;/li&gt;
+        &lt;li&gt;...&lt;/li&gt;
+        ...
+    &lt;/ul&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+</code></pre>
+
+<p>Refer to the <a href="http://lab.cubiq.org/iscroll5/demos/barebone/">barebone example</a> for more details on the minimal CSS/HTML requirements.</p>
+
+<div>
+<p>If you have a complex DOM it is sometimes smart to add a little delay from the <code>onload</code> event to iScroll initialization. Executing the iScroll with a 100 or 200 milliseconds delay gives the browser that little rest that can save your ass.</p>
+</div>
+
+<h2>
+<a name="user-content-configuring-the-iscroll" class="anchor" href="#configuring-the-iscroll" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring the iScroll</h2>
+
+<p>iScroll can be configured by passing a second parameter during the initialization phase.</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    mouseWheel: true,
+    scrollbars: true
+});
+</code></pre>
+
+<p>The example above turns on mouse wheel support and scrollbars.</p>
+
+<p>After initialization you can access the <em>normalized</em> values from the <code>options</code> object. Eg:</p>
+
+<pre><code>console.dir(myScroll.options);
+</code></pre>
+
+<p>The above will return the configuration the <code>myScroll</code> instance will run on. By <em>normalized</em> I mean that if you set <code>useTransform:true</code> (for example) but the browser doesn't support CSS transforms, <code>useTransform</code> will be <code>false</code>.</p>
+
+<h2>
+<a name="user-content-understanding-the-core" class="anchor" href="#understanding-the-core" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding the core</h2>
+
+<p>iScroll uses various techniques to scroll based on device/browser capability. <strong>Normally you don't need to configure the engine</strong>, iScroll is smart enough to pick the best for you.</p>
+
+<p>Nonetheless it is important to understand which mechanisms iScroll works on and how to configure them.</p>
+
+<h3>
+<a name="user-content-optionsusetransform" class="anchor" href="#optionsusetransform" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.useTransform</h3>
+
+<p>By default the engine uses the <code>transform</code> CSS property. Setting this to <code>false</code> scrolls like we were in 2007, ie: using the <code>top</code>/<code>left</code> (and thus the scroller needs to be absolutely positioned).</p>
+
+<p>This might be useful when scrolling sensitive content such as Flash, iframes and videos, but be warned: performance loss is huge.</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionsusetransition" class="anchor" href="#optionsusetransition" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.useTransition</h3>
+
+<p>iScroll uses CSS transition to perform animations (momentum and bounce). By setting this to <code>false</code>, <code>requestAnimationFrame</code> is used instead.</p>
+
+<p>On modern browsers the difference is barely noticeable. On older devices transitions perform better.</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionshwcompositing" class="anchor" href="#optionshwcompositing" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.HWCompositing</h3>
+
+<p>This option tries to put the scroller on the hardware layer by appending <code>translateZ(0)</code> to the transform CSS property. This greatly increases performance especially on mobile, but there are situations where you might want to disable it (notably if you have too many elements and the hardware can't catch up).</p>
+
+<p>Default: <code>true</code></p>
+
+<div>
+<p>If unsure leave iScroll decide what's the optimal config. For best performance all the above options should be set to <code>true</code> (or better leave them undefined as they are set to true automatically). You may try to play with them in case you encounter hiccups and memory leaks.</p>
+</div>
+
+<h2>
+<a name="user-content-basic-features" class="anchor" href="#basic-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic features</h2>
+
+<h3>
+<a name="user-content-optionsbounce" class="anchor" href="#optionsbounce" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.bounce</h3>
+
+<p>When the scroller meets the boundary it performs a small bounce animation. Disabling bounce may help reach smoother results on old or slow devices.</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionsclick" class="anchor" href="#optionsclick" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.click</h3>
+
+<p>To override the native scrolling iScroll has to inhibit some default browser behaviors, such as mouse clicks. If you want your application to respond to the <em>click</em> event you have to explicitly set this option to <code>true</code>. Please note that it is suggested to use the custom <code>tap</code> event instead (see below).</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsdisablemouseoptionsdisablepointeroptionsdisabletouch" class="anchor" href="#optionsdisablemouseoptionsdisablepointeroptionsdisabletouch" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.disableMouse<br>options.disablePointer<br>options.disableTouch</h3>
+
+<p>By default iScroll listens to all pointer events and reacts to the first one that occurs. It may seem a waste of resources but feature detection has proven quite unreliable and this <em>listen-to-all</em> approach is our safest bet for wide browser/device compatibility.</p>
+
+<p>If you have an internal mechanism for device detection or you know in advance where your script will run on, you may want to disable all event sets you don't need (mouse, pointer or touch events).</p>
+
+<p>For example to disable mouse and pointer events:</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    disableMouse: true,
+    disablePointer: true
+});
+</code></pre>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionseventpassthrough" class="anchor" href="#optionseventpassthrough" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.eventPassthrough</h3>
+
+<p>Sometimes you want to preserve native vertical scroll but being able to add an horizontal iScroll (maybe a carousel). Set this to <code>true</code> and the iScroll area will react to horizontal swipes only. Vertical swipes will naturally scroll the whole page.</p>
+
+<p>See <a href="http://lab.cubiq.org/iscroll5/demos/event-passthrough/">event passthrough demo</a> on a mobile device. Note that this can be set to <code>'horizontal'</code> to inverse the behavior (native horizontal scroll, vertical iScroll).</p>
+
+<h3>
+<a name="user-content-optionsfreescroll" class="anchor" href="#optionsfreescroll" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.freeScroll</h3>
+
+<p>This is useful mainly on 2D scrollers (when you need to scroll both horizontally and vertically). Normally when you start scrolling in one direction the other is locked.</p>
+
+<p>Sometimes you just want to move freely with no constrains. In these cases you can set this option to <code>true</code>. See <a href="http://lab.cubiq.org/iscroll5/demos/2d-scroll/">2D scroll demo</a>.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionskeybindings" class="anchor" href="#optionskeybindings" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.keyBindings</h3>
+
+<p>Set this to <code>true</code> to activate keyboard (and remote controls) interaction. See the <a href="#key-bindings">Key bindings</a> section below for more information.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsinvertwheeldirection" class="anchor" href="#optionsinvertwheeldirection" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.invertWheelDirection</h3>
+
+<p>Meaningful when mouse wheel support is activated, in which case it just inverts the scrolling direction. (ie. going down scrolls up and vice-versa).</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsmomentum" class="anchor" href="#optionsmomentum" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.momentum</h3>
+
+<p>You can turn on/off the momentum animation performed when the user quickly flicks on screen. Turning this off greatly enhance performance.</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionsmousewheel" class="anchor" href="#optionsmousewheel" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.mouseWheel</h3>
+
+<p>Listen to the mouse wheel event.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionspreventdefault" class="anchor" href="#optionspreventdefault" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.preventDefault</h3>
+
+<p>Whether or not to <code>preventDefault()</code> when events are fired. This should be left <code>true</code> unless you really know what you are doing.</p>
+
+<p>See <code>preventDefaultException</code> in the <a href="#advanced-features">Advanced features</a> for more control over the preventDefault behavior.</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionsscrollbars" class="anchor" href="#optionsscrollbars" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.scrollbars</h3>
+
+<p>Wheter or not to display the default scrollbars. See more in the <a href="#scrollbar">Scrollbar</a> section.</p>
+
+<p>Default: <code>false</code>.</p>
+
+<h3>
+<a name="user-content-optionsscrollxoptionsscrolly" class="anchor" href="#optionsscrollxoptionsscrolly" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.scrollX<br>options.scrollY</h3>
+
+<p>By default only vertical scrolling is enabled. If you need to scroll horizontally you have to set <code>scrollX</code> to <code>true</code>. See <a href="http://lab.cubiq.org/iscroll5/demos/horizontal/">horizontal demo</a>.</p>
+
+<p>See also the <strong>freeScroll</strong> option.</p>
+
+<p>Default: <code>scrollX: false</code>, <code>scrollY: true</code></p>
+
+<div>
+<p>Note that <code>scrollX/Y: true</code> has the same effect as <code>overflow: auto</code>. Setting one direction to <code>false</code> helps to spare some checks and thus CPU cycles.</p>
+</div>
+
+<h3>
+<a name="user-content-optionsstartxoptionsstarty" class="anchor" href="#optionsstartxoptionsstarty" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.startX<br>options.startY</h3>
+
+<p>By default iScroll starts at <code>0, 0</code> (top left) position, you can instruct the scroller to kickoff at a different location.</p>
+
+<p>Default: <code>0</code></p>
+
+<h3>
+<a name="user-content-optionstap" class="anchor" href="#optionstap" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.tap</h3>
+
+<p>Set this to <code>true</code> to let iScroll emit a custom <code>tap</code> event when the scroll area is clicked/tapped but not scrolled.</p>
+
+<p>This is the suggested way to handle user interaction with clickable elements. To listen to the tap event you would add an event listener as you would do for a standard event. Example: </p>
+
+<pre><code>element.addEventListener('tap', doSomething, false); \\ Native
+$('#element').on('tap', doSomething); \\ jQuery
+</code></pre>
+
+<p>You can also customize the event name by passing a string. Eg:</p>
+
+<pre><code>tap: 'myCustomTapEvent'
+</code></pre>
+
+<p>In this case you'd listen to <code>myCustomTapEvent</code>.</p>
+
+<p>Default: <code>false</code></p>
+
+<h2>
+<a name="user-content-scrollbars" class="anchor" href="#scrollbars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scrollbars</h2>
+
+<p>The scrollbars are more than just what the name suggests. In fact internally they are referenced as <em>indicators</em>.</p>
+
+<p>An indicator listens to the scroller position and normally it just shows its position in relation to whole, but what it can do is so much more.</p>
+
+<p>Let's start with the basis.</p>
+
+<h3>
+<a name="user-content-optionsscrollbars-1" class="anchor" href="#optionsscrollbars-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.scrollbars</h3>
+
+<p>As we mentioned in the <a href="#basic-features">Basic features section</a> there's only one thing that you got to do to activate the scrollbars in all their splendor, and that one thing is:</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    scrollbars: true
+});
+</code></pre>
+
+<p>Of course the default behavior can be personalized.</p>
+
+<h3>
+<a name="user-content-optionsfadescrollbars" class="anchor" href="#optionsfadescrollbars" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.fadeScrollbars</h3>
+
+<p>When not in use the scrollbar fades away. Leave this to <code>false</code> to spare resources.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsinteractivescrollbars" class="anchor" href="#optionsinteractivescrollbars" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.interactiveScrollbars</h3>
+
+<p>The scrollbar becomes draggable and user can interact with it.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsresizescrollbars" class="anchor" href="#optionsresizescrollbars" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.resizeScrollbars</h3>
+
+<p>The scrollbar size changes based on the proportion between the wrapper and the scroller width/height. Setting this to <code>false</code> makes the scrollbar a fixed size. This might be useful in case of custom styled scrollbars (<a href="#styling-the-scrollbar">see below</a>).</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionsshrinkscrollbars" class="anchor" href="#optionsshrinkscrollbars" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.shrinkScrollbars</h3>
+
+<p>When scrolling outside of the boundaries the scrollbar is shrunk by a small amount.</p>
+
+<p>Valid values are: <code>'clip'</code> and <code>'scale'</code>.</p>
+
+<p><code>'clip'</code> just moves the indicator outside of its container, the impression is that the scrollbar shrinks but it is simply moving out of the screen. If you can live with the visual effect this option <strong>immensely improves overall performance</strong>.</p>
+
+<p><code>'scale'</code> turns off <code>useTransition</code> hence all animations are served with <code>requestAnimationFrame</code>. The indicator is actually varied in size and the end result is nicer to the eye.</p>
+
+<p>Default: <code>false</code></p>
+
+<div>
+<p>Note that resizing can't be performed by the GPU, so <code>scale</code> is all on the CPU.</p>
+<p>If your application runs on multiple devices my suggestion would be to switch this option to <code>'scale'</code>, <code>'clip'</code> or <code>false</code> based on the platform responsiveness (eg: on older mobile devices you could set this to <code>'clip'</code> and on desktop browser to <code>'scale'</code>).</p>
+</div>
+
+<p>See the <a href="http://lab.cubiq.org/iscroll5/demos/scrollbars/">scrollbar demo</a>.</p>
+
+<h3>
+<a name="user-content-styling-the-scrollbar" class="anchor" href="#styling-the-scrollbar" aria-hidden="true"><span class="octicon octicon-link"></span></a>Styling the scrollbar</h3>
+
+<p>So you don't like the default scrollbar styling and you think you could do better. Help yourself! iScroll makes dressing the scrollbar a snap. First of all set the <code>scrollbars</code> option to <code>'custom'</code>:</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    scrollbars: 'custom'
+});
+</code></pre>
+
+<p>Then use the following CSS classes to style the little bastards.</p>
+
+<ul class="task-list">
+<li>
+<strong>.iScrollHorizontalScrollbar</strong>, this is applied to the horizontal container. The element that actually hosts the scrollbar indicator.</li>
+<li>
+<strong>.iScrollVerticalScrollbar</strong>, same as above but for the vertical container.</li>
+<li>
+<strong>.iScrollIndicator</strong>, the actual scrollbar indicator.</li>
+<li>
+<strong>.iScrollBothScrollbars</strong>, this is added to the container elements when both scrollbars are shown. Normally just one (horizontal or vertical) is visible.</li>
+</ul><p>The <a href="http://lab.cubiq.org/iscroll5/demos/styled-scrollbars/">styled scrollbars demo</a> should make things clearer than my lousy explanation.</p>
+
+<p>If you set <code>resizeScrollbars: false</code> you could make the scrollbar of a fixed size, otherwise it would be resized based on the scroller length.</p>
+
+<p>Please keep reading to the following section for a revelation that will shake your world.</p>
+
+<h2>
+<a name="user-content-indicators" class="anchor" href="#indicators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Indicators</h2>
+
+<p>All the scrollbar options above are in reality just wrappers to the low level <code>indicators</code> option. It looks more or less like this:</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    indicators: {
+        el: [element|element selector]
+        fade: false,
+        ignoreBoundaries: false,
+        interactive: false,
+        listenX: true,
+        listenY: true,
+        resize: true,
+        shrink: false,
+        speedRatioX: 0,
+        speedRatioY: 0,
+    }
+});
+</code></pre>
+
+<h3>
+<a name="user-content-optionsindicatorsel" class="anchor" href="#optionsindicatorsel" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.indicators.el</h3>
+
+<p>This is a mandatory parameter which holds a reference to the scrollbar container element. The first child inside the container will be the indicator. Note that the scrollbar can be anywhere on your document, it doesn't need to be inside the scroller wrapper. Do you start perceiving the power of such tool?</p>
+
+<p>Valid syntax would be:</p>
+
+<pre><code>indicators: {
+    el: document.getElementById('indicator')
+}
+</code></pre>
+
+<p>Or simply:</p>
+
+<pre><code>indicators: {
+    el: '#indicator'
+}
+</code></pre>
+
+<h3>
+<a name="user-content-optionsindicatorsignoreboundaries" class="anchor" href="#optionsindicatorsignoreboundaries" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.indicators.ignoreBoundaries</h3>
+
+<p>This tells the indicator to ignore the boundaries imposed by its container. Since we can alter the speed ratio of the scrollbar, it is useful to just let the scrollbar go. Say you want the indicator to go twice as fast as the scroller, it would reach the end of its run very quickly. This option is used for <a href="#parallax-scrolling">parallax scrolling</a>.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsindicatorslistenxoptionsindicatorslisteny" class="anchor" href="#optionsindicatorslistenxoptionsindicatorslisteny" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.indicators.listenX<br>options.indicators.listenY</h3>
+
+<p>To which axis the indicator listens to. It can be just one or both.</p>
+
+<p>Default: <code>true</code></p>
+
+<h3>
+<a name="user-content-optionsindicatorsspeedratioxoptionsindicatorsspeedratioy" class="anchor" href="#optionsindicatorsspeedratioxoptionsindicatorsspeedratioy" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.indicators.speedRatioX<br>options.indicators.speedRatioY</h3>
+
+<p>The speed the indicator moves in relation to the main scroller size. By default this is set automatically. You rarely need to alter this value.</p>
+
+<p>Default: <code>0</code></p>
+
+<h3>
+<a name="user-content-optionsindicatorsfadeoptionsindicatorsinteractiveoptionsindicatorsresizeoptionsindicatorsshrink" class="anchor" href="#optionsindicatorsfadeoptionsindicatorsinteractiveoptionsindicatorsresizeoptionsindicatorsshrink" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.indicators.fade<br>options.indicators.interactive<br>options.indicators.resizeoptions.indicators.shrink</h3>
+
+<p>These are the same options we explored in the <a href="#scrollbars">scrollbars section</a>, I'm not going to insult your intelligence and repeat them here.</p>
+
+<div>
+<p><strong>Do not cross the streams. It would be bad!</strong> Do not mix the scrollbars syntax (<code>options.scrollbars</code>, <code>options.fadeScrollbars</code>, <code>options.interactiveScrollbars</code>, ...) with the indicators! Use one or the other.</p>
+</div>
+
+<p>Have a look at the <a href="http://lab.cubiq.org/iscroll5/demos/minimap/">minimap demo</a> to get a glance at the power of the <code>indicators</code> option.</p>
+
+<p>The wittiest of you would have noticed that <code>indicators</code> is actually plural... Yes, exactly, passing an array of objects you can have a virtually infinite number of indicators. I don't know what you may need them for, but hey! who am I to argue about your scrollbar preferences?</p>
+
+<h2>
+<a name="user-content-parallax-scrolling" class="anchor" href="#parallax-scrolling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parallax scrolling</h2>
+
+<p>Parallax scrolling is just a <em>collateral damage</em> of the <a href="#indicators">Indicators</a> functionality.</p>
+
+<p>An indicator is just a layer that follows the movement and animation applied to the main scroller. If you see it like that you'll understand the power behind this feature. To this add that you can have any number of indicators and the parallax scrolling is served.</p>
+
+<p>Please refer to the <a href="http://lab.cubiq.org/iscroll5/demos/parallax/">parallax demo</a>.</p>
+
+<h2>
+<a name="user-content-scrolling-programmatically" class="anchor" href="#scrolling-programmatically" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scrolling programmatically</h2>
+
+<p>You silly! Of course you can scroll programmaticaly!</p>
+
+<h3>
+<a name="user-content-scrolltox-y-time-easing" class="anchor" href="#scrolltox-y-time-easing" aria-hidden="true"><span class="octicon octicon-link"></span></a>scrollTo(x, y, time, easing)</h3>
+
+<p>Say your iScroll instance resides into the <code>myScroll</code> variable. You can easily scroll to any position with the following syntax:</p>
+
+<pre><code>myScroll.scrollTo(0, -100);
+</code></pre>
+
+<p>That would scroll down by 100 pixels. Remember: 0 is always the top left corner. To scroll you have to pass negative numbers.</p>
+
+<p><code>time</code> and <code>easing</code> are optional. They regulates the duration (in ms) and the easing function of the animation respectively.</p>
+
+<p>The easing functions are available in the <code>IScroll.utils.ease</code> object. For example to apply a 1 second elastic easing you'd do:</p>
+
+<pre><code>myScroll.scrollTo(0, -100, 1000, IScroll.utils.ease.elastic);
+</code></pre>
+
+<p>The available options are: <code>quadratic</code>, <code>circular</code>, <code>back</code>, <code>bounce</code>, <code>elastic</code>.</p>
+
+<h3>
+<a name="user-content-scrollbyx-y-time-easing" class="anchor" href="#scrollbyx-y-time-easing" aria-hidden="true"><span class="octicon octicon-link"></span></a>scrollBy(x, y, time, easing)</h3>
+
+<p>Same as above but X and Y are relative to the current position.</p>
+
+<pre><code>myScroll.scrollBy(0, -10);
+</code></pre>
+
+<p>Would scroll 10 pixels down. If you are at -100, you'll end up at -110.</p>
+
+<h3>
+<a name="user-content-scrolltoelementel-time-offsetx-offsety-easing" class="anchor" href="#scrolltoelementel-time-offsetx-offsety-easing" aria-hidden="true"><span class="octicon octicon-link"></span></a>scrollToElement(el, time, offsetX, offsetY, easing)</h3>
+
+<p>You're gonna like this. Sit tight.</p>
+
+<p>The only mandatory parameter is <code>el</code>. Pass an element or a selector and iScroll will try to scroll to the top/left of that element.</p>
+
+<p><code>time</code> is optional and sets the animation duration.</p>
+
+<p><code>offsetX</code> and <code>offsetY</code> define an offset in pixels, so that you can scroll to that element plus a the specified offset. Not only that. If you set them to <code>true</code> the element will be centered on screen. Refer to the <a href="http://lab.cubiq.org/iscroll5/demos/scroll-to-element/">scroll to element</a> example.</p>
+
+<p><code>easing</code> works the same way as per the <strong>scrollTo</strong> method.</p>
+
+<h2>
+<a name="user-content-snap" class="anchor" href="#snap" aria-hidden="true"><span class="octicon octicon-link"></span></a>Snap</h2>
+
+<p>iScroll can snap to fixed positions and elements.</p>
+
+<h3>
+<a name="user-content-optionssnap" class="anchor" href="#optionssnap" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.snap</h3>
+
+<p>The simplest snap config is as follow:</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    snap: true
+});
+</code></pre>
+
+<p>This would automatically split the scroller into pages the size of the container.</p>
+
+<p><code>snap</code> also takes a string as a value. The string will be the selector to the elements the scroller will be snapped to. So the following</p>
+
+<pre><code>var myScroll = new IScroll('#wrapper', {
+    snap: 'li'
+});
+</code></pre>
+
+<p>would snap to each and every <code>LI</code> tag.</p>
+
+<p>To help you navigate through the snap points iScroll grants access to a series of interesting methods.</p>
+
+<h3>
+<a name="user-content-gotopagex-y-time-easing" class="anchor" href="#gotopagex-y-time-easing" aria-hidden="true"><span class="octicon octicon-link"></span></a>goToPage(x, y, time, easing)</h3>
+
+<p><code>x</code> and <code>y</code> represent the page number you want to scroll to in the horizontal or vertical axes (yeah, it's the plural of <em>axis</em>, I checked). If the scroller in mono-dimensional, just pass <code>0</code> to the axis you don't need.</p>
+
+<p><code>time</code> is the duration of the animation, <code>easing</code> the easing function used to scroll to the point. Refer to the <strong>option.bounceEasing</strong> in the <a href="#advanced-features">Advanced features</a>. They are both optional.</p>
+
+<pre><code>myScroll.goToPage(10, 0, 1000);
+</code></pre>
+
+<p>This would scroll to the 10th page on the horizontal axis in 1 second.</p>
+
+<h3>
+<a name="user-content-nextprev" class="anchor" href="#nextprev" aria-hidden="true"><span class="octicon octicon-link"></span></a>next()<br>prev()</h3>
+
+<p>Go to the next and previous page based on current position.</p>
+
+<h2>
+<a name="user-content-zoom" class="anchor" href="#zoom" aria-hidden="true"><span class="octicon octicon-link"></span></a>Zoom</h2>
+
+<p>To use the pinch/zoom functionality you better use the <code>iscroll-zoom.js</code> script.</p>
+
+<h3>
+<a name="user-content-optionszoom" class="anchor" href="#optionszoom" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.zoom</h3>
+
+<p>Set this to <code>true</code> to activate zoom.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionszoommax" class="anchor" href="#optionszoommax" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.zoomMax</h3>
+
+<p>Maximum zoom level.</p>
+
+<p>Default: <code>4</code></p>
+
+<h3>
+<a name="user-content-optionszoommin" class="anchor" href="#optionszoommin" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.zoomMin</h3>
+
+<p>Minimum zoom level.</p>
+
+<p>Default: <code>1</code></p>
+
+<h3>
+<a name="user-content-optionszoomstart" class="anchor" href="#optionszoomstart" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.zoomStart</h3>
+
+<p>Starting zoom level.</p>
+
+<p>Default: <code>1</code></p>
+
+<h3>
+<a name="user-content-optionswheelaction" class="anchor" href="#optionswheelaction" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.wheelAction</h3>
+
+<p>Wheel action can be set to <code>'zoom'</code> to have the wheel regulate the zoom level instead of scrolling position.</p>
+
+<p>Default: <code>undefined</code> (ie: the mouse wheel scrolls)</p>
+
+<p>To sum up, a nice zoom config would be:</p>
+
+<pre><code>myScroll = new IScroll('#wrapper', {
+    zoom: true,
+    mouseWheel: true,
+    wheelAction: 'zoom'
+});
+</code></pre>
+
+<div>
+<p>The zoom is performed with CSS transform. iScroll can zoom only on browsers that support that.</p>
+</div>
+
+<div>
+<p>Some browsers (notably webkit based ones) take a snapshot of the zooming area as soon as they are placed on the hardware compositing layer (say as soon as you apply a transform to them). This snapshot is used as a texture for the zooming area and it can hardly be updated. This means that your texture will be based on elements at <strong>scale 1</strong> and zooming in will result in blurred, low definition text and images.</p>
+
+<p>A simple solution is to load content at double (or triple) its actual resolution and scale it down inside a <code>scale(0.5)</code> div. This should be enough to grant you a better result. I hope to be able to post more demos soon</p>
+</div>
+
+<p>Refer to the <a href="http://lab.cubiq.org/iscroll5/demos/zoom/">zoom demo</a>.</p>
+
+<h3>
+<a name="user-content-zoomscale-x-y-time" class="anchor" href="#zoomscale-x-y-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>zoom(scale, x, y, time)</h3>
+
+<p>Juicy method that lets you zoom programmatically.</p>
+
+<p><code>scale</code> is the zoom factor.</p>
+
+<p><code>x</code> and <code>y</code> the focus point, aka the center of the zoom. If not specified, the center of the screen will be used.</p>
+
+<p><code>time</code> is the duration of the animation in milliseconds (optional).</p>
+
+<h2>
+<a name="user-content-infinite-scrolling" class="anchor" href="#infinite-scrolling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Infinite scrolling</h2>
+
+<p>iScroll integrates a smart caching system that allows to handle of a virtually infinite amount of data using (and reusing) just a bunch of elements.</p>
+
+<p>Infinite scrolling is in an early stage of development and although it can be considered stable, it is not ready for wide consumption.</p>
+
+<p>Please review the <a href="http://lab.cubiq.org/iscroll5/demos/infinite/">infinite demo</a> and send your suggestions and bug reports.</p>
+
+<p>I will add more details as soon as the functionality evolves.</p>
+
+<h2>
+<a name="user-content-advanced-options" class="anchor" href="#advanced-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced options</h2>
+
+<p>For the hardcore developer.</p>
+
+<h3>
+<a name="user-content-optionsbindtowrapper" class="anchor" href="#optionsbindtowrapper" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.bindToWrapper</h3>
+
+<p>The <code>move</code> event is normally bound to the document and not the scroll container. When you move the cursor/finger out of the wrapper the scrolling keeps going. This is usually what you want, but you can also bind the move event to wrapper itself. Doing so as soon as the pointer leaves the container the scroll stops.</p>
+
+<p>Default: <code>false</code></p>
+
+<h3>
+<a name="user-content-optionsbounceeasing" class="anchor" href="#optionsbounceeasing" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.bounceEasing</h3>
+
+<p>Easing function performed during the bounce animation. Valid values are: <code>'quadratic'</code>, <code>'circular'</code>, <code>'back'</code>, <code>'bounce'</code>, <code>'elastic'</code>. See the <a href="http://lab.cubiq.org/iscroll5/demos/bounce-easing/">bounce easing demo</a>, drag the scroller down and release.</p>
+
+<p><code>bounceEasing</code> is a bit smarter than that. You can also feed a custom easing function, like so:</p>
+
+<pre><code>bounceEasing: {
+    style: 'cubic-bezier(0,0,1,1)',
+    fn: function (k) { return k; }
+}
+</code></pre>
+
+<p>The above would perform a linear easing. The <code>style</code> option is used every time the animation is executed with CSS transitions, <code>fn</code> is used with <code>requestAnimationFrame</code>. If the easing function is too complex and can't be represented by a cubic bezier just pass <code>''</code> (empty string) as <code>style</code>.</p>
+
+<p>Note that <code>bounce</code> and <code>elastic</code> can't be performed by CSS transitions.</p>
+
+<p>Default: <code>'circular'</code></p>
+
+<h3>
+<a name="user-content-optionsbouncetime" class="anchor" href="#optionsbouncetime" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.bounceTime</h3>
+
+<p>Duration in millisecond of the bounce animation.</p>
+
+<p>Default: <code>600</code></p>
+
+<h3>
+<a name="user-content-optionsdeceleration" class="anchor" href="#optionsdeceleration" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.deceleration</h3>
+
+<p>This value can be altered to change the momentum animation duration/speed. Higher numbers make the animation shorter. Sensible results can be experienced starting with a value of <code>0.01</code>, bigger than that basically doesn't make any momentum at all.</p>
+
+<p>Default: <code>0.0006</code></p>
+
+<h3>
+<a name="user-content-optionsmousewheelspeed" class="anchor" href="#optionsmousewheelspeed" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.mouseWheelSpeed</h3>
+
+<p>Set the speed of the mouse wheel.</p>
+
+<p>Default: <code>20</code></p>
+
+<h3>
+<a name="user-content-optionspreventdefaultexception" class="anchor" href="#optionspreventdefaultexception" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.preventDefaultException</h3>
+
+<p>These are all the exceptions when <code>preventDefault()</code> would be fired anyway despite the <strong>preventDefault</strong> option value.</p>
+
+<p>This is a pretty powerful option, if you don't want to <code>preventDefault()</code> on all elements with <em>formfield</em> class name for example, you could pass the following:</p>
+
+<pre><code>preventDefaultException: { className: /(^|\s)formfield(\s|$)/ }
+</code></pre>
+
+<p>Default: <code>{ tagName: /^(INPUT|TEXTAREA|BUTTON|SELECT)$/ }</code>.</p>
+
+<h3>
+<a name="user-content-optionsresizepolling" class="anchor" href="#optionsresizepolling" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.resizePolling</h3>
+
+<p>When you resize the window iScroll has to recalculate elements position and dimension. This might be a pretty daunting task for the poor little fella. To give it some rest the polling is set to 60 milliseconds.</p>
+
+<p>By reducing this value you get better visual effect but the script becomes more aggressive on the CPU. The default value seems a good compromise.</p>
+
+<p>Default: <code>60</code></p>
+
+<h2>
+<a name="user-content-mastering-the-refresh-method" class="anchor" href="#mastering-the-refresh-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mastering the refresh method</h2>
+
+<p>iScroll needs to know the exact dimensions of both the wrapper and the scroller. They are computed at start up but if your elements change in size, we need to tell iScroll that you are messing with the DOM.</p>
+
+<p>This is achieved by calling the <code>refresh</code> method with the right timing. Please follow me closely, understanding this will save you hours of frustration.</p>
+
+<p>Every time you touch the DOM the browser renderer repaints the page. Once this repaint has happened we can safely read the new DOM properties. The repaint phase is not instantaneous and it happens only at the end of the scope that triggered it. That's why we need to give the renderer a little rest before refreshing the iScroll.</p>
+
+<p>To ensure that javascript gets the updated properties you should defer the refreh with something like this:</p>
+
+<pre><code>ajax('page.php', onCompletion);
+
+function onCompletion () {
+    // Update here your DOM
+
+    setTimeout(function () {
+        myScroll.refresh();
+    }, 0);
+};
+</code></pre>
+
+<p>We have placed the <code>refresh()</code> call into a zero timeout. That is likely all you need to correctly refresh the iScroll boundaries. There are other ways to wait for the repaint, but the zero-timeout has proven pretty solid.</p>
+
+<div>
+<p>Consider that if you have a very complex HTML structure you may give the browser some more rest and raise the timeout to 100 or 200 milliseconds.</p>
+
+<p>This is generally true for all the tasks that have to be done on the DOM. Always give the renderer some rest.</p>
+</div>
+
+<h2>
+<a name="user-content-custom-events" class="anchor" href="#custom-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom events</h2>
+
+<p>iScroll also emits some useful custom events you can hook to.</p>
+
+<p>To register them you use the <code>on(type, fn)</code> method.</p>
+
+<pre><code>myScroll = new IScroll('#wrapper');
+myScroll.on('scrollEnd', doSomething);
+</code></pre>
+
+<p>The above code executes the <code>doSomething</code> function every time the content stops scrolling.</p>
+
+<p>The available types are:</p>
+
+<ul class="task-list">
+<li>
+<strong>beforeScrollStart</strong>, executed as soon as user touches the screen but before the scrolling has initiated.</li>
+<li>
+<strong>scrollCancel</strong>, scroll initiated but didn't happen.</li>
+<li>
+<strong>scrollStart</strong>, the scroll started.</li>
+<li>
+<strong>scroll</strong>, the content is scrolling. Available only in <code>scroll-probe.js</code> edition. See <a href="#onscroll">onScroll event</a>.</li>
+<li>
+<strong>scrollEnd</strong>, content stopped scrolling.</li>
+<li>
+<strong>flick</strong>, user flicked left/right.</li>
+<li>
+<strong>zoomStart</strong>, user started zooming.</li>
+<li>
+<strong>zoomEnd</strong>, zoom ended.</li>
+</ul><h2>
+<a name="user-content-onscroll-event" class="anchor" href="#onscroll-event" aria-hidden="true"><span class="octicon octicon-link"></span></a>onScroll event</h2>
+
+<p>The <code>scroll</code> event is available on <strong>iScroll probe edition</strong> only (<code>iscroll-probe.js</code>). The probe behavior can be altered through the <code>probeType</code> option.</p>
+
+<h3>
+<a name="user-content-optionsprobetype" class="anchor" href="#optionsprobetype" aria-hidden="true"><span class="octicon octicon-link"></span></a>options.probeType</h3>
+
+<p>This regulates the probe aggressiveness or the frequency at which the <code>scroll</code> event is fired. Valid values are: <code>1</code>, <code>2</code>, <code>3</code>. The higher the number the more aggressive the probe. The more aggressive the probe the higher the impact on the CPU.</p>
+
+<p><code>probeType: 1</code> has no impact on performance. The <code>scroll</code> event is fired only when the scroller is not busy doing its stuff.</p>
+
+<p><code>probeType: 2</code> always executes the <code>scroll</code> event except during momentum and bounce. This resembles the native <code>onScroll</code> event.</p>
+
+<p><code>probeType: 3</code> emits the <code>scroll</code> event with a to-the-pixel precision. Note that the scrolling is forced to <code>requestAnimationFrame</code> (ie: <code>useTransition:false</code>).</p>
+
+<p>Please see the <a href="http://lab.cubiq.org/iscroll5/demos/probe/">probe demo</a>.</p>
+
+<h2>
+<a name="user-content-key-bindings" class="anchor" href="#key-bindings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Key bindings</h2>
+
+<p>You can activate support for keyboards and remote controls with the <code>keyBindings</code> option. By default iScroll listens to the arrow keys, page up/down, home/end but they are (wait for it) totally customizable.</p>
+
+<p>You can pass an object with the list of key codes you want iScroll to react to.</p>
+
+<p>The default values are as follow:</p>
+
+<pre><code>keyBindings: {
+    pageUp: 33,
+    pageDown: 34,
+    end: 35,
+    home: 36,
+    left: 37,
+    up: 38,
+    right: 39,
+    down: 40
+}
+</code></pre>
+
+<p>You can also pass a string (eg: <code>pageUp: 'a'</code>) and iScroll will convert it for you. You could just think of a key code and iScroll would read it out of your mind.</p>
+
+<h2>
+<a name="user-content-useful-scroller-info" class="anchor" href="#useful-scroller-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>Useful scroller info</h2>
+
+<p>iScroll stores many useful information that you can use to augment your application.</p>
+
+<p>You will probably find useful:</p>
+
+<ul class="task-list">
+<li>
+<strong>myScroll.x/y</strong>, current position</li>
+<li>
+<strong>myScroll.directionX/Y</strong>, last direction (-1 down/right, 0 still, 1 up/left)</li>
+<li>
+<strong>myScroll.currentPage</strong>, current snap point info</li>
+</ul><p>These pieces of information may be useful when dealing with custom events. Eg:</p>
+
+<pre><code>myScroll = new IScroll('#wrapper');
+myScroll.on('scrollEnd', function () {
+    if ( this.x &lt; -1000 ) {
+        // do something
+    }
+});
+</code></pre>
+
+<p>The above executes some code if the <code>x</code> position is lower than -1000px when the scroller stops. Note that I used <code>this</code> instead of <code>myScroll</code>, you can use both of course, but iScroll passes itself as <code>this</code> context when firing custom event functions.</p>
+
+<h2>
+<a name="user-content-destroy" class="anchor" href="#destroy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Destroy</h2>
+
+<p>The public <code>destroy()</code> method can be used to free some memory when the iScroll is not needed anymore.</p>
+
+<pre><code>myScroll.destroy();
+myScroll = null;
+</code></pre>
+
+<h2>
+<a name="user-content-contributing-and-cla" class="anchor" href="#contributing-and-cla" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing and CLA</h2>
+
+<p>If you want to contribute to the iScroll development, before I can accept your submission I have to ask you to sign the <a href="http://cubiq.org/iscroll/cla/">Contributor License Agreement</a>. Unfortunately that is the only way to enforce the openness of the script.</p>
+
+<p>As an end user you have to do nothing of course. Actually the CLA ensures that nobody will even come after you asking for your first born for using the iScroll.</p>
+
+<p>Please note that pull requests may take some time to be accepted. Testing iScroll is one of the most time consuming tasks of the project. iScroll works from desktop to smartphone, from tablets to smart TVs. I do not have physical access to all the testing devices, so before I can push a change I have to make sure that the new code is working everywhere.</p>
+
+<p>Critical bugs are usually applied very quickly, but enhancements and coding style changes have to pass a longer review phase. <em>Remember that this is still a side project for me.</em></p>
+
+<h2>
+<a name="user-content-who-is-using-iscroll" class="anchor" href="#who-is-using-iscroll" aria-hidden="true"><span class="octicon octicon-link"></span></a>Who is using iScroll</h2>
+
+<p>It's impossible to track all the websites and applications that use the iScroll. It has been spotted on: Apple, Microsoft, People, LinkedIn, IKEA, Nike, Playboy, Bose, and countless others.</p>
+
+<h2>
+<a name="user-content-license-mit" class="anchor" href="#license-mit" aria-hidden="true"><span class="octicon octicon-link"></span></a>License (MIT)</h2>
+
+<p>Copyright (c) 2014 Matteo Spinelli, <a href="http://cubiq.org/">cubiq.org</a></p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

@@ -1,0 +1,111 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hackage-server" class="anchor" href="#hackage-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>hackage-server</h1>
+
+<p><a href="https://travis-ci.org/haskell/hackage-server"><img src="https://camo.githubusercontent.com/c05433db6d0db4a570edfb6a57f873a9120b6673/68747470733a2f2f7472617669732d63692e6f72672f6861736b656c6c2f6861636b6167652d7365727665722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/haskell/hackage-server.png?branch=master" style="max-width:100%;"></a></p>
+
+<p>This is the <code>hackage-server</code> code. This is what powers <a href="http://hackage.haskell.org">http://hackage.haskell.org</a>, and many other private hackage instances.</p>
+
+<h2>
+<a name="user-content-mac-os-x-users-note" class="anchor" href="#mac-os-x-users-note" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mac OS X users note</h2>
+
+<p>You'll need to do the following to get hackage-server to build:</p>
+
+<pre><code>brew install icu4c
+brew link icu4c --force
+</code></pre>
+
+<h2>
+<a name="user-content-running" class="anchor" href="#running" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running</h2>
+
+<pre><code>cabal install -j --enable-tests
+
+hackage-server init
+hackage-server run
+</code></pre>
+
+<p>By default the server runs on port <code>8080</code> with the following settings:</p>
+
+<pre><code>URL:      http://localhost:8080/
+username: admin
+password: admin
+</code></pre>
+
+<p>To specify something different, see <code>hackage-server init --help</code> for details.</p>
+
+<p>The server can be stopped by using <code>Control-C</code>.</p>
+
+<p>This will save the current state and shutdown cleanly. Running again
+will resume with the same state.</p>
+
+<h3>
+<a name="user-content-resetting" class="anchor" href="#resetting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resetting</h3>
+
+<p>To reset everything, kill the server and delete the server state:</p>
+
+<div class="highlight highlight-bash"><pre>rm -rf state/
+</pre></div>
+
+<p>Note that the <code>datafiles/</code> and <code>state/</code> directories differ:
+<code>datafiles</code> is for static html, templates and other files.
+The <code>state</code> directory holds the database (using <code>acid-state</code>
+and a separate blob store).</p>
+
+<h3>
+<a name="user-content-creating-users--uploading-packages" class="anchor" href="#creating-users--uploading-packages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating users &amp; uploading packages</h3>
+
+<ul class="task-list">
+<li>Admin front-end: <a href="http://localhost:8080/admin">http://localhost:8080/admin</a>
+</li>
+<li>List of users: <a href="http://localhost:8080/users/">http://localhost:8080/users/</a>
+</li>
+<li>Register new users: <a href="http://localhost:8080/users/register">http://localhost:8080/users/register</a>
+</li>
+</ul><p>Currently there is no restriction on registering, but only an admin
+user can grant privileges to registered users e.g. by adding them to
+other groups. In particular there are groups:</p>
+
+<ul class="task-list">
+<li>admins <code>http://localhost:8080/users/admins/</code> -- administrators can
+do things with user accounts like disabling, deleting, changing
+other groups etc.</li>
+<li>trustees <code>http://localhost:8080/packages/trustees/</code> -- trustees can
+do janitorial work on all packages</li>
+<li>mirrors <code>http://localhost:8080/packages/mirrorers/</code> -- for special
+mirroring clients that are trusted to upload packages</li>
+<li>per-package maintainer groups
+<code>http://localhost:8080/package/foo/maintainers</code> -- users allowed to
+upload packages</li>
+<li>uploaders <code>http://localhost:8080/packages/uploaders/</code> -- for
+uploading new packages</li>
+</ul><h3>
+<a name="user-content-mirroring" class="anchor" href="#mirroring" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mirroring</h3>
+
+<p>There is a client program included in the hackage-server package called
+hackage-mirror. It's intended to run against two servers, syncing all the
+packages from one to the other, e.g. getting all the packages from the old
+hackage and uploading them to a local instance of a hackage-server.</p>
+
+<p>To try it out:</p>
+
+<ol class="task-list">
+<li>On the target server, add a user to the mirrorers group via
+http://localhost:8080/packages/mirrorers/</li>
+<li>Create a config file that contains the source and target
+servers. Assuming you are cloning the packages on
+<a href="http://hackage.haskell.org">http://hackage.haskell.org</a> locally, you could create a config
+file as follows:</li>
+</ol><div class="highlight highlight-bash"><pre><span class="nb">echo</span> -e <span class="s2">"http://hackage.haskell.org\nhttp://admin:admin@localhost:8080/"</span> &gt; servers.cfg
+</pre></div>
+
+<ol class="task-list">
+<li>Run the client, pointing to the config file:</li>
+</ol><div class="highlight highlight-bash"><pre>hackage-mirror servers.cfg
+</pre></div>
+
+<p>This will do a one-time sync, and will bail out at the first sign of
+trouble. You can also do more robust and continuous mirroring. Use the
+flag <code>--continuous</code>. It will sync every 30 minutes (configurable with
+<code>--interval</code>). In this mode it carries on even when some packages
+cannot be mirrored for some reason and remembers them so it doesn't
+try them again and again. You can force it to try again by deleting
+the state files it mentions.</p></article></div>

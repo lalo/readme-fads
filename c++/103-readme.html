@@ -1,0 +1,112 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-mailcore-2-introduction" class="anchor" href="#mailcore-2-introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mailcore 2: Introduction</h2>
+
+<p>MailCore 2 provides a simple and asynchronous Objective-C API to work with the e-mail protocols <strong>IMAP</strong>, <strong>POP</strong> and <strong>SMTP</strong>. The API has been redesigned from the ground up.  It features:</p>
+
+<ul class="task-list">
+<li>
+<strong>POP</strong>, <strong>IMAP</strong> and <strong>SMTP</strong> support</li>
+<li>
+<strong><a href="http://www.ietf.org/rfc/rfc0822.txt">RFC822</a></strong> parser and generator</li>
+<li>
+<strong>Asynchronous</strong> APIs</li>
+<li>
+<strong>HTML</strong> rendering of messages</li>
+<li>
+<strong>iOS</strong> and <strong>Mac</strong> support</li>
+</ul><p><a href="https://travis-ci.org/MailCore/mailcore2"><img src="https://camo.githubusercontent.com/1eec2b5597c918bb474ba22857d6f5b5a1399b53/68747470733a2f2f7472617669732d63692e6f72672f4d61696c436f72652f6d61696c636f7265322e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/MailCore/mailcore2.png?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<ol class="task-list">
+<li>If you're migrating from MailCore1, you should first clean your build folder.</li>
+<li>Checkout MailCore2 into a directory relative to your project.</li>
+<li>Under the <code>build-mac</code> directory, locate the <code>mailcore2.xcodeproj</code> file, and drag this into your Xcode project.</li>
+<li>
+<strong>For Mac</strong> - If you're building for Mac, you can either link against MailCore 2 as a framework, or as a static library:
+
+<ul class="task-list">
+<li>Mac framework
+
+<ul class="task-list">
+<li>Go to Build Phases from your build target, and under 'Link Binary With Libraries', add <code>MailCore.framework</code> and <code>Security.framework</code>.</li>
+<li>Make sure to use LLVM C++ standard library.  Open Build Settings, scroll down to 'C++ Standard Library', and select <code>libc++</code>.</li>
+<li>In Build Phases, add a Target Dependency of <code>mailcore osx</code> (it's the one with a little toolbox icon).</li>
+<li>Goto <code>Editor &gt; Add Build Phase &gt; Copy Files</code>.</li>
+<li>Expand the newly created Build Phase and change it's destination to "Frameworks".</li>
+<li>Click the <code>+</code> icon and select <code>MailCore.framework</code>.</li>
+</ul>
+</li>
+<li>Mac static library
+
+<ul class="task-list">
+<li>Go to Build Phases from your build target, and under 'Link Binary With Libraries', add <code>libMailCore.a</code> and <code>Security.framework</code>.</li>
+<li>Set 'Other Linker Flags' under Build Settings: <code>-lctemplate -letpan -licudata -licui18n -licuuc -lxml2 -lsasl2 -liconv -ltidy -lz</code> <code>-licucore -lc++ -stdlib=libc++ -ObjC -lcrypto -lssl</code>
+</li>
+<li>Make sure to use LLVM C++ standard library.  In Build Settings, locate 'C++ Standard Library', and select <code>libc++</code>.</li>
+<li>In Build Phases, add a Target Dependency of <code>static mailcore2 osx</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<strong>For iOS</strong> - If you're targeting iOS, you have to link against MailCore 2 as a static library:
+
+<ul class="task-list">
+<li>Add <code>libMailCore-ios.a</code>
+</li>
+<li>Add <code>CFNetwork.framework</code>
+</li>
+<li>Add <code>Security.framework</code>
+</li>
+<li>Set 'Other Linker Flags': <code>-lctemplate-ios -letpan-ios -licudata -licui18n -licuuc -lxml2 -lsasl2 -liconv -ltidy -lz</code> <code>-licucore -lc++ -stdlib=libc++ -ObjC</code>
+</li>
+<li>Make sure to use LLVM C++ standard library.  Open Build Settings, scroll down to 'C++ Standard Library', and select <code>libc++</code>.</li>
+<li>In Build Phases, add a Target Dependency of <code>static mailcore2 ios</code>.</li>
+</ul>
+</li>
+<li>Profit.</li>
+</ol><p>Here's a video that shows all the steps for iOS:
+<a href="http://www.youtube.com/watch?v=9fAo6oBzlQI">http://www.youtube.com/watch?v=9fAo6oBzlQI</a></p>
+
+<h2>
+<a name="user-content-basic-imap-usage" class="anchor" href="#basic-imap-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic IMAP Usage</h2>
+
+<p>Using MailCore 2 is just a little more complex conceptually than the original MailCore.  All fetch requests in MailCore 2 are made asynchronously through a queue.  What does this mean?  Well, let's  take a look at a simple example:</p>
+
+<div class="highlight highlight-objc"><pre>    <span class="n">MCOIMAPSession</span> <span class="o">*</span><span class="n">session</span> <span class="o">=</span> <span class="p">[[</span><span class="n">MCOIMAPSession</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">session</span> <span class="nl">setHostname</span><span class="p">:</span><span class="s">@"imap.gmail.com"</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">session</span> <span class="nl">setPort</span><span class="p">:</span><span class="mi">993</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">session</span> <span class="nl">setUsername</span><span class="p">:</span><span class="s">@"ADDRESS@gmail.com"</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">session</span> <span class="nl">setPassword</span><span class="p">:</span><span class="s">@"123456"</span><span class="p">];</span>
+    <span class="p">[</span><span class="n">session</span> <span class="nl">setConnectionType</span><span class="p">:</span><span class="n">MCOConnectionTypeTLS</span><span class="p">];</span>
+
+    <span class="n">MCOIMAPMessagesRequestKind</span> <span class="n">requestKind</span> <span class="o">=</span> <span class="n">MCOIMAPMessagesRequestKindHeaders</span><span class="p">;</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">folder</span> <span class="o">=</span> <span class="s">@"INBOX"</span><span class="p">;</span>
+    <span class="n">MCOIndexSet</span> <span class="o">*</span><span class="n">uids</span> <span class="o">=</span> <span class="p">[</span><span class="n">MCOIndexSet</span> <span class="nl">indexSetWithRange</span><span class="p">:</span><span class="n">MCORangeMake</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">UINT64_MAX</span><span class="p">)];</span>
+
+    <span class="n">MCOIMAPFetchMessagesOperation</span> <span class="o">*</span><span class="n">fetchOperation</span> <span class="o">=</span> <span class="p">[</span><span class="n">session</span> <span class="nl">fetchMessagesByUIDOperationWithFolder</span><span class="p">:</span><span class="n">folder</span> <span class="nl">requestKind</span><span class="p">:</span><span class="n">requestKind</span> <span class="nl">uids</span><span class="p">:</span><span class="n">uids</span><span class="p">];</span>
+
+    <span class="p">[</span><span class="n">fetchOperation</span> <span class="nl">start</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSError</span> <span class="o">*</span> <span class="n">error</span><span class="p">,</span> <span class="bp">NSArray</span> <span class="o">*</span> <span class="n">fetchedMessages</span><span class="p">,</span> <span class="n">MCOIndexSet</span> <span class="o">*</span> <span class="n">vanishedMessages</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">//We've finished downloading the messages!</span>
+
+        <span class="c1">//Let's check if there was an error:</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Error downloading message headers:%@"</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="c1">//And, let's print out the messages...</span>
+        <span class="n">NSLog</span><span class="p">(</span><span class="s">@"The post man delivereth:%@"</span><span class="p">,</span> <span class="n">fetchedMessages</span><span class="p">);</span>
+    <span class="p">}];</span>
+</pre></div>
+
+<p>In this sample, we retrieved and printed a list of email headers from an IMAP server.  In order to execute the fetch, we request an asynchronous operation object from the <code>MCOIMAPSession</code> instance with our parameters (more on this later).  This operation object is able to initiate a connection to Gmail when we call the <code>start</code> method.  Now here's where things get a little tricky.  We call the <code>start</code> function with an Objective-C block, which is executed on the main thread when the fetch operation completes.  The actual fetching from IMAP is done on a <strong>background thread</strong>, leaving your UI and other processing <strong>free to use the main thread</strong>.</p>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<ul class="task-list">
+<li><a href="http://libmailcore.com/mailcore2/api/index.html">Class documentation</a></li>
+<li><a href="https://github.com/MailCore/mailcore2/wiki">Wiki</a></li>
+</ul></article></div>

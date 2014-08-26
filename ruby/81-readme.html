@@ -1,0 +1,425 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-bullet" class="anchor" href="#bullet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bullet</h1>
+
+<p><a href="http://badge.fury.io/rb/bullet"><img src="https://camo.githubusercontent.com/99fb3882f4181114b39223f57aff8ad1f2cde4fd/68747470733a2f2f62616467652e667572792e696f2f72622f62756c6c65742e706e67" alt="Gem Version" data-canonical-src="https://badge.fury.io/rb/bullet.png" style="max-width:100%;"></a>
+<a href="http://travis-ci.org/flyerhzm/bullet"><img src="https://camo.githubusercontent.com/a25fa9bee21bbfedffd38bee4473b1e3fc90b5f9/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f666c796572687a6d2f62756c6c65742e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/flyerhzm/bullet.png" style="max-width:100%;"></a>
+<a href="https://coveralls.io/r/flyerhzm/bullet"><img src="https://camo.githubusercontent.com/c49d2448c5eca2ff5556711d9daeeda01f9e1d4b/68747470733a2f2f636f766572616c6c732e696f2f7265706f732f666c796572687a6d2f62756c6c65742f62616467652e706e673f6272616e63683d6d6173746572" alt="Coverage Status" data-canonical-src="https://coveralls.io/repos/flyerhzm/bullet/badge.png?branch=master" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/flyerhzm/bullet"><img src="https://camo.githubusercontent.com/eacc4fd82ad20aedaa6f3b12c13add979180f9a1/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f666c796572687a6d2f62756c6c65742e706e67" data-canonical-src="https://codeclimate.com/github/flyerhzm/bullet.png" style="max-width:100%;"></a>
+<a href="http://coderwall.com/flyerhzm"><img src="https://camo.githubusercontent.com/81047c774a659b7a85ef4e0b193930425ee6b009/687474703a2f2f6170692e636f64657277616c6c2e636f6d2f666c796572687a6d2f656e646f727365636f756e742e706e67" alt="Coderwall Endorse" data-canonical-src="http://api.coderwall.com/flyerhzm/endorsecount.png" style="max-width:100%;"></a></p>
+
+<p>The Bullet gem is designed to help you increase your application's performance by reducing the number of queries it makes. It will watch your queries while you develop your application and notify you when you should add eager loading (N+1 queries), when you're using eager loading that isn't necessary and when you should use counter cache.</p>
+
+<p>Best practice is to use Bullet in development mode or custom mode (staging, profile, etc.). The last thing you want is your clients getting alerts about how lazy you are.</p>
+
+<p>Bullet gem now supports <strong>activerecord</strong> &gt;= 3.0 and <strong>mongoid</strong> &gt;= 2.4.1.</p>
+
+<p>If you use activerecord 2.x, please use bullet &lt;= 4.5.0</p>
+
+<h2>
+<a name="user-content-external-introduction" class="anchor" href="#external-introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>External Introduction</h2>
+
+<ul class="task-list">
+<li><a href="http://railscasts.com/episodes/372-bullet">http://railscasts.com/episodes/372-bullet</a></li>
+<li><a href="http://ruby5.envylabs.com/episodes/9-episode-8-september-8-2009">http://ruby5.envylabs.com/episodes/9-episode-8-september-8-2009</a></li>
+<li><a href="http://railslab.newrelic.com/2009/10/23/episode-19-on-the-edge-part-1">http://railslab.newrelic.com/2009/10/23/episode-19-on-the-edge-part-1</a></li>
+<li><a href="http://weblog.rubyonrails.org/2009/10/22/community-highlights">http://weblog.rubyonrails.org/2009/10/22/community-highlights</a></li>
+</ul><h2>
+<a name="user-content-install" class="anchor" href="#install" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install</h2>
+
+<p>You can install it as a gem:</p>
+
+<pre><code>gem install bullet
+</code></pre>
+
+<p>or add it into a Gemfile (Bundler):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"bullet"</span><span class="p">,</span> <span class="ss">:group</span> <span class="o">=&gt;</span> <span class="s2">"development"</span>
+</pre></div>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Bullet won't do ANYTHING unless you tell it to explicitly. Append to
+<code>config/environments/development.rb</code> initializer with the following code:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">after_initialize</span> <span class="k">do</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">enable</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">alert</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">bullet_logger</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">console</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">growl</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">xmpp</span> <span class="o">=</span> <span class="p">{</span> <span class="ss">:account</span>  <span class="o">=&gt;</span> <span class="s1">'bullets_account@jabber.org'</span><span class="p">,</span>
+                  <span class="ss">:password</span> <span class="o">=&gt;</span> <span class="s1">'bullets_password_for_jabber'</span><span class="p">,</span>
+                  <span class="ss">:receiver</span> <span class="o">=&gt;</span> <span class="s1">'your_account@jabber.org'</span><span class="p">,</span>
+                  <span class="ss">:show_online_status</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="p">}</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">rails_logger</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">bugsnag</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">airbrake</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">add_footer</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">stacktrace_includes</span> <span class="o">=</span> <span class="o">[</span> <span class="s1">'your_gem'</span><span class="p">,</span> <span class="s1">'your_middleware'</span> <span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The notifier of Bullet is a wrap of <a href="https://github.com/flyerhzm/uniform_notifier">uniform_notifier</a></p>
+
+<p>The code above will enable all seven of the Bullet notification systems:</p>
+
+<ul class="task-list">
+<li>
+<code>Bullet.enable</code>: enable Bullet gem, otherwise do nothing</li>
+<li>
+<code>Bullet.alert</code>: pop up a JavaScript alert in the browser</li>
+<li>
+<code>Bullet.bullet_logger</code>: log to the Bullet log file (Rails.root/log/bullet.log)</li>
+<li>
+<code>Bullet.rails_logger</code>: add warnings directly to the Rails log</li>
+<li>
+<code>Bullet.airbrake</code>: add notifications to airbrake</li>
+<li>
+<code>Bullet.console</code>: log warnings to your browser's console.log (Safari/Webkit browsers or Firefox w/Firebug installed)</li>
+<li>
+<code>Bullet.growl</code>: pop up Growl warnings if your system has Growl installed. Requires a little bit of configuration</li>
+<li>
+<code>Bullet.xmpp</code>: send XMPP/Jabber notifications to the receiver indicated. Note that the code will currently not handle the adding of contacts, so you will need to make both accounts indicated know each other manually before you will receive any notifications. If you restart the development server frequently, the 'coming online' sound for the Bullet account may start to annoy - in this case set :show_online_status to false; you will still get notifications, but the Bullet account won't announce it's online status anymore.</li>
+<li>
+<code>Bullet.raise</code>: raise errors, useful for making your specs fail unless they have optimized queries</li>
+<li>
+<code>Bullet.add_footer</code>: adds the details in the bottom left corner of the page</li>
+<li>
+<code>Bullet.stacktrace_includes</code>: include paths with any of these substrings in the stack trace, even if they are not in your main app</li>
+</ul><p>Bullet also allows you to disable any of its detectors.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Each of these settings defaults to true</span>
+
+<span class="c1"># Detect N+1 queries</span>
+<span class="no">Bullet</span><span class="o">.</span><span class="n">n_plus_one_query_enable</span>     <span class="o">=</span> <span class="kp">false</span>
+
+<span class="c1"># Detect eager-loaded associations which are not used</span>
+<span class="no">Bullet</span><span class="o">.</span><span class="n">unused_eager_loading_enable</span> <span class="o">=</span> <span class="kp">false</span>
+
+<span class="c1"># Detect unnecessary COUNT queries which could be avoided</span>
+<span class="c1"># with a counter_cache</span>
+<span class="no">Bullet</span><span class="o">.</span><span class="n">counter_cache_enable</span>        <span class="o">=</span> <span class="kp">false</span>
+</pre></div>
+
+<h2>
+<a name="user-content-whitelist" class="anchor" href="#whitelist" aria-hidden="true"><span class="octicon octicon-link"></span></a>Whitelist</h2>
+
+<p>Sometimes Bullet may notify you of query problems you don't care to fix, or
+which come from outside your code. You can whitelist these to ignore them:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Bullet</span><span class="o">.</span><span class="n">add_whitelist</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:n_plus_one_query</span><span class="p">,</span> <span class="ss">:class_name</span> <span class="o">=&gt;</span> <span class="s2">"Post"</span><span class="p">,</span> <span class="ss">:association</span> <span class="o">=&gt;</span> <span class="ss">:comments</span>
+<span class="no">Bullet</span><span class="o">.</span><span class="n">add_whitelist</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:unused_eager_loading</span><span class="p">,</span> <span class="ss">:class_name</span> <span class="o">=&gt;</span> <span class="s2">"Post"</span><span class="p">,</span> <span class="ss">:association</span> <span class="o">=&gt;</span> <span class="ss">:comments</span>
+<span class="no">Bullet</span><span class="o">.</span><span class="n">add_whitelist</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:counter_cache</span><span class="p">,</span> <span class="ss">:class_name</span> <span class="o">=&gt;</span> <span class="s2">"Country"</span><span class="p">,</span> <span class="ss">:association</span> <span class="o">=&gt;</span> <span class="ss">:cities</span>
+</pre></div>
+
+<h2>
+<a name="user-content-log" class="anchor" href="#log" aria-hidden="true"><span class="octicon octicon-link"></span></a>Log</h2>
+
+<p>The Bullet log <code>log/bullet.log</code> will look something like this:</p>
+
+<ul class="task-list">
+<li>N+1 Query:</li>
+</ul><pre><code>2009-08-25 20:40:17[INFO] N+1 Query: PATH_INFO: /posts;    model: Post =&gt; associations: [comments]·
+Add to your finder: :include =&gt; [:comments]
+2009-08-25 20:40:17[INFO] N+1 Query: method call stack:·
+/Users/richard/Downloads/test/app/views/posts/index.html.erb:11:in `_run_erb_app47views47posts47index46html46erb'
+/Users/richard/Downloads/test/app/views/posts/index.html.erb:8:in `each'
+/Users/richard/Downloads/test/app/views/posts/index.html.erb:8:in `_run_erb_app47views47posts47index46html46erb'
+/Users/richard/Downloads/test/app/controllers/posts_controller.rb:7:in `index'
+</code></pre>
+
+<p>The first two lines are notifications that N+1 queries have been encountered. The remaining lines are stack traces so you can find exactly where the queries were invoked in your code, and fix them.</p>
+
+<ul class="task-list">
+<li>Unused eager loading:</li>
+</ul><pre><code>2009-08-25 20:53:56[INFO] Unused eager loadings: PATH_INFO: /posts;    model: Post =&gt; associations: [comments]·
+Remove from your finder: :include =&gt; [:comments]
+</code></pre>
+
+<p>These two lines are notifications that unused eager loadings have been encountered.</p>
+
+<ul class="task-list">
+<li>Need counter cache:</li>
+</ul><pre><code>2009-09-11 09:46:50[INFO] Need Counter Cache
+  Post =&gt; [:comments]
+</code></pre>
+
+<h2>
+<a name="user-content-growl-xmppjabber-and-airbrake-support" class="anchor" href="#growl-xmppjabber-and-airbrake-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Growl, XMPP/Jabber and Airbrake Support</h2>
+
+<p>see <a href="https://github.com/flyerhzm/uniform_notifier">https://github.com/flyerhzm/uniform_notifier</a></p>
+
+<h2>
+<a name="user-content-important" class="anchor" href="#important" aria-hidden="true"><span class="octicon octicon-link"></span></a>Important</h2>
+
+<p>If you find Bullet does not work for you, <em>please disable your browser's cache</em>.</p>
+
+<h2>
+<a name="user-content-advanced" class="anchor" href="#advanced" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced</h2>
+
+<h3>
+<a name="user-content-profile-a-job" class="anchor" href="#profile-a-job" aria-hidden="true"><span class="octicon octicon-link"></span></a>Profile a job</h3>
+
+<p>The Bullet gem uses rack middleware to profile requests. If you want to use Bullet without an http server, like to profile a job, you can use use profile method and fetch warnings</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Bullet</span><span class="o">.</span><span class="n">profile</span> <span class="k">do</span>
+  <span class="c1"># do anything</span>
+<span class="k">end</span>
+<span class="n">warnings</span> <span class="o">=</span> <span class="no">Bullet</span><span class="o">.</span><span class="n">warnings</span>
+</pre></div>
+
+<h3>
+<a name="user-content-work-with-sinatra" class="anchor" href="#work-with-sinatra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Work with sinatra</h3>
+
+<p>Configure and use <code>Bullet::Rack</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">configure</span> <span class="ss">:development</span> <span class="k">do</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">enable</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">bullet_logger</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="n">use</span> <span class="no">Bullet</span><span class="o">::</span><span class="no">Rack</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-run-in-tests" class="anchor" href="#run-in-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Run in tests</h3>
+
+<p>First you need to enable Bullet in test environment.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/environments/test.rb</span>
+<span class="n">config</span><span class="o">.</span><span class="n">after_initialize</span> <span class="k">do</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">enable</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">bullet_logger</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">raise</span> <span class="o">=</span> <span class="kp">true</span> <span class="c1"># raise an error if n+1 query occurs</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then wrap each test in Bullet api.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># spec/spec_helper.rb</span>
+<span class="k">if</span> <span class="no">Bullet</span><span class="o">.</span><span class="n">enable?</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">before</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span>
+    <span class="no">Bullet</span><span class="o">.</span><span class="n">start_request</span>
+  <span class="k">end</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">after</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span>
+    <span class="no">Bullet</span><span class="o">.</span><span class="n">perform_out_of_channel_notifications</span> <span class="k">if</span> <span class="no">Bullet</span><span class="o">.</span><span class="n">notification?</span>
+    <span class="no">Bullet</span><span class="o">.</span><span class="n">end_request</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-debug-mode" class="anchor" href="#debug-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debug Mode</h2>
+
+<p>Bullet outputs some details info, to enable debug mode, set
+<code>BULLET_DEBUG=true</code> env.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p><a href="https://github.com/flyerhzm/bullet/contributors">https://github.com/flyerhzm/bullet/contributors</a></p>
+
+<h2>
+<a name="user-content-demo" class="anchor" href="#demo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Demo</h2>
+
+<p>Bullet is designed to function as you browse through your application in development. To see it in action, follow these steps to create, detect, and fix example query problems.</p>
+
+<p>1. Create an example application</p>
+
+<pre><code>$ rails new test_bullet
+$ cd test_bullet
+$ rails g scaffold post name:string
+$ rails g scaffold comment name:string post_id:integer
+$ bundle exec rake db:migrate
+</code></pre>
+
+<p>2. Change <code>app/model/post.rb</code> and <code>app/model/comment.rb</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_many</span> <span class="ss">:comments</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Comment</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:post</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>3. Go to <code>rails c</code> and execute</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">post1</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'first'</span><span class="p">)</span>
+<span class="n">post2</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'second'</span><span class="p">)</span>
+<span class="n">post1</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'first'</span><span class="p">)</span>
+<span class="n">post1</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'second'</span><span class="p">)</span>
+<span class="n">post2</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'third'</span><span class="p">)</span>
+<span class="n">post2</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'fourth'</span><span class="p">)</span>
+</pre></div>
+
+<p>4. Change the <code>app/views/posts/index.html.erb</code> to produce a N+1 query</p>
+
+<pre><code>&lt;% @posts.each do |post| %&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;%= post.name %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= post.comments.map(&amp;:name) %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Show', post %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Edit', edit_post_path(post) %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Destroy', post, :confirm =&gt; 'Are you sure?', :method =&gt; :delete %&gt;&lt;/td&gt;
+  &lt;/tr&gt;
+&lt;% end %&gt;
+</code></pre>
+
+<p>5. Add the <code>bullet</code> gem to the <code>Gemfile</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"bullet"</span>
+</pre></div>
+
+<p>And run</p>
+
+<pre><code>bundle install
+</code></pre>
+
+<p>6. enable the Bullet gem in development, add a line to
+<code>config/environments/development.rb</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">after_initialize</span> <span class="k">do</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">enable</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">alert</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">bullet_logger</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">console</span> <span class="o">=</span> <span class="kp">true</span>
+<span class="c1">#  Bullet.growl = true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">rails_logger</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="no">Bullet</span><span class="o">.</span><span class="n">add_footer</span> <span class="o">=</span> <span class="kp">true</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>7. Start the server</p>
+
+<pre><code>$ rails s
+</code></pre>
+
+<p>8. Visit <code>http://localhost:3000/posts</code> in browser, and you will see a popup alert box that says</p>
+
+<pre><code>The request has unused preload associations as follows:
+None
+The request has N+1 queries as follows:
+model: Post =&gt; associations: [comment]
+</code></pre>
+
+<p>which means there is a N+1 query from the Post object to its Comment association.</p>
+
+<p>In the meanwhile, there's a log appended into <code>log/bullet.log</code> file</p>
+
+<pre><code>2010-03-07 14:12:18[INFO] N+1 Query in /posts
+  Post =&gt; [:comments]
+  Add to your finder: :include =&gt; [:comments]
+2010-03-07 14:12:18[INFO] N+1 Query method call stack
+  /home/flyerhzm/Downloads/test_bullet/app/views/posts/index.html.erb:14:in `_render_template__600522146_80203160_0'
+  /home/flyerhzm/Downloads/test_bullet/app/views/posts/index.html.erb:11:in `each'
+  /home/flyerhzm/Downloads/test_bullet/app/views/posts/index.html.erb:11:in `_render_template__600522146_80203160_0'
+  /home/flyerhzm/Downloads/test_bullet/app/controllers/posts_controller.rb:7:in `index'
+</code></pre>
+
+<p>The generated SQL is:</p>
+
+<pre><code>Post Load (1.0ms)   SELECT * FROM "posts"
+Comment Load (0.4ms)   SELECT * FROM "comments" WHERE ("comments".post_id = 1)
+Comment Load (0.3ms)   SELECT * FROM "comments" WHERE ("comments".post_id = 2)
+</code></pre>
+
+<p>9. To fix the N+1 query, change <code>app/controllers/posts_controller.rb</code> file</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="vi">@posts</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">includes</span><span class="p">(</span><span class="ss">:comments</span><span class="p">)</span>
+
+  <span class="n">respond_to</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+    <span class="nb">format</span><span class="o">.</span><span class="n">html</span> <span class="c1"># index.html.erb</span>
+    <span class="nb">format</span><span class="o">.</span><span class="n">xml</span>  <span class="p">{</span> <span class="n">render</span> <span class="ss">:xml</span> <span class="o">=&gt;</span> <span class="vi">@posts</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>10. Refresh <code>http://localhost:3000/posts</code>. Now there's no alert box and nothing new in the log.</p>
+
+<p>The generated SQL is:</p>
+
+<pre><code>Post Load (0.5ms)   SELECT * FROM "posts"
+Comment Load (0.5ms)   SELECT "comments".* FROM "comments" WHERE ("comments".post_id IN (1,2))
+</code></pre>
+
+<p>N+1 query fixed. Cool!</p>
+
+<p>11. Now simulate unused eager loading. Change
+<code>app/controllers/posts_controller.rb</code> and
+<code>app/views/posts/index.html.erb</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="vi">@posts</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">includes</span><span class="p">(</span><span class="ss">:comments</span><span class="p">)</span>
+
+  <span class="n">respond_to</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+    <span class="nb">format</span><span class="o">.</span><span class="n">html</span> <span class="c1"># index.html.erb</span>
+    <span class="nb">format</span><span class="o">.</span><span class="n">xml</span>  <span class="p">{</span> <span class="n">render</span> <span class="ss">:xml</span> <span class="o">=&gt;</span> <span class="vi">@posts</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<pre><code>&lt;% @posts.each do |post| %&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;%= post.name %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Show', post %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Edit', edit_post_path(post) %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Destroy', post, :confirm =&gt; 'Are you sure?', :method =&gt; :delete %&gt;&lt;/td&gt;
+  &lt;/tr&gt;
+&lt;% end %&gt;
+</code></pre>
+
+<p>12. Refresh <code>http://localhost:3000/posts</code>, and you will see a popup alert box that says</p>
+
+<pre><code>The request has unused preload associations as follows:
+model: Post =&gt; associations: [comment]
+The request has N+1 queries as follows:
+None
+</code></pre>
+
+<p>Meanwhile, there's a line appended to <code>log/bullet.log</code></p>
+
+<pre><code>2009-08-25 21:13:22[INFO] Unused preload associations: PATH_INFO: /posts;    model: Post =&gt; associations: [comments]·
+Remove from your finder: :include =&gt; [:comments]
+</code></pre>
+
+<p>13. Simulate counter_cache. Change <code>app/controllers/posts_controller.rb</code>
+and <code>app/views/posts/index.html.erb</code></p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="vi">@posts</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">all</span>
+
+  <span class="n">respond_to</span> <span class="k">do</span> <span class="o">|</span><span class="nb">format</span><span class="o">|</span>
+    <span class="nb">format</span><span class="o">.</span><span class="n">html</span> <span class="c1"># index.html.erb</span>
+    <span class="nb">format</span><span class="o">.</span><span class="n">xml</span>  <span class="p">{</span> <span class="n">render</span> <span class="ss">:xml</span> <span class="o">=&gt;</span> <span class="vi">@posts</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<pre><code>&lt;% @posts.each do |post| %&gt;
+  &lt;tr&gt;
+    &lt;td&gt;&lt;%= post.name %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= post.comments.size %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Show', post %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Edit', edit_post_path(post) %&gt;&lt;/td&gt;
+    &lt;td&gt;&lt;%= link_to 'Destroy', post, :confirm =&gt; 'Are you sure?', :method =&gt; :delete %&gt;&lt;/td&gt;
+  &lt;/tr&gt;
+&lt;% end %&gt;
+</code></pre>
+
+<p>14. Refresh <code>http://localhost:3000/posts</code>, then you will see a popup alert box that says</p>
+
+<pre><code>Need counter cache
+  Post =&gt; [:comments]
+</code></pre>
+
+<p>Meanwhile, there's a line appended to <code>log/bullet.log</code></p>
+
+<pre><code>2009-09-11 10:07:10[INFO] Need Counter Cache
+  Post =&gt; [:comments]
+</code></pre>
+
+<p>Copyright (c) 2009 - 2014 Richard Huang (<a href="mailto:flyerhzm@gmail.com">flyerhzm@gmail.com</a>), released under the MIT license</p></article></div>

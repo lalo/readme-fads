@@ -1,0 +1,306 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-johnny-deps-" class="anchor" href="#johnny-deps-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Johnny Deps <a href="https://camo.githubusercontent.com/c10b54efad6c171d42788472715d000ef396b713/68747470733a2f2f636972636c6563692e636f6d2f67682f5669766964436f727465782f6a6f686e6e792d646570732e706e673f636972636c652d746f6b656e3d34323666383566366435326361306233303864316636616162303164643231396166646234636230" target="_blank"><img src="https://camo.githubusercontent.com/c10b54efad6c171d42788472715d000ef396b713/68747470733a2f2f636972636c6563692e636f6d2f67682f5669766964436f727465782f6a6f686e6e792d646570732e706e673f636972636c652d746f6b656e3d34323666383566366435326361306233303864316636616162303164643231396166646234636230" alt="Build Status" data-canonical-src="https://circleci.com/gh/VividCortex/johnny-deps.png?circle-token=426f85f6d52ca0b308d1f6aab01dd219afdb4cb0" style="max-width:100%;"></a>
+</h1>
+
+<p>Johnny Deps is a small tool from <a href="https://vividcortex.com">VividCortex</a> that
+provides minimalistic dependency versioning for Go repositories using Git. Its
+primary purpose is to help create reproducible builds when many import paths in
+various repositories are required to build an application. It's based on a Perl
+script that provides subcommands for retrieving or building a project, or
+updating a dependencies file (called <code>Godeps</code>), listing first-level imports for
+a project.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>Install Johnny Deps by cloning the project's Github repository and running the
+provided scripts, like this:</p>
+
+<pre><code>git clone https://github.com/VividCortex/johnny-deps.git
+cd johnny-deps
+./configure --prefix=/your/path
+make install
+</code></pre>
+
+<p>The <code>--prefix</code> option to <code>configure</code> is not mandatory; it defaults to
+<code>/usr/local</code> if not provided (but you'd have to install as root in that case).
+The binary will end up at the <code>bin</code> subdirectory, under the prefix you choose;
+make sure you have that location specified in your <code>PATH</code>.</p>
+
+<p>Note that Perl is required, although that's probably provided by your system
+already. Also Go, Git and (if you're using makefiles) Make.</p>
+
+<h2>
+<a name="user-content-dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+
+<p>Johnny Deps is all about project dependencies. Each project should have a file
+called Godeps at its root, listing the full set of first-level dependencies;
+i.e., all repositories with Go packages imported directly by this project. The
+file may be omitted when empty and looks like this:</p>
+
+<pre><code>github.com/VividCortex/godaemon 2fdf3f9fa715a998e834f09e07a8070d9046bcfd
+github.com/VividCortex/log 1ffbbe58b5cf1bcfd7a80059dd339764cc1e3bff
+github.com/VividCortex/mysql f82b14f1073afd7cb41fc8eb52673d78f481922e
+</code></pre>
+
+<p>The first column identifies the dependency. The second is the commit identifier
+for the exact revision the current project depends upon. You can use any
+identifier Git would accept to checkout, including abbreviated commits, tags and
+branches. Note, however, that the use of branches is discouraged, cause it leads
+to non-reproducible builds as the tip of the branch moves forward.</p>
+
+<h2>
+<a name="user-content-introducing-the-tool" class="anchor" href="#introducing-the-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introducing the tool</h2>
+
+<p><code>jd</code> is Johnny Deps' main binary. It's a command line tool to retrieve projects
+from Github, check dependencies, reposition local working copies according to
+each project's settings, building and updating. It accepts subcommands much like
+<code>go</code> or <code>git</code> do:</p>
+
+<pre><code>jd [global-options] [command] [options] [project]
+</code></pre>
+
+<p>Global options apply to all commands. Some allow you to change the external
+tools that are used (go, git and make) in case you don't have them in your path,
+or otherwise want to use a different version. There's also a <code>-v</code> option to
+increase verbosity, that you can provide twice for extra effect. (Note that the
+tool runs silently by default, only displaying errors, if any.)</p>
+
+<p>It's worth noting that all parameters are optional. If you don't specify a
+command, it will default to <code>build</code> (see "Building" below). If you don't specify
+a project, <code>jd</code> will try to infer the project based on your current working
+path, and your setting for <code>GOPATH</code>. If you're in a subdirectory of any of the
+<code>GOPATH</code> components, and you're also in a Git working tree, <code>jd</code> would be happy
+to fill up the project for you.</p>
+
+<p>When in doubt, check <code>jd help</code>.</p>
+
+<h2>
+<a name="user-content-retrieving-projects" class="anchor" href="#retrieving-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Retrieving projects</h2>
+
+<p>Retrieving a Go application with Johnny Deps is just as easy as retrieving a
+single base project. Run <code>jd get</code> and the full application, with all transitive
+dependencies, will be set up in your environment. Here's what we'd type for one
+of our applications:</p>
+
+<pre><code>jd get github.com/VividCortex/api-hosts
+</code></pre>
+
+<p>Johnny Deps will look for all required projects in your <code>GOPATH</code>, and download
+those missing to the first component of <code>GOPATH</code>. It will even create the
+directory stated in your <code>GOPATH</code> if it doesn't yet exist. As <code>jd</code> traverses the
+graph of dependencies, it checks whether version conflicts exist. If it happens
+to detect one, it will abort with a message like this:</p>
+
+<pre><code>Version mismatch detected for github.com/VividCortex/core
+  561c9e9798307b875b8f90b89b7888eae4a983ce referenced by:
+    github.com/VividCortex/api-hosts
+    github.com/VividCortex/config
+    github.com/VividCortex/nap
+  but dfe3ff5362d778214272b56e2afcca0d96651911 referenced by github.com/VividCortex/shard
+</code></pre>
+
+<p>Here, the tool is telling you that two different versions of <code>core</code> are being
+included. The first is the commit identifier at the top, that is shared as a
+dependency for the three projects that follow. But <code>shard</code>, on the other hand,
+is including a different commit for <code>core</code>, shown at the last line. If no
+version mismatch is found, you'll end up with all projects required to build the
+application you were interested in (<code>api-hosts</code> in the example above).</p>
+
+<p>Besides retrieving required projects, <code>jd get</code> will reposition local copies
+(whether they existed already or were just cloned) to the version stated in
+<code>Godeps</code> files. Furthermore, if you're aiming at a specific commit (as
+recommended), <code>jd</code> does an extra effort trying to checkout a branch whose tip
+matches that commit, as opposed to leaving you in a detached HEAD state. That's
+most probably what you want, cause it's probably a work in progress and you'll
+be adding commits to that branch. (If you prefer a detached HEAD instead,
+provide the <code>-d</code> flag to <code>get</code>.)</p>
+
+<p>When choosing a branch to checkout for a given commit identifier, <code>jd</code> will
+first search among all locals. If there's none whose tip matches the commit,
+<code>jd</code> will try remote tracking branches instead. Among those matching, <code>jd</code>
+selects one with a local branch by the same name, having the remote as an
+upstream branch. If there's one available, that remote branch is merged into the
+local, and the latter is checked out for use. Otherwise, <code>jd</code> keeps one of the
+matching remotes with no local branch by the same name, and checks out a new
+local branch with that remote set as upstream. (If local branches existed for
+all candidate remotes, but none of them had the remote by the same name set as
+upstream, then <code>jd</code> would abort with an appropriate message. In that case you
+should either review your local branches, cause there's possibly an upstream
+setting missing, or otherwise use <code>-d</code> to checkout in detached HEAD mode.) In
+any case, if there's more than one choice and you're running with double <code>-v</code>,
+you'd get a message displaying the other options as well.</p>
+
+<p>It's worth noting that <code>jd</code> favors local operations as much as possible, to
+avoid long round-trips to remote repositories. Hence, remotes won't be fetched
+if the required revision is found locally. (That's particularly relevant when
+including a branch name at the <code>Godeps</code> file cause, if found locally, the branch
+will not be updated with remote changes.) Note also that, unless it actually
+needs to move to a different release, <code>jd</code> will not insist in that your working
+copy is clean. This is good from a developer's point of view, cause it allows
+you to play with the application, trying modifications or fixes in the whole
+code base, without <code>jd</code> complaining.</p>
+
+<p>If the project you're interested in is not present in <code>GOPATH</code>, <code>jd get</code> will
+clone it from the remote repository and checkout the master branch. But once you
+have a local copy, <code>jd</code> will never checkout a different revision. (It will
+change revisions for dependencies, but not for the main project you provide to
+<code>jd get</code>.) You may reposition the working copy to your liking using Git
+commands; <code>jd</code> will be happy to adjust dependencies accordingly. However, if you
+want to force your main project into a specific revision, even before you have a
+local copy, you can use the <code>-r</code> parameter to <code>jd get</code>, like so:</p>
+
+<pre><code>jd get github.com/VividCortex/api-hosts -r my-release
+</code></pre>
+
+<p>where the argument to <code>-r</code> can be anything you can checkout from Git: a commit
+identifier (abbreviated or not), a branch or a tag.</p>
+
+<p>After working copies for all projects in the application are set, <code>jd get</code> runs
+a check on first level dependencies for the main project (i.e., the one either
+you specified on the command line, or <code>jd</code> inferred from your current
+directory). The check is run against the result of <code>go list</code>. <code>jd</code> will complain
+if the sets don't match exactly, displaying both missing and not required
+projects. If that's the case, you need to fix your <code>Godeps</code> file (see "Updating"
+below).</p>
+
+<h2>
+<a name="user-content-building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h2>
+
+<p>Since building is what you'll be doing most of the time, <code>jd</code> conveniently
+defaults to <code>build</code> if no command is provided. Furthermore, <code>jd</code> may be able to
+retrieve the project out of your current working directory (see "Introducing the
+tool" above). Hence, you'd typically be able to compile by typing only <code>jd</code> at
+the command prompt. Not even your location within the project tree matters; the
+tool works equally fine if run from deep inside the hierarchy.</p>
+
+<p>Before the actual building process, <code>jd</code> runs the equivalent of a <code>jd get</code>
+command. That's how it makes sure that you're actually using the correct
+versions of all dependencies. (Keep in mind, though, that if your local copies
+were already set to the correct revisions, it's okay to have local changes; even
+in <code>Godeps</code> files.) The implicit <code>get</code> run by <code>build</code>, and the choice of <code>build</code>
+as the default command, make the tool particularly easy to use to build projects
+you don't even have. The following command retrieves the full dependencies for
+the application and builds:</p>
+
+<pre><code>jd github.com/VividCortex/api-hosts
+</code></pre>
+
+<p>Furthermore, since the <code>-r</code> option to <code>build</code> is actually passed along to the
+implicit <code>get</code>, you can readily set up a specific version by appending the
+appropriate <code>-r</code> to the command above. (The same behavior goes to the <code>-d</code>
+option to <code>build</code>.)</p>
+
+<p>Johnny Deps calls <code>go build</code> at the project's root to build. But, in order to
+accommodate special needs, <code>jd</code> first checks for specific instructions,
+resorting to <code>go build</code> if there's none. The highest priority goes to the Make
+utility. If there's a file called <code>Makefile</code> or <code>makefile</code> at the project root,
+then <code>make</code> is run instead. If, on the other hand, there's an executable file
+called <code>build</code>, then that file is run. Otherwise the default call to <code>go build</code>
+takes place.</p>
+
+<h2>
+<a name="user-content-updating-dependencies" class="anchor" href="#updating-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Updating dependencies</h2>
+
+<p>Johnny Deps can't decide which releases to use from the project's you import.
+But it can help writing the <code>Godeps</code> file. By running <code>jd update</code>, <code>jd</code> will
+disregard the current dependencies in the <code>Godeps</code> file, overwriting it with the
+latest master release for each project you depend upon, after pulling. Of
+course, that may or may not work. Using the latest release for each dependency
+could potentially lead to inconsistencies (version mismatches), that would make
+<code>jd</code> complain. The dependencies file would have been changed anyway. It's your
+responsibility to decide which projects to upgrade or withhold.</p>
+
+<p>It's worth noting that <code>jd update</code> does not rely on the <code>Godeps</code> file to check
+current dependencies; it takes them from <code>go list</code> instead. A nice consequence
+is that new imports are automatically detected from the code and added to
+<code>Godeps</code> with no manual intervention required. (And no longer needed imports
+will be removed as well.) Note also that, although the old dependencies file is
+overwritten, the new copy is not committed or even staged for commit in Git.
+(Rationale: you should test that everything still works properly!) You can do
+that with the rest of your changes, without leaving traces in history if you run
+the update multiple times before you're done.</p>
+
+<h2>
+<a name="user-content-return-codes" class="anchor" href="#return-codes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Return codes</h2>
+
+<p>These are the return codes for <code>jd</code>:</p>
+
+<ul class="task-list">
+<li>0 - Success</li>
+<li>1 - Error with parameters</li>
+<li>2 - Bad dependencies or unable to read them</li>
+<li>3 - Version mismatch detected</li>
+<li>4 - External command failed</li>
+<li>5 - Unable to checkout requested revision</li>
+</ul><h2>
+<a name="user-content-workflows" class="anchor" href="#workflows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Workflows</h2>
+
+<p>Johnny Deps is intentionally agnostic about the specific workflow used. In
+practice, people seem to fall into one of two camps that reflect how they think
+about dependency management, and their differing goals.</p>
+
+<p>The first category, roughly speaking, is those who would like to build from the
+tip of their source control repositories all the time, but have a need for
+pinning some things to a specific version. Those users may use branch names in
+<code>Godeps</code> as opposed to commit identifiers, and change to a specific commit when
+they need to pin a version. (Nevertheless, <code>jd</code> will not automatically fetch the
+latest changes. See "Retrieving projects".)</p>
+
+<p>The second school of thought holds that the <code>Godeps</code> file should contain
+external dependencies and their exact versions, so that checking out a
+particular revision of an application's repository and running <code>jd</code> will result
+in exactly the same versions of all of the code used to build the application,
+every time.</p>
+
+<p>At VividCortex, we want to be able to reproduce a binary for debugging or other
+purposes. All of our builds have a command-line flag called <code>--build-version</code>
+that, when present, will result in the binary printing out the Git revision from
+which it was built. We can thus easily reproduce any version by calling <code>jd
+build</code> with that revision as the <code>-r</code> parameter. To embed the revision in the
+binary, we use a specific shell script called <code>build</code> (see "Building" above)
+that runs something like:</p>
+
+<pre><code>go build -ldflags "-X main.Godeps '$(git rev-parse HEAD)'"
+</code></pre>
+
+<p>At the application we set things up so that <code>--build-version</code> displays the
+contents of the <code>main.Godeps</code> variable set by the compiler.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>We welcome issue reports, suggestions, and especially pull requests:</p>
+
+<ol class="task-list">
+<li>Fork the project</li>
+<li>Write your code in a feature branch</li>
+<li>Add tests (if applicable)</li>
+<li>Run tests (always!)</li>
+<li>Commit, push and send Pull Request</li>
+</ol><p>Because this is a VividCortex internal tool that we're sharing publicly, we
+may not want to implement some features or fixes.</p>
+
+<h3>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h3>
+
+<p>Add tests. Those we previously had are not appropriate for the new tool.</p>
+
+<p>Optionally add support for other repositories, like Mercurial. This tool is now
+targeted at Git on github.com, that is what we use at VividCortex.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2013 VividCortex.
+Released under the MIT License. Read the LICENSE file for details.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>Johnny Deps is the combination of several different thought processes from
+multiple authors, with inspiration from tools such as Ruby's Bundler and dep
+gem, Python's pip, and others. Give credit to <a href="https://github.com/xaprb">@xaprb</a>
+and <a href="https://github.com/gkristic">@gkristic</a>.</p>
+
+<p><a href="https://camo.githubusercontent.com/13d8f7ee69e8ed9769e5e1cd13462e6d30c27779/687474703a2f2f692e696d6775722e636f6d2f4d7575704256432e6a7067" target="_blank"><img src="https://camo.githubusercontent.com/13d8f7ee69e8ed9769e5e1cd13462e6d30c27779/687474703a2f2f692e696d6775722e636f6d2f4d7575704256432e6a7067" alt="Johnny Deps" data-canonical-src="http://i.imgur.com/MuupBVC.jpg" style="max-width:100%;"></a></p></article></div>

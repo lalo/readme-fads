@@ -1,0 +1,480 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-php-resque-php-resque-worker-and-enqueue-" class="anchor" href="#php-resque-php-resque-worker-and-enqueue-" aria-hidden="true"><span class="octicon octicon-link"></span></a>php-resque: PHP Resque Worker (and Enqueue) <a href="http://travis-ci.org/chrisboulton/php-resque"><img src="https://camo.githubusercontent.com/66449189c0e7e7927208ef91212462215094ca46/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6368726973626f756c746f6e2f7068702d7265737175652e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/chrisboulton/php-resque.png" style="max-width:100%;"></a>
+</h1>
+
+<p>Resque is a Redis-backed library for creating background jobs, placing
+those jobs on one or more queues, and processing them later.</p>
+
+<h2>
+<a name="user-content-background" class="anchor" href="#background" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background</h2>
+
+<p>Resque was pioneered and is developed by the fine folks at GitHub (yes,
+I am a kiss-ass), and written in Ruby. What you're seeing here is an
+almost direct port of the Resque worker and enqueue system to PHP.</p>
+
+<p>For more information on Resque, visit the official GitHub project:
+ <a href="https://github.com/resque/resque">https://github.com/resque/resque</a></p>
+
+<p>For further information, see the launch post on the GitHub blog:
+ <a href="http://github.com/blog/542-introducing-resque">http://github.com/blog/542-introducing-resque</a></p>
+
+<p>The PHP port does NOT include its own web interface for viewing queue
+stats, as the data is stored in the exact same expected format as the
+Ruby version of Resque.</p>
+
+<p>The PHP port provides much the same features as the Ruby version:</p>
+
+<ul class="task-list">
+<li>Workers can be distributed between multiple machines</li>
+<li>Includes support for priorities (queues)</li>
+<li>Resilient to memory leaks (forking)</li>
+<li>Expects failure</li>
+</ul><p>It also supports the following additional features:</p>
+
+<ul class="task-list">
+<li>Has the ability to track the status of jobs</li>
+<li>Will mark a job as failed, if a forked child running a job does
+not exit with a status code as 0</li>
+<li>Has built in support for <code>setUp</code> and <code>tearDown</code> methods, called
+pre and post jobs</li>
+</ul><h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>PHP 5.3+</li>
+<li>Redis 2.2+</li>
+<li>Optional but Recommended: Composer</li>
+</ul><h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>The easiest way to work with php-resque is when it's installed as a
+Composer package inside your project. Composer isn't strictly
+required, but makes life a lot easier.</p>
+
+<p>If you're not familiar with Composer, please see <a href="http://getcomposer.org/">http://getcomposer.org/</a>.</p>
+
+<ol class="task-list">
+<li>Add php-resque to your application's composer.json.</li>
+</ol><div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="err">//</span> <span class="err">...</span>
+    <span class="nt">"require"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">"chrisboulton/php-resque"</span><span class="p">:</span> <span class="s2">"1.2.x"</span>  <span class="err">//</span> <span class="err">Most</span> <span class="err">recent</span> <span class="err">tagged</span> <span class="err">version</span>
+    <span class="p">},</span>
+    <span class="err">//</span> <span class="err">...</span>
+<span class="p">}</span>
+</pre></div>
+
+<ol class="task-list">
+<li><p>Run <code>composer install</code>.</p></li>
+<li><p>If you haven't already, add the Composer autoload to your project's
+initialization file. (example)</p></li>
+</ol><div class="highlight highlight-sh"><pre>require <span class="s1">'vendor/autoload.php'</span><span class="p">;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-jobs" class="anchor" href="#jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jobs</h2>
+
+<h3>
+<a name="user-content-queueing-jobs" class="anchor" href="#queueing-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Queueing Jobs</h3>
+
+<p>Jobs are queued as follows:</p>
+
+<div class="highlight highlight-php"><pre><span class="c1">// Required if redis is located elsewhere</span>
+<span class="nx">Resque</span><span class="o">::</span><span class="na">setBackend</span><span class="p">(</span><span class="s1">'localhost:6379'</span><span class="p">);</span>
+
+<span class="nv">$args</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+        <span class="s1">'name'</span> <span class="o">=&gt;</span> <span class="s1">'Chris'</span>
+        <span class="p">);</span>
+<span class="nx">Resque</span><span class="o">::</span><span class="na">enqueue</span><span class="p">(</span><span class="s1">'default'</span><span class="p">,</span> <span class="s1">'My_Job'</span><span class="p">,</span> <span class="nv">$args</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-defining-jobs" class="anchor" href="#defining-jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining Jobs</h3>
+
+<p>Each job should be in its own class, and include a <code>perform</code> method.</p>
+
+<div class="highlight highlight-php"><pre><span class="k">class</span> <span class="nc">My_Job</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">perform</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="c1">// Work work work</span>
+        <span class="k">echo</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">args</span><span class="p">[</span><span class="s1">'name'</span><span class="p">];</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>When the job is run, the class will be instantiated and any arguments
+will be set as an array on the instantiated object, and are accessible
+via <code>$this-&gt;args</code>.</p>
+
+<p>Any exception thrown by a job will result in the job failing - be
+careful here and make sure you handle the exceptions that shouldn't
+result in a job failing.</p>
+
+<p>Jobs can also have <code>setUp</code> and <code>tearDown</code> methods. If a <code>setUp</code> method
+is defined, it will be called before the <code>perform</code> method is run.
+The <code>tearDown</code> method, if defined, will be called after the job finishes.</p>
+
+<div class="highlight highlight-php"><pre><span class="k">class</span> <span class="nc">My_Job</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">setUp</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="c1">// ... Set up environment for this job</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">perform</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="c1">// .. Run job</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">function</span> <span class="nf">tearDown</span><span class="p">()</span>
+    <span class="p">{</span>
+        <span class="c1">// ... Remove environment for this job</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-tracking-job-statuses" class="anchor" href="#tracking-job-statuses" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tracking Job Statuses</h3>
+
+<p>php-resque has the ability to perform basic status tracking of a queued
+job. The status information will allow you to check if a job is in the
+queue, is currently being run, has finished, or has failed.</p>
+
+<p>To track the status of a job, pass <code>true</code> as the fourth argument to
+<code>Resque::enqueue</code>. A token used for tracking the job status will be
+returned:</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$token</span> <span class="o">=</span> <span class="nx">Resque</span><span class="o">::</span><span class="na">enqueue</span><span class="p">(</span><span class="s1">'default'</span><span class="p">,</span> <span class="s1">'My_Job'</span><span class="p">,</span> <span class="nv">$args</span><span class="p">,</span> <span class="k">true</span><span class="p">);</span>
+<span class="k">echo</span> <span class="nv">$token</span><span class="p">;</span>
+</pre></div>
+
+<p>To fetch the status of a job:</p>
+
+<div class="highlight highlight-php"><pre><span class="nv">$status</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Resque_Job_Status</span><span class="p">(</span><span class="nv">$token</span><span class="p">);</span>
+<span class="k">echo</span> <span class="nv">$status</span><span class="o">-&gt;</span><span class="na">get</span><span class="p">();</span> <span class="c1">// Outputs the status</span>
+</pre></div>
+
+<p>Job statuses are defined as constants in the <code>Resque_Job_Status</code> class.
+Valid statuses include:</p>
+
+<ul class="task-list">
+<li>
+<code>Resque_Job_Status::STATUS_WAITING</code> - Job is still queued</li>
+<li>
+<code>Resque_Job_Status::STATUS_RUNNING</code> - Job is currently running</li>
+<li>
+<code>Resque_Job_Status::STATUS_FAILED</code> - Job has failed</li>
+<li>
+<code>Resque_Job_Status::STATUS_COMPLETE</code> - Job is complete</li>
+<li>
+<code>false</code> - Failed to fetch the status - is the token valid?</li>
+</ul><p>Statuses are available for up to 24 hours after a job has completed
+or failed, and are then automatically expired. A status can also
+forcefully be expired by calling the <code>stop()</code> method on a status
+class.</p>
+
+<h2>
+<a name="user-content-workers" class="anchor" href="#workers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Workers</h2>
+
+<p>Workers work in the exact same way as the Ruby workers. For complete
+documentation on workers, see the original documentation.</p>
+
+<p>A basic "up-and-running" <code>bin/resque</code> file is included that sets up a
+running worker environment. (<code>vendor/bin/resque</code> when installed
+via Composer)</p>
+
+<p>The exception to the similarities with the Ruby version of resque is
+how a worker is initially setup. To work under all environments,
+not having a single environment such as with Ruby, the PHP port makes
+<em>no</em> assumptions about your setup.</p>
+
+<p>To start a worker, it's very similar to the Ruby version:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ QUEUE</span><span class="o">=</span>file_serve php bin/resque
+</pre></div>
+
+<p>It's your responsibility to tell the worker which file to include to get
+your application underway. You do so by setting the <code>APP_INCLUDE</code> environment
+variable:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ QUEUE</span><span class="o">=</span>file_serve <span class="nv">APP_INCLUDE</span><span class="o">=</span>../application/init.php php bin/resque
+</pre></div>
+
+<p><em>Pro tip: Using Composer? More than likely, you don't need to worry about
+<code>APP_INCLUDE</code>, because hopefully Composer is responsible for autoloading
+your application too!</em></p>
+
+<p>Getting your application underway also includes telling the worker your job
+classes, by means of either an autoloader or including them.</p>
+
+<p>Alternately, you can always <code>include('bin/resque')</code> from your application and
+skip setting <code>APP_INCLUDE</code> altogether.  Just be sure the various environment
+variables are set (<code>setenv</code>) before you do.</p>
+
+<h3>
+<a name="user-content-logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h3>
+
+<p>The port supports the same environment variables for logging to STDOUT.
+Setting <code>VERBOSE</code> will print basic debugging information and <code>VVERBOSE</code>
+will print detailed information.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ VERBOSE</span><span class="o">=</span><span class="m">1</span> <span class="nv">QUEUE</span><span class="o">=</span>file_serve bin/resque
+<span class="nv">$ VVERBOSE</span><span class="o">=</span><span class="m">1</span> <span class="nv">QUEUE</span><span class="o">=</span>file_serve bin/resque
+</pre></div>
+
+<h3>
+<a name="user-content-priorities-and-queue-lists" class="anchor" href="#priorities-and-queue-lists" aria-hidden="true"><span class="octicon octicon-link"></span></a>Priorities and Queue Lists</h3>
+
+<p>Similarly, priority and queue list functionality works exactly
+the same as the Ruby workers. Multiple queues should be separated with
+a comma, and the order that they're supplied in is the order that they're
+checked in.</p>
+
+<p>As per the original example:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ QUEUE</span><span class="o">=</span>file_serve,warm_cache bin/resque
+</pre></div>
+
+<p>The <code>file_serve</code> queue will always be checked for new jobs on each
+iteration before the <code>warm_cache</code> queue is checked.</p>
+
+<h3>
+<a name="user-content-running-all-queues" class="anchor" href="#running-all-queues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running All Queues</h3>
+
+<p>All queues are supported in the same manner and processed in alphabetical
+order:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ QUEUE</span><span class="o">=</span><span class="s1">'*'</span> bin/resque
+</pre></div>
+
+<h3>
+<a name="user-content-running-multiple-workers" class="anchor" href="#running-multiple-workers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Multiple Workers</h3>
+
+<p>Multiple workers can be launched simultaneously by supplying the <code>COUNT</code>
+environment variable:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ COUNT</span><span class="o">=</span><span class="m">5</span> bin/resque
+</pre></div>
+
+<p>Be aware, however, that each worker is its own fork, and the original process
+will shut down as soon as it has spawned <code>COUNT</code> forks.  If you need to keep
+track of your workers using an external application such as <code>monit</code>, you'll
+need to work around this limitation.</p>
+
+<h3>
+<a name="user-content-custom-prefix" class="anchor" href="#custom-prefix" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom prefix</h3>
+
+<p>When you have multiple apps using the same Redis database it is better to
+use a custom prefix to separate the Resque data:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ PREFIX</span><span class="o">=</span>my-app-name bin/resque
+</pre></div>
+
+<h3>
+<a name="user-content-forking" class="anchor" href="#forking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Forking</h3>
+
+<p>Similarly to the Ruby versions, supported platforms will immediately
+fork after picking up a job. The forked child will exit as soon as
+the job finishes.</p>
+
+<p>The difference with php-resque is that if a forked child does not
+exit nicely (PHP error or such), php-resque will automatically fail
+the job.</p>
+
+<h3>
+<a name="user-content-signals" class="anchor" href="#signals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Signals</h3>
+
+<p>Signals also work on supported platforms exactly as in the Ruby
+version of Resque:</p>
+
+<ul class="task-list">
+<li>
+<code>QUIT</code> - Wait for job to finish processing then exit</li>
+<li>
+<code>TERM</code> / <code>INT</code> - Immediately kill job then exit</li>
+<li>
+<code>USR1</code> - Immediately kill job but don't exit</li>
+<li>
+<code>USR2</code> - Pause worker, no new jobs will be processed</li>
+<li>
+<code>CONT</code> - Resume worker.</li>
+</ul><h3>
+<a name="user-content-process-titlesstatuses" class="anchor" href="#process-titlesstatuses" aria-hidden="true"><span class="octicon octicon-link"></span></a>Process Titles/Statuses</h3>
+
+<p>The Ruby version of Resque has a nifty feature whereby the process
+title of the worker is updated to indicate what the worker is doing,
+and any forked children also set their process title with the job
+being run. This helps identify running processes on the server and
+their resque status.</p>
+
+<p><strong>PHP does not have this functionality by default until 5.5.</strong></p>
+
+<p>A PECL module (<a href="http://pecl.php.net/package/proctitle">http://pecl.php.net/package/proctitle</a>) exists that
+adds this functionality to PHP before 5.5, so if you'd like process
+titles updated, install the PECL module as well. php-resque will
+automatically detect and use it.</p>
+
+<h2>
+<a name="user-content-eventhook-system" class="anchor" href="#eventhook-system" aria-hidden="true"><span class="octicon octicon-link"></span></a>Event/Hook System</h2>
+
+<p>php-resque has a basic event system that can be used by your application
+to customize how some of the php-resque internals behave.</p>
+
+<p>You listen in on events (as listed below) by registering with <code>Resque_Event</code>
+and supplying a callback that you would like triggered when the event is
+raised:</p>
+
+<div class="highlight highlight-sh"><pre>Resque_Event::listen<span class="o">(</span><span class="s1">'eventName'</span>, <span class="o">[</span>callback<span class="o">])</span><span class="p">;</span>
+</pre></div>
+
+<p><code>[callback]</code> may be anything in PHP that is callable by <code>call_user_func_array</code>:</p>
+
+<ul class="task-list">
+<li>A string with the name of a function</li>
+<li>An array containing an object and method to call</li>
+<li>An array containing an object and a static method to call</li>
+<li>A closure (PHP 5.3+)</li>
+</ul><p>Events may pass arguments (documented below), so your callback should accept
+these arguments.</p>
+
+<p>You can stop listening to an event by calling <code>Resque_Event::stopListening</code>
+with the same arguments supplied to <code>Resque_Event::listen</code>.</p>
+
+<p>It is up to your application to register event listeners. When enqueuing events
+in your application, it should be as easy as making sure php-resque is loaded
+and calling <code>Resque_Event::listen</code>.</p>
+
+<p>When running workers, if you run workers via the default <code>bin/resque</code> script,
+your <code>APP_INCLUDE</code> script should initialize and register any listeners required
+for operation. If you have rolled your own worker manager, then it is again your
+responsibility to register listeners.</p>
+
+<p>A sample plugin is included in the <code>extras</code> directory.</p>
+
+<h3>
+<a name="user-content-events" class="anchor" href="#events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Events</h3>
+
+<h4>
+<a name="user-content-beforefirstfork" class="anchor" href="#beforefirstfork" aria-hidden="true"><span class="octicon octicon-link"></span></a>beforeFirstFork</h4>
+
+<p>Called once, as a worker initializes. Argument passed is the instance of <code>Resque_Worker</code>
+that was just initialized.</p>
+
+<h4>
+<a name="user-content-beforefork" class="anchor" href="#beforefork" aria-hidden="true"><span class="octicon octicon-link"></span></a>beforeFork</h4>
+
+<p>Called before php-resque forks to run a job. Argument passed contains the instance of
+<code>Resque_Job</code> for the job about to be run.</p>
+
+<p><code>beforeFork</code> is triggered in the <strong>parent</strong> process. Any changes made will be permanent
+for as long as the <strong>worker</strong> lives.</p>
+
+<h4>
+<a name="user-content-afterfork" class="anchor" href="#afterfork" aria-hidden="true"><span class="octicon octicon-link"></span></a>afterFork</h4>
+
+<p>Called after php-resque forks to run a job (but before the job is run). Argument
+passed contains the instance of <code>Resque_Job</code> for the job about to be run.</p>
+
+<p><code>afterFork</code> is triggered in the <strong>child</strong> process after forking out to complete a job. Any
+changes made will only live as long as the <strong>job</strong> is being processed.</p>
+
+<h4>
+<a name="user-content-beforeperform" class="anchor" href="#beforeperform" aria-hidden="true"><span class="octicon octicon-link"></span></a>beforePerform</h4>
+
+<p>Called before the <code>setUp</code> and <code>perform</code> methods on a job are run. Argument passed
+contains the instance of <code>Resque_Job</code> for the job about to be run.</p>
+
+<p>You can prevent execution of the job by throwing an exception of <code>Resque_Job_DontPerform</code>.
+Any other exceptions thrown will be treated as if they were thrown in a job, causing the
+job to fail.</p>
+
+<h4>
+<a name="user-content-afterperform" class="anchor" href="#afterperform" aria-hidden="true"><span class="octicon octicon-link"></span></a>afterPerform</h4>
+
+<p>Called after the <code>perform</code> and <code>tearDown</code> methods on a job are run. Argument passed
+contains the instance of <code>Resque_Job</code> that was just run.</p>
+
+<p>Any exceptions thrown will be treated as if they were thrown in a job, causing the job
+to be marked as having failed.</p>
+
+<h4>
+<a name="user-content-onfailure" class="anchor" href="#onfailure" aria-hidden="true"><span class="octicon octicon-link"></span></a>onFailure</h4>
+
+<p>Called whenever a job fails. Arguments passed (in this order) include:</p>
+
+<ul class="task-list">
+<li>Exception - The exception that was thrown when the job failed</li>
+<li>Resque_Job - The job that failed</li>
+</ul><h4>
+<a name="user-content-afterenqueue" class="anchor" href="#afterenqueue" aria-hidden="true"><span class="octicon octicon-link"></span></a>afterEnqueue</h4>
+
+<p>Called after a job has been queued using the <code>Resque::enqueue</code> method. Arguments passed
+(in this order) include:</p>
+
+<ul class="task-list">
+<li>Class - string containing the name of scheduled job</li>
+<li>Arguments - array of arguments supplied to the job</li>
+<li>Queue - string containing the name of the queue the job was added to</li>
+<li>ID - string containing the new token of the enqueued job</li>
+</ul><h2>
+<a name="user-content-step-by-step" class="anchor" href="#step-by-step" aria-hidden="true"><span class="octicon octicon-link"></span></a>Step-By-Step</h2>
+
+<p>For a more in-depth look at what php-resque does under the hood (without 
+needing to directly examine the code), have a look at <code>HOWITWORKS.md</code>.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<h3>
+<a name="user-content-project-lead" class="anchor" href="#project-lead" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Lead</h3>
+
+<ul class="task-list">
+<li>@chrisboulton</li>
+</ul><h3>
+<a name="user-content-others" class="anchor" href="#others" aria-hidden="true"><span class="octicon octicon-link"></span></a>Others</h3>
+
+<ul class="task-list">
+<li>@acinader</li>
+<li>@ajbonner</li>
+<li>@andrewjshults</li>
+<li>@atorres757</li>
+<li>@benjisg</li>
+<li>@cballou</li>
+<li>@chaitanyakuber</li>
+<li>@charly22</li>
+<li>@CyrilMazur</li>
+<li>@d11wtq</li>
+<li>@danhunsaker</li>
+<li>@dceballos</li>
+<li>@ebernhardson</li>
+<li>@hlegius</li>
+<li>@hobodave</li>
+<li>@humancopy</li>
+<li>@iskandar</li>
+<li>@JesseObrien</li>
+<li>@jjfrey</li>
+<li>@jmathai</li>
+<li>@joshhawthorne</li>
+<li>@KevBurnsJr</li>
+<li>@lboynton</li>
+<li>@maetl</li>
+<li>@matteosister</li>
+<li>@MattHeath</li>
+<li>@mickhrmweb</li>
+<li>@Olden</li>
+<li>@patrickbajao</li>
+<li>@pedroarnal</li>
+<li>@ptrofimov</li>
+<li>@rajibahmed</li>
+<li>@richardkmiller</li>
+<li>@Rockstar04</li>
+<li>@ruudk</li>
+<li>@salimane</li>
+<li>@scragg0x</li>
+<li>@scraton</li>
+<li>@thedotedge</li>
+<li>@tonypiper</li>
+<li>@trimbletodd</li>
+<li>@warezthebeef</li>
+</ul></article></div>

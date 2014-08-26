@@ -1,0 +1,628 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-groom-your-apps-ruby-environment-with-rbenv" class="anchor" href="#groom-your-apps-ruby-environment-with-rbenv" aria-hidden="true"><span class="octicon octicon-link"></span></a>Groom your app’s Ruby environment with rbenv.</h1>
+
+<p>Use rbenv to pick a Ruby version for your application and guarantee
+that your development environment matches production. Put rbenv to work
+with <a href="http://gembundler.com/">Bundler</a> for painless Ruby upgrades and
+bulletproof deployments.</p>
+
+<p><strong>Powerful in development.</strong> Specify your app's Ruby version once,
+  in a single file. Keep all your teammates on the same page. No
+  headaches running apps on different versions of Ruby. Just Works™
+  from the command line and with app servers like <a href="http://pow.cx">Pow</a>.
+  Override the Ruby version anytime: just set an environment variable.</p>
+
+<p><strong>Rock-solid in production.</strong> Your application's executables are its
+  interface with ops. With rbenv and <a href="https://github.com/sstephenson/rbenv/wiki/Understanding-binstubs">Bundler
+  binstubs</a>
+  you'll never again need to <code>cd</code> in a cron job or Chef recipe to
+  ensure you've selected the right runtime. The Ruby version
+  dependency lives in one place—your app—so upgrades and rollbacks are
+  atomic, even when you switch versions.</p>
+
+<p><strong>One thing well.</strong> rbenv is concerned solely with switching Ruby
+  versions. It's simple and predictable. A rich plugin ecosystem lets
+  you tailor it to suit your needs. Compile your own Ruby versions, or
+  use the <a href="https://github.com/sstephenson/ruby-build#readme">ruby-build</a>
+  plugin to automate the process. Specify per-application environment
+  variables with <a href="https://github.com/sstephenson/rbenv-vars">rbenv-vars</a>.
+  See more <a href="https://github.com/sstephenson/rbenv/wiki/Plugins">plugins on the
+  wiki</a>.</p>
+
+<p><a href="https://github.com/sstephenson/rbenv/wiki/Why-rbenv%3F"><strong>Why choose rbenv over
+RVM?</strong></a></p>
+
+<h2>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h2>
+
+<ul class="task-list">
+<li>
+<a href="#how-it-works">How It Works</a>
+
+<ul class="task-list">
+<li><a href="#understanding-path">Understanding PATH</a></li>
+<li><a href="#understanding-shims">Understanding Shims</a></li>
+<li><a href="#choosing-the-ruby-version">Choosing the Ruby Version</a></li>
+<li><a href="#locating-the-ruby-installation">Locating the Ruby Installation</a></li>
+</ul>
+</li>
+<li>
+<a href="#installation">Installation</a>
+
+<ul class="task-list">
+<li>
+<a href="#basic-github-checkout">Basic GitHub Checkout</a>
+
+<ul class="task-list">
+<li><a href="#upgrading">Upgrading</a></li>
+</ul>
+</li>
+<li><a href="#homebrew-on-mac-os-x">Homebrew on Mac OS X</a></li>
+<li><a href="#how-rbenv-hooks-into-your-shell">How rbenv hooks into your shell</a></li>
+<li><a href="#installing-ruby-versions">Installing Ruby Versions</a></li>
+<li><a href="#uninstalling-ruby-versions">Uninstalling Ruby Versions</a></li>
+</ul>
+</li>
+<li>
+<a href="#command-reference">Command Reference</a>
+
+<ul class="task-list">
+<li><a href="#rbenv-local">rbenv local</a></li>
+<li><a href="#rbenv-global">rbenv global</a></li>
+<li><a href="#rbenv-shell">rbenv shell</a></li>
+<li><a href="#rbenv-versions">rbenv versions</a></li>
+<li><a href="#rbenv-version">rbenv version</a></li>
+<li><a href="#rbenv-rehash">rbenv rehash</a></li>
+<li><a href="#rbenv-which">rbenv which</a></li>
+<li><a href="#rbenv-whence">rbenv whence</a></li>
+</ul>
+</li>
+<li>
+<a href="#development">Development</a>
+
+<ul class="task-list">
+<li><a href="#version-history">Version History</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How It Works</h2>
+
+<p>At a high level, rbenv intercepts Ruby commands using shim
+executables injected into your <code>PATH</code>, determines which Ruby version
+has been specified by your application, and passes your commands along
+to the correct Ruby installation.</p>
+
+<h3>
+<a name="user-content-understanding-path" class="anchor" href="#understanding-path" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding PATH</h3>
+
+<p>When you run a command like <code>ruby</code> or <code>rake</code>, your operating system
+searches through a list of directories to find an executable file with
+that name. This list of directories lives in an environment variable
+called <code>PATH</code>, with each directory in the list separated by a colon:</p>
+
+<pre><code>/usr/local/bin:/usr/bin:/bin
+</code></pre>
+
+<p>Directories in <code>PATH</code> are searched from left to right, so a matching
+executable in a directory at the beginning of the list takes
+precedence over another one at the end. In this example, the
+<code>/usr/local/bin</code> directory will be searched first, then <code>/usr/bin</code>,
+then <code>/bin</code>.</p>
+
+<h3>
+<a name="user-content-understanding-shims" class="anchor" href="#understanding-shims" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding Shims</h3>
+
+<p>rbenv works by inserting a directory of <em>shims</em> at the front of your
+<code>PATH</code>:</p>
+
+<pre><code>~/.rbenv/shims:/usr/local/bin:/usr/bin:/bin
+</code></pre>
+
+<p>Through a process called <em>rehashing</em>, rbenv maintains shims in that
+directory to match every Ruby command across every installed version
+of Ruby—<code>irb</code>, <code>gem</code>, <code>rake</code>, <code>rails</code>, <code>ruby</code>, and so on.</p>
+
+<p>Shims are lightweight executables that simply pass your command along
+to rbenv. So with rbenv installed, when you run, say, <code>rake</code>, your
+operating system will do the following:</p>
+
+<ul class="task-list">
+<li>Search your <code>PATH</code> for an executable file named <code>rake</code>
+</li>
+<li>Find the rbenv shim named <code>rake</code> at the beginning of your <code>PATH</code>
+</li>
+<li>Run the shim named <code>rake</code>, which in turn passes the command along to
+rbenv</li>
+</ul><h3>
+<a name="user-content-choosing-the-ruby-version" class="anchor" href="#choosing-the-ruby-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing the Ruby Version</h3>
+
+<p>When you execute a shim, rbenv determines which Ruby version to use by
+reading it from the following sources, in this order:</p>
+
+<ol class="task-list">
+<li><p>The <code>RBENV_VERSION</code> environment variable, if specified. You can use
+the <a href="#rbenv-shell"><code>rbenv shell</code></a> command to set this environment
+variable in your current shell session.</p></li>
+<li><p>The first <code>.ruby-version</code> file found by searching the directory of the
+script you are executing and each of its parent directories until reaching
+the root of your filesystem.</p></li>
+<li><p>The first <code>.ruby-version</code> file found by searching the current working
+directory and each of its parent directories until reaching the root of your
+filesystem. You can modify the <code>.ruby-version</code> file in the current working
+directory with the <a href="#rbenv-local"><code>rbenv local</code></a> command.</p></li>
+<li><p>The global <code>~/.rbenv/version</code> file. You can modify this file using
+the <a href="#rbenv-global"><code>rbenv global</code></a> command. If the global version
+file is not present, rbenv assumes you want to use the "system"
+Ruby—i.e. whatever version would be run if rbenv weren't in your
+path.</p></li>
+</ol><h3>
+<a name="user-content-locating-the-ruby-installation" class="anchor" href="#locating-the-ruby-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Locating the Ruby Installation</h3>
+
+<p>Once rbenv has determined which version of Ruby your application has
+specified, it passes the command along to the corresponding Ruby
+installation.</p>
+
+<p>Each Ruby version is installed into its own directory under
+<code>~/.rbenv/versions</code>. For example, you might have these versions
+installed:</p>
+
+<ul class="task-list">
+<li><code>~/.rbenv/versions/1.8.7-p371/</code></li>
+<li><code>~/.rbenv/versions/1.9.3-p327/</code></li>
+<li><code>~/.rbenv/versions/jruby-1.7.1/</code></li>
+</ul><p>Version names to rbenv are simply the names of the directories in
+<code>~/.rbenv/versions</code>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p><strong>Compatibility note</strong>: rbenv is <em>incompatible</em> with RVM. Please make
+  sure to fully uninstall RVM and remove any references to it from
+  your shell initialization files before installing rbenv.</p>
+
+<p>If you're on Mac OS X, consider
+<a href="#homebrew-on-mac-os-x">installing with Homebrew</a>.</p>
+
+<h3>
+<a name="user-content-basic-github-checkout" class="anchor" href="#basic-github-checkout" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic GitHub Checkout</h3>
+
+<p>This will get you going with the latest version of rbenv and make it
+easy to fork and contribute any changes back upstream.</p>
+
+<ol class="task-list">
+<li>
+<p>Check out rbenv into <code>~/.rbenv</code>.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>git clone https://github.com/sstephenson/rbenv.git ~/.rbenv
+</pre></div>
+</li>
+<li>
+<p>Add <code>~/.rbenv/bin</code> to your <code>$PATH</code> for access to the <code>rbenv</code>
+command-line utility.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">echo</span> <span class="s1">'export PATH="$HOME/.rbenv/bin:$PATH"'</span> &gt;&gt; ~/.bash_profile
+</pre></div>
+
+<p><strong>Ubuntu Desktop note</strong>: Modify your <code>~/.bashrc</code> instead of <code>~/.bash_profile</code>.</p>
+
+<p><strong>Zsh note</strong>: Modify your <code>~/.zshrc</code> file instead of <code>~/.bash_profile</code>.</p>
+</li>
+<li>
+<p>Add <code>rbenv init</code> to your shell to enable shims and autocompletion.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">echo</span> <span class="s1">'eval "$(rbenv init -)"'</span> &gt;&gt; ~/.bash_profile
+</pre></div>
+
+<p><em>Same as in previous step, use <code>~/.bashrc</code> on Ubuntu, or <code>~/.zshrc</code> for Zsh.</em></p>
+</li>
+<li>
+<p>Restart your shell so that PATH changes take effect. (Opening a new
+terminal tab will usually do it.) Now check if rbenv was set up:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">type </span>rbenv
+<span class="c">#=&gt; "rbenv is a function"</span>
+</pre></div>
+</li>
+<li><p><em>(Optional)</em> Install <a href="https://github.com/sstephenson/ruby-build#readme">ruby-build</a>, which provides the
+<code>rbenv install</code> command that simplifies the process of
+<a href="#installing-ruby-versions">installing new Ruby versions</a>.</p></li>
+</ol><h4>
+<a name="user-content-upgrading" class="anchor" href="#upgrading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading</h4>
+
+<p>If you've installed rbenv manually using git, you can upgrade your
+installation to the cutting-edge version at any time.</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">cd</span> ~/.rbenv
+<span class="nv">$ </span>git pull
+</pre></div>
+
+<p>To use a specific release of rbenv, check out the corresponding tag:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span><span class="nb">cd</span> ~/.rbenv
+<span class="nv">$ </span>git fetch
+<span class="nv">$ </span>git checkout v0.3.0
+</pre></div>
+
+<p>If you've <a href="#homebrew-on-mac-os-x">installed via Homebrew</a>, then upgrade
+via its <code>brew</code> command:</p>
+
+<div class="highlight highlight-sh"><pre><span class="nv">$ </span>brew update
+<span class="nv">$ </span>brew upgrade rbenv ruby-build
+</pre></div>
+
+<h3>
+<a name="user-content-homebrew-on-mac-os-x" class="anchor" href="#homebrew-on-mac-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Homebrew on Mac OS X</h3>
+
+<p>As an alternative to installation via GitHub checkout, you can install
+rbenv and <a href="https://github.com/sstephenson/ruby-build#readme">ruby-build</a> using the <a href="http://brew.sh">Homebrew</a> package
+manager on Mac OS X:</p>
+
+<pre><code>$ brew update
+$ brew install rbenv ruby-build
+</code></pre>
+
+<p>Afterwards you'll still need to add <code>eval "$(rbenv init -)"</code> to your
+profile as stated in the caveats. You'll only ever have to do this
+once.</p>
+
+<h3>
+<a name="user-content-how-rbenv-hooks-into-your-shell" class="anchor" href="#how-rbenv-hooks-into-your-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>How rbenv hooks into your shell</h3>
+
+<p>Skip this section unless you must know what every line in your shell
+profile is doing.</p>
+
+<p><code>rbenv init</code> is the only command that crosses the line of loading
+extra commands into your shell. Coming from RVM, some of you might be
+opposed to this idea. Here's what <code>rbenv init</code> actually does:</p>
+
+<ol class="task-list">
+<li><p>Sets up your shims path. This is the only requirement for rbenv to
+function properly. You can do this by hand by prepending
+<code>~/.rbenv/shims</code> to your <code>$PATH</code>.</p></li>
+<li><p>Installs autocompletion. This is entirely optional but pretty
+useful. Sourcing <code>~/.rbenv/completions/rbenv.bash</code> will set that
+up. There is also a <code>~/.rbenv/completions/rbenv.zsh</code> for Zsh
+users.</p></li>
+<li><p>Rehashes shims. From time to time you'll need to rebuild your
+shim files. Doing this automatically makes sure everything is up to
+date. You can always run <code>rbenv rehash</code> manually.</p></li>
+<li><p>Installs the sh dispatcher. This bit is also optional, but allows
+rbenv and plugins to change variables in your current shell, making
+commands like <code>rbenv shell</code> possible. The sh dispatcher doesn't do
+anything crazy like override <code>cd</code> or hack your shell prompt, but if
+for some reason you need <code>rbenv</code> to be a real script rather than a
+shell function, you can safely skip it.</p></li>
+</ol><p>Run <code>rbenv init -</code> for yourself to see exactly what happens under the
+hood.</p>
+
+<h3>
+<a name="user-content-installing-ruby-versions" class="anchor" href="#installing-ruby-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing Ruby Versions</h3>
+
+<p>The <code>rbenv install</code> command doesn't ship with rbenv out of the box, but
+is provided by the <a href="https://github.com/sstephenson/ruby-build#readme">ruby-build</a> project. If you installed it either
+as part of GitHub checkout process outlined above or via Homebrew, you
+should be able to:</p>
+
+<div class="highlight highlight-sh"><pre><span class="c"># list all available versions:</span>
+<span class="nv">$ </span>rbenv install -l
+
+<span class="c"># install a Ruby version:</span>
+<span class="nv">$ </span>rbenv install 2.0.0-p247
+</pre></div>
+
+<p>Alternatively to the <code>install</code> command, you can download and compile
+Ruby manually as a subdirectory of <code>~/.rbenv/versions/</code>. An entry in
+that directory can also be a symlink to a Ruby version installed
+elsewhere on the filesystem. rbenv doesn't care; it will simply treat
+any entry in the <code>versions/</code> directory as a separate Ruby version.</p>
+
+<h3>
+<a name="user-content-uninstalling-ruby-versions" class="anchor" href="#uninstalling-ruby-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Uninstalling Ruby Versions</h3>
+
+<p>As time goes on, Ruby versions you install will accumulate in your
+<code>~/.rbenv/versions</code> directory.</p>
+
+<p>To remove old Ruby versions, simply <code>rm -rf</code> the directory of the
+version you want to remove. You can find the directory of a particular
+Ruby version with the <code>rbenv prefix</code> command, e.g. <code>rbenv prefix
+1.8.7-p357</code>.</p>
+
+<p>The <a href="https://github.com/sstephenson/ruby-build#readme">ruby-build</a> plugin provides an <code>rbenv uninstall</code> command to
+automate the removal process.</p>
+
+<h2>
+<a name="user-content-command-reference" class="anchor" href="#command-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Reference</h2>
+
+<p>Like <code>git</code>, the <code>rbenv</code> command delegates to subcommands based on its
+first argument. The most common subcommands are:</p>
+
+<h3>
+<a name="user-content-rbenv-local" class="anchor" href="#rbenv-local" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv local</h3>
+
+<p>Sets a local application-specific Ruby version by writing the version
+name to a <code>.ruby-version</code> file in the current directory. This version
+overrides the global version, and can be overridden itself by setting
+the <code>RBENV_VERSION</code> environment variable or with the <code>rbenv shell</code>
+command.</p>
+
+<pre><code>$ rbenv local 1.9.3-p327
+</code></pre>
+
+<p>When run without a version number, <code>rbenv local</code> reports the currently
+configured local version. You can also unset the local version:</p>
+
+<pre><code>$ rbenv local --unset
+</code></pre>
+
+<p>Previous versions of rbenv stored local version specifications in a
+file named <code>.rbenv-version</code>. For backwards compatibility, rbenv will
+read a local version specified in an <code>.rbenv-version</code> file, but a
+<code>.ruby-version</code> file in the same directory will take precedence.</p>
+
+<h3>
+<a name="user-content-rbenv-global" class="anchor" href="#rbenv-global" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv global</h3>
+
+<p>Sets the global version of Ruby to be used in all shells by writing
+the version name to the <code>~/.rbenv/version</code> file. This version can be
+overridden by an application-specific <code>.ruby-version</code> file, or by
+setting the <code>RBENV_VERSION</code> environment variable.</p>
+
+<pre><code>$ rbenv global 1.8.7-p352
+</code></pre>
+
+<p>The special version name <code>system</code> tells rbenv to use the system Ruby
+(detected by searching your <code>$PATH</code>).</p>
+
+<p>When run without a version number, <code>rbenv global</code> reports the
+currently configured global version.</p>
+
+<h3>
+<a name="user-content-rbenv-shell" class="anchor" href="#rbenv-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv shell</h3>
+
+<p>Sets a shell-specific Ruby version by setting the <code>RBENV_VERSION</code>
+environment variable in your shell. This version overrides
+application-specific versions and the global version.</p>
+
+<pre><code>$ rbenv shell jruby-1.7.1
+</code></pre>
+
+<p>When run without a version number, <code>rbenv shell</code> reports the current
+value of <code>RBENV_VERSION</code>. You can also unset the shell version:</p>
+
+<pre><code>$ rbenv shell --unset
+</code></pre>
+
+<p>Note that you'll need rbenv's shell integration enabled (step 3 of
+the installation instructions) in order to use this command. If you
+prefer not to use shell integration, you may simply set the
+<code>RBENV_VERSION</code> variable yourself:</p>
+
+<pre><code>$ export RBENV_VERSION=jruby-1.7.1
+</code></pre>
+
+<h3>
+<a name="user-content-rbenv-versions" class="anchor" href="#rbenv-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv versions</h3>
+
+<p>Lists all Ruby versions known to rbenv, and shows an asterisk next to
+the currently active version.</p>
+
+<pre><code>$ rbenv versions
+  1.8.7-p352
+  1.9.2-p290
+* 1.9.3-p327 (set by /Users/sam/.rbenv/version)
+  jruby-1.7.1
+  rbx-1.2.4
+  ree-1.8.7-2011.03
+</code></pre>
+
+<h3>
+<a name="user-content-rbenv-version" class="anchor" href="#rbenv-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv version</h3>
+
+<p>Displays the currently active Ruby version, along with information on
+how it was set.</p>
+
+<pre><code>$ rbenv version
+1.8.7-p352 (set by /Volumes/37signals/basecamp/.ruby-version)
+</code></pre>
+
+<h3>
+<a name="user-content-rbenv-rehash" class="anchor" href="#rbenv-rehash" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv rehash</h3>
+
+<p>Installs shims for all Ruby executables known to rbenv (i.e.,
+<code>~/.rbenv/versions/*/bin/*</code>). Run this command after you install a new
+version of Ruby, or install a gem that provides commands.</p>
+
+<pre><code>$ rbenv rehash
+</code></pre>
+
+<h3>
+<a name="user-content-rbenv-which" class="anchor" href="#rbenv-which" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv which</h3>
+
+<p>Displays the full path to the executable that rbenv will invoke when
+you run the given command.</p>
+
+<pre><code>$ rbenv which irb
+/Users/sam/.rbenv/versions/1.9.3-p327/bin/irb
+</code></pre>
+
+<h3>
+<a name="user-content-rbenv-whence" class="anchor" href="#rbenv-whence" aria-hidden="true"><span class="octicon octicon-link"></span></a>rbenv whence</h3>
+
+<p>Lists all Ruby versions with the given command installed.</p>
+
+<pre><code>$ rbenv whence rackup
+1.9.3-p327
+jruby-1.7.1
+ree-1.8.7-2011.03
+</code></pre>
+
+<h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<p>The rbenv source code is <a href="https://github.com/sstephenson/rbenv">hosted on
+GitHub</a>. It's clean, modular,
+and easy to understand, even if you're not a shell hacker.</p>
+
+<p>Tests are executed using <a href="https://github.com/sstephenson/bats">Bats</a>:</p>
+
+<pre><code>$ bats test
+$ bats test/&lt;file&gt;.bats
+</code></pre>
+
+<p>Please feel free to submit pull requests and file bugs on the <a href="https://github.com/sstephenson/rbenv/issues">issue
+tracker</a>.</p>
+
+<h3>
+<a name="user-content-version-history" class="anchor" href="#version-history" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version History</h3>
+
+<p><strong>0.4.0</strong> (January 4, 2013)</p>
+
+<ul class="task-list">
+<li>rbenv now prefers <code>.ruby-version</code> files to <code>.rbenv-version</code> files
+for specifying local application-specific versions. The
+<code>.ruby-version</code> file has the same format as <code>.rbenv-version</code> but is
+<a href="https://gist.github.com/1912050">compatible with other Ruby version
+managers</a>.</li>
+<li>Deprecated <code>ruby-local-exec</code> and moved its functionality into the
+standard <code>ruby</code> shim. See the <a href="https://github.com/sstephenson/rbenv/wiki/ruby-local-exec">ruby-local-exec wiki
+page</a> for
+upgrade instructions.</li>
+<li>Modified shims to include the full path to rbenv so that they can be
+invoked without having rbenv's bin directory in the <code>$PATH</code>.</li>
+<li>Sped up <code>rbenv init</code> by avoiding rbenv reinitialization and by
+using a simpler indexing approach. (Users of
+<a href="https://github.com/fnichol/chef-rbenv">chef-rbenv</a> should upgrade
+to the latest version to fix a <a href="https://github.com/fnichol/chef-rbenv/pull/26">compatibility
+issue</a>.)</li>
+<li>Reworked <code>rbenv help</code> so that usage and documentation is stored as a
+comment in each subcommand, enabling plugin commands to hook into
+the help system.</li>
+<li>Added support for full completion of the command line, not just the
+first argument.</li>
+<li>Updated installation instructions for Zsh and Ubuntu users.</li>
+<li>Fixed <code>rbenv which</code> and <code>rbenv prefix</code> with system Ruby versions.</li>
+<li>Changed <code>rbenv exec</code> to avoid prepending the system Ruby location to
+<code>$PATH</code> to fix issues running system Ruby commands that invoke other
+commands.</li>
+<li>Changed <code>rbenv rehash</code> to ensure it exits with a 0 status code under
+normal operation, and to ensure outdated shims are removed first
+when rehashing.</li>
+<li>Modified <code>rbenv rehash</code> to run <code>hash -r</code> afterwards, when shell
+integration is enabled, to ensure the shell's command cache is
+cleared.</li>
+<li>Removed use of the <code>+=</code> operator to support older versions of Bash.</li>
+<li>Adjusted non-bare <code>rbenv versions</code> output to include <code>system</code>, if
+present.</li>
+<li>Improved documentation for installing and uninstalling Ruby
+versions.</li>
+<li>Fixed <code>rbenv versions</code> not to display a warning if the currently
+specified version doesn't exist.</li>
+<li>Fixed an instance of local variable leakage in the <code>rbenv</code> shell
+function wrapper.</li>
+<li>Changed <code>rbenv shell</code> to ensure it exits with a non-zero status on
+failure.</li>
+<li>Added <code>rbenv --version</code> for printing the current version of rbenv.</li>
+<li>Added <code>/usr/lib/rbenv/hooks</code> to the plugin hook search path.</li>
+<li>Fixed <code>rbenv which</code> to account for path entries with spaces.</li>
+<li>Changed <code>rbenv init</code> to accept option arguments in any order.</li>
+</ul><p><strong>0.3.0</strong> (December 25, 2011)</p>
+
+<ul class="task-list">
+<li>Added an <code>rbenv root</code> command which prints the value of
+<code>$RBENV_ROOT</code>, or the default root directory if it's unset.</li>
+<li>Clarified Zsh installation instructions in the Readme.</li>
+<li>Removed some redundant code in <code>rbenv rehash</code>.</li>
+<li>Fixed an issue with calling <code>readlink</code> for paths with spaces.</li>
+<li>Changed Zsh initialization code to install completion hooks only for
+interactive shells.</li>
+<li>Added preliminary support for ksh.</li>
+<li>
+<code>rbenv rehash</code> creates or removes shims only when necessary instead
+of removing and re-creating all shims on each invocation.</li>
+<li>Fixed that <code>RBENV_DIR</code>, when specified, would be incorrectly
+expanded to its parent directory.</li>
+<li>Removed the deprecated <code>set-default</code> and <code>set-local</code> commands.</li>
+<li>Added a <code>--no-rehash</code> option to <code>rbenv init</code> for skipping the
+automatic rehash when opening a new shell.</li>
+</ul><p><strong>0.2.1</strong> (October 1, 2011)</p>
+
+<ul class="task-list">
+<li>Changed the <code>rbenv</code> command to ensure that <code>RBENV_DIR</code> is always an
+absolute path. This fixes an issue where Ruby scripts using the
+<code>ruby-local-exec</code> wrapper would go into an infinite loop when
+invoked with a relative path from the command line.</li>
+</ul><p><strong>0.2.0</strong> (September 28, 2011)</p>
+
+<ul class="task-list">
+<li>Renamed <code>rbenv set-default</code> to <code>rbenv global</code> and <code>rbenv set-local</code>
+to <code>rbenv local</code>. The <code>set-</code> commands are deprecated and will be
+removed in the next major release.</li>
+<li>rbenv now uses <code>greadlink</code> on Solaris.</li>
+<li>Added a <code>ruby-local-exec</code> command which can be used in shebangs in
+place of <code>#!/usr/bin/env ruby</code> to properly set the project-specific
+Ruby version regardless of current working directory.</li>
+<li>Fixed an issue with <code>rbenv rehash</code> when no binaries are present.</li>
+<li>Added support for <code>rbenv-sh-*</code> commands, which run inside the
+current shell instead of in a child process.</li>
+<li>Added an <code>rbenv shell</code> command for conveniently setting the
+<code>$RBENV_VERSION</code> environment variable.</li>
+<li>Added support for storing rbenv versions and shims in directories
+other than <code>~/.rbenv</code> with the <code>$RBENV_ROOT</code> environment variable.</li>
+<li>Added support for debugging rbenv via <code>set -x</code> when the
+<code>$RBENV_DEBUG</code> environment variable is set.</li>
+<li>Refactored the autocompletion system so that completions are now
+built-in to each command and shared between bash and Zsh.</li>
+<li>Added support for plugin bundles in <code>~/.rbenv/plugins</code> as documented
+in <a href="https://github.com/sstephenson/rbenv/pull/102">issue #102</a>.</li>
+<li>Added <code>/usr/local/etc/rbenv.d</code> to the list of directories searched
+for rbenv hooks.</li>
+<li>Added support for an <code>$RBENV_DIR</code> environment variable which
+defaults to the current working directory for specifying where rbenv
+searches for local version files.</li>
+</ul><p><strong>0.1.2</strong> (August 16, 2011)</p>
+
+<ul class="task-list">
+<li>Fixed rbenv to be more resilient against nonexistent entries in
+<code>$PATH</code>.</li>
+<li>Made the <code>rbenv rehash</code> command operate atomically.</li>
+<li>Modified the <code>rbenv init</code> script to automatically run <code>rbenv
+rehash</code> so that shims are recreated whenever a new shell is opened.</li>
+<li>Added initial support for Zsh autocompletion.</li>
+<li>Removed the dependency on egrep for reading version files.</li>
+</ul><p><strong>0.1.1</strong> (August 14, 2011)</p>
+
+<ul class="task-list">
+<li>Fixed a syntax error in the <code>rbenv help</code> command.</li>
+<li>Removed <code>-e</code> from the shebang in favor of <code>set -e</code> at the top of
+each file for compatibility with operating systems that do not
+support more than one argument in the shebang.</li>
+</ul><p><strong>0.1.0</strong> (August 11, 2011)</p>
+
+<ul class="task-list">
+<li>Initial public release.</li>
+</ul><h3>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h3>
+
+<p>(The MIT license)</p>
+
+<p>Copyright (c) 2013 Sam Stephenson</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

@@ -1,0 +1,885 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-linode-cli" class="anchor" href="#linode-cli" aria-hidden="true"><span class="octicon octicon-link"></span></a>Linode CLI</h1>
+
+<h2>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h2>
+
+<p>Linode CLI is a simple command-line interface to the Linode platform.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Linode CLI is currently packaged for Debian, Ubuntu, and through Homebrew on Mac OS X. Final versions of linode-cli will be packaged up and very easy to install for major distributions.</p>
+
+<h3>
+<a name="user-content-debianubuntu" class="anchor" href="#debianubuntu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian/Ubuntu</h3>
+
+<pre><code>sudo bash -c 'echo "deb http://apt.linode.com/ stable main" &gt; /etc/apt/sources.list.d/linode.list'
+wget -O- https://apt.linode.com/linode.gpg | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install linode-cli
+</code></pre>
+
+<h3>
+<a name="user-content-mac-os-x" class="anchor" href="#mac-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mac OS X</h3>
+
+<p>Installing the packaged version of Linode CLI on Mac OS X requires Homebrew: <a href="http://brew.sh">http://brew.sh</a></p>
+
+<pre><code>brew tap linode/cli
+brew install linode-cli
+</code></pre>
+
+<h3>
+<a name="user-content-others" class="anchor" href="#others" aria-hidden="true"><span class="octicon octicon-link"></span></a>Others</h3>
+
+<p>You'll need the following Perl modules. They can be installed from the CPAN using your preferred method.</p>
+
+<ul class="task-list">
+<li>Crypt::SSLeay</li>
+<li>JSON</li>
+<li>LWP::UserAgent</li>
+<li>Mozilla::CA</li>
+<li>Try::Tiny</li>
+<li>WebService::Linode</li>
+</ul><p>Then, download the Linode CLI tarball, extract it, and install:</p>
+
+<pre><code>curl -Lo linode-cli.tar.gz https://github.com/linode/cli/archive/master.tar.gz
+tar xf linode-cli.tar.gz
+cd cli-master &amp;&amp; perl Makefile.PL &amp;&amp; sudo make install
+</code></pre>
+
+<h2>
+<a name="user-content-initial-configuration" class="anchor" href="#initial-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initial configuration</h2>
+
+<p>You can configure defaults, including your API key and common deployment options, by running the configuration helper:</p>
+
+<pre><code>linode configure
+This will walk you through setting default values for common options.
+
+Linode Manager username
+&gt;&gt;
+...
+</code></pre>
+
+<p>By default, this will (over)write <code>$HOME/.linodecli/config</code>. If you specify a username (<code>-u</code>), it will (over)write <code>$HOME/.linodecli/config_username</code>.</p>
+
+<p>Options are in the format of <code>option value</code>, for example:</p>
+
+<pre><code>api-key foobarbaz123456
+</code></pre>
+
+<p>The API key can also be set using an environment variable (LINODE_API_KEY). Alternatively, you can pass an <code>--api-key</code> option on the command line.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>If you didn't place linode-cli somewhere in your PATH, you'll need to call it directly: <code>/path/to/linode-cli/linode</code>. Otherwise, you can simply use <code>linode</code>.</p>
+
+<h3>
+<a name="user-content-listing-linodes" class="anchor" href="#listing-linodes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Linodes</h3>
+
+<pre><code>linode list
+linode list My-Linode-Label
+linode list My-Linode-Label1 My-Linode-Label2
+</code></pre>
+
+<h3>
+<a name="user-content-showing-details-about-a-single-linode" class="anchor" href="#showing-details-about-a-single-linode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Showing details about a single Linode</h3>
+
+<pre><code>linode show My-Linode-Label
+</code></pre>
+
+<h3>
+<a name="user-content-starting-stopping-or-restarting-a-linode" class="anchor" href="#starting-stopping-or-restarting-a-linode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Starting, stopping, or restarting a Linode</h3>
+
+<pre><code>linode start My-Linode-Label
+linode stop My-Linode-Label
+linode restart My-Linode-Label
+</code></pre>
+
+<h3>
+<a name="user-content-renaming-a-linode" class="anchor" href="#renaming-a-linode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Renaming a Linode</h3>
+
+<pre><code>linode rename mylinodename mylinodenewname
+</code></pre>
+
+<h3>
+<a name="user-content-creating-a-new-linode" class="anchor" href="#creating-a-new-linode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating a new Linode</h3>
+
+<p><strong>Warning:</strong> This <em>will</em> attempt to charge the credit card on file, or use any account credit available, and spin up a new Linode 1GB.</p>
+
+<pre><code>linode create New-Linode --location dallas --plan linode2048 --payment-term 1 --distribution 'Debian 7' --group Frontends
+</code></pre>
+
+<h3>
+<a name="user-content-resizing-a-linode" class="anchor" href="#resizing-a-linode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resizing a Linode</h3>
+
+<p><strong>Warning:</strong> This <em>will</em> shut the Linode down, charge/credit the account, and issue a migration to another host server.</p>
+
+<p>This example resizes a Linode 2048 to a Linode 4096.</p>
+
+<pre><code>linode resize mylinode linode4096
+</code></pre>
+
+<h3>
+<a name="user-content-deleting-a-linode" class="anchor" href="#deleting-a-linode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deleting a Linode</h3>
+
+<p><strong>Warning:</strong> This <em>will</em> permanently delete a Linode, its disk images and configuration profiles.</p>
+
+<pre><code>linode delete New-Linode
+</code></pre>
+
+<h3>
+<a name="user-content-working-with-multiple-linodes" class="anchor" href="#working-with-multiple-linodes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working with multiple Linodes</h3>
+
+<p>Actions can be performed on multiple Linodes using their labels.  Using multiple --label arguments will accomplish the same thing.</p>
+
+<pre><code>linode start My-Linode-Label1 My-Linode-Label2
+linode show --label My-Linode-Label1 --label My-Linode-Label2
+</code></pre>
+
+<h3>
+<a name="user-content-working-with-domains" class="anchor" href="#working-with-domains" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working with Domains</h3>
+
+<p>Create a master domain (requires an SOA email address).</p>
+
+<pre><code>linode domain create example.com admin@example.com
+</code></pre>
+
+<p>Create a slave domain (requires a master DNS server ip).</p>
+
+<pre><code>linode domain create example.com slave X.X.X.X
+</code></pre>
+
+<p>Displaying domains.</p>
+
+<pre><code>linode domain list
+linode domain show example.com
+</code></pre>
+
+<p>Updating a domain.</p>
+
+<pre><code>linode domain update example.com --group main
+</code></pre>
+
+<p>Creating domain records.</p>
+
+<pre><code>linode domain record-create example.com A www2 X.X.X.X
+linode domain record-create example.com MX subdomain mail.example.com
+</code></pre>
+
+<p>Updating a domain record.</p>
+
+<pre><code>linode domain record-update example.com MX mail.example.com --priority 20
+</code></pre>
+
+<p>Removing a domain record.</p>
+
+<pre><code>linode domain record-delete example.com A www2
+</code></pre>
+
+<p>Displaying domain records.</p>
+
+<pre><code>linode domain record-list example.com
+linode domain record-list example.com MX
+linode domain record-show example.com
+linode domain record-show example.com example.com MX
+</code></pre>
+
+<h3>
+<a name="user-content-working-with-nodebalancers" class="anchor" href="#working-with-nodebalancers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working with NodeBalancers</h3>
+
+<p>Create a NodeBalancer in your datacenter of choice.</p>
+
+<pre><code>linode nodebalancer create mynodebalancer dallas
+</code></pre>
+
+<p>Set the NodeBalancer up to handle traffic on a port (configuration).</p>
+
+<pre><code>linode nodebalancer config-create mynodebalancer 80
+</code></pre>
+
+<p>Create NodeBlanacer Nodes, balancing the incoming traffic between your Linodes.</p>
+
+<pre><code>linode nodebalancer node-create mynodebalancer 80 mylinode1 xx.xx.xx.1:80
+linode nodebalancer node-create mynodebalancer 80 mylinode2 xx.xx.xx.2:80
+linode nodebalancer node-create mynodebalancer 80 mylinode3 xx.xx.xx.3:80
+</code></pre>
+
+<p>Displaying NodeBalancers.</p>
+
+<pre><code>linode nodebalancer list
+</code></pre>
+
+<p>Displaying the Nodes, which will list the Linodes handing traffic on the port requested.</p>
+
+<pre><code>linode nodebalancer node-list mynodebalancer 80
+</code></pre>
+
+<h3>
+<a name="user-content-working-with-stackscripts" class="anchor" href="#working-with-stackscripts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working with StackScripts</h3>
+
+<p>Actions can be performed on StackScripts.</p>
+
+<pre><code>linode stackscript list
+linode stackscript create --label "StackScript Name" --codefile "/path/myscript.sh" --distribution "Debian 7"
+linode stackscript show My-StackScript-Label
+linode stackscript source mystackscript &gt; myscript.sh
+</code></pre>
+
+<h3>
+<a name="user-content-displaying-account-information" class="anchor" href="#displaying-account-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Displaying account information</h3>
+
+<p>Account information, including the current account balance and network transfer pool usage, can be queried with the <code>linode-account</code> tool.</p>
+
+<pre><code>linode account show
+</code></pre>
+
+<pre><code>          managed yes
+          balance $ 0.00
+    transfer pool 7527.00GB
+transfer billable 0.00GB
+     active since 2013-09-10 14:44:27.0
+    transfer used 1.00GB
+</code></pre>
+
+<h3>
+<a name="user-content-json-output" class="anchor" href="#json-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>JSON output</h3>
+
+<p>JSON output is available for actions.</p>
+
+<pre><code>linode list --output json
+linode list --json
+</code></pre>
+
+<pre><code>{
+   "linodefrontend1" : {
+      "location" : "dallas",
+      "group" : "",
+      "status" : "powered off",
+      "backupsenabled" : false,
+      "totalram" : "1GB",
+      "request_error" : "",
+      "totalhd" : "24GB",
+      "label" : "linodefrontend1",
+      "linodeid" : 900001
+   },
+   "linodebackend1" : {
+      "location" : "dallas",
+      "group" : "backend",
+      "status" : "running",
+      "backupsenabled" : true,
+      "totalram" : "1GB",
+      "request_error" : "",
+      "totalhd" : "48GB",
+      "label" : "linodebackend1",
+      "linodeid" : 900002
+   }
+}
+</code></pre>
+
+<h3>
+<a name="user-content-using-with-multiple-accounts" class="anchor" href="#using-with-multiple-accounts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using with multiple accounts</h3>
+
+<p>Multiple accounts and configuration files can be accomplished with the username option.</p>
+
+<pre><code>linode list -u username1
+linode list -u username2
+
+linode configure -u username1
+linode configure -u username2
+...
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Options</h3>
+
+<p><strong>-a</strong>, <strong>--action</strong>: An action to perform on one Linode. One of: create, start, stop, restart, rename, group, resize, delete. Read-only operations are available as well: list, show.</p>
+
+<p>Each action has a set of options that apply to it, which are outlined in the section ACTIONS.</p>
+
+<p><strong>--api-key</strong>: API key to use when communicating with the Linode API. Alternatively, you can specify the API key in <code>$HOME/.linodecli/config</code>, using the format <code>api-key foobar</code>.</p>
+
+<p><strong>-u</strong>, <strong>--username</strong>: Optional. Allows users to specify the username, if using with multiple accounts and configuration files.</p>
+
+<p><strong>-j</strong>, <strong>--json</strong>: Optional. JSON output.</p>
+
+<p><strong>-h</strong>, <strong>--help</strong>: Displays help documentation.</p>
+
+<hr><h3>
+<a name="user-content-linode-actions" class="anchor" href="#linode-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Linode Actions</h3>
+
+<h4>
+<a name="user-content-create" class="anchor" href="#create" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create</h4>
+
+<p>Create and start a new Linode.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A Linode to operate on.</p>
+
+<p><strong>-L</strong>, <strong>--location</strong>: Required. The datacenter to use for deployment. Locations are Atlanta, Dallas, Fremont, London, Newark, and Tokyo.</p>
+
+<p><strong>-d</strong>, <strong>--distribution</strong>: Required. Distribution name or DistributionID to deploy.</p>
+
+<p><strong>-p</strong>, <strong>--plan</strong>: Required. The Plan to deploy. Plans are linode2048, linode4096, linode8192, linode16384, linode32768, linode49152, linode65536, and linode98304.</p>
+
+<p><strong>-P</strong>, <strong>--password</strong>: Required. The root user's password.  Needs to be at least 6 characters and contain at least two of these four character classes: lower case letters, upper case letters, numbers, and punctuation.</p>
+
+<p><strong>-t</strong>, <strong>--payment-term</strong>: Optional. Payment term, one of 1, 12, or 24 (months). Default: 1. This is ignored when using metered.</p>
+
+<p><strong>-g</strong>, <strong>--group</strong>: Optional. Linode Manager display group to place this Linode under. Default: none.</p>
+
+<p><strong>-K</strong>, <strong>--pubkey-file</strong>: Optional. A public key file to install at <code>/root/.ssh/authorized_keys</code> when creating this Linode.</p>
+
+<p><strong>-S</strong>, <strong>--stackscript</strong>: Optional. Personal or public StackScript ID to use for deployment.  Names of personal StackScripts are accepted.</p>
+
+<p><strong>-J</strong>, <strong>--stackscriptjson</strong>: The JSON encoded name/value pairs, answering the StackScript's User Defined Fields (UDF). A path to a JSON file is also accepted.</p>
+
+<p><strong>-w</strong>, <strong>--wait</strong>: Optional. Amount of time (in minutes) to wait for human output. Using the flag only, will use the default of 5.</p>
+
+<h4>
+<a name="user-content-rebuild" class="anchor" href="#rebuild" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rebuild</h4>
+
+<p>Rebuild an existing Linode.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A Linode to operate on.</p>
+
+<p><strong>-d</strong>, <strong>--distribution</strong>: Required. Distribution name or DistributionID to deploy.</p>
+
+<p><strong>-P</strong>, <strong>--password</strong>: Required. The root user's password.  Needs to be at least 6 characters and contain at least two of these four character classes: lower case letters, upper case letters, numbers, and punctuation.</p>
+
+<p><strong>-K</strong>, <strong>--pubkey-file</strong>: Optional. A public key file to install at <code>/root/.ssh/authorized_keys</code> when creating this Linode.</p>
+
+<p><strong>-S</strong>, <strong>--stackscript</strong>: Optional. Personal or public StackScript ID to use for deployment.  Names of personal StackScripts are accepted.</p>
+
+<p><strong>-J</strong>, <strong>--stackscriptjson</strong>: The JSON encoded name/value pairs, answering the StackScript's User Defined Fields (UDF). A path to a JSON file is also accepted.</p>
+
+<p><strong>-w</strong>, <strong>--wait</strong>: Optional. Amount of time (in minutes) to wait for human output. Using the flag only, will use the default of 5.</p>
+
+<h4>
+<a name="user-content-start-stop-restart" class="anchor" href="#start-stop-restart" aria-hidden="true"><span class="octicon octicon-link"></span></a>Start, stop, restart</h4>
+
+<p>Stop, start, or restart a Linode.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: A Linode to operate on.</p>
+
+<p><strong>-w</strong>, <strong>--wait</strong>: Optional. Amount of time (in minutes) to wait for human output. Using the flag only, will use the default of 5.</p>
+
+<h4>
+<a name="user-content-rename" class="anchor" href="#rename" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rename</h4>
+
+<p>Change a Linode's label.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: A Linode to operate on.</p>
+
+<p><strong>-n</strong>, <strong>--new-label</strong>: New label to apply to this Linode.</p>
+
+<h4>
+<a name="user-content-group" class="anchor" href="#group" aria-hidden="true"><span class="octicon octicon-link"></span></a>Group</h4>
+
+<p>Set a Linode's display group.</p>
+
+<p><strong>-g</strong>, <strong>--group</strong>: Linode Manager display group to place this Linode under.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: A Linode to operate on.</p>
+
+<h4>
+<a name="user-content-resize" class="anchor" href="#resize" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resize</h4>
+
+<p>Resize a Linode to a new plan size, and issue a boot job.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: A Linode to operate on.</p>
+
+<p><strong>-p</strong>, <strong>--plan</strong>: The Plan to resize to. Plans are linode2048, linode4096, linode8192, linode16384, linode32768, linode49152, linode65536, and linode98304.</p>
+
+<p><strong>-w</strong>, <strong>--wait</strong>: Optional. Amount of time (in minutes) to wait for human output. Using the flag only, will use the default of 20.</p>
+
+<h4>
+<a name="user-content-ip-add" class="anchor" href="#ip-add" aria-hidden="true"><span class="octicon octicon-link"></span></a>IP-Add</h4>
+
+<p>Add an IP address to a Linode.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: A Linode to operate on.</p>
+
+<p><strong>--private</strong>: Add a private IP address instead of a public one.</p>
+
+<h4>
+<a name="user-content-delete" class="anchor" href="#delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete</h4>
+
+<p>Delete a Linode, its disk image(s), and configuration profile(s).</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: A Linode to operate on.</p>
+
+<h4>
+<a name="user-content-list" class="anchor" href="#list" aria-hidden="true"><span class="octicon octicon-link"></span></a>List</h4>
+
+<p>List information about one or more Linodes. Linodes are grouped by their display group.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Optional. A specific Linode to list.</p>
+
+<h4>
+<a name="user-content-show" class="anchor" href="#show" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show</h4>
+
+<p>Display detailed information about one or more Linodes.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific Linode to show.</p>
+
+<h4>
+<a name="user-content-locations" class="anchor" href="#locations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Locations</h4>
+
+<p>List all available datacenters.</p>
+
+<h4>
+<a name="user-content-distros" class="anchor" href="#distros" aria-hidden="true"><span class="octicon octicon-link"></span></a>Distros</h4>
+
+<p>List all available distributions.</p>
+
+<h4>
+<a name="user-content-plans" class="anchor" href="#plans" aria-hidden="true"><span class="octicon octicon-link"></span></a>Plans</h4>
+
+<p>List all available Linode plans.</p>
+
+<hr><h3>
+<a name="user-content-domain-actions" class="anchor" href="#domain-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Domain Actions</h3>
+
+<h4>
+<a name="user-content-create-1" class="anchor" href="#create-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create</h4>
+
+<p>Create a Domain.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The Domain (name). The zone's name.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Either master or slave. Default: master</p>
+
+<p><strong>-e</strong>, <strong>--email</strong>: SOA email address. Required for master domains.</p>
+
+<p><strong>-D</strong>, <strong>--description</strong>: Optional. Notes describing details about the Domain.</p>
+
+<p><strong>-R</strong>, <strong>--refresh</strong>: Optional. Default: 0</p>
+
+<p><strong>-Y</strong>, <strong>--retry</strong>: Optional. Default: 0</p>
+
+<p><strong>-E</strong>, <strong>--expire</strong>: Optional. Default: 0</p>
+
+<p><strong>-T</strong>, <strong>--ttl</strong>: Optional. Default: 0</p>
+
+<p><strong>-g</strong>, <strong>--group</strong>: Optional. Linode Manager display group to place this Domain under.</p>
+
+<p><strong>-s</strong>, <strong>--status</strong>: Optional. Statuses are active, edit, or disabled. Default: active</p>
+
+<p><strong>-m</strong>, <strong>--masterip</strong>: Optional. Accepts multiple entries. When the domain is a slave, this is the zone's master DNS servers list.</p>
+
+<p><strong>-x</strong>, <strong>--axfrip</strong>: Optional. Accepts multiple entries. IP addresses allowed to AXFR the entire zone.</p>
+
+<h4>
+<a name="user-content-update" class="anchor" href="#update" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update</h4>
+
+<p>Update a Domain.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The Domain (name) to update.</p>
+
+<p><strong>-n</strong>, <strong>--new-label</strong>: Optional.  Renames the Domain.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Optional. Either master or slave. Default: master</p>
+
+<p><strong>-e</strong>, <strong>--email</strong>: Optional. SOA email address. Required for master domains.</p>
+
+<p><strong>-D</strong>, <strong>--description</strong>: Optional. Notes describing details about the Domain.</p>
+
+<p><strong>-R</strong>, <strong>--refresh</strong>: Optional. Default: 0</p>
+
+<p><strong>-Y</strong>, <strong>--retry</strong>: Optional. Default: 0</p>
+
+<p><strong>-E</strong>, <strong>--expire</strong>: Optional. Default: 0</p>
+
+<p><strong>-T</strong>, <strong>--ttl</strong>: Optional. Default: 0</p>
+
+<p><strong>-g</strong>, <strong>--group</strong>: Optional. Linode Manager display group to place this Domain under.</p>
+
+<p><strong>-s</strong>, <strong>--status</strong>: Optional. Statuses are active, edit, or disabled. Default: active</p>
+
+<p><strong>-m</strong>, <strong>--masterip</strong>: Optional. Accepts multiple entries. When the domain is a slave, this is the zone's master DNS servers list.</p>
+
+<p><strong>-x</strong>, <strong>--axfrip</strong>: Optional. Accepts multiple entries. IP addresses allowed to AXFR the entire zone.</p>
+
+<h4>
+<a name="user-content-delete-1" class="anchor" href="#delete-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete</h4>
+
+<p>Delete a Domain.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The Domain to delete.</p>
+
+<h4>
+<a name="user-content-list-1" class="anchor" href="#list-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>List</h4>
+
+<p>List information about one or more Domains.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Optional. A specific Domain to list.</p>
+
+<h4>
+<a name="user-content-show-1" class="anchor" href="#show-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show</h4>
+
+<p>Display detailed information about one or more Domains.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific Domain to show.</p>
+
+<h4>
+<a name="user-content-domain-record-create-record-create" class="anchor" href="#domain-record-create-record-create" aria-hidden="true"><span class="octicon octicon-link"></span></a>Domain Record Create (record-create)</h4>
+
+<p>Create a Domain record.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The Domain (name). The zone's name.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Required. One of: NS, MX, A, AAAA, CNAME, TXT, or SRV</p>
+
+<p><strong>-n</strong>, <strong>--name</strong>: Optional. The hostname or FQDN. When Type=MX the subdomain to delegate to the Target MX server. Default: blank.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Optional. Default: 80</p>
+
+<p><strong>-R</strong>, <strong>--target</strong>: Optional. When Type=MX the hostname. When Type=CNAME the target of the alias. When Type=TXT the value of the record. When Type=A or AAAA the token of '[remote_addr]' will be substituted with the IP address of the request.</p>
+
+<p><strong>-P</strong>, <strong>--priority</strong>: Optional. Priority for MX and SRV records, 0-255 Default: 10</p>
+
+<p><strong>-W</strong>, <strong>--weight</strong>: Optional. Default: 5</p>
+
+<p><strong>-L</strong>, <strong>--protocol</strong>: Optional. The protocol to append to an SRV record. Ignored on other record types. Default: blank.</p>
+
+<p><strong>-T</strong>, <strong>--ttl</strong>: Optional. Default: 0</p>
+
+<h4>
+<a name="user-content-domain-record-update-record-update" class="anchor" href="#domain-record-update-record-update" aria-hidden="true"><span class="octicon octicon-link"></span></a>Domain Record Update (record-update)</h4>
+
+<p>Update a Domain record.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The Domain containing the record to update.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Required. The type of the record to delete. One of: NS, MX, A, AAAA, CNAME, TXT, or SRV</p>
+
+<p><strong>-m</strong>, <strong>--match</strong>: Required. The match for the record to delete. Match to a name or target.</p>
+
+<p><strong>-n</strong>, <strong>--name</strong>: Optional. The hostname or FQDN. When Type=MX the subdomain to delegate to the Target MX server. Default: blank.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Optional. Default: 80</p>
+
+<p><strong>-R</strong>, <strong>--target</strong>: Optional. When Type=MX the hostname. When Type=CNAME the target of the alias. When Type=TXT the value of the record. When Type=A or AAAA the token of '[remote_addr]' will be substituted with the IP address of the request.</p>
+
+<p><strong>-P</strong>, <strong>--priority</strong>: Optional. Priority for MX and SRV records, 0-255 Default: 10</p>
+
+<p><strong>-W</strong>, <strong>--weight</strong>: Optional. Default: 5</p>
+
+<p><strong>-L</strong>, <strong>--protocol</strong>: Optional. The protocol to append to an SRV record. Ignored on other record types. Default: blank.</p>
+
+<p><strong>-T</strong>, <strong>--ttl</strong>: Optional. Default: 0</p>
+
+<h4>
+<a name="user-content-domain-record-delete-record-delete" class="anchor" href="#domain-record-delete-record-delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Domain Record Delete (record-delete)</h4>
+
+<p>Delete a Domain record.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The Domain containing the record to delete.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Required. The type of the record to delete. One of: NS, MX, A, AAAA, CNAME, TXT, or SRV</p>
+
+<p><strong>-m</strong>, <strong>--match</strong>: Required. The match for the record to delete. Match to a name or target.</p>
+
+<h4>
+<a name="user-content-domain-record-list-record-list" class="anchor" href="#domain-record-list-record-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Domain Record List (record-list)</h4>
+
+<p>List Domain Record information for one or more Domains.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Optional. A specific Domain to list.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Optional. Allows domain record filtering by type. One of: NS, MX, A, AAAA, CNAME, TXT, or SRV</p>
+
+<h4>
+<a name="user-content-domain-record-show-record-show" class="anchor" href="#domain-record-show-record-show" aria-hidden="true"><span class="octicon octicon-link"></span></a>Domain Record Show (record-show)</h4>
+
+<p>Display detailed Domain Record information for one or more Domains.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific Domain to show.</p>
+
+<p><strong>-t</strong>, <strong>--type</strong>: Optional. Allows domain record filtering by type. One of: NS, MX, A, AAAA, CNAME, TXT, or SRV</p>
+
+<hr><h3>
+<a name="user-content-nodebalancer-actions" class="anchor" href="#nodebalancer-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a>NodeBalancer Actions</h3>
+
+<h4>
+<a name="user-content-create-2" class="anchor" href="#create-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create</h4>
+
+<p>Create a NodeBalancer.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The name of the NodeBalancer.</p>
+
+<p><strong>-L</strong>, <strong>--location</strong>: Required. The datacenter to use for deployment. Locations are Dallas, Fremont, Atlanta, Newark, London, and Tokyo.</p>
+
+<p><strong>-t</strong>, <strong>--payment-term</strong>: Optional. Payment term, one of 1, 12, or 24 (months). Default: 1. This is ignored when using metered.</p>
+
+<h4>
+<a name="user-content-rename-1" class="anchor" href="#rename-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rename</h4>
+
+<p>Rename a NodeBalancer.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The name of the NodeBalancer.</p>
+
+<p><strong>-n</strong>, <strong>--new-label</strong>: Required. The new name for the NodeBalancer.</p>
+
+<h4>
+<a name="user-content-throttle" class="anchor" href="#throttle" aria-hidden="true"><span class="octicon octicon-link"></span></a>Throttle</h4>
+
+<p>Adjust the connections per second allowed per client IP for a NodeBalancer, to help mitigate abuse.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The name of the NodeBalancer.</p>
+
+<p><strong>-c</strong>, <strong>--connections</strong>: Required. To help mitigate abuse, throttle connections per second, per client IP. 0 to disable. Max of 20.</p>
+
+<h4>
+<a name="user-content-delete-2" class="anchor" href="#delete-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete</h4>
+
+<p>Delete a NodeBalancer.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The NodeBalancer to delete.</p>
+
+<h4>
+<a name="user-content-list-2" class="anchor" href="#list-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>List</h4>
+
+<p>List information about one or more NodeBalancers.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Optional. A specific NodeBalancer to list.</p>
+
+<h4>
+<a name="user-content-show-2" class="anchor" href="#show-2" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show</h4>
+
+<p>Display detailed information about one or more NodeBalancers.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific NodeBalancer to show.</p>
+
+<h3>
+<a name="user-content-nodebalancer-config-actions" class="anchor" href="#nodebalancer-config-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a>NodeBalancer Config Actions</h3>
+
+<h4>
+<a name="user-content-create-nodebalancer-configport-config-create" class="anchor" href="#create-nodebalancer-configport-config-create" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create NodeBalancer Config/Port (config-create)</h4>
+
+<p>Create a NodeBalancer config (port).</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The NodeBalancer name to add the config/port.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Optional. The NodeBalancer config port to bind on (1-65534). Default is 80.</p>
+
+<p><strong>-L</strong>, <strong>--protocol</strong>: Optional. Options are 'tcp', 'http', and 'https'. Default is 'http'.</p>
+
+<p><strong>-A</strong>, <strong>--algorithm</strong>: Optional. Balancing algorithm. Options are 'roundrobin', 'leastconn', and 'source'. Default is 'roundrobin'.</p>
+
+<p><strong>-S</strong>, <strong>--stickiness</strong>: Optional. Session persistence. Options are 'none', 'table', and 'http_cookie'. Default is 'table'.</p>
+
+<p><strong>-H</strong>, <strong>--check-health</strong>: Optional. Perform active health checks on the backend nodes. One of 'connection', 'http', 'http_body'. Default is 'connection'.</p>
+
+<p><strong>-I</strong>, <strong>--check-interval</strong>: Optional. Seconds between health check probes (2-3600). Default is 5.</p>
+
+<p><strong>-T</strong>, <strong>--check-timeout</strong>: Optional. Seconds to wait before considering the probe a failure (1-30). Must be less than check_interval. Default is 3.</p>
+
+<p><strong>-X</strong>, <strong>--check-attempts</strong>: Optional. Number of failed probes before taking a node out of rotation (1-30). Default is 2.</p>
+
+<p><strong>-P</strong>, <strong>--check-path</strong>: Optional. When check-health='http', the path to request. Default is '/'.</p>
+
+<p><strong>-B</strong>, <strong>--check-body</strong>: Optional. When check-health='http_body', a regex against the expected result body.</p>
+
+<p><strong>-C</strong>, <strong>--ssl-cert</strong>: Optional. SSL certificate served by the NodeBalancer when the protocol is 'https'.</p>
+
+<p><strong>-K</strong>, <strong>--ssl-key</strong>: Optional. Unpassphrased private key for the SSL certificate when protocol is 'https'.</p>
+
+<h4>
+<a name="user-content-update-nodebalancer-configport-config-update" class="anchor" href="#update-nodebalancer-configport-config-update" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update NodeBalancer Config/Port (config-update)</h4>
+
+<p>Update a NodeBalancer config (port).</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The NodeBalancer name.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Required. The NodeBalancer config port.</p>
+
+<p><strong>-N</strong>, <strong>--new-port</strong>: Optional. Changes the config port to bind on (1-65534).</p>
+
+<p><strong>-L</strong>, <strong>--protocol</strong>: Optional. Protocol. Options are 'tcp', 'http', and 'https'.</p>
+
+<p><strong>-A</strong>, <strong>--algorithm</strong>: Optional. Balancing algorithm. Options are 'roundrobin', 'leastconn', and 'source'.</p>
+
+<p><strong>-S</strong>, <strong>--stickiness</strong>: Optional. Session persistence. Options are 'none', 'table', and 'http_cookie'.</p>
+
+<p><strong>-H</strong>, <strong>--check-health</strong>: Optional. Perform active health checks on the backend nodes. One of 'connection', 'http', 'http_body'.</p>
+
+<p><strong>-I</strong>, <strong>--check-interval</strong>: Optional. Seconds between health check probes (2-3600).</p>
+
+<p><strong>-T</strong>, <strong>--check-timeout</strong>: Optional. Seconds to wait before considering the probe a failure (1-30). Must be less than check_interval.</p>
+
+<p><strong>-X</strong>, <strong>--check-attempts</strong>: Optional. Number of failed probes before taking a node out of rotation (1-30).</p>
+
+<p><strong>-P</strong>, <strong>--check-path</strong>: Optional. When check-health='http', the path to request.</p>
+
+<p><strong>-B</strong>, <strong>--check-body</strong>: Optional. When check-health='http_body', a regex against the expected result body.</p>
+
+<p><strong>-C</strong>, <strong>--ssl-cert</strong>: Optional. SSL certificate served by the NodeBalancer when the protocol is 'https'.</p>
+
+<p><strong>-K</strong>, <strong>--ssl-key</strong>: Optional. Unpassphrased private key for the SSL certificate when protocol is 'https'.</p>
+
+<h4>
+<a name="user-content-delete-nodebalancer-configport-config-delete" class="anchor" href="#delete-nodebalancer-configport-config-delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete NodeBalancer Config/Port (config-delete)</h4>
+
+<p>Delete a NodeBalancer config (port).</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The NodeBalancer name.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: The NodeBalancer config port to delete.</p>
+
+<h4>
+<a name="user-content-list-nodebalancer-configport-config-list" class="anchor" href="#list-nodebalancer-configport-config-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>List NodeBalancer Config/Port (config-list)</h4>
+
+<p>List all configs (ports) for a specific NodeBalancer.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific NodeBalancer to list.</p>
+
+<h4>
+<a name="user-content-show-nodebalancer-configport-config-show" class="anchor" href="#show-nodebalancer-configport-config-show" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show NodeBalancer Config/Port (config-show)</h4>
+
+<p>Display detailed information about a specific NodeBalancer config/port.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific NodeBalancer to show.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Required. The NodeBalancer config port to show.</p>
+
+<h3>
+<a name="user-content-nodebalancer-node-actions" class="anchor" href="#nodebalancer-node-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a>NodeBalancer Node Actions</h3>
+
+<h4>
+<a name="user-content-create-nodebalancer-node-node-create" class="anchor" href="#create-nodebalancer-node-node-create" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create NodeBalancer Node (node-create)</h4>
+
+<p>Create a NodeBalancer Node.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The label (name) of the NodeBalancer.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Required. The NodeBalancer port or config port.</p>
+
+<p><strong>-n</strong>, <strong>--name</strong>: Required. The Node name to update.</p>
+
+<p><strong>-A</strong>, <strong>--address</strong>: Required. The address:port combination used to communicate with this Node.</p>
+
+<p><strong>-W</strong>, <strong>--weight</strong>: Optional. Load balancing weight, 1-255. Higher means more connections. Default is 100.</p>
+
+<p><strong>-M</strong>, <strong>--mode</strong>: Optional. The connections mode to use. Options are 'accept', 'reject', and 'drain'. Default is 'accept'.</p>
+
+<h4>
+<a name="user-content-update-nodebalancer-node-node-update" class="anchor" href="#update-nodebalancer-node-node-update" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update NodeBalancer Node (node-update)</h4>
+
+<p>Update a NodeBalancer Node.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. The label (name) of the NodeBalancer.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Required. The NodeBalancer port or config port.</p>
+
+<p><strong>-n</strong>, <strong>--name</strong>: Required. The Node name to update.</p>
+
+<p><strong>-N</strong>, <strong>--new-name</strong>: Optional. New name for the Node (rename).</p>
+
+<p><strong>-A</strong>, <strong>--address</strong>: Optional. The address:port combination used to communicate with this Node.</p>
+
+<p><strong>-W</strong>, <strong>--weight</strong>: Optional. Load balancing weight, 1-255. Higher means more connections.</p>
+
+<p><strong>-M</strong>, <strong>--mode</strong>: Optional. The connections mode to use. Options are 'accept', 'reject', and 'drain'.</p>
+
+<h4>
+<a name="user-content-delete-nodebalancer-node-node-delete" class="anchor" href="#delete-nodebalancer-node-node-delete" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete NodeBalancer Node (node-delete)</h4>
+
+<p>Delete a NodeBalancer Node.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The NodeBalancer name.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: The NodeBalancer port or config port.</p>
+
+<p><strong>-n</strong>, <strong>--name</strong>: The specific Node name to delete.</p>
+
+<h4>
+<a name="user-content-list-nodebalancer-node-node-list" class="anchor" href="#list-nodebalancer-node-node-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>List NodeBalancer Node (node-list)</h4>
+
+<p>List all Nodes for a specific NodeBalancer port.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific NodeBalancer.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Required. The NodeBalancer port or config port.</p>
+
+<h4>
+<a name="user-content-show-nodebalancer-node-node-show" class="anchor" href="#show-nodebalancer-node-node-show" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show NodeBalancer Node (node-show)</h4>
+
+<p>Show detailed information about a specific Node for a specific NodeBalancer port.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific NodeBalancer.</p>
+
+<p><strong>-p</strong>, <strong>--port</strong>: Required. The NodeBalancer port or config port.</p>
+
+<p><strong>-n</strong>, <strong>--name</strong>: Required. The name of the Node to show.</p>
+
+<hr><h3>
+<a name="user-content-stackscript-actions" class="anchor" href="#stackscript-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a>StackScript Actions</h3>
+
+<h4>
+<a name="user-content-create-3" class="anchor" href="#create-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create</h4>
+
+<p>Create a StackScript.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The label (name) for the StackScript.</p>
+
+<p><strong>-d</strong>, <strong>--distribution</strong>: Distribution name or DistributionID to deploy.</p>
+
+<p><strong>-c</strong>, <strong>--codefile</strong>: The script file name (including the path) containing the source code.</p>
+
+<p><strong>-p</strong>, <strong>--ispublic</strong>: Optional. Whether this StackScript is published in the Library, for everyone to use.   Options are yes, no, true, and false. Default is false.</p>
+
+<p><strong>-D</strong>, <strong>--description</strong>: Optional. Notes describing details about the StackScript.</p>
+
+<p><strong>-r</strong>, <strong>--revnote</strong>: Optional. Note for describing the version.</p>
+
+<h4>
+<a name="user-content-update-1" class="anchor" href="#update-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update</h4>
+
+<p>Update a StackScript.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The label (name) of the StackScript to update.</p>
+
+<p><strong>-n</strong>, <strong>--new-label</strong>: Optional.  Renames the StackScript.</p>
+
+<p><strong>-d</strong>, <strong>--distribution</strong>: Optional. Distribution name or DistributionID to deploy.</p>
+
+<p><strong>-c</strong>, <strong>--codefile</strong>: Optional. The script file name (including the path) containing the source code.</p>
+
+<p><strong>-p</strong>, <strong>--ispublic</strong>: Optional. Whether this StackScript is published in the Library, for everyone to use.   Options are yes, no, true, and false. Default is false.</p>
+
+<p><strong>-D</strong>, <strong>--description</strong>: Optional. Notes describing details about the StackScript.</p>
+
+<p><strong>-r</strong>, <strong>--revnote</strong>: Optional. Note for describing the version.</p>
+
+<h4>
+<a name="user-content-delete-3" class="anchor" href="#delete-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delete</h4>
+
+<p>Delete a StackScript.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: The StackScript to delete.</p>
+
+<h4>
+<a name="user-content-list-3" class="anchor" href="#list-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>List</h4>
+
+<p>List information about one or more StackScripts.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Optional. A specific StackScript to list.</p>
+
+<h4>
+<a name="user-content-show-3" class="anchor" href="#show-3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Show</h4>
+
+<p>Display detailed information about one or more StackScripts.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific StackScript to show.</p>
+
+<h4>
+<a name="user-content-source" class="anchor" href="#source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source</h4>
+
+<p>Display the source code for a StackScript.</p>
+
+<p><strong>-l</strong>, <strong>--label</strong>: Required. A specific StackScript to show.</p></article></div>

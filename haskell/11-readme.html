@@ -1,0 +1,253 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-haste" class="anchor" href="#haste" aria-hidden="true"><span class="octicon octicon-link"></span></a>Haste</h1>
+
+<p>A compiler to generate Javascript code from Haskell.</p>
+
+<p>It even has a <a href="http://haste-lang.org">website</a> and a
+<a href="https://groups.google.com/d/forum/haste-compiler">mailing list</a>.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Seamless, type-safe single program framework for client-server communication</li>
+<li>Support for modern web technologies such as WebSockets, WebStorage and Canvas</li>
+<li>Simple Javascript interoperability</li>
+<li>Generates small, fast programs</li>
+<li>Supports all GHC extensions except Template Haskell</li>
+<li>Uses standard Haskell libraries</li>
+<li>Cabal integration</li>
+<li>Simple, one-step build; no need for error prone Rube Goldberg machines of
+Vagrant, VirtualBox, GHC sources and other black magic</li>
+<li>Concurrency and MVars with Haste.Concurrent</li>
+<li>Unboxed arrays, ByteArrays, StableNames and other low level features</li>
+<li>Low-level DOM base library</li>
+<li>Easy integration with Google's Closure compiler</li>
+<li>Works on Windows, GNU/Linux and Mac OS X</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>You have two options for getting Haste: installing from Hackage or from
+Github. In both cases, you need to add add Cabal's bin directory, usually
+<code>~/.cabal/bin</code>, to your <code>$PATH</code> if you haven't already done so.</p>
+
+<p>Then, installing the latest stable-ish version from cabal is easy:</p>
+
+<pre><code>$ cabal install haste-compiler
+$ haste-boot
+</code></pre>
+
+<p>Building from Github source is equally easy. After checking out the source,
+<code>cd</code> to the source tree and run:</p>
+
+<pre><code>$ cabal install
+$ haste-boot --force --local
+</code></pre>
+
+<p>You should probably run the test suite first though, to verify that everything
+is working. To do that, execute <code>./runtests.sh</code> in the Haste root directory.
+You may also run only a particular test by executing <code>./runtests.sh NameOfTest</code>.
+The test suite uses the <code>nodejs</code> interpreter by default, but this may be
+modified by setting the <code>JS</code> environment variable as such:
+<code>JS=other-js-interpreter ./runtests.sh</code>. Other JavaScript interpreters may or
+may not work.</p>
+
+<p>Haste has been tested to work on Windows and OSX platforms, but is primarily
+developed on GNU/Linux. As such, running on a GNU/Linux platform will likely
+get you less bugs.</p>
+
+<h2>
+<a name="user-content-portable-installation" class="anchor" href="#portable-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Portable installation</h2>
+
+<p>It is possible to install Haste along with its runtime system into a portable
+directory. Each user still has their own package database, which makes this
+handy for global installations. To do this, check out the source and run:</p>
+
+<pre><code>$ cabal configure -f portable-compiler
+$ cabal build
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>To compile your Haskell program to a Javascript blob ready to be included in an
+HTML document or run using a command line interpreter:</p>
+
+<pre><code>$ hastec myprog.hs
+</code></pre>
+
+<p>This is equivalent to calling ghc --make myprog.hs; Main.main will be called
+as soon as the JS blob has finished loading.</p>
+
+<p>You can pass the same flags to hastec as you'd normally pass to GHC:</p>
+
+<pre><code>$ hastec -O2 -fglasgow-exts myprog.hs
+</code></pre>
+
+<p>Haste also has its own set of command line arguments. Invoke it with --help to
+read more about them. In particular --opt-all, --opt-google-closure and
+--with-js should be fairly interesting.</p>
+
+<p>If you want your package to compile with both Haste and, say, GHC, you might
+want to use the CPP extension for conditional compilation. Haste defines the
+preprocessor symbol <code>__HASTE__</code> in all modules it compiles.</p>
+
+<p>Haste also comes with wrappers for cabal and ghc-pkg, named haste-inst and
+haste-pkg respectively. You can use them to install packages just as you would
+with vanilla GHC and cabal:</p>
+
+<pre><code>$ haste-inst install mtl
+</code></pre>
+
+<p>This will only work for libraries, however, as installing Javascript
+"executables" on your system doesn't make much sense. You can still use
+<code>haste-inst build</code> to build your "executables" locally, however.</p>
+
+<p>Finally, you can interact with Javascript code using the FFI. See
+<code>doc/js-externals.txt</code> for more information about that.</p>
+
+<p>For more information on how Haste works, see
+<a href="http://haste-lang.org/hastereport.pdf" title="Haste Report">the Haste Report</a>,
+though beware that parts of Haste may have changed quite a bit.</p>
+
+<p>You should also have a look at the documentation and/or source code for
+<code>haste-lib</code>, which resides in the <code>libraries/haste-lib</code> directory, and the
+small programs in the <code>examples</code> directory, to get started.</p>
+
+<h2>
+<a name="user-content-interfacing-with-javascript" class="anchor" href="#interfacing-with-javascript" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interfacing with Javascript</h2>
+
+<p>When writing programs you will probably want to use some native Javascript
+in your program; bindings to native libraries, for instance. There are two ways
+of doing this. You can either use the GHC FFI as described in
+<code>doc/js-externals.txt</code>, or you can use the Fay-like <code>ffi</code> function:</p>
+
+<pre><code>addTwo :: Int -&gt; Int -&gt; IO Int
+addTwo = ffi "(function(x, y) {return x + y;})"
+</code></pre>
+
+<p>The <code>ffi</code> function is a little bit safer than the GHC FFI in that it enforces
+some type invariants on values returned from JS, and is more convenient. It is,
+however, quite a bit slower due to its dynamic nature.</p>
+
+<p>If you do not feel comfortable throwing out your entire legacy Javascript
+code base, you can export selected functions from your Haste program and call
+them from Javascript:</p>
+
+<p>fun.hs:</p>
+
+<pre><code>import Haste.Foreign
+
+fun :: Int -&gt; String -&gt; IO String
+fun n s = return $ "The number is " ++ show n ++ " and the string is " ++ s
+
+main = do
+  export "fun" fun
+</code></pre>
+
+<p>fun.js:</p>
+
+<pre><code>function mymain() {
+  console.log(Haste.fun(42, "hello"));
+}
+</code></pre>
+
+<p>...then compile with:</p>
+
+<pre><code>$ hastec '--start=%%(); mymain();' --with-js=fun.js fun.hs
+</code></pre>
+
+<p><code>fun.hs</code> will export the function <code>fun</code> when its <code>main</code> function is run.
+Our Javascript obviously needs to run after that, so we create our "real" main
+function in <code>fun.js</code>. Finally, we tell the compiler to start the program by
+first executing Haste's <code>main</code> function (the <code>%%</code> gets replaced by whatever
+name the compiler chooses for the Haste <code>main</code>) and then executing our own
+<code>mymain</code>.</p>
+
+<h2>
+<a name="user-content-effortless-type-safe-client-server-communication" class="anchor" href="#effortless-type-safe-client-server-communication" aria-hidden="true"><span class="octicon octicon-link"></span></a>Effortless type-safe client-server communication</h2>
+
+<p>Using the framework from the <code>Haste.App</code> module hierarchy, you can easily write
+web applications that communicate with a server without having to write a
+single line of AJAX/WebSockets/whatever. Best of all: it's completely type
+safe.</p>
+
+<p>In essence, you write your web application as a single program - no more forced
+separation of your client and server code. You then compile your program once
+using Haste and once using GHC, and the two compilers will magically generate
+client and server code respectively.</p>
+
+<p>You will need to have the same libraries installed with both Haste and vanilla
+GHC (unless you use conditional compilation to get around this).
+<code>haste-compiler</code> comes bundled with all of <code>haste-lib</code>, so you
+only need to concern yourself with this if you're using third party libraries.
+You will also need a web server, to serve your HTML and JS files; the binary
+generated by the native compilation pass only communicates with the client part
+using WebSockets and does not serve any files on its own.</p>
+
+<p>Examples of Haste.App in action is available in <code>examples/haste-app</code> and
+<code>examples/chatbox</code>.</p>
+
+<p>For more information about how exactly this works, see this
+<a href="http://haste-lang.org/haskell14.pdf">draft paper</a>.</p>
+
+<h2>
+<a name="user-content-base-library-and-documentation" class="anchor" href="#base-library-and-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Base library and documentation</h2>
+
+<p>You can build your own set of docs for haste-lib by running
+<code>cabal haddock</code> in the Haste base directory as with any other package.</p>
+
+<p>Or you could just look at
+<a href="http://hackage.haskell.org/package/haste-compiler">the online docs</a>.</p>
+
+<h2>
+<a name="user-content-reactive-web-edsl" class="anchor" href="#reactive-web-edsl" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reactive web EDSL</h2>
+
+<p>Fursuit, the reactive EDSL previously shipped together with Haste, had several
+serious problems and has now been deprecated. Other, much better, solutions
+which work with Haste include <a href="http://hackage.haskell.org/package/Yampa">Yampa</a>,
+<a href="http://hackage.haskell.org/package/elerea">elerea</a> and others.</p>
+
+<h2>
+<a name="user-content-a-note-about-security" class="anchor" href="#a-note-about-security" aria-hidden="true"><span class="octicon octicon-link"></span></a>A note about security</h2>
+
+<p>As described in <a href="https://github.com/haskell/cabal/issues/936">https://github.com/haskell/cabal/issues/936</a>,
+Cabal is not entirely secure, and as haste-boot uses Cabal this obviously extends
+to Haste as well. If this troubles you, you can take the following steps in order
+to obtain a trusted Haste installation:</p>
+
+<ul class="task-list">
+<li>Install Haste from GitHub (don't forget to use HTTPS!) and run <code>haste-boot</code>
+as usual.</li>
+<li>Install <code>deepseq</code>, <code>containers</code>, <code>monads-tf</code> and <code>transformers</code> from a source
+you trust, in that order, forcing reinstalls as necessary.</li>
+<li>Manually reinstall <code>haste-lib</code> from the same source tree you
+installed Haste from, in that order.</li>
+</ul><p>That said, if you're comfortable trusting random Internet people
+(me, for instance), trusting Cabal shouldn't really be a big deal.</p>
+
+<h2>
+<a name="user-content-libraries" class="anchor" href="#libraries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Libraries</h2>
+
+<p>Haste is able to use standard Haskell libraries. However, some primitive
+operations are still not implemented which means that any code making use 
+of them will give you a compiler warning, then die at runtime with an angry
+error. Some libraries also depend on external C code - if you wish to use such
+a library, you will need to port the C bits to Javascript yourself (perhaps
+using Escripten) and link them into your program using <code>--with-js</code>.</p>
+
+<h2>
+<a name="user-content-why-yet-another-haskell-to-javascript-compiler" class="anchor" href="#why-yet-another-haskell-to-javascript-compiler" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why yet another Haskell to Javascript compiler?</h2>
+
+<p>Existing implementations either produce huge code, require a fair amount of
+work to get going, or both. With Haste, the idea is to give you a drop-in
+replacement for GHC that generates relatively lean code.</p>
+
+<h2>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known issues</h2>
+
+<ul class="task-list">
+<li>Not all GHC primops are implemented; if you encounter an unimplemented
+primop, please report it together with a small test case that demonstrates
+the problem.</li>
+</ul></article></div>

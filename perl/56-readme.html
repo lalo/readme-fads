@@ -1,0 +1,1518 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a>NAME</h1>
+
+<p>nginx-systemtap-toolkit - Real-time analyzing and diagnosing tools for Nginx based on <a href="http://sourceware.org/systemtap/wiki">SystemTap</a></p>
+
+<h1>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h1>
+
+<ul class="task-list">
+<li><a href="#name">NAME</a></li>
+<li><a href="#status">Status</a></li>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#permissions">Permissions</a></li>
+<li>
+<a href="#tools">Tools</a>
+
+<ul class="task-list">
+<li><a href="#ngx-active-reqs">ngx-active-reqs</a></li>
+<li><a href="#ngx-req-distr">ngx-req-distr</a></li>
+<li><a href="#ngx-shm">ngx-shm</a></li>
+<li><a href="#ngx-cycle-pool">ngx-cycle-pool</a></li>
+<li><a href="#ngx-leaked-pools">ngx-leaked-pools</a></li>
+<li><a href="#ngx-backtrace">ngx-backtrace</a></li>
+<li><a href="#ngx-body-filters">ngx-body-filters</a></li>
+<li><a href="#ngx-header-filters">ngx-header-filters</a></li>
+<li><a href="#ngx-pcrejit">ngx-pcrejit</a></li>
+<li><a href="#ngx-sample-bt">ngx-sample-bt</a></li>
+<li><a href="#sample-bt">sample-bt</a></li>
+<li><a href="#ngx-sample-lua-bt">ngx-sample-lua-bt</a></li>
+<li><a href="#fix-lua-bt">fix-lua-bt</a></li>
+<li><a href="#ngx-lua-bt">ngx-lua-bt</a></li>
+<li><a href="#ngx-sample-bt-off-cpu">ngx-sample-bt-off-cpu</a></li>
+<li><a href="#sample-bt-off-cpu">sample-bt-off-cpu</a></li>
+<li><a href="#ngx-sample-bt-vfs">ngx-sample-bt-vfs</a></li>
+<li><a href="#sample-bt-vfs">sample-bt-vfs</a></li>
+<li><a href="#ngx-accessed-files">ngx-accessed-files</a></li>
+<li><a href="#accessed-files">accessed-files</a></li>
+<li><a href="#ngx-pcre-stats">ngx-pcre-stats</a></li>
+<li><a href="#ngx-accept-queue">ngx-accept-queue</a></li>
+<li><a href="#tcp-accept-queue">tcp-accept-queue</a></li>
+<li><a href="#ngx-recv-queue">ngx-recv-queue</a></li>
+<li><a href="#tcp-recv-queue">tcp-recv-queue</a></li>
+<li><a href="#ngx-lua-shdict">ngx-lua-shdict</a></li>
+<li><a href="#ngx-lua-conn-pools">ngx-lua-conn-pools</a></li>
+<li><a href="#check-debug-info">check-debug-info</a></li>
+<li><a href="#ngx-phase-handlers">ngx-phase-handlers</a></li>
+</ul>
+</li>
+<li>
+<a href="#community">Community</a>
+
+<ul class="task-list">
+<li><a href="#english-mailing-list">English Mailing List</a></li>
+<li><a href="#chinese-mailing-list">Chinese Mailing List</a></li>
+</ul>
+</li>
+<li><a href="#bugs-and-patches">Bugs and Patches</a></li>
+<li><a href="#todo">TODO</a></li>
+<li><a href="#author">Author</a></li>
+<li><a href="#copyright--license">Copyright &amp; License</a></li>
+<li><a href="#see-also">See Also</a></li>
+</ul><h1>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h1>
+
+<p>These scripts are considered production-ready.</p>
+
+<h1>
+<a name="user-content-prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prerequisites</h1>
+
+<p>You need at least systemtap 2.1+ and perl 5.6.1+ on your Linux system. For building latest systemtap from source, please refer to this document: <a href="http://openresty.org/#BuildSystemtap">http://openresty.org/#BuildSystemtap</a></p>
+
+<p>Also, you should ensure the (DWARF) debuginfo for your Nginx (and other dependencies) is already enabled (or installed separately)
+if you did not compile your Nginx from source.</p>
+
+<p>If you are on Linux kernels older than 3.5, then you may have to apply the <a href="http://sourceware.org/systemtap/wiki/utrace">utrace patch</a> (if not yet) to your kernel to get
+user-space tracing support for your systemtap installation. But if you are using Linux distributions in the RedHat family (like RHEL, CentOS, and Fedora), then your old kernel should already has the utrace patch applied.</p>
+
+<p>The mainstream Linux kernel 3.5+ does have support for the uprobes API for userspace tracing.</p>
+
+<h1>
+<a name="user-content-permissions" class="anchor" href="#permissions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Permissions</h1>
+
+<p>Running systemtap-based tools requires special user permissions. To prevent running
+these tools with the root account,
+you can add your own (non-root) account name to the <code>stapusr</code> and <code>staprun</code> user groups.
+But if the user account running the Nginx process is different from your current
+user account, then you will still be required to run "sudo" or other means to run these tools
+with root access.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-tools" class="anchor" href="#tools" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tools</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-active-reqs" class="anchor" href="#ngx-active-reqs" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-active-reqs</h2>
+
+<p>This tool lists detailed information about all the active requests that
+are currently being processed by the specified Nginx worker or master process. When the mater process pid is specified, all its worker processes will be monitored.</p>
+
+<p>Here is an example:</p>
+
+<pre><code># assuming the nginx worker pid is 32027
+
+$ ./ngx-active-reqs -p 32027
+Tracing 32027 (/opt/nginx/sbin/nginx)...
+
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 8
+req "GET /t?", time 0.276 sec, conn reqs 18, fd 7
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 9
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 10
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 11
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 12
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 13
+req "GET /t?", time 0.300 sec, conn reqs 18, fd 14
+req "GET /t?", time 0.276 sec, conn reqs 18, fd 15
+req "GET /t?", time 0.276 sec, conn reqs 18, fd 16
+
+found 10 active requests.
+212 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p>The <code>time</code> field is the elapsed time (in seconds) since the current request started.
+The <code>conn reqs</code> field lists the requests that have been processed on the current (keep-alive) downstream connection.
+The <code>fd</code> field is the file descriptor ID for the current downstream connection.</p>
+
+<p>The <code>-m</code> option will tell this tool to analyze the request memory pools for each active request:</p>
+
+<pre><code>$ ./ngx-active-reqs -p 12141 -m
+Tracing 12141 (/opt/nginx/sbin/nginx)...
+
+req "GET /t?", time 0.100 sec, conn reqs 11, fd 8
+    pool chunk size: 4096
+    small blocks (&lt; 4017): 3104 bytes used, 912 bytes unused
+    large blocks (&gt;= 4017): 0 blocks, 0 bytes (used)
+    total used: 3104 bytes
+
+req "GET /t?", time 0.100 sec, conn reqs 11, fd 7
+    pool chunk size: 4096
+    small blocks (&lt; 4017): 3104 bytes used, 912 bytes unused
+    large blocks (&gt;= 4017): 0 blocks, 0 bytes (used)
+    total used: 3104 bytes
+
+req "GET /t?", time 0.100 sec, conn reqs 11, fd 9
+    pool chunk size: 4096
+    small blocks (&lt; 4017): 3104 bytes used, 912 bytes unused
+    large blocks (&gt;= 4017): 0 blocks, 0 bytes (used)
+    total used: 3104 bytes
+
+total memory used for all 3 active requests: 9312 bytes
+274 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p>For Nginx servers that are not busy enough, it is handy to specify the Nginx master process pid as the <code>-p</code> option value.
+Another useful option is <code>-k</code>, which will keep probing when there's no active requests found in the current event cycle.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-req-distr" class="anchor" href="#ngx-req-distr" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-req-distr</h2>
+
+<p>This tool analyzes the (downstream) request and connection distributions
+among all the nginx worker processes for the specified nginx master process.</p>
+
+<pre><code># here the nginx master pid is stored in the pid file
+#   /opt/nginx/logs/nginx.pid
+
+$ ./ngx-req-distr -m `cat /opt/nginx/logs/nginx.pid`
+Tracing 4394 4395 4396 4397 4398 4399 4400 4401 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+worker 4394:    0 reqs
+worker 4395:    200 reqs
+worker 4396:    1600 reqs
+worker 4397:    0 reqs
+worker 4398:    2100 reqs
+worker 4399:    4400 reqs
+worker 4400:    0 reqs
+worker 4401:    1701 reqs
+
+$ ./ngx-req-distr -c -m `cat /opt/nginx/logs/nginx.pid`
+Tracing 4394 4395 4396 4397 4398 4399 4400 4401 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+worker 4394:    0 reqs, 0 conns
+worker 4395:    2100 reqs,      21 conns
+worker 4396:    501 reqs,       6 conns
+worker 4397:    2100 reqs,      21 conns
+worker 4398:    100 reqs,       1 conns
+worker 4399:    2200 reqs,      22 conns
+worker 4400:    800 reqs,       8 conns
+worker 4401:    2200 reqs,      22 conns
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-shm" class="anchor" href="#ngx-shm" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-shm</h2>
+
+<p>This tool analyzes all the shared memory zones in the specified running nginx process.</p>
+
+<pre><code># you should ensure the worker is still handling requests
+# otherwise the timer_resoluation must be set in your nginx.conf
+
+# assuming the nginx worker pid is 15218
+
+$ cd /path/to/nginx-systemtap-toolkit/
+
+# list the zones
+$ ./ngx-shm -p 15218
+Tracing 15218 (/opt/nginx/sbin/nginx)...
+
+shm zone "one"
+    owner: ngx_http_limit_req
+    total size: 5120 KB
+
+shm zone "two"
+    owner: ngx_http_file_cache
+    total size: 7168 KB
+
+shm zone "three"
+    owner: ngx_http_limit_conn
+    total size: 3072 KB
+
+shm zone "dogs"
+    owner: ngx_http_lua_shdict
+    total size: 100 KB
+
+Use the -n &lt;zone&gt; option to see more details about each zone.
+34 microseconds elapsed in the probe.
+
+# show the zone details
+$ ./ngx-shm -p 15218 -n dogs
+Tracing 15218 (/opt/nginx/sbin/nginx)...
+
+shm zone "dogs"
+    owner: ngx_http_lua_shdict
+    total size: 100 KB
+    free pages: 88 KB (22 pages, 1 blocks)
+
+22 microseconds elapsed in the probe.
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-cycle-pool" class="anchor" href="#ngx-cycle-pool" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-cycle-pool</h2>
+
+<p>This tool computes the real-time memory usage of the nginx global "cycle pool"
+in the specified nginx (worker) process.</p>
+
+<p>The "cycle pool" is mainly for configuration related data block allocation and other long-lived
+data blocks with a lifetime as long as the nginx server configuration (like the compiled PCRE data stored in the regex cache for the ngx_lua module).</p>
+
+<pre><code># you should ensure the worker is handling requests
+# or the timer_resoluation is set in your nginx.conf
+
+# assuming the nginx worker pid is 15004
+
+$ ./ngx-cycle-pool -p 15004
+Tracing 15004 (/usr/local/nginx/sbin/nginx)...
+
+pool chunk size: 16384
+small blocks (&lt; 4096): 96416 bytes used, 1408 bytes unused
+large blocks (&gt;= 4096): 6 blocks, 26352 bytes (used)
+total used: 122768 bytes
+
+12 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p>The memory block size for the "large blocks" is approximated based on
+the intermal implementation of glibc's <code>malloc</code> on Linux. If you have replaced the <code>malloc</code> with other allocator,
+then this tool is very likely to quit with memory access errors
+or to give meaningless numbers for the "large blocks" total size
+(but even in such bad cases, SystemTap should not affect the nginx process being analyzed at all).</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-leaked-pools" class="anchor" href="#ngx-leaked-pools" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-leaked-pools</h2>
+
+<p>Tracks creations and destructions of Nginx memory pools and report the top 10 leaked pools'
+backtraces.</p>
+
+<p>The backtraces are in the raw form of hexidecimal addresses.
+You can use the <code>ngx-backtrace</code> tool to print out the source
+code file names, source line numbers, as well as function names.</p>
+
+<pre><code># assuming the nginx worker pid is 5043
+
+$ ./ngx-leaked-pools -p 5043
+Tracing 5043 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+28 pools leaked at backtrace 0x4121aa 0x43c851 0x4300a0 0x42746a 0x42f927 0x4110d8 0x3d35021735 0x40fe29
+17 pools leaked at backtrace 0x4121aa 0x44d7bd 0x44e425 0x44fcc1 0x47996d 0x43908a 0x4342c3 0x4343bd 0x43dfcc 0x44c20e 0x4300a0 0x42746a 0x42f927 0x4110d8 0x3d35021735 0x40fe29
+16 pools leaked at backtrace 0x4121aa 0x44d7bd 0x44e425 0x44fcc1 0x47996d 0x43908a 0x4342c3 0x4343bd 0x43dfcc 0x43f09e 0x43f6e6 0x43fcd5 0x43c9fb 0x4300a0 0x42746a 0x42f927 0x4110d8 0x3d35021735 0x40fe29
+
+Run the command "./ngx-backtrace -p 5043 &lt;backtrace&gt;" to get details.
+For total 200 pools allocated.
+
+$ ./ngx-backtrace -p 5043  -p 5043 0x4121aa 0x44d7bd 0x44e425 0x44fcc1 0x47996d 0x43908a 0x4342c3 0x4343bd
+ngx_create_pool
+src/core/ngx_palloc.c:44
+ngx_http_upstream_connect
+src/http/ngx_http_upstream.c:1164
+ngx_http_upstream_init_request
+src/http/ngx_http_upstream.c:645
+ngx_http_upstream_init
+src/http/ngx_http_upstream.c:447
+ngx_http_redis2_handler
+src/ngx_http_redis2_handler.c:108
+ngx_http_core_content_phase
+src/http/ngx_http_core_module.c:1407
+ngx_http_core_run_phases
+src/http/ngx_http_core_module.c:890
+ngx_http_handler
+src/http/ngx_http_core_module.c:872
+</code></pre>
+
+<p>This script requires Nginx instances that have applied the latest dtrace patch. See the <a href="https://github.com/agentzh/nginx-dtrace">dtrace-nginx</a> project for more details.</p>
+
+<p>The bundle <a href="http://openresty.org/">ngx_openresty</a> 1.2.3.3+ includes the right dtrace patch by default. And you just need to build it with the <code>--with-dtrace-probes</code> configure option.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-backtrace" class="anchor" href="#ngx-backtrace" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-backtrace</h2>
+
+<p>Prints out a human readable form for the raw backtraces consisting of hexidecimal addresses generated by other tools like <code>ngx-leaked-pools</code>.</p>
+
+<pre><code># assuming the nginx worker process pid is 5043
+
+$ ./ngx-backtrace -p 5043 0x4121aa 0x44d7bd 0x44e425 0x44fcc1 0x47996d 0x43908a 0x4342c3 0x4343bd
+ngx_create_pool
+src/core/ngx_palloc.c:44
+ngx_http_upstream_connect
+src/http/ngx_http_upstream.c:1164
+ngx_http_upstream_init_request
+src/http/ngx_http_upstream.c:645
+ngx_http_upstream_init
+src/http/ngx_http_upstream.c:447
+ngx_http_redis2_handler
+src/ngx_http_redis2_handler.c:108
+ngx_http_core_content_phase
+src/http/ngx_http_core_module.c:1407
+ngx_http_core_run_phases
+src/http/ngx_http_core_module.c:890
+ngx_http_handler
+src/http/ngx_http_core_module.c:872
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-body-filters" class="anchor" href="#ngx-body-filters" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-body-filters</h2>
+
+<p>Print out all the output body filters in the order that they actually run.</p>
+
+<pre><code># assuming the nginx worker process pid is 30132
+
+$ ./ngx-body-filters -p 30132
+Tracing 30132 (/opt/nginx/sbin/nginx)...
+
+WARNING: Missing unwind data for module, rerun with 'stap -d ...'
+ngx_http_range_body_filter
+ngx_http_copy_filter
+ngx_output_chain
+ngx_http_lua_capture_body_filter
+ngx_http_image_body_filter
+ngx_http_charset_body_filter
+ngx_http_ssi_body_filter
+ngx_http_postpone_filter
+ngx_http_gzip_body_filter
+ngx_http_chunked_body_filter
+ngx_http_write_filter
+
+113 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-header-filters" class="anchor" href="#ngx-header-filters" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-header-filters</h2>
+
+<p>Print out all the output header filters in the order that they actually run.</p>
+
+<pre><code>$ ./ngx-header-filters -p 30132
+Tracing 30132 (/opt/nginx/sbin/nginx)...
+
+WARNING: Missing unwind data for module, rerun with 'stap -d ...'
+ngx_http_not_modified_header_filter
+ngx_http_lua_capture_header_filter
+ngx_http_headers_filter
+ngx_http_image_header_filter
+ngx_http_charset_header_filter
+ngx_http_ssi_header_filter
+ngx_http_gzip_header_filter
+ngx_http_range_header_filter
+ngx_http_chunked_header_filter
+ngx_http_header_filter
+
+137 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-pcrejit" class="anchor" href="#ngx-pcrejit" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-pcrejit</h2>
+
+<p>This script tracks the PCRE compiled regex execution (i.e., the <code>pcre_exec</code> calls)
+in the specified Nginx worker process,
+and checks whether the compiled regexes being executed is JIT'd or not.</p>
+
+<pre><code># assuming the Nginx worker process handling the traffic is 31360.
+
+$ ./ngx-pcrejit -p 31360
+Tracing 31360 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+ngx_http_lua_ngx_re_match: 1000 of 2000 are PCRE JIT'd.
+ngx_http_regex_exec: 0 of 1000 are PCRE JIT'd.
+</code></pre>
+
+<p>When statically linking PCRE with your Nginx, it is important to enable
+debug symbols in your PCRE compilation.
+That is, you should build your Nginx and PCRE like this:</p>
+
+<pre><code>./configure --with-pcre=/path/to/my/pcre-8.31 \
+    --with-pcre-jit \
+    --with-pcre-opt=-g \
+    --prefix=/opt/nginx
+make -j8
+make install
+</code></pre>
+
+<p>For dynamically-linked PCRE, you are still need
+to install the debug symbols for your PCRE (or the debuginfo RPM package for Yum-based systems).</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-sample-bt" class="anchor" href="#ngx-sample-bt" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-sample-bt</h2>
+
+<p>This tool has been renamed to <a href="#sample-bt">sample-bt</a> because this tool is not specific to Nginx
+in any way and it makes no sense to keep the <code>ngx-</code> prefix in its name.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-sample-bt" class="anchor" href="#sample-bt" aria-hidden="true"><span class="octicon octicon-link"></span></a>sample-bt</h2>
+
+<p>This script can be used to sample backtraces in either user space or kernel space
+or both for <em>any</em> user process that you specify (yes, not just Nginx!).
+It outputs the aggregated backgraces (by count).</p>
+
+<p>For example, to sample a running Nginx worker process (whose pid is 8736) in user space
+only for total 5 seconds:</p>
+
+<pre><code>$ ./sample-bt -p 8736 -t 5 -u &gt; a.bt
+WARNING: Tracing 8736 (/opt/nginx/sbin/nginx) in user-space only...
+WARNING: Missing unwind data for module, rerun with 'stap -d stap_df60590ce8827444bfebaf5ea938b5a_11577'
+WARNING: Time's up. Quitting now...(it may take a while)
+WARNING: Number of errors: 0, skipped probes: 24
+</code></pre>
+
+<p>The resulting output file <code>a.bt</code> can then be used to generate a Flame Graph by using Brendan Gregg's <a href="https://github.com/brendangregg/FlameGraph">FlameGraph tools</a>:</p>
+
+<pre><code>stackcollapse-stap.pl a.bt &gt; a.cbt
+flamegraph.pl a.cbt &gt; a.svg
+</code></pre>
+
+<p>where both the <code>stackcollapse-stap.pl</code> and <code>flamegraph.pl</code> are from the FlameGraph toolkit.
+If everything goes right, you can now use your web browser to open the <code>a.svg</code> file.</p>
+
+<p>A sample flame graph for user-space-only sampling can be seen here (please open the link with a modern web browser that supports SVG rendering):</p>
+
+<p><a href="http://agentzh.org/misc/nginx/user-flamegraph.svg">http://agentzh.org/misc/nginx/user-flamegraph.svg</a></p>
+
+<p>For more information on the Flame Graph thing, please check out Brendan Gregg's blog posts below:</p>
+
+<ul class="task-list">
+<li><a href="http://dtrace.org/blogs/brendan/2011/12/16/flame-graphs/">Flame Graphs</a></li>
+<li><a href="http://dtrace.org/blogs/brendan/2012/03/17/linux-kernel-performance-flame-graphs/">Linux Kernel Performance: Flame Graphs</a></li>
+</ul><p>You can also sample the backtraces in the kernel-space by specifying the <code>-k</code> option, as in</p>
+
+<pre><code>$ ./sample-bt -p 8736 -t 5 -k &gt; a.bt
+WARNING: Tracing 8736 (/opt/nginx/sbin/nginx) in kernel-space only...
+WARNING: Missing unwind data for module, rerun with 'stap -d stap_bf5516bdbf2beba886507025110994e_11738'
+WARNING: Time's up. Quitting now...(it may take a while)
+</code></pre>
+
+<p>Only the kernel-space code in the context of the specified nginx worker process
+will be sampled.</p>
+
+<p>A sample flame graph for kernel-space-only sample can be seen here:</p>
+
+<p><a href="http://agentzh.org/misc/nginx/kernel-flamegraph.svg">http://agentzh.org/misc/nginx/kernel-flamegraph.svg</a></p>
+
+<p>You can also sample in both the user space and kernel space by specifying the <code>-k</code> and <code>-u</code> options at the same time, as in</p>
+
+<pre><code>$ ./sample-bt -p 8736 -t 5 -uk &gt; a.bt
+WARNING: Tracing 8736 (/opt/nginx/sbin/nginx) in both user-space and kernel-space...
+WARNING: Missing unwind data for module, rerun with 'stap -d stap_90327f3a19b0e42dffdef38d53a5860_11799'
+WARNING: Time's up. Quitting now...(it may take a while)
+WARNING: Number of errors: 0, skipped probes: 38
+WARNING: There were 73 transport failures.
+</code></pre>
+
+<p>A sample flame graph for kenerl-and-user-space sampling can be seen here:</p>
+
+<p><a href="http://agentzh.org/misc/nginx/user-kernel-flamegraph.svg">http://agentzh.org/misc/nginx/user-kernel-flamegraph.svg</a></p>
+
+<p>In fact, this script is general enough and can be used to sample user processes other than Nginx.</p>
+
+<p>The overhead exposed on the target process is usually small. For example, the throughput (req/sec) limit of an nginx worker process doing simplest "hello world" requests drops by only 11% (only when this tool is running), as measured by <code>ab -k -c2 -n100000</code> when using Linux kernel 3.6.10 and systemtap 2.5. The impact on full-fledged production processes is usually smaller than even that, for instance, only 6% drop in the throughput limit is observed in a production-level Lua CDN application.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-sample-lua-bt" class="anchor" href="#ngx-sample-lua-bt" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-sample-lua-bt</h2>
+
+<p><em>WARNING</em> This tool can only work with interpreted Lua code and has various limitations. For
+LuaJIT 2.1, it is recommended to use the new <a href="https://github.com/agentzh/stapxx#ngx-lj-lua-stacks">ngx-lj-lua-stacks</a>
+tool for sampling both interpreted and/or compiled Lua code.</p>
+
+<p>Similar to the <a href="#sample-bt">sample-bt</a> script, but samples the Lua language level backtraces.</p>
+
+<p>Specify the <code>--lua51</code> option when you're using the standard Lua 5.1 interpreter in your Nginx build, or <code>--luajit20</code> if LuaJIT 2.0 is used instead.</p>
+
+<p>You need to enable or install the debug symbols for your Lua library, in addition to your Nginx executable.</p>
+
+<p>Also, you should not omit frame pointers while building your Lua library.</p>
+
+<p>If LuaJIT 2.0 is used, you need to build your LuaJIT 2.0 library like this:</p>
+
+<pre><code>make CCDEBUG=-g
+</code></pre>
+
+<p>The Lua backtraces generated by this script use Lua source file name and source line number where the Lua function is defined. So to get more meaningful backtraces, you can call the <code>fix-lua-bt</code> script to process the output of this script.</p>
+
+<p>Here is an example for standard Lua 5.1 interpreter embedded Nginx:</p>
+
+<pre><code># sample at 1K Hz for 5 seconds, assuming the Nginx worker
+#   or master process pid is 9766.
+$ ./ngx-sample-lua-bt -p 9766 --lua51 -t 5 &gt; tmp.bt
+WARNING: Tracing 9766 (/opt/nginx/sbin/nginx) for standard Lua 5.1...
+WARNING: Time's up. Quitting now...(it may take a while)
+
+$ ./fix-lua-bt tmp.bt &gt; a.bt
+</code></pre>
+
+<p>Or if LuaJIT 2.0 is used:</p>
+
+<pre><code># sample at 1K Hz for 5 seconds, assuming the Nginx worker
+#   or master process pid is 9768.
+$ ./ngx-sample-lua-bt -p 9768 --luajit20 -t 5 &gt; tmp.bt
+WARNING: Tracing 9766 (/opt/nginx/sbin/nginx) for LuaJIT 2.0...
+WARNING: Time's up. Quitting now...(it may take a while)
+
+$ ./fix-lua-bt tmp.bt &gt; a.bt
+</code></pre>
+
+<p>The resulting output file <code>a.bt</code> can then be used to generate a Flame Graph by using Brendan Gregg's <a href="https://github.com/brendangregg/FlameGraph">FlameGraph tools</a>:</p>
+
+<pre><code>stackcollapse-stap.pl a.bt &gt; a.cbt
+flamegraph.pl a.cbt &gt; a.svg
+</code></pre>
+
+<p>where both the <code>stackcollapse-stap.pl</code> and <code>flamegraph.pl</code> are from the FlameGraph toolkit.
+If everything goes right, you can now use your web browser to open the <code>a.svg</code> file.</p>
+
+<p>A sample flame graph for user-space-only sampling can be seen here (please open the link with a modern web browser that supports SVG rendering):</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/lua51-resty-mysql.svg">http://agentzh.org/misc/flamegraph/lua51-resty-mysql.svg</a></p>
+
+<p>For more information on the Flame Graph thing, please check out Brendan Gregg's blog posts below:</p>
+
+<ul class="task-list">
+<li><a href="http://dtrace.org/blogs/brendan/2011/12/16/flame-graphs/">Flame Graphs</a></li>
+<li><a href="http://dtrace.org/blogs/brendan/2012/03/17/linux-kernel-performance-flame-graphs/">Linux Kernel Performance: Flame Graphs</a></li>
+</ul><p>If the pid of the Nginx master proces is specified as the <code>-t</code> option value,
+then this tool will automatically probe all its worker processes at the same time.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-fix-lua-bt" class="anchor" href="#fix-lua-bt" aria-hidden="true"><span class="octicon octicon-link"></span></a>fix-lua-bt</h2>
+
+<p>Fixes the raw Lua backtraces generated by the <code>ngx-sample-lua-bt</code> script and makes it more readable.</p>
+
+<p>The original backtraces generated by <code>ngx-sample-lua-bt</code> looks like this:</p>
+
+<pre><code>C:0x7fe9faf52dd0
+@/home/agentzh/git/lua-resty-mysql/lib/resty/mysql.lua:65
+@/home/agentzh/git/lua-resty-mysql/lib/resty/mysql.lua:176
+@/home/agentzh/git/lua-resty-mysql/lib/resty/mysql.lua:418
+@/home/agentzh/git/lua-resty-mysql/lib/resty/mysql.lua:711
+</code></pre>
+
+<p>And after being processed by this script, we get</p>
+
+<pre><code>C:0x7fe9faf52dd0
+resty.mysql:_get_byte3
+resty.mysql:_recv_packet
+resty.mysql:_recv_field_packet
+resty.mysql:read_result
+</code></pre>
+
+<p>Here's a sample command:</p>
+
+<pre><code>./fix-lua-bt tmp.bt &gt; a.bt
+</code></pre>
+
+<p>where the input file <code>tmp.bt</code> is generated by <code>ngx-sample-lua-bt</code> earlier.</p>
+
+<p>See also <code>ngx-sample-lua-bt</code>.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-lua-bt" class="anchor" href="#ngx-lua-bt" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-lua-bt</h2>
+
+<p>This tool dumps out the current Lua-land backtrace in the current running Nginx worker process.</p>
+
+<p>This tool is very useful in locating the infinite Lua loop that keeps the Nginx worker
+spinning with 100% CPU usage.</p>
+
+<p>If LuaJIT 2.0 is used, specify the --luajit20 option, like this:</p>
+
+<pre><code>$ ./ngx-lua-bt -p 7599 --luajit20
+WARNING: Tracing 7599 (/opt/nginx/sbin/nginx) for LuaJIT 2.0...
+C:lj_cf_string_find
+content_by_lua:2
+content_by_lua:1
+</code></pre>
+
+<p>If the standard Lua 5.1 interpreter is used instead, specify the --lua51 option:</p>
+
+<pre><code>$ ./ngx-lua-bt -p 13611 --lua51
+WARNING: Tracing 13611 (/opt/nginx/sbin/nginx) for standard Lua 5.1...
+C:str_find
+content_by_lua:2
+[tail]
+content_by_lua:1
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-sample-bt-off-cpu" class="anchor" href="#ngx-sample-bt-off-cpu" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-sample-bt-off-cpu</h2>
+
+<p>This tool has been renamed to <a href="#sample-bt-off-cpu">sample-bt-off-cpu</a> because this tool is not specific to Nginx
+in any way and it makes no sense to keep the <code>ngx-</code> prefix in its name.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-sample-bt-off-cpu" class="anchor" href="#sample-bt-off-cpu" aria-hidden="true"><span class="octicon octicon-link"></span></a>sample-bt-off-cpu</h2>
+
+<p>Similar to <a href="#sample-bt">sample-bt</a> but analyzes the off-CPU time for a particular user process (not only Nginx, but also any other applications).</p>
+
+<p>Why does off-CPU time matter? Check out Brendan Gregg's excellent blog post "Off-CPU Performance Analysis" for details:</p>
+
+<p><a href="http://dtrace.org/blogs/brendan/2011/07/08/off-cpu-performance-analysis/">http://dtrace.org/blogs/brendan/2011/07/08/off-cpu-performance-analysis/</a></p>
+
+<p>By default, this tool samples the userspace backtraces. And 1 (logical) sample of backtraces in the output corresponds to 1 microsecond of off-CPU time.</p>
+
+<p>Here is an example to demonstrate this tool's usage:</p>
+
+<pre><code># assuming the nginx worker process to be analyzed is 10901.
+$ ./sample-bt-off-cpu -p 10901 -t 5 &gt; a.bt
+WARNING: Tracing 10901 (/opt/nginx/sbin/nginx)...
+WARNING: _stp_read_address failed to access memory location
+WARNING: Time's up. Quitting now...(it may take a while)
+WARNING: Number of errors: 0, skipped probes: 23
+</code></pre>
+
+<p>where the <code>-t 5</code> option makes the tool sample for 5 seconds.</p>
+
+<p>The resulting <code>a.bt</code> file can be used to render Flame Graphs just as with <a href="#sample-bt">sample-bt</a> and its other friends. And this type of flamegraphs can be called "off-CPU Flame Graphs" while the classic flamegraphs are essentially "on-CPU Flame Graphs".</p>
+
+<p>Below is such a "off-CPU flamegraph" for a loaded Nginx worker process accessing MySQL with the lua-resty-mysql library:</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/off-cpu-lua-resty-mysql.svg">http://agentzh.org/misc/flamegraph/off-cpu-lua-resty-mysql.svg</a></p>
+
+<p>By default, off-CPU time intervals shorter than 4 us (microseconds) are discarded. You can control this threshold via the <code>--min</code> option, as in</p>
+
+<pre><code>$ ./sample-bt-off-cpu -p 12345 --min 10 -t 10
+</code></pre>
+
+<p>where we ignore off-CPU time intervals shorter than 10 us and sample the user process with the pid 12345 for total 10 seconds.</p>
+
+<p>The <code>-l</code> option can be control the upper limit of different backtraces to be outputed. By default, the hottest 1024 different backtraces are dumped.</p>
+
+<p>The <code>--distr</code> option can be specified to print out a base-2 logarithmic histogram for all the off-CPU time intervals (larger than the threshold specified by the <code>--min</code> option). For example,</p>
+
+<pre><code>$ ./sample-bt-off-cpu -p 10901 -t 3 --distr --min=1
+WARNING: Tracing 10901 (/opt/nginx/sbin/nginx)...
+Exiting...Please wait...
+=== Off-CPU time distribution (in us) ===
+min/avg/max: 2/79/1739
+value |-------------------------------------------------- count
+    0 |                                                     0
+    1 |                                                     0
+    2 |@                                                   10
+    4 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@        259
+    8 |@@@@@@@                                             44
+   16 |@@@@@@@@@@                                          62
+   32 |@@@@@@@@@@@@@                                       79
+   64 |@@@@@@@                                             43
+  128 |@@@@@                                               31
+  256 |@@@                                                 22
+  512 |@@@                                                 22
+ 1024 |                                                     4
+ 2048 |                                                     0
+ 4096 |                                                     0
+</code></pre>
+
+<p>Here we can see that most of the samples (for total 259 samples) fall in the off-CPU time interval range <code>[4us, 8us)</code>. And the largest off-CPU time interval is 1739us, i.e., 1.739ms.</p>
+
+<p>You can specify the <code>-k</code> option to sample the kernel space backtraces instead of sampling userland backtraces. If you want to sample both the userland and kernelspace, then you can specify both the <code>-k</code> and <code>-u</code> options.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-sample-bt-vfs" class="anchor" href="#ngx-sample-bt-vfs" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-sample-bt-vfs</h2>
+
+<p>This tool has been renamed to <a href="#sample-bt-vfs">sample-bt-vfs</a> because this tool is not specific to Nginx
+in any way and it makes no sense to keep the <code>ngx-</code> prefix in its name.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-sample-bt-vfs" class="anchor" href="#sample-bt-vfs" aria-hidden="true"><span class="octicon octicon-link"></span></a>sample-bt-vfs</h2>
+
+<p>Similar to <a href="#sample-bt">sample-bt</a> but samples the userspace backtraces on the Virtual File System (VFS) level for rendering File I/O Flame Graphs, which can show exactly how file I/O data volumn or file I/O latency is distributed among different userspace code paths within any running user process.</p>
+
+<p>By default, 1 sample of backtrace corresponds of 1 byte of data volumn (read or written). And by default, both <code>vfs_read</code> and <code>vfs_write</code> are tracked. For example,</p>
+
+<pre><code>$ ./sample-bt-vfs -p 12345 -t 3 &gt; a.bt
+WARNING: Tracing 20636 (/opt/nginx/sbin/nginx)...
+WARNING: Time's up. Quitting now...(it may take a while)
+WARNING: Number of errors: 0, skipped probes: 2
+</code></pre>
+
+<p>We can then render a flamegraph for read/write VFS I/O like this:</p>
+
+<pre><code>$ stackcollapse-stap.pl a.bt &gt; a.cbt
+$ flamegraph.pl a.cbt &gt; a.svg
+</code></pre>
+
+<p>where the tools <code>stackcollapse-stap.pl</code> and <code>flamegraph.pl</code> are from Brendan Gregg's FlameGraph toolkit:</p>
+
+<p><a href="https://github.com/brendangregg/FlameGraph">https://github.com/brendangregg/FlameGraph</a></p>
+
+<p>One sample "file I/O flamegraph" is here:</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/vfs-index-page-rw.svg">http://agentzh.org/misc/flamegraph/vfs-index-page-rw.svg</a></p>
+
+<p>This graph was rendered when the Nginx worker process is loaded by requests to its default index page (i.e., <code>/index.html</code>). We can see both the file writes in the standard access logging module and the file reads in the standard "static" module. The total sample space in this graph, 1481361, means for total 1481361 bytes of data actually read or written on VFS.</p>
+
+<p>You can also track file reading only by specifying the <code>-r</code> option:</p>
+
+<pre><code>$ ./sample-bt-vfs -p 12345 -t 3 -r &gt; a.bt
+</code></pre>
+
+<p>Here is an example of "file reading flamegraph" by sampling a Nginx loaded by requests accessing its default index page:</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/vfs-index-page-r.svg">http://agentzh.org/misc/flamegraph/vfs-index-page-r.svg</a></p>
+
+<p>We can see that only the standard nginx "static" module is the only thing shown in the graph.</p>
+
+<p>Similarly, you can specify the <code>-w</code> option to track file writing only:</p>
+
+<pre><code>$ ./sample-bt-vfs -p 12345 -t 3 -w &gt; a.bt
+</code></pre>
+
+<p>Here is a sample "file writing flamegraph" for Nginx (with debugging logs enabled):</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/vfs-debug-log.svg">http://agentzh.org/misc/flamegraph/vfs-debug-log.svg</a></p>
+
+<p>And below is another example for "file writing flamegraphs" for Nginx with debugging logs turned off:</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/vfs-access-log-only.svg">http://agentzh.org/misc/flamegraph/vfs-access-log-only.svg</a></p>
+
+<p>We can see that only access logging appears in the graph.</p>
+
+<p>Do not confuse file I/O here with disk I/O because we are only probing on the (high) Virtual File System level. So the system page cache can save many disk reads here.</p>
+
+<p>Generally, we are more interested in the latency (i.e, time) spent on the VFS reads and writes. You can specify the <code>--latency</code> option to track kernel call latency instead of the data volumn:</p>
+
+<pre><code>$ ./sample-bt-vfs -p 12345 -t 3 --latency &gt; a.bt
+</code></pre>
+
+<p>In this case, 1 sample corresponds to 1 microsends of file I/O time (or to be more correct, the <code>vfs_read</code> or <code>vfs_write</code> calls' time).</p>
+
+<p>Here is an example for this:</p>
+
+<p><a href="http://agentzh.org/misc/flamegraph/vfs-latency-index-page-rw.svg">http://agentzh.org/misc/flamegraph/vfs-latency-index-page-rw.svg</a></p>
+
+<p>The total samples shown in the graph, 1918669, indicate for total 1,918,669 microsends (or 1.9 seconds) were spent on both file reading and writing during the 3 seconds sampling interval.</p>
+
+<p>One can also combine either the <code>-r</code> or <code>-w</code> option with the <code>--latency</code> option to filter out file reads or file writes.</p>
+
+<p>This tool can be used to inspect any user process (not only Nginx processes) with debug symbols enabled.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-accessed-files" class="anchor" href="#ngx-accessed-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-accessed-files</h2>
+
+<p>This tool has been renamed to <a href="#accessed-files">accessed-files</a> because this tool is not specific to Nginx
+in any way and it makes no sense to keep the <code>ngx-</code> prefix in its name.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-accessed-files" class="anchor" href="#accessed-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>accessed-files</h2>
+
+<p>Find out the names of the files most frequently read from or written to in any user process (yes, not only nginx!) specified by the <code>-p</code> option.</p>
+
+<p>The <code>-r</code> option can be specified to analyze files that are read from. For example,</p>
+
+<pre><code>$ ./accessed-files -p 8823 -r
+Tracing 8823 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+=== Top 10 file reads ===
+#1: 10 times, 720 bytes reads in file index.html.
+#2: 5 times, 75 bytes reads in file helloworld.html.
+#3: 2 times, 26 bytes reads in file a.html.
+</code></pre>
+
+<p>And the <code>-w</code> option can be used to analyze files that are written to instead:</p>
+
+<pre><code>$ ./accessed-files -p 8823 -w
+Tracing 8823 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+=== Top 10 file writes ===
+#1: 17 times, 1600 bytes writes in file access.log.
+</code></pre>
+
+<p>And you can specify both the <code>-r</code> and <code>-w</code> options:</p>
+
+<pre><code>$ ./accessed-files -p 8823 -w -r
+Tracing 8823 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+=== Top 10 file reads/writes ===
+#1: 17 times, 1600 bytes reads/writes in file access.log.
+#2: 10 times, 720 bytes reads/writes in file index.html.
+#3: 5 times, 75 bytes reads/writes in file helloworld.html.
+#4: 2 times, 26 bytes reads/writes in file a.html.
+</code></pre>
+
+<p>By default, hitting Ctrl-C will end the sampling process. And the <code>-t</code> option can be specified to control the sampling period by exact number of seconds, as in</p>
+
+<pre><code>$ ./accessed-files -p 8823 -r -t 5
+Tracing 8823 (/opt/nginx/sbin/nginx)...
+Please wait for 5 seconds.
+
+=== Top 10 file reads ===
+#1: 10 times, 720 bytes reads in file index.html.
+#2: 5 times, 75 bytes reads in file helloworld.html.
+#3: 2 times, 26 bytes reads in file a.html.
+</code></pre>
+
+<p>By default, at most 10 different file names are printed out. You can control this upper limit by specifying the <code>-l</code> option. For instance,</p>
+
+<pre><code>$ ./accessed-files -p 8823 -r -l 20
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-pcre-stats" class="anchor" href="#ngx-pcre-stats" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-pcre-stats</h2>
+
+<p>This tool can perform various statistical analysis of PCRE regex execution
+performance in a running Nginx worker process.</p>
+
+<p>This tool requires uretprobes support in the Linux kernel.</p>
+
+<p>Also, you need to ensure that debug symbols are enabled in your
+Nginx build, PCRE build, and LuaJIT build. For example, if you build PCRE from source with your Nginx or OpenResty by specifying the
+<code>--with-pcre=PATH</code> option, then you should also specify the <code>--with-pcre-opt=-g</code> option at the same time.</p>
+
+<p>Below is an example that analyzes the PCRE regex executation time distribution for a given Nginx worker process. Note that, the time is given in microseconds (<code>us</code>), i.e., 1e-6 seconds. The <code>--exec-time-dist</code> option is used here.</p>
+
+<pre><code>$ ./ngx-pcre-stats -p 24528 --exec-time-dist
+Tracing 24528 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+Logarithmic histogram for pcre_exec running time distribution (us):
+value |-------------------------------------------------- count
+    1 |                                                       0
+    2 |                                                       0
+    4 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 36200
+    8 |@@@@@@@@@@@@@@@@@@@@                               14707
+   16 |                                                     105
+   32 |@@@                                                 2892
+   64 |                                                     114
+  128 |                                                       0
+  256 |                                                       0
+</code></pre>
+
+<p>Also, you can specify the <code>--data-len-dist</code> option to analyze the distribution of the length of those subject string data being matched in individual runs.</p>
+
+<pre><code>$ ./ngx-pcre-stats -p 24528 --data-len-dist
+Tracing 24528 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+Logarithmic histogram for data length distribution:
+value |-------------------------------------------------- count
+    1 |                                                       0
+    2 |                                                       0
+    4 |@@@                                                 3001
+    8 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  48016
+   16 |                                                       0
+   32 |                                                       0
+      ~
+ 1024 |                                                       0
+ 2048 |                                                       0
+ 4096 |@@@                                                 3001
+ 8192 |                                                       0
+16384 |                                                       0
+</code></pre>
+
+<p>The <code>--worst-time-top</code> option can be specified to analyze the worst execution time of the individual regex matches using the ngx_lua module's <a href="http://wiki.nginx.org/HttpLuaModule#ngx.re.match">ngx.re API</a>:</p>
+
+<pre><code>$ ./ngx-pcre-stats -p 24528 --worst-time-top --luajit20
+Tracing 24528 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+Top N regexes with worst running time:
+1. pattern "elloA": 125us (data size: 5120)
+2. pattern ".": 76us (data size: 10)
+3. pattern "a": 64us (data size: 12)
+4. pattern "b": 29us (data size: 12)
+5. pattern "ello": 26us (data size: 5)
+</code></pre>
+
+<p>Note that the time values given above are just for individual runs and are not accumulated.</p>
+
+<p>And the <code>--total-time-top</code> option is similar to <code>--worst-time-top</code>, but using accumulated regex execution time.</p>
+
+<pre><code>$ ./ngx-pcre-stats -p 24528 --total-time-top --luajit20
+Tracing 24528 (/opt/nginx/sbin/nginx)...
+Hit Ctrl-C to end.
+^C
+Top N regexes with longest total running time:
+1. pattern ".": 241038us (total data size: 330110)
+2. pattern "elloA": 188107us (total data size: 15365120)
+3. pattern "b": 28016us (total data size: 36012)
+4. pattern "ello": 26241us (total data size: 15005)
+5. pattern "a": 26180us (total data size: 36012)
+</code></pre>
+
+<p>The -t option can be used to specify the time period
+(in seconds) for sampling instead of requiring the user to
+hit Ctrl-C to end sampling:</p>
+
+<pre><code>$ ./ngx-pcre-stats -p 8701 --total-time-top --luajit20 -t 5
+Tracing 8701 (/opt/nginx/sbin/nginx)...
+Please wait for 5 seconds.
+
+Top N regexes with longest total running time:
+1. pattern ".": 81us (total data size: 110)
+2. pattern "elloA": 62us (total data size: 5120)
+3. pattern "ello": 46us (total data size: 5)
+4. pattern "b": 19us (total data size: 12)
+5. pattern "a": 9us (total data size: 12)
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-accept-queue" class="anchor" href="#ngx-accept-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-accept-queue</h2>
+
+<p>This tool has been renamed to <a href="#tcp-accept-queue">tcp-accept-queue</a> because this tool is not specific to Nginx
+in any way and it makes no sense to keep the <code>ngx-</code> prefix in its name.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-tcp-accept-queue" class="anchor" href="#tcp-accept-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>tcp-accept-queue</h2>
+
+<p>This tool samples the SYN queue and ACK backlog queue for the sockets listening on the local port specified by the <code>--port</code> option
+for the time interval when it is running. It can work on any server processes even it is not Nginx.</p>
+
+<p>This is a real-time sampling tool.</p>
+
+<p>SYN queue or ACK backlog queue overflowing often results in connecting timeout errors on the client side.</p>
+
+<p>By default, the tool prints out up to 10 queue overflow events and then quits immediately. For example:</p>
+
+<pre><code>$ ./tcp-accept-queue --port=80
+WARNING: Tracing SYN &amp; ACK backlog queue overflows on the listening port 80...
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:15 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+</code></pre>
+
+<p>From the output, we can see a lot of ACK backlog queue overflows happening when the tool is running. This means the corresponding SYN packets were dropped in the kernel.</p>
+
+<p>You can specify the <code>--limit</code> option to control the maximal number of issues reported:</p>
+
+<pre><code>$ ./tcp-accept-queue --port=80 --limit=3
+WARNING: Tracing SYN &amp; ACK backlog queue overflows on the listening port 80...
+[Tue May 14 12:29:25 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:25 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+[Tue May 14 12:29:25 2013 PDT] ACK backlog queue is overflown: 129 &gt; 128
+</code></pre>
+
+<p>Or just hit Ctrl-C to end.</p>
+
+<p>You can also specify the <code>--distr</code> option to make this tool just print out a histogram for the distribution
+of the queue lengths:</p>
+
+<pre><code>$ ./tcp-accept-queue --port=80 --distr
+WARNING: Tracing SYN &amp; ACK backlog queue length distribution on the listening port 80...
+Hit Ctrl-C to end.
+SYN queue length limit: 512
+Accept queue length limit: 128
+^C
+=== SYN Queue ===
+min/avg/max: 0/2/8
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@                         106
+    1 |@@@@@@@@@@@@@@@                                     60
+    2 |@@@@@@@@@@@@@@@@@@@@@                               84
+    4 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@       176
+    8 |@@                                                   9
+   16 |                                                     0
+   32 |                                                     0
+
+=== Accept Queue ===
+min/avg/max: 0/93/129
+value |-------------------------------------------------- count
+    0 |@@@@                                                20
+    1 |@@@                                                 16
+    2 |                                                     3
+    4 |@@                                                  11
+    8 |@@@@                                                23
+   16 |@@@                                                 16
+   32 |@@@@@@                                              33
+   64 |@@@@@@@@@@@@                                        63
+  128 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 250
+  256 |                                                     0
+  512 |                                                     0
+</code></pre>
+
+<p>From the outputs, we can see that for 106 samples (i.e., 106 new connecting request), the SYN queue length remains 0; for samples, the SYN queue is of the length 1; and for 84 samples, the queue size is within the interval [2, 4); and so on. We can see most of the samples have the SYN queue size 0 ~ 8.</p>
+
+<p>You need to hit Ctrl-C to make this tool print out the histgram when the <code>--distr</code> option is specified. Alternatively, you can specify the <code>--time</code> option to specify the exact number of seconds for real-time sampling:</p>
+
+<pre><code>$ ./tcp-accept-queue --port=80 --distr --time=3
+WARNING: Tracing SYN &amp; ACK backlog queue length distribution on the listening port 80...
+Sampling for 3 seconds.
+SYN queue length limit: 512
+Accept queue length limit: 128
+
+=== SYN Queue ===
+min/avg/max: 6/7/10
+value |-------------------------------------------------- count
+    1 |                                                    0
+    2 |                                                    0
+    4 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@             76
+    8 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@          82
+   16 |                                                    0
+   32 |                                                    0
+
+=== Accept Queue ===
+min/avg/max: 128/128/129
+value |-------------------------------------------------- count
+   32 |                                                     0
+   64 |                                                     0
+  128 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            158
+  256 |                                                     0
+  512 |                                                     0
+</code></pre>
+
+<p>Even though the accept queue is not overflowing, long latency involved in accept queueing can also lead to client connecting timeout. The <code>--latency</code> option can be specified to analyze the accept queueing latency for a given listening port:</p>
+
+<pre><code>$ ./tcp-accept-queue -port=80 --latency
+WARNING: Tracing accept queueing latency on the listening port 80...
+Hit Ctrl-C to end.
+^C
+=== Queueing Latency Distribution (microsends) ===
+min/avg/max: 28/3281400/3619393
+  value |-------------------------------------------------- count
+      4 |                                                     0
+      8 |                                                     0
+     16 |                                                     1
+     32 |@                                                   12
+     64 |                                                     6
+    128 |                                                     2
+    256 |                                                     0
+    512 |                                                     0
+        ~
+   8192 |                                                     0
+  16384 |                                                     0
+  32768 |                                                     2
+  65536 |                                                     0
+ 131072 |                                                     0
+ 262144 |                                                     0
+ 524288 |                                                     7
+1048576 |@@                                                  28
+2097152 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@     516
+4194304 |                                                     0
+8388608 |                                                     0
+</code></pre>
+
+<p>The <code>--time</code> option can also be specified to control the sampling time in seconds:</p>
+
+<pre><code>$ ./tcp-accept-queue --port=80 --latency --time=5
+WARNING: Tracing accept queueing latency on the listening port 80...
+Sampling for 5 seconds.
+
+=== Accept Queueing Latency Distribution (microsends) ===
+min/avg/max: 3604825/3618651/3639329
+  value |-------------------------------------------------- count
+ 524288 |                                                    0
+1048576 |                                                    0
+2097152 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@              37
+4194304 |                                                    0
+8388608 |                                                    0
+</code></pre>
+
+<p>This tool requires a Linux kernel compiled by gcc 4.5+ (preferrably gcc 4.7+) because gcc versions older than 4.5 generated incomplete DWARF debug info for C inlined functions. It is also recommended to enable DWARF format version 3 or above when compiling the kernel (by passing the <code>-gdwarf-3</code> or <code>-gdwarf-4</code> option to the <code>gcc</code> command line).</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-recv-queue" class="anchor" href="#ngx-recv-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-recv-queue</h2>
+
+<p>This tool has been renamed to <a href="#tcp-recv-queue">tcp-recv-queue</a> because this tool is not specific to Nginx
+in any way and it makes no sense to keep the <code>ngx-</code> prefix in its name.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-tcp-recv-queue" class="anchor" href="#tcp-recv-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>tcp-recv-queue</h2>
+
+<p>This tool can analyze the queueing latency involved in the TCP receive queue.</p>
+
+<p>The queueing latency defined here is the delay between the following two events:</p>
+
+<ol class="task-list">
+<li>The first packet enteres the TCP receive queue since the last recvmsg() syscalls (and the like) initiated on the userland.</li>
+<li>The next recvmsg() syscall (and the like) that consumes the TCP receive queue.</li>
+</ol><p>Large receive queueing lantencies often mean the user process is just too busy to consume the incoming requests, probably leading to timeout errors on the client side.</p>
+
+<p>Zero-length data packets in the TCP receive queue (i.e., the FIN packets) are ignored by this tool.</p>
+
+<p>You are only required to specify the destination port number for the receiving packets via the <code>--dport</code> option.</p>
+
+<p>Here is an example for analyzing the MySQL server listening on the 3306 port:</p>
+
+<pre><code>$ ./tcp-recv-queue --dport=3306
+WARNING: Tracing the TCP receive queues for packets to the port 3306...
+Hit Ctrl-C to end.
+^C
+=== Distribution of First-In-First-Out Latency (us) in TCP Receive Queue ===
+min/avg/max: 1/2/42
+value |-------------------------------------------------- count
+    0 |                                                       0
+    1 |@@@@@@@@@@@@@@                                     20461
+    2 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  69795
+    4 |@@@@                                                6187
+    8 |@@                                                  3421
+   16 |                                                     178
+   32 |                                                       8
+   64 |                                                       0
+  128 |                                                       0
+</code></pre>
+
+<p>We can see that most of the latency times fall into the interval <code>[2us, 4us)</code>. And the worst latency is 42us.</p>
+
+<p>You can also specify the exact sampling time interval (in seconds) via the <code>--time</code> option. For example, to analyze the Nginx server listening on the port 8080 for 5 seconds:</p>
+
+<pre><code>$ ./tcp-recv-queue --dport=1984 --time=5
+WARNING: Tracing the TCP receive queues for packets to the port 1984...
+Sampling for 5 seconds.
+
+=== Distribution of First-In-First-Out Latency (us) in TCP Receive Queue ===
+min/avg/max: 1/1401/12761
+value |-------------------------------------------------- count
+    0 |                                                       0
+    1 |                                                       1
+    2 |                                                       1
+    4 |                                                       5
+    8 |                                                     152
+   16 |@@                                                  1610
+   32 |                                                      35
+   64 |@@@                                                 2485
+  128 |@@@@@@                                              4056
+  256 |@@@@@@@@@@@@                                        7853
+  512 |@@@@@@@@@@@@@@@@@@@@@@@@                           15153
+ 1024 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  31424
+ 2048 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                   20454
+ 4096 |@                                                    862
+ 8192 |                                                      19
+16384 |                                                       0
+32768 |                                                       0
+</code></pre>
+
+<p>Successfully tested on Linux kernel 3.7 and should work for other versions of kernel as well.</p>
+
+<p>This tool requires a Linux kernel compiled by gcc 4.5+ (preferrably gcc 4.7+) because gcc versions older than 4.5 generated incomplete DWARF debug info for C inlined functions. It is also recommended to enable DWARF format version 3 or above when compiling the kernel (by passing the <code>-gdwarf-3</code> or <code>-gdwarf-4</code> option to the <code>gcc</code> command line).</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-lua-shdict" class="anchor" href="#ngx-lua-shdict" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-lua-shdict</h2>
+
+<p>This tool analyzes shared memory dict and tracks dict operations in the specified running nginx process.</p>
+
+<p>You can specify the <code>-f</code> option to fetch the data from the shared memory dict name by the specified dict and key.
+Specify the <code>--raw</code> option when you need dump the raw value of the given key.</p>
+
+<p>Specify the <code>--lua51</code> option when you're using the standard Lua 5.1 interpreter in your Nginx build, or <code>--luajit20</code> if LuaJIT 2.0 is used instead. Currently only LuaJIT is supported.</p>
+
+<p>Here's a sample command to fetch the data from the shared memory dict:</p>
+
+<pre><code># assuming the nginx worker pid is 5050
+$ ./ngx-lua-shdict -p 5050 -f --dict dogs --key Jim --luajit20
+Tracing 5050 (/opt/nginx/sbin/nginx)...
+
+type: LUA_TBOOLEAN
+value: true
+expires: 1372719243270
+flags: 0xa
+
+6 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p>Similarly, you can specify the <code>-w</code> option to track dict writes for the given key:</p>
+
+<pre><code>$./ngx-lua-shdict -p 5050 -w --key Jim --luajit20
+Tracing 5050 (/opt/nginx/sbin/nginx)...
+
+Hit Ctrl-C to end
+
+set Jim exptime=4626322717216342016
+replace Jim exptime=4626322717216342016
+^C
+</code></pre>
+
+<p>If you don't specify <code>-f</code> or <code>-w</code>, this tool will fetch the data by default.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-lua-conn-pools" class="anchor" href="#ngx-lua-conn-pools" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-lua-conn-pools</h2>
+
+<p>Dumps connections pools status of <a href="http://wiki.nginx.org/HttpLuaModule">ngx_lua</a>, reports the number of both out-of-pool and in-pool connections, calculates connections reused times statistics of in-pool connections, and prints the capacity of each pool.</p>
+
+<p>Specify the <code>--lua51</code> option when you're using the standard Lua 5.1 interpreter in your Nginx build, or <code>--luajit20</code> if LuaJIT 2.0 is used instead.</p>
+
+<p>Here's a sample command:</p>
+
+<pre><code># assuming the nginx worker pid is 19773
+$ ./ngx-lua-conn-pools -p 19773 --luajit20
+Tracing 19773 (/opt/nginx/sbin/nginx)...
+
+pool "127.0.0.1:11213"
+    out-of-pool reused connections: 2
+    in-pool connections: 183
+        reused times (max/min/avg): 9322/1042/3748
+    pool capacity: 1024
+
+pool "127.0.0.1:11212"
+    out-of-pool reused connections: 2
+    in-pool connections: 182
+        reused times (max/min/avg): 10283/414/3408
+    pool capacity: 1024
+
+pool "127.0.0.1:11211"
+    out-of-pool reused connections: 2
+    in-pool connections: 183
+        reused times (max/min/avg): 7109/651/3867
+    pool capacity: 1024
+
+pool "127.0.0.1:11214"
+    out-of-pool reused connections: 2
+    in-pool connections: 183
+        reused times (max/min/avg): 7051/810/3807
+    pool capacity: 1024
+
+pool "127.0.0.1:11215"
+    out-of-pool reused connections: 2
+    in-pool connections: 183
+        reused times (max/min/avg): 7275/1127/3839
+    pool capacity: 1024
+
+For total 5 connection pool(s) found.
+324 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p>You can specify the <code>--distr</code> option to get the distribution of numbers of resued times:</p>
+
+<pre><code>$ ./ngx-lua-conn-pools -p 19773 --luajit20 --distr
+Tracing 15001 (/opt/nginx/sbin/nginx) for LuaJIT 2.0...
+
+pool "127.0.0.1:6379"
+    out-of-pool reused connections: 1
+    in-pool connections: 19
+        reused times (max/avg/min): 2607/2503/2360
+        reused times distribution:
+value |-------------------------------------------------- count
+  512 |                                                    0
+ 1024 |                                                    0
+ 2048 |@@@@@@@@@@@@@@@@@@@                                19
+ 4096 |                                                    0
+ 8192 |                                                    0
+
+    pool capacity: 1000
+
+For total 1 connection pool(s) found.
+218 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-check-debug-info" class="anchor" href="#check-debug-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>check-debug-info</h2>
+
+<p>This tool checks which executable files do not contain debug info in any running process that you specify.</p>
+
+<p>Basically, just run it like this:</p>
+
+<pre><code>./check-debug-info -p &lt;pid&gt;
+</code></pre>
+
+<p>The executable file associated with the process and all the .so files already loaded by the process will be checked for dwarf info.</p>
+
+<p>The process is not required to be nginx, but can be any user processes.</p>
+
+<p>Here is a complete example:</p>
+
+<pre><code>$ ./check-debug-info -p 26482
+File /usr/lib64/ld-2.15.so has no debug info embedded.
+File /usr/lib64/libc-2.15.so has no debug info embedded.
+File /usr/lib64/libdl-2.15.so has no debug info embedded.
+File /usr/lib64/libm-2.15.so has no debug info embedded.
+File /usr/lib64/libpthread-2.15.so has no debug info embedded.
+File /usr/lib64/libresolv-2.15.so has no debug info embedded.
+File /usr/lib64/librt-2.15.so has no debug info embedded.
+</code></pre>
+
+<p>For now, this tool does not support separate .debug files yet.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-ngx-phase-handlers" class="anchor" href="#ngx-phase-handlers" aria-hidden="true"><span class="octicon octicon-link"></span></a>ngx-phase-handlers</h2>
+
+<p>This tool dumps all the handlers registered by all the nginx modules for every nginx running phase in the order they actually run.</p>
+
+<p>This is very useful in debugging Nginx configuration issues caused by misinterpreting the running order of the Nginx configuration directives.</p>
+
+<p>Here is an example for an Nginx worker process with very few Nginx modules enabled:</p>
+
+<pre><code># assuming the nginx worker pid is 4876
+$ ./ngx-phase-handlers -p 4876
+Tracing 4876 (/opt/nginx/sbin/nginx)...
+pre-access phase
+    ngx_http_limit_req_handler
+    ngx_http_limit_conn_handler
+
+content phase
+    ngx_http_index_handler
+    ngx_http_autoindex_handler
+    ngx_http_static_handler
+
+log phase
+    ngx_http_log_handler
+
+22 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p>Here is another example for an Nginx worker process with quite a few Nginx modules enabled:</p>
+
+<pre><code>$ ./ngx-phase-handlers -p 24980
+Tracing 24980 (/opt/nginx/sbin/nginx)...
+post-read phase
+    ngx_http_realip_handler
+
+server-rewrite phase
+    ngx_coolkit_override_method_handler
+    ngx_http_rewrite_handler
+
+rewrite phase
+    ngx_coolkit_override_method_handler
+    ngx_http_rewrite_handler
+
+pre-access phase
+    ngx_http_realip_handler
+    ngx_http_limit_req_handler
+    ngx_http_limit_conn_handler
+
+access phase
+    ngx_http_auth_request_handler
+    ngx_http_access_handler
+
+content phase
+    ngx_http_lua_content_handler (request content handler)
+    ngx_http_index_handler
+    ngx_http_autoindex_handler
+    ngx_http_static_handler
+
+log phase
+    ngx_http_log_handler
+
+44 microseconds elapsed in the probe handler.
+</code></pre>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-community" class="anchor" href="#community" aria-hidden="true"><span class="octicon octicon-link"></span></a>Community</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-english-mailing-list" class="anchor" href="#english-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>English Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty-en">openresty-en</a> mailing list is for English speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h2>
+<a name="user-content-chinese-mailing-list" class="anchor" href="#chinese-mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chinese Mailing List</h2>
+
+<p>The <a href="https://groups.google.com/group/openresty">openresty</a> mailing list is for Chinese speakers.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-bugs-and-patches" class="anchor" href="#bugs-and-patches" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bugs and Patches</h1>
+
+<p>Please submit bug reports, wishlists, or patches by</p>
+
+<ol class="task-list">
+<li>creating a ticket on the <a href="http://github.com/agentzh/nginx-systemtap-toolkit/issues">GitHub Issue Tracker</a>,</li>
+<li>or posting to the <a href="http://wiki.nginx.org/HttpLuaModule#Community">OpenResty community</a>.</li>
+</ol><p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h1>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h1>
+
+<p>Yichun "agentzh" Zhang (章亦春), CloudFlare Inc.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-copyright--license" class="anchor" href="#copyright--license" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright &amp; License</h1>
+
+<p>This module is licenced under the BSD license.</p>
+
+<p>Copyright (C) 2012-2013 by Yichun Zhang (agentzh) <a href="mailto:agentzh@gmail.com">agentzh@gmail.com</a>, CloudFlare Inc.</p>
+
+<p>All rights reserved.</p>
+
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:</p>
+
+<ul class="task-list">
+<li><p>Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.</p></li>
+<li><p>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.</p></li>
+</ul><p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+<p><a href="#table-of-contents">Back to TOC</a></p>
+
+<h1>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>See Also</h1>
+
+<ul class="task-list">
+<li>You can find even more tools in the stap++ project: <a href="https://github.com/agentzh/stapxx">https://github.com/agentzh/stapxx</a>
+</li>
+<li>SystemTap Wiki Home: <a href="http://sourceware.org/systemtap/wiki">http://sourceware.org/systemtap/wiki</a>
+</li>
+<li>Nginx home: <a href="http://nginx.org">http://nginx.org</a>
+</li>
+<li>Perl Systemtap Toolkit: <a href="https://github.com/agentzh/perl-systemtap-toolkit">https://github.com/agentzh/perl-systemtap-toolkit</a>
+<a href="#table-of-contents">Back to TOC</a>
+</li>
+</ul></article></div>

@@ -1,0 +1,138 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-osv" class="anchor" href="#osv" aria-hidden="true"><span class="octicon octicon-link"></span></a>OSv</h1>
+
+<p>OSv is a new open-source operating system for virtual-machines.
+OSv was designed from the ground up to execute a single application on top
+of a hypervisor, resulting in superior performance and effortless management
+when compared to traditional operating systems which were designed for
+a vast range of physical machines.</p>
+
+<p>OSv has new APIs for new applications, but also runs unmodified Linux
+applications (most of Linux's ABI is supported) and in particular can run
+an unmodified JVM, and applications built on top of one.</p>
+
+<p>For more information about OSv, see <a href="http://osv.io/">http://osv.io/</a> and
+<a href="https://github.com/cloudius-systems/osv/wiki">https://github.com/cloudius-systems/osv/wiki</a></p>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/cloudius-systems/osv/wiki/Debugging-OSv">Debugging OSv</a></li>
+<li><a href="https://github.com/cloudius-systems/osv/wiki/Trace-analysis-using-trace.py">Trace Analysis</a></li>
+</ul><h2>
+<a name="user-content-building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h2>
+
+<p>OSv can only be built on a 64-bit x86 Linux distribution. Please note that
+this means the "x86_64" or "amd64" version, not the 32-bit "i386" version.</p>
+
+<p>If you wish, you can run the script 'scripts/setup.py' as root to install all dependencies.
+Otherwise, you may follow the manual instructions below.</p>
+
+<p>First, install prerequisite packages:</p>
+
+<p><strong>Fedora</strong></p>
+
+<pre><code>yum install ant autoconf automake boost-static gcc-c++ genromfs libvirt libtool flex bison qemu-system-x86 qemu-img maven maven-shade-plugin python-dpkt tcpdump gdb gnutls-utils openssl python-requests
+</code></pre>
+
+<p><strong>Debian stable(wheezy)</strong>
+Debian stable(wheezy) requires to compile gcc, gdb and qemu.
+And also need to configure bridge manually.</p>
+
+<p>More details are available on wiki page:
+<a href="https://github.com/cloudius-systems/osv/wiki/Building-OSv-on-Debian-stable">Building OSv on Debian stable</a></p>
+
+<p><strong>Debian testing(jessie)</strong></p>
+
+<pre><code>apt-get install build-essential libboost-all-dev genromfs autoconf libtool openjdk-7-jdk ant qemu-utils maven libmaven-shade-plugin-java python-dpkt tcpdump gdb qemu-system-x86 gawk gnutls-bin openssl python-requests
+</code></pre>
+
+<p><strong>Arch Linux</strong></p>
+
+<pre><code>pacman -S base-devel git python apache-ant maven qemu gdb boost
+</code></pre>
+
+<p>Before start building OSv, you'll need to add your account to kvm group.</p>
+
+<pre><code>usermod -aG kvm &lt;user name&gt;
+</code></pre>
+
+<p><strong>Ubuntu users</strong>: you may use <a href="https://launchpad.net/%7Ewebupd8team/+archive/java">Oracle JDK</a> if you don't want to pull too many
+dependencies for <code>openjdk-7-jdk</code></p>
+
+<p>To ensure functional C++11 support, Gcc 4.8 or above is required, as this was
+the first version to fully comply with the C++11 standard.</p>
+
+<p>Make sure all git submodules are up-to-date:</p>
+
+<pre><code>git submodule update --init --recursive
+</code></pre>
+
+<p>Finally, build everything at once:</p>
+
+<pre><code>make
+</code></pre>
+
+<p>By default make creates image in qcow2 format. To change this pass format value via img_format variable, i.e.</p>
+
+<pre><code>make img_format=raw
+</code></pre>
+
+<p>By default make will use the static libraries and headers of gcc in external submodule. To change this pass <code>host</code> via *_env variables:</p>
+
+<pre><code>make build_env=host
+</code></pre>
+
+<p>This will use static libraries and headers in the system instead (make sure they are installed before run <code>make</code>),
+if you only want to use C++ static libraries in the system, just set <code>cxx_lib_env</code> to <code>host</code>:</p>
+
+<pre><code>make cxx_lib_env=host
+</code></pre>
+
+<h2>
+<a name="user-content-running-osv" class="anchor" href="#running-osv" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running OSv</h2>
+
+<pre><code>./scripts/run.py
+</code></pre>
+
+<p>By default, this runs OSv under KVM, with 4 VCPUs and 2GB of memory,
+and runs the default management application (containing a shell, Web
+server, and SSH server).</p>
+
+<p>If running under KVM you can terminate by hitting Ctrl+A X.</p>
+
+<h2>
+<a name="user-content-external-networking" class="anchor" href="#external-networking" aria-hidden="true"><span class="octicon octicon-link"></span></a>External Networking</h2>
+
+<p>To start osv with external networking:</p>
+
+<pre><code>sudo ./scripts/run.py -n -v
+</code></pre>
+
+<p>The -v is for kvm's vhost that provides better performance
+and its setup requires a tap and thus we use sudo.</p>
+
+<p>By default OSv spawns a dhcpd that auto config the virtual nics.
+Static config can be done within OSv, configure networking like so:</p>
+
+<pre><code>ifconfig virtio-net0 192.168.122.100 netmask 255.255.255.0 up
+route add default gw 192.168.122.1
+</code></pre>
+
+<p>Test networking:</p>
+
+<pre><code>test invoke TCPExternalCommunication
+</code></pre>
+
+<h2>
+<a name="user-content-running-java-or-c-applications-that-already-reside-within-the-image" class="anchor" href="#running-java-or-c-applications-that-already-reside-within-the-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Java or C applications that already reside within the image:</h2>
+
+<pre><code># Building and running a simple java application example
+$ make image=java-example
+$ scripts/run.py -e "java.so -cp /java-example Hello"
+
+# Running an ifconfig by explicit execution of ifconfig.so (compiled C++ code)
+$ make
+$ sudo scripts/run.py -nv -e "/tools/ifconfig.so"
+</code></pre></article></div>

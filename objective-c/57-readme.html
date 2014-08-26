@@ -1,0 +1,697 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-bolts" class="anchor" href="#bolts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bolts</h1>
+
+<p><a href="https://travis-ci.org/BoltsFramework/Bolts-iOS"><img src="https://camo.githubusercontent.com/105b5ef18ce4568ffe0f4f17d7b40c38748ac614/687474703a2f2f696d672e736869656c64732e696f2f7472617669732f426f6c74734672616d65776f726b2f426f6c74732d694f532f6d61737465722e7376673f7374796c653d666c6174" alt="Build Status" data-canonical-src="http://img.shields.io/travis/BoltsFramework/Bolts-iOS/master.svg?style=flat" style="max-width:100%;"></a>
+<a href="http://cocoadocs.org/docsets/Bolts/"><img src="https://camo.githubusercontent.com/06708f547fcc479be59f631c262c59f0c49034f9/687474703a2f2f696d672e736869656c64732e696f2f636f636f61706f64732f762f426f6c74732e7376673f7374796c653d666c6174" alt="Pod Version" data-canonical-src="http://img.shields.io/cocoapods/v/Bolts.svg?style=flat" style="max-width:100%;"></a>
+<a href="http://cocoadocs.org/docsets/Bolts/"><img src="https://camo.githubusercontent.com/dbb587c52abeb7e79c5b2189dfbe82da2cd52913/687474703a2f2f696d672e736869656c64732e696f2f636f636f61706f64732f702f426f6c74732e7376673f7374796c653d666c6174" alt="Pod Platform" data-canonical-src="http://img.shields.io/cocoapods/p/Bolts.svg?style=flat" style="max-width:100%;"></a>
+<a href="https://github.com/BoltsFramework/Bolts-iOS/blob/master/LICENSE"><img src="https://camo.githubusercontent.com/994ba2d5f89d736c03b9fa1efe051203208e4a55/687474703a2f2f696d672e736869656c64732e696f2f636f636f61706f64732f6c2f426f6c74732e7376673f7374796c653d666c6174" alt="Pod License" data-canonical-src="http://img.shields.io/cocoapods/l/Bolts.svg?style=flat" style="max-width:100%;"></a>
+<a href="https://www.versioneye.com/objective-c/bolts"><img src="https://camo.githubusercontent.com/97ba2aaa5f3cc9f22a20722a7fe8cd9f7986f833/68747470733a2f2f7777772e76657273696f6e6579652e636f6d2f6f626a6563746976652d632f626f6c74732f312e312e312f62616467652e7376673f7374796c653d666c6174" alt="Dependency Status" data-canonical-src="https://www.versioneye.com/objective-c/bolts/1.1.1/badge.svg?style=flat" style="max-width:100%;"></a>
+<a href="https://www.versioneye.com/objective-c/bolts/references"><img src="https://camo.githubusercontent.com/7dbcf1c9651f1967ca325ac7a0ded55c78d8ed2b/68747470733a2f2f7777772e76657273696f6e6579652e636f6d2f6f626a6563746976652d632f626f6c74732f7265666572656e63655f62616467652e7376673f7374796c653d666c6174" alt="Reference Status" data-canonical-src="https://www.versioneye.com/objective-c/bolts/reference_badge.svg?style=flat" style="max-width:100%;"></a></p>
+
+<p>Bolts is a collection of low-level libraries designed to make developing mobile
+apps easier. Bolts was designed by Parse and Facebook for our own internal use,
+and we have decided to open source these libraries to make them available to
+others. Using these libraries does not require using any Parse services. Nor
+do they require having a Parse or Facebook developer account.</p>
+
+<p>Bolts includes:</p>
+
+<ul class="task-list">
+<li>"Tasks", which make organization of complex asynchronous code more manageable. A task is kind of like a JavaScript Promise, but available for iOS and Android.</li>
+<li>An implementation of the <a href="http://www.applinks.org">App Links protocol</a>, helping you link to content in other apps and handle incoming deep-links.</li>
+</ul><p>For more information, see the <a href="http://boltsframework.github.io/docs/ios/">Bolts iOS API Reference</a>.</p>
+
+<h1>
+<a name="user-content-tasks" class="anchor" href="#tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h1>
+
+<p>To build a truly responsive iOS application, you must keep long-running operations off of the UI thread, and be careful to avoid blocking anything the UI thread might be waiting on. This means you will need to execute various operations in the background. To make this easier, we've added a class called <code>BFTask</code>. A task represents the result of an asynchronous operation. Typically, a <code>BFTask</code> is returned from an asynchronous function and gives the ability to continue processing the result of the task. When a task is returned from a function, it's already begun doing its job. A task is not tied to a particular threading model: it represents the work being done, not where it is executing. Tasks have many advantages over other methods of asynchronous programming, such as callbacks. <code>BFTask</code> is not a replacement for <code>NSOperation</code> or GCD. In fact, they play well together. But tasks do fill in some gaps that those technologies don't address.</p>
+
+<ul class="task-list">
+<li>
+<code>BFTask</code> tasks care of managing dependencies for you. Unlike using <code>NSOperation</code> for dependency management, you don't have to declare all dependencies before starting a <code>BFTask</code>. For example, imagine you need to save a set of objects and each one may or may not require saving child objects. With an <code>NSOperation</code>, you would normally have to create operations for each of the child saves ahead of time. But you don't always know before you start the work whether that's going to be necessary. That can make managing dependencies with <code>NSOperation</code> very painful. Even in the best case, you have to create your dependencies before the operations that depend on them, which results in code that appears in a different order than it executes. With <code>BFTask</code>, you can decide during your operation's work whether there will be subtasks and return the other task in just those cases.</li>
+<li>
+<code>BFTasks</code> release their dependencies. <code>NSOperation</code> strongly retains its dependencies, so if you have a queue of ordered operations and sequence them using dependencies, you have a leak, because every operation gets retained forever. <code>BFTasks</code> release their callbacks as soon as they are run, so everything cleans up after itself. This can reduce memory use, and simplify memory management.</li>
+<li>
+<code>BFTasks</code> keep track of the state of finished tasks: It tracks whether there was a returned value, the task was cancelled, or if an error occurred. It also has convenience methods for propagating errors. With <code>NSOperation</code>, you have to build all of this stuff yourself.</li>
+<li>
+<code>BFTasks</code> don't depend on any particular threading model. So it's easy to have some tasks perform their work with an operation queue, while others perform work using blocks with GCD. These tasks can depend on each other seamlessly.</li>
+<li>Performing several tasks in a row will not create nested "pyramid" code as you would get when using only callbacks.</li>
+<li>
+<code>BFTasks</code> are fully composable, allowing you to perform branching, parallelism, and complex error handling, without the spaghetti code of having many named callbacks.</li>
+<li>You can arrange task-based code in the order that it executes, rather than having to split your logic across scattered callback functions.</li>
+</ul><p>For the examples in this doc, assume there are async versions of some common Parse methods, called <code>saveAsync:</code> and <code>findAsync:</code> which return a <code>Task</code>. In a later section, we'll show how to define these functions yourself.</p>
+
+<h2>
+<a name="user-content-the-continuewithblock-method" class="anchor" href="#the-continuewithblock-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>continueWithBlock</code> Method</h2>
+
+<p>Every <code>BFTask</code> has a method named <code>continueWithBlock:</code> which takes a continuation block. A continuation is a block that will be executed when the task is complete. You can then inspect the task to check if it was successful and to get its result.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="p">[[</span><span class="nb">self</span> <span class="nl">saveAsync</span><span class="p">:</span><span class="n">obj</span><span class="p">]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">task</span><span class="p">.</span><span class="n">isCancelled</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// the save was cancelled.</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">task</span><span class="p">.</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// the save failed.</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// the object was saved successfully.</span>
+    <span class="n">PFObject</span> <span class="o">*</span><span class="n">object</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="nb">self</span><span class="p">.</span><span class="n">saveAsync</span><span class="p">(</span><span class="n">obj</span><span class="p">).</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="k">if</span> <span class="n">task</span><span class="p">.</span><span class="n">isCancelled</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// the save was cancelled.</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="n">task</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// the save failed.</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// the object was saved successfully.</span>
+    <span class="k">var</span> <span class="n">object</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>BFTasks use Objective-C blocks, so the syntax should be pretty straightforward. Let's look closer at the types involved with an example.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="cm">/**</span>
+<span class="cm"> * Gets an NSString asynchronously.</span>
+<span class="cm"> */</span>
+<span class="p">-</span> <span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="p">)</span><span class="nf">getStringAsync</span> <span class="p">{</span>
+  <span class="c1">// Let's suppose getNumberAsync returns a BFTask whose result is an NSNumber.</span>
+  <span class="k">return</span> <span class="p">[[</span><span class="nb">self</span> <span class="n">getNumberAsync</span><span class="p">]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// This continuation block takes the NSNumber BFTask as input,</span>
+    <span class="c1">// and provides an NSString as output.</span>
+
+    <span class="bp">NSNumber</span> <span class="o">*</span><span class="n">number</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">NSString</span> <span class="nl">stringWithFormat</span><span class="p">:</span><span class="s">"%@"</span><span class="p">,</span> <span class="n">number</span><span class="p">];</span>
+  <span class="p">)];</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="cm">/**</span>
+<span class="cm"> * Gets an NSString asynchronously.</span>
+<span class="cm"> */</span>
+<span class="k">func</span> <span class="n">getStringAsync</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="p">{</span>
+  <span class="c1">//Let's suppose getNumberAsync returns a BFTask whose result is an NSNumber.</span>
+  <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">getNumberAsync</span><span class="p">().</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+    <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">NSString</span> <span class="k">in</span>
+    <span class="c1">// This continuation block takes the NSNumber BFTask as input,</span>
+    <span class="c1">// and provides an NSString as output.</span>
+
+    <span class="k">let</span> <span class="n">number</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSNumber</span>
+    <span class="k">return</span> <span class="bp">NSString</span><span class="p">(</span><span class="nl">format</span><span class="p">:</span><span class="s">"%@"</span><span class="p">,</span> <span class="n">number</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>In many cases, you only want to do more work if the previous task was successful, and propagate any errors or cancellations to be dealt with later. To do this, use the <code>continueWithSuccessBlock:</code> method instead of <code>continueWithBlock:</code>.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="p">[[</span><span class="nb">self</span> <span class="nl">saveAsync</span><span class="p">:</span><span class="n">obj</span><span class="p">]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// the object was saved successfully.</span>
+  <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="nb">self</span><span class="p">.</span><span class="n">saveAsync</span><span class="p">(</span><span class="n">obj</span><span class="p">).</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="c1">// the object was saved successfully.</span>
+  <span class="k">return</span> <span class="nb">nil</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-chaining-tasks-together" class="anchor" href="#chaining-tasks-together" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chaining Tasks Together</h2>
+
+<p>BFTasks are a little bit magical, in that they let you chain them without nesting. If you return a BFTask from <code>continueWithBlock:</code>, then the task returned by <code>continueWithBlock:</code> will not be considered finished until the new task returned from the new continuation block. This lets you perform multiple actions without incurring the pyramid code you would get with callbacks. Likewise, you can return a <code>BFTask</code> from <code>continueWithSuccessBlock:</code>. So, return a <code>BFTask</code> to do more asynchronous work.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="n">PFQuery</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="p">[</span><span class="n">PFQuery</span> <span class="nl">queryWithClassName</span><span class="p">:</span><span class="s">@"Student"</span><span class="p">];</span>
+<span class="p">[</span><span class="n">query</span> <span class="nl">orderByDescending</span><span class="p">:</span><span class="s">@"gpa"</span><span class="p">];</span>
+<span class="p">[[[[[</span><span class="nb">self</span> <span class="nl">findAsync</span><span class="p">:</span><span class="n">query</span><span class="p">]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="bp">NSArray</span> <span class="o">*</span><span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="n">PFObject</span> <span class="o">*</span><span class="n">valedictorian</span> <span class="o">=</span> <span class="p">[</span><span class="n">students</span> <span class="nl">objectAtIndex</span><span class="p">:</span><span class="mi">0</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">valedictorian</span> <span class="nl">setObject</span><span class="p">:</span><span class="m">@YES</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"valedictorian"</span><span class="p">];</span>
+  <span class="k">return</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">saveAsync</span><span class="p">:</span><span class="n">valedictorian</span><span class="p">];</span>
+<span class="p">}]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">PFObject</span> <span class="o">*</span><span class="n">valedictorian</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="k">return</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">findAsync</span><span class="p">:</span><span class="n">query</span><span class="p">];</span>
+<span class="p">}]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="bp">NSArray</span> <span class="o">*</span><span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="n">PFObject</span> <span class="o">*</span><span class="n">salutatorian</span> <span class="o">=</span> <span class="p">[</span><span class="n">students</span> <span class="nl">objectAtIndex</span><span class="p">:</span><span class="mi">1</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">salutatorian</span> <span class="nl">setObject</span><span class="p">:</span><span class="m">@YES</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"salutatorian"</span><span class="p">];</span>
+  <span class="k">return</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">saveAsync</span><span class="p">:</span><span class="n">salutatorian</span><span class="p">];</span>
+<span class="p">}]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Everything is done!</span>
+  <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">var</span> <span class="n">query</span> <span class="o">=</span> <span class="n">PFQuery</span><span class="p">(</span><span class="nl">className</span><span class="p">:</span><span class="s">"Student"</span><span class="p">)</span>
+<span class="n">query</span><span class="p">.</span><span class="n">orderByDescending</span><span class="p">(</span><span class="s">"gpa"</span><span class="p">)</span>
+<span class="n">findAsync</span><span class="p">(</span><span class="n">query</span><span class="p">).</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSArray</span>
+  <span class="k">var</span> <span class="n">valedictorian</span> <span class="o">=</span> <span class="n">students</span><span class="p">.</span><span class="n">objectAtIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="n">valedictorian</span><span class="p">[</span><span class="s">"valedictorian"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">true</span>
+  <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">saveAsync</span><span class="p">(</span><span class="n">valedictorian</span><span class="p">)</span>
+<span class="p">}.</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="k">var</span> <span class="n">valedictorian</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">findAsync</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+<span class="p">}.</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSArray</span>
+  <span class="k">var</span> <span class="n">salutatorian</span> <span class="o">=</span> <span class="n">students</span><span class="p">.</span><span class="n">objectAtIndex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="n">salutatorian</span><span class="p">[</span><span class="s">"salutatorian"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">true</span>
+  <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">saveAsync</span><span class="p">(</span><span class="n">salutatorian</span><span class="p">)</span>
+<span class="p">}.</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="c1">// Everything is done!</span>
+  <span class="k">return</span> <span class="nb">nil</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-error-handling" class="anchor" href="#error-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Handling</h2>
+
+<p>By carefully choosing whether to call <code>continueWithBlock:</code> or <code>continueWithSuccessBlock:</code>, you can control how errors are propagated in your application. Using <code>continueWithBlock:</code> lets you handle errors by transforming them or dealing with them. You can think of failed tasks kind of like throwing an exception. In fact, if you throw an exception inside a continuation, the resulting task will be faulted with that exception.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="n">PFQuery</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="p">[</span><span class="n">PFQuery</span> <span class="nl">queryWithClassName</span><span class="p">:</span><span class="s">@"Student"</span><span class="p">];</span>
+<span class="p">[</span><span class="n">query</span> <span class="nl">orderByDescending</span><span class="p">:</span><span class="s">@"gpa"</span><span class="p">];</span>
+<span class="p">[[[[[</span><span class="nb">self</span> <span class="nl">findAsync</span><span class="p">:</span><span class="n">query</span><span class="p">]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="bp">NSArray</span> <span class="o">*</span><span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="n">PFObject</span> <span class="o">*</span><span class="n">valedictorian</span> <span class="o">=</span> <span class="p">[</span><span class="n">students</span> <span class="nl">objectAtIndex</span><span class="p">:</span><span class="mi">0</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">valedictorian</span> <span class="nl">setObject</span><span class="p">:</span><span class="m">@YES</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"valedictorian"</span><span class="p">];</span>
+  <span class="c1">// Force this callback to fail.</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">BFTask</span> <span class="nl">taskWithError</span><span class="p">:[</span><span class="bp">NSError</span> <span class="nl">errorWithDomain</span><span class="p">:</span><span class="s">@"example.com"</span>
+                                                   <span class="nl">code</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span>
+                                               <span class="nl">userInfo</span><span class="p">:</span><span class="nb">nil</span><span class="p">]];</span>
+<span class="p">}]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Now this continuation will be skipped.</span>
+  <span class="n">PFQuery</span> <span class="o">*</span><span class="n">valedictorian</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="k">return</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">findAsync</span><span class="p">:</span><span class="n">query</span><span class="p">];</span>
+<span class="p">}]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">task</span><span class="p">.</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// This error handler WILL be called.</span>
+    <span class="c1">// The error will be the NSError returned above.</span>
+    <span class="c1">// Let's handle the error by returning a new value.</span>
+    <span class="c1">// The task will be completed with nil as its value.</span>
+    <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="c1">// This will also be skipped.</span>
+  <span class="bp">NSArray</span> <span class="o">*</span><span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+  <span class="n">PFObject</span> <span class="o">*</span><span class="n">salutatorian</span> <span class="o">=</span> <span class="p">[</span><span class="n">students</span> <span class="nl">objectAtIndex</span><span class="p">:</span><span class="mi">1</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">salutatorian</span> <span class="nl">setObject</span><span class="p">:</span><span class="m">@YES</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"salutatorian"</span><span class="p">];</span>
+  <span class="k">return</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">saveAsync</span><span class="p">:</span><span class="n">salutatorian</span><span class="p">];</span>
+<span class="p">}]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Everything is done! This gets called.</span>
+  <span class="c1">// The task's result is nil.</span>
+  <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">var</span> <span class="n">query</span> <span class="o">=</span> <span class="n">PFQuery</span><span class="p">(</span><span class="nl">className</span><span class="p">:</span><span class="s">"Student"</span><span class="p">)</span>
+<span class="n">query</span><span class="p">.</span><span class="n">orderByDescending</span><span class="p">(</span><span class="s">"gpa"</span><span class="p">)</span>
+<span class="n">findAsync</span><span class="p">(</span><span class="n">query</span><span class="p">).</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSArray</span>
+  <span class="k">var</span> <span class="n">valedictorian</span> <span class="o">=</span> <span class="n">students</span><span class="p">.</span><span class="n">objectAtIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="n">valedictorian</span><span class="p">[</span><span class="s">"valedictorian"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">true</span>
+  <span class="c1">//Force this callback to fail.</span>
+  <span class="k">return</span> <span class="n">BFTask</span><span class="p">(</span><span class="nl">error</span><span class="p">:</span><span class="bp">NSError</span><span class="p">(</span><span class="nl">domain</span><span class="p">:</span><span class="s">"example.com"</span><span class="p">,</span>
+                              <span class="nl">code</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nl">userInfo</span><span class="p">:</span> <span class="nb">nil</span><span class="p">))</span>
+<span class="p">}.</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="c1">//Now this continuation will be skipped.</span>
+  <span class="k">var</span> <span class="n">valedictorian</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">findAsync</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+<span class="p">}.</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="k">if</span> <span class="n">task</span><span class="p">.</span><span class="n">error</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// This error handler WILL be called.</span>
+    <span class="c1">// The error will be the NSError returned above.</span>
+    <span class="c1">// Let's handle the error by returning a new value.</span>
+    <span class="c1">// The task will be completed with nil as its value.</span>
+    <span class="k">return</span> <span class="nb">nil</span>
+  <span class="p">}</span>
+  <span class="c1">// This will also be skipped.</span>
+  <span class="k">let</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSArray</span>
+  <span class="k">var</span> <span class="n">salutatorian</span> <span class="o">=</span> <span class="n">students</span><span class="p">.</span><span class="n">objectAtIndex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="kt">as</span> <span class="n">PFObject</span>
+  <span class="n">salutatorian</span><span class="p">[</span><span class="s">"salutatorian"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">true</span>
+  <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">saveAsync</span><span class="p">(</span><span class="n">salutatorian</span><span class="p">)</span>
+<span class="p">}.</span><span class="n">continueWithSuccessBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="c1">// Everything is done! This gets called.</span>
+  <span class="c1">// The tasks result is nil.</span>
+  <span class="k">return</span> <span class="nb">nil</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>It's often convenient to have a long chain of success callbacks with only one error handler at the end.</p>
+
+<h2>
+<a name="user-content-creating-tasks" class="anchor" href="#creating-tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating Tasks</h2>
+
+<p>When you're getting started, you can just use the tasks returned from methods like <code>findAsync:</code> or <code>saveAsync:</code>. However, for more advanced scenarios, you may want to make your own tasks. To do that, you create a <code>BFTaskCompletionSource</code>. This object will let you create a new <code>BFTask</code>, and control whether it gets marked as finished or cancelled. After you create a <code>BFTask</code>, you'll need to call <code>setResult:</code>, <code>setError:</code>, or <code>cancel</code> to trigger its continuations.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="p">-</span> <span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="p">)</span><span class="nf">successAsync</span> <span class="p">{</span>
+  <span class="n">BFTaskCompletionSource</span> <span class="o">*</span><span class="n">successful</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFTaskCompletionSource</span> <span class="n">taskCompletionSource</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">successful</span> <span class="nl">setResult</span><span class="p">:</span><span class="s">@"The good result."</span><span class="p">];</span>
+  <span class="k">return</span> <span class="n">successful</span><span class="p">.</span><span class="n">task</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="p">)</span><span class="nf">failAsync</span> <span class="p">{</span>
+  <span class="n">BFTaskCompletionSource</span> <span class="o">*</span><span class="n">failed</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFTaskCompletionSource</span> <span class="n">taskCompletionSource</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">failed</span> <span class="nl">setError</span><span class="p">:[</span><span class="bp">NSError</span> <span class="nl">errorWithDomain</span><span class="p">:</span><span class="s">@"example.com"</span> <span class="nl">code</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span> <span class="nl">userInfo</span><span class="p">:</span><span class="nb">nil</span><span class="p">]];</span>
+  <span class="k">return</span> <span class="n">failed</span><span class="p">.</span><span class="n">task</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">func</span> <span class="n">successAsync</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="p">{</span>
+  <span class="k">var</span> <span class="n">successful</span> <span class="o">=</span> <span class="n">BFTaskCompletionSource</span><span class="p">()</span>
+  <span class="n">successful</span><span class="p">.</span><span class="n">setResult</span><span class="p">(</span><span class="s">"The good result."</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">successful</span><span class="p">.</span><span class="n">task</span>
+<span class="p">}</span>
+
+<span class="k">func</span> <span class="n">failAsync</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="p">{</span>
+  <span class="k">var</span> <span class="n">failed</span> <span class="o">=</span> <span class="n">BFTaskCompletionSource</span><span class="p">()</span>
+  <span class="n">failed</span><span class="p">.</span><span class="n">setError</span><span class="p">(</span><span class="bp">NSError</span><span class="p">(</span><span class="nl">domain</span><span class="p">:</span><span class="s">"example.com"</span><span class="p">,</span> <span class="nl">code</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nl">userInfo</span><span class="p">:</span><span class="nb">nil</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">failed</span><span class="p">.</span><span class="n">task</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>If you know the result of a task at the time it is created, there are some convenience methods you can use.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="n">BFTask</span> <span class="o">*</span><span class="n">successful</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFTask</span> <span class="nl">taskWithResult</span><span class="p">:</span><span class="s">@"The good result."</span><span class="p">];</span>
+
+<span class="n">BFTask</span> <span class="o">*</span><span class="n">failed</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFTask</span> <span class="nl">taskWithError</span><span class="p">:</span><span class="n">anError</span><span class="p">];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">let</span> <span class="n">successful</span> <span class="o">=</span> <span class="n">BFTask</span><span class="p">(</span><span class="nl">result</span><span class="p">:</span><span class="s">"The good result"</span><span class="p">)</span>
+
+<span class="k">let</span> <span class="n">failed</span> <span class="o">=</span> <span class="n">BFTask</span><span class="p">(</span><span class="nl">error</span><span class="p">:</span><span class="n">anError</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-creating-async-methods" class="anchor" href="#creating-async-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating Async Methods</h2>
+
+<p>With these tools, it's easy to make your own asynchronous functions that return tasks. For example, you can make a task-based version of <code>fetchAsync:</code> easily.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="p">-</span> <span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="p">)</span> <span class="nf">fetchAsync:</span><span class="p">(</span><span class="n">PFObject</span> <span class="o">*</span><span class="p">)</span><span class="nv">object</span> <span class="p">{</span>
+  <span class="n">BFTaskCompletionSource</span> <span class="o">*</span><span class="n">task</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFTaskCompletionSource</span> <span class="n">taskCompletionSource</span><span class="p">];</span>
+  <span class="p">[</span><span class="n">object</span> <span class="nl">fetchInBackgroundWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">PFObject</span> <span class="o">*</span><span class="n">object</span><span class="p">,</span> <span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+      <span class="p">[</span><span class="n">task</span> <span class="nl">setResult</span><span class="p">:</span><span class="n">object</span><span class="p">];</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="p">[</span><span class="n">task</span> <span class="nl">setError</span><span class="p">:</span><span class="n">error</span><span class="p">];</span>
+    <span class="p">}</span>
+  <span class="p">}];</span>
+  <span class="k">return</span> <span class="n">task</span><span class="p">.</span><span class="n">task</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">func</span> <span class="n">fetchAsync</span><span class="p">(</span><span class="nl">object</span><span class="p">:</span> <span class="n">PFObject</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="p">{</span>
+  <span class="k">var</span> <span class="n">task</span> <span class="o">=</span> <span class="n">BFTaskCompletionSource</span><span class="p">()</span>
+  <span class="n">object</span><span class="p">.</span><span class="n">fetchInBackgroundWithBlock</span> <span class="p">{</span>
+    <span class="p">(</span><span class="nl">object</span><span class="p">:</span> <span class="n">PFObject</span><span class="o">!</span><span class="p">,</span> <span class="nl">error</span><span class="p">:</span> <span class="bp">NSError</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Void</span> <span class="k">in</span>
+    <span class="k">if</span> <span class="o">!</span><span class="n">error</span> <span class="p">{</span>
+      <span class="n">task</span><span class="p">.</span><span class="n">setResult</span><span class="p">(</span><span class="n">object</span><span class="p">)</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="n">task</span><span class="p">.</span><span class="n">setError</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">task</span><span class="p">.</span><span class="n">task</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<p>It's similarly easy to create <code>saveAsync:</code>, <code>findAsync:</code> or <code>deleteAsync:</code>.</p>
+
+<h2>
+<a name="user-content-tasks-in-series" class="anchor" href="#tasks-in-series" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks in Series</h2>
+
+<p><code>BFTasks</code> are convenient when you want to do a series of tasks in a row, each one waiting for the previous to finish. For example, imagine you want to delete all of the comments on your blog.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="n">PFQuery</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="p">[</span><span class="n">PFQuery</span> <span class="nl">queryWithClassName</span><span class="p">:</span><span class="s">@"Comments"</span><span class="p">];</span>
+<span class="p">[</span><span class="n">query</span> <span class="nl">whereKey</span><span class="p">:</span><span class="s">@"post"</span> <span class="nl">equalTo</span><span class="p">:</span><span class="mi">@123</span><span class="p">];</span>
+
+<span class="p">[[[</span><span class="nb">self</span> <span class="nl">findAsync</span><span class="p">:</span><span class="n">query</span><span class="p">]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="bp">NSArray</span> <span class="o">*</span><span class="n">results</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+
+  <span class="c1">// Create a trivial completed task as a base case.</span>
+  <span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFTask</span> <span class="nl">taskWithResult</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">PFObject</span> <span class="o">*</span><span class="n">result</span> <span class="k">in</span> <span class="n">results</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// For each item, extend the task with a function to delete the item.</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// Return a task that will be marked as completed when the delete is finished.</span>
+      <span class="k">return</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">deleteAsync</span><span class="p">:</span><span class="n">result</span><span class="p">];</span>
+    <span class="p">}];</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">task</span><span class="p">;</span>
+<span class="p">}]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Every comment was deleted.</span>
+  <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">var</span> <span class="n">query</span> <span class="o">=</span> <span class="n">PFQuery</span><span class="p">(</span><span class="nl">className</span><span class="p">:</span><span class="s">"Comments"</span><span class="p">)</span>
+<span class="n">query</span><span class="p">.</span><span class="n">whereKey</span><span class="p">(</span><span class="s">"post"</span><span class="p">,</span> <span class="nl">equalTo</span><span class="p">:</span><span class="mi">123</span><span class="p">)</span>
+<span class="n">findAsync</span><span class="p">(</span><span class="n">query</span><span class="p">).</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="k">let</span> <span class="n">results</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSArray</span>
+
+  <span class="c1">// Create a trivial completed task as a base case.</span>
+  <span class="k">let</span> <span class="n">task</span> <span class="o">=</span> <span class="n">BFTask</span><span class="p">(</span><span class="nl">result</span><span class="p">:</span><span class="nb">nil</span><span class="p">)</span>
+  <span class="k">for</span> <span class="nl">result</span> <span class="p">:</span> <span class="n">PFObject</span> <span class="k">in</span> <span class="n">results</span> <span class="p">{</span>
+    <span class="c1">// For each item, extend the task with a function to delete the item.</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+      <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+      <span class="k">return</span> <span class="nb">self</span><span class="p">.</span><span class="n">deleteAsync</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">task</span>
+<span class="p">}.</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="c1">// Every comment was deleted.</span>
+  <span class="k">return</span> <span class="nb">nil</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-tasks-in-parallel" class="anchor" href="#tasks-in-parallel" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks in Parallel</h2>
+
+<p>You can also perform several tasks in parallel, using the <code>taskForCompletionOfAllTasks:</code> method. You can start multiple operations at once, and use <code>taskForCompletionOfAllTasks:</code> to create a new task that will be marked as completed when all of its input tasks are completed. The new task will be successful only if all of the passed-in tasks succeed. Performing operations in parallel will be faster than doing them serially, but may consume more system resources and bandwidth.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Objective-C</span>
+<span class="n">PFQuery</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="p">[</span><span class="n">PFQuery</span> <span class="nl">queryWithClassName</span><span class="p">:</span><span class="s">@"Comments"</span><span class="p">];</span>
+<span class="p">[</span><span class="n">query</span> <span class="nl">whereKey</span><span class="p">:</span><span class="s">@"post"</span> <span class="nl">equalTo</span><span class="p">:</span><span class="mi">@123</span><span class="p">];</span>
+
+<span class="p">[[[</span><span class="nb">self</span> <span class="nl">findAsync</span><span class="p">:</span><span class="n">query</span><span class="p">]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">results</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Collect one task for each delete into an array.</span>
+  <span class="bp">NSMutableArray</span> <span class="o">*</span><span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="bp">NSMutableArray</span> <span class="n">array</span><span class="p">];</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">PFObject</span> <span class="o">*</span><span class="n">result</span> <span class="k">in</span> <span class="n">results</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Start this delete immediately and add its task to the list.</span>
+    <span class="p">[</span><span class="n">tasks</span> <span class="nl">addObject</span><span class="p">:[</span><span class="nb">self</span> <span class="nl">deleteAsync</span><span class="p">:</span><span class="n">result</span><span class="p">]];</span>
+  <span class="p">}</span>
+  <span class="c1">// Return a new task that will be marked as completed when all of the deletes are</span>
+  <span class="c1">// finished.</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">BFTask</span> <span class="nl">taskForCompletionOfAllTasks</span><span class="p">:</span><span class="n">tasks</span><span class="p">];</span>
+<span class="p">}]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Every comment was deleted.</span>
+  <span class="k">return</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<div class="highlight highlight-swift"><pre><span class="c1">// Swift</span>
+<span class="k">var</span> <span class="n">query</span> <span class="o">=</span> <span class="n">PFQuery</span><span class="p">(</span><span class="nl">className</span><span class="p">:</span><span class="s">"Comments"</span><span class="p">)</span>
+<span class="n">query</span><span class="p">.</span><span class="n">whereKey</span><span class="p">(</span><span class="s">"post"</span><span class="p">,</span> <span class="nl">equalTo</span><span class="p">:</span><span class="mi">123</span><span class="p">)</span>
+
+<span class="n">findAsync</span><span class="p">(</span><span class="n">query</span><span class="p">).</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BFTask</span> <span class="k">in</span>
+  <span class="c1">// Collect one task for each delete into an array.</span>
+  <span class="k">var</span> <span class="n">tasks</span> <span class="o">=</span> <span class="bp">NSMutableArray</span><span class="p">.</span><span class="n">array</span><span class="p">()</span>
+  <span class="k">var</span> <span class="n">results</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">()</span> <span class="kt">as</span> <span class="bp">NSArray</span>
+  <span class="k">for</span> <span class="nl">result</span> <span class="p">:</span> <span class="n">PFObject</span><span class="o">!</span> <span class="k">in</span> <span class="n">results</span> <span class="p">{</span>
+    <span class="c1">// Start this delete immediately and add its task to the list.</span>
+    <span class="n">tasks</span><span class="p">.</span><span class="n">addObject</span><span class="p">(</span><span class="nb">self</span><span class="p">.</span><span class="n">deleteAsync</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+  <span class="p">}</span>
+  <span class="c1">// Return a new task that will be marked as completed when all of the deletes</span>
+  <span class="c1">// are finished.</span>
+  <span class="k">return</span> <span class="n">BFTask</span><span class="p">(</span><span class="nl">forCompletionOfAllTasks</span><span class="p">:</span><span class="n">tasks</span><span class="p">)</span>
+<span class="p">}.</span><span class="n">continueWithBlock</span> <span class="p">{</span>
+  <span class="p">(</span><span class="nl">task</span><span class="p">:</span> <span class="n">BFTask</span><span class="o">!</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyObject</span><span class="o">!</span> <span class="k">in</span>
+  <span class="c1">// Every comment was deleted.</span>
+  <span class="k">return</span> <span class="nb">nil</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-task-executors" class="anchor" href="#task-executors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Task Executors</h2>
+
+<p>Both <code>continueWithBlock:</code> and <code>continueWithSuccessBlock:</code> methods have another form that takes an instance of <code>BFExecutor</code>. These are <code>continueWithExecutor:withBlock:</code> and <code>continueWithExecutor:withSuccessBlock:</code>. These methods allow you to control how the continuation is executed. The default executor will dispatch to GCD, but you can provide your own executor to schedule work onto a different thread. For example, if you want to continue with work on the UI thread:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Create a BFExecutor that uses the main thread.</span>
+<span class="n">BFExecutor</span> <span class="o">*</span><span class="n">myExecutor</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFExecutor</span> <span class="nl">executorWithBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">void</span><span class="p">(</span><span class="kt">void</span><span class="p">(</span><span class="o">^</span><span class="n">block</span><span class="p">)())</span> <span class="p">{</span>
+  <span class="n">dispatch_async</span><span class="p">(</span><span class="n">dispatch_get_main_queue</span><span class="p">(),</span> <span class="n">block</span><span class="p">);</span>
+<span class="p">}];</span>
+
+<span class="c1">// And use the Main Thread Executor like this. The executor applies only to the new</span>
+<span class="c1">// continuation being passed into continueWithBlock.</span>
+<span class="p">[[</span><span class="nb">self</span> <span class="nl">fetchAsync</span><span class="p">:</span><span class="n">object</span><span class="p">]</span> <span class="nl">continueWithExecutor</span><span class="p">:</span><span class="n">myExecutor</span> <span class="nl">withBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">myTextView</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="p">[</span><span class="n">object</span> <span class="nl">objectForKey</span><span class="p">:</span><span class="s">@"name"</span><span class="p">];</span>
+<span class="p">}];</span>
+</pre></div>
+
+<p>For common cases, such as dispatching on the main thread, we have provided default implementations of <code>BFExecutor</code>. These include <code>defaultExecutor</code>, <code>immediateExecutor</code>, <code>mainThreadExecutor</code>, <code>executorWithDispatchQueue:</code>, and <code>executorWithOperationQueue:</code>. For example:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Continue on the Main Thread, using a built-in executor.</span>
+<span class="p">[[</span><span class="nb">self</span> <span class="nl">fetchAsync</span><span class="p">:</span><span class="n">object</span><span class="p">]</span> <span class="nl">continueWithExecutor</span><span class="p">:[</span><span class="n">BFExecutor</span> <span class="n">mainThreadExecutor</span><span class="p">]</span> <span class="nl">withBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">myTextView</span><span class="p">.</span><span class="n">text</span> <span class="o">=</span> <span class="p">[</span><span class="n">object</span> <span class="nl">objectForKey</span><span class="p">:</span><span class="s">@"name"</span><span class="p">];</span>
+<span class="p">}];</span>
+</pre></div>
+
+<h2>
+<a name="user-content-task-cancellation" class="anchor" href="#task-cancellation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Task Cancellation</h2>
+
+<p>It's generally bad design to keep track of the <code>BFTaskCompletionSource</code> for cancellation. A better model is to create a "cancellation token" at the top level, and pass that to each async function that you want to be part of the same "cancelable operation". Then, in your continuation blocks, you can check whether the cancellation token has been cancelled and bail out early by returning a <code>[BFTask cancelledTask]</code>. For example:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">doSomethingComplicatedAsync:</span><span class="p">(</span><span class="n">MYCancellationToken</span> <span class="o">*</span><span class="p">)</span><span class="nv">cancellationToken</span> <span class="p">{</span>
+    <span class="p">[[</span><span class="nb">self</span> <span class="nl">doSomethingAsync</span><span class="p">:</span><span class="n">cancellationToken</span><span class="p">]</span> <span class="nl">continueWithBlock</span><span class="p">:</span><span class="o">^</span><span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">cancellationToken</span><span class="p">.</span><span class="n">isCancelled</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">BFTask</span> <span class="n">cancelledTask</span><span class="p">];</span>
+        <span class="p">}</span>
+        <span class="c1">// Do something that takes a while.</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+    <span class="p">}];</span>
+<span class="p">}</span>
+
+<span class="c1">// Somewhere else.</span>
+<span class="n">MYCancellationToken</span> <span class="o">*</span><span class="n">cancellationToken</span> <span class="o">=</span> <span class="p">[[</span><span class="n">MYCancellationToken</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="p">[</span><span class="n">obj</span> <span class="nl">doSomethingComplicatedAsync</span><span class="p">:</span><span class="n">cancellationToken</span><span class="p">];</span>
+
+<span class="c1">// When you get bored...</span>
+<span class="p">[</span><span class="n">cancellationToken</span> <span class="n">cancel</span><span class="p">];</span>
+</pre></div>
+
+<p><strong>Note:</strong> The cancellation token implementation should be thread-safe.<br>
+We are likely to add some concept like this to Bolts at some point in the future.</p>
+
+<h1>
+<a name="user-content-app-links" class="anchor" href="#app-links" aria-hidden="true"><span class="octicon octicon-link"></span></a>App Links</h1>
+
+<p><a href="http://www.applinks.org">App Links</a> provide a cross-platform mechanism that allows a developer to define and publish a deep-linking scheme for their content, allowing other apps to link directly to an experience optimized for the device they are running on. Whether you are building an app that receives incoming links or one that may link out to other apps' content, Bolts provides tools to simplify implementation of the <a href="http://www.applinks.org/documentation">App Links protocol</a>.</p>
+
+<h2>
+<a name="user-content-handling-an-app-link" class="anchor" href="#handling-an-app-link" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling an App Link</h2>
+
+<p>The most common case will be making your app receive App Links. In-linking will allow your users to quickly access the richest, most native-feeling presentation of linked content on their devices. Bolts makes it easy to handle an inbound App Link (as well as general inbound deep-links) by providing utilities for processing an incoming URL.</p>
+
+<p>For example, you can use the <code>BFURL</code> utility class to parse an incoming URL in your <code>AppDelegate</code>:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">application:</span><span class="p">(</span><span class="bp">UIApplication</span> <span class="o">*</span><span class="p">)</span><span class="nv">application</span>
+            <span class="nf">openURL:</span><span class="p">(</span><span class="bp">NSURL</span> <span class="o">*</span><span class="p">)</span><span class="nv">url</span>
+  <span class="nf">sourceApplication:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">sourceApplication</span>
+         <span class="nf">annotation:</span><span class="p">(</span><span class="kt">id</span><span class="p">)</span><span class="nv">annotation</span> <span class="p">{</span>
+    <span class="n">BFURL</span> <span class="o">*</span><span class="n">parsedUrl</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFURL</span> <span class="nl">URLWithURL</span><span class="p">:</span><span class="n">url</span><span class="p">];</span>
+
+    <span class="c1">// Use the target URL from the App Link to locate content.</span>
+    <span class="k">if</span> <span class="p">([</span><span class="n">parsedUrl</span><span class="p">.</span><span class="n">targetURL</span><span class="p">.</span><span class="n">pathComponents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@"profiles"</span><span class="p">])</span> <span class="p">{</span>
+        <span class="c1">// Open a profile viewer.</span>
+    <span class="p">}</span>
+
+    <span class="c1">// You can also check the query string easily.</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="n">parsedUrl</span><span class="p">.</span><span class="n">targetQueryParameters</span><span class="p">[</span><span class="s">@"query"</span><span class="p">];</span>
+
+    <span class="c1">// Apps that have existing deep-linking support and map their App Links to existing</span>
+    <span class="c1">// deep-linking functionality may instead want to perform these operations on the input URL.</span>
+    <span class="c1">// Use the target URL from the App Link to locate content.</span>
+    <span class="k">if</span> <span class="p">([</span><span class="n">parsedUrl</span><span class="p">.</span><span class="n">inputURL</span><span class="p">.</span><span class="n">pathComponents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="s">@"profiles"</span><span class="p">])</span> <span class="p">{</span>
+        <span class="c1">// Open a profile viewer.</span>
+    <span class="p">}</span>
+
+    <span class="c1">// You can also check the query string easily.</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">query</span> <span class="o">=</span> <span class="n">parsedUrl</span><span class="p">.</span><span class="n">inputQueryParameters</span><span class="p">[</span><span class="s">@"query"</span><span class="p">];</span>
+
+    <span class="c1">// Apps can easily check the Extras and App Link data from the App Link as well.</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">fbAccessToken</span> <span class="o">=</span> <span class="n">parsedUrl</span><span class="p">.</span><span class="n">appLinkExtras</span><span class="p">[</span><span class="s">@"fb_access_token"</span><span class="p">];</span>
+    <span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">refererData</span> <span class="o">=</span> <span class="n">parsedUrl</span><span class="p">.</span><span class="n">appLinkExtras</span><span class="p">[</span><span class="s">@"referer"</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-navigating-to-a-url" class="anchor" href="#navigating-to-a-url" aria-hidden="true"><span class="octicon octicon-link"></span></a>Navigating to a URL</h2>
+
+<p>Following an App Link allows your app to provide the best user experience (as defined by the receiving app) when a user navigates to a link. Bolts makes this process simple, automating the steps required to follow a link:</p>
+
+<ol class="task-list">
+<li>Resolve the App Link by getting the App Link metadata from the HTML at the URL specified.</li>
+<li>Step through App Link targets relevant to the device being used, checking whether the app that can handle the target is present on the device.</li>
+<li>If an app is present, build a URL with the appropriate al_applink_data specified and navigate to that URL.</li>
+<li>Otherwise, open the browser with the original URL specified.</li>
+</ol><p>In the simplest case, it takes just one line of code to navigate to a URL that may have an App Link:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">[</span><span class="n">BFAppLinkNavigation</span> <span class="nl">navigateToURLInBackground</span><span class="p">:</span><span class="n">url</span><span class="p">];</span>
+</pre></div>
+
+<h3>
+<a name="user-content-adding-app-and-navigation-data" class="anchor" href="#adding-app-and-navigation-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding App and Navigation Data</h3>
+
+<p>Under most circumstances, the data that will need to be passed along to an app during a navigation will be contained in the URL itself, so that whether or not the app is actually installed on the device, users are taken to the correct content. Occasionally, however, apps will want to pass along data that is relevant for app-to-app navigation, or will want to augment the App Link protocol with information that might be used by the app to adjust how the app should behave (e.g. showing a link back to the referring app).</p>
+
+<p>If you want to take advantage of these features, you can break apart the navigation process. First, you must have an App Link to which you wish to navigate:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">[[</span><span class="n">BFAppLinkNavigation</span> <span class="nl">resolveAppLinkInBackground</span><span class="p">:</span><span class="n">url</span><span class="p">]</span> <span class="nl">continueWithSuccessBlock</span><span class="p">:</span><span class="o">^</span><span class="kt">id</span><span class="p">(</span><span class="n">BFTask</span> <span class="o">*</span><span class="n">task</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">BFAppLink</span> <span class="o">*</span><span class="n">link</span> <span class="o">=</span> <span class="n">task</span><span class="p">.</span><span class="n">result</span><span class="p">;</span>
+<span class="p">}];</span>
+</pre></div>
+
+<p>Then, you can build an App Link request with any additional data you would like and navigate:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">BFAppLinkNavigation</span> <span class="o">*</span><span class="n">navigation</span> <span class="o">=</span> <span class="p">[</span><span class="n">BFAppLinkNavigation</span> <span class="nl">navigationWithAppLink</span><span class="p">:</span><span class="n">link</span>
+                                                                      <span class="nl">extras</span><span class="p">:</span><span class="l">@{</span> <span class="s">@"access_token"</span><span class="o">:</span> <span class="s">@"t0kEn"</span> <span class="l">}</span>
+                                                                 <span class="nl">appLinkData</span><span class="p">:</span><span class="l">@{</span> <span class="s">@"ref"</span><span class="o">:</span> <span class="s">@"12345"</span> <span class="l">}</span><span class="p">];</span>
+<span class="bp">NSError</span> <span class="o">*</span><span class="n">error</span> <span class="o">=</span> <span class="nb">nil</span><span class="p">;</span>
+<span class="p">[</span><span class="n">navigation</span> <span class="nl">navigate</span><span class="p">:</span><span class="o">&amp;</span><span class="n">error</span><span class="p">];</span>
+</pre></div>
+
+<h3>
+<a name="user-content-resolving-app-link-metadata" class="anchor" href="#resolving-app-link-metadata" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resolving App Link Metadata</h3>
+
+<p>Bolts allows for custom App Link resolution, which may be used as a performance optimization (e.g. caching the metadata) or as a mechanism to allow developers to use a centralized index for obtaining App Link metadata. A custom App Link resolver just needs to be able to take a URL and return a <code>BFAppLink</code> containing the ordered list of <code>BFAppLinkTarget</code>s that are applicable for this device. Bolts provides one of these out of the box that performs this resolution on the device using a hidden UIWebView.</p>
+
+<p>You can use any resolver that implements the <code>BFAppLinkResolving</code> protocol by using one of the overloads on <code>BFAppLinkNavigation</code>:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">[</span><span class="n">BFAppLinkNavigation</span> <span class="nl">navigateToURLInBackground</span><span class="p">:</span><span class="n">url</span>
+                                      <span class="nl">resolver</span><span class="p">:</span><span class="n">resolver</span><span class="p">];</span>
+</pre></div>
+
+<p>Alternatively, a you can swap out the default resolver to be used by the built-in APIs:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">[</span><span class="n">BFAppLinkNavigation</span> <span class="nl">setDefaultResolver</span><span class="p">:</span><span class="n">resolver</span><span class="p">];</span>
+<span class="p">[</span><span class="n">BFAppLinkNavigation</span> <span class="nl">navigateToURLInBackground</span><span class="p">:</span><span class="n">url</span><span class="p">];</span>
+</pre></div>
+
+<h2>
+<a name="user-content-app-link-return-to-referer-view" class="anchor" href="#app-link-return-to-referer-view" aria-hidden="true"><span class="octicon octicon-link"></span></a>App Link Return-to-Referer View</h2>
+
+<p>When an application is opened via an App Link, a banner allowing the user to "Touch to return to " should be displayed. The <code>BFAppLinkReturnToRefererView</code> provides this functionality. It will take an incoming App Link and parse the referer information to display the appropriate calling app name. You may initialize the view either by loading it from a NIB or programmatically:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">viewDidLoad</span> <span class="p">{</span>
+  <span class="p">[</span><span class="nb">super</span> <span class="n">viewDidLoad</span><span class="p">];</span>
+
+  <span class="c1">// Perform other view initialization.</span>
+
+  <span class="nb">self</span><span class="p">.</span><span class="n">returnToRefererView</span> <span class="o">=</span> <span class="p">[[</span><span class="n">BFAppLinkReturnToRefererView</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithFrame</span><span class="p">:</span><span class="n">CGRectZero</span><span class="p">];</span>
+  <span class="nb">self</span><span class="p">.</span><span class="n">returnToRefererController</span> <span class="o">=</span> <span class="p">[[</span><span class="n">BFAppLinkReturnToRefererController</span><span class="p">]</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+
+  <span class="c1">// We could also have left .view unassigned and the controller will automatically</span>
+  <span class="c1">//  create a BFAppLinkReturnToRefererView when it needs one.</span>
+  <span class="nb">self</span><span class="p">.</span><span class="n">returnToRefererController</span><span class="p">.</span><span class="n">view</span> <span class="o">=</span> <span class="nb">self</span><span class="p">.</span><span class="n">returnToRefererView</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Note that we initialize the view with a zero size, because we will determine whether or not to display a banner based on the referer data in the incoming App Link using the associated <code>BFAppLinkReturnToRefererController</code>, typically in a view controller's <code>viewWillAppear</code> or similar method, depending on a particular app's view hierarchy, etc. The following code assumes that the view controller has an <code>openedAppLinkURL</code> <code>NSURL</code> property that has already been populated with the URL used to open the app:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">viewWillAppear</span> <span class="p">{</span>
+  <span class="p">[</span><span class="nb">super</span> <span class="n">viewWillAppear</span><span class="p">];</span>
+
+  <span class="p">[</span><span class="nb">self</span><span class="p">.</span><span class="n">returnToRefererController</span> <span class="nl">showViewForRefererURL</span><span class="p">:</span><span class="nb">self</span><span class="p">.</span><span class="n">openedAppLinkURL</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>In a navigaton-controller view hierarchy, the banner should be displayed above the navigation bar, and <code>BFAppLinkReturnToRefererController</code> provides an <code>initForDisplayAboveNavController</code> method to assist with this.</p>
+
+<h2>
+<a name="user-content-analytics" class="anchor" href="#analytics" aria-hidden="true"><span class="octicon octicon-link"></span></a>Analytics</h2>
+
+<p>Bolts introduces Measurement Event. App Links posts three different Measurement Event notifications to the application, which can be caught and integrated with existing analytics components in your application.</p>
+
+<ul class="task-list">
+<li> <code>al_nav_out</code> — Raised when your app switches out to an App Links URL.</li>
+<li> <code>al_nav_in</code> — Raised when your app opens an incoming App Links URL.</li>
+<li> <code>al_ref_back_out</code> — Raised when your app returns back the referrer app using the built-in top navigation back bar view.</li>
+</ul><h3>
+<a name="user-content-listen-for-app-links-measurement-events" class="anchor" href="#listen-for-app-links-measurement-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listen for App Links Measurement Events</h3>
+
+<p>There are other analytics tools that are integrated with Bolts' App Links events, but you can also listen for these events yourself:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">[[</span><span class="bp">NSNotificationCenter</span> <span class="n">defaultCenter</span><span class="p">]</span> <span class="nl">addObserverForName</span><span class="p">:</span><span class="n">BFMeasurementEventNotificationName</span> <span class="nl">object</span><span class="p">:</span><span class="nb">nil</span> <span class="nl">queue</span><span class="p">:</span><span class="nb">nil</span> <span class="nl">usingBlock</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="bp">NSNotification</span> <span class="o">*</span><span class="n">note</span><span class="p">)</span> <span class="p">{</span>
+    <span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">event</span> <span class="o">=</span> <span class="n">note</span><span class="p">.</span><span class="n">userInfo</span><span class="p">;</span>
+    <span class="bp">NSDictionary</span> <span class="o">*</span><span class="n">eventData</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="n">BFMeasurementEventArgsKey</span><span class="p">];</span>
+    <span class="c1">// Integrate to your logging/analytics component.</span>
+<span class="p">}];</span>
+</pre></div>
+
+<h3>
+<a name="user-content-app-links-event-fields" class="anchor" href="#app-links-event-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>App Links Event Fields</h3>
+
+<p>App Links Measurement Events sends additional information from App Links Intents in flattened string key value pairs. Here are some of the useful fields for the three events.</p>
+
+<ul class="task-list">
+<li>
+<p><code>al_nav_in</code></p>
+
+<ul class="task-list">
+<li>
+<code>inputURL</code>: the URL that opens the app.</li>
+<li>
+<code>inputURLScheme</code>: the scheme of <code>inputURL</code>.</li>
+<li>
+<code>refererURL</code>: the URL that the referrer app added into <code>al_applink_data</code>: <code>referer_app_link</code>.</li>
+<li>
+<code>refererAppName</code>: the app name that the referrer app added to <code>al_applink_data</code>: <code>referer_app_link</code>.</li>
+<li>
+<code>sourceApplication</code>: the bundle of referrer application.</li>
+<li>
+<code>targetURL</code>: the <code>target_url</code> field in <code>al_applink_data</code>.</li>
+<li>
+<code>version</code>: App Links API  version.</li>
+</ul>
+</li>
+<li>
+<p><code>al_nav_out</code> / <code>al_ref_back_out</code></p>
+
+<ul class="task-list">
+<li>
+<code>outputURL</code>: the URL used to open the other app (or browser). If there is an eligible app to open, this will be the custom scheme url/intent in <code>al_applink_data</code>.</li>
+<li>
+<code>outputURLScheme</code>: the scheme of <code>outputURL</code>.</li>
+<li>
+<code>sourceURL</code>: the URL of the page hosting App Links meta tags.</li>
+<li>
+<code>sourceURLHost</code>: the hostname of <code>sourceURL</code>.</li>
+<li>
+<code>success</code>: <code>“1”</code> to indicate success in opening the App Link in another app or browser; <code>“0”</code> to indicate failure to open the App Link.</li>
+<li>
+<code>type</code>: <code>“app”</code> for open in app, <code>“web”</code> for open in browser; <code>“fail”</code> when the success field is <code>“0”</code>.</li>
+<li>
+<code>version</code>: App Links API version.</li>
+</ul>
+</li>
+</ul><h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>You can download the latest framework files from our <a href="https://github.com/BoltsFramework/Bolts-iOS/releases">Releases page</a>.</p>
+
+<p>Bolts is also available through <a href="http://cocoapods.org">CocoaPods</a>. To install it simply add the following line to your Podfile:</p>
+
+<pre><code>pod 'Bolts'
+</code></pre></article></div>

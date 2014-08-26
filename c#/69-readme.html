@@ -1,0 +1,283 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-machinespecifications" class="anchor" href="#machinespecifications" aria-hidden="true"><span class="octicon octicon-link"></span></a>Machine.Specifications</h1>
+
+<p>Machine.Specifications (MSpec) is a <a href="http://www.code-magazine.com/article.aspx?quickid=0805061">context/specification</a> framework that removes language noise and simplifies tests. All it asks is that you accept the <code>= () =&gt;</code>. Keep up with the <a href="https://groups.google.com/forum/?fromgroups#!forum/machine_users">latest news and discussions</a> or follow the maintainers, <a href="https://twitter.com/agross">@agross</a>, CTO of <a href="http://grossweber.com/en">GROSSWEBER</a> and <a href="https://twitter.com/danielmarbach">@danielmarbach</a>.</p>
+
+<p><a href="http://www.ndepend.com/"><img src="https://camo.githubusercontent.com/3b49d9bf0c185189f35c2c43ae7e90e0886afc18/687474703a2f2f7777772e6e646570656e642e636f6d2f7265732f506f776572656442794e446570656e642e706e67" alt="NDepend supports the Machine.Specifications project" data-canonical-src="http://www.ndepend.com/res/PoweredByNDepend.png" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>You can download the <a href="http://teamcity.codebetter.com/guestAuth/repository/download/bt342/.lastSuccessful/Machine.Specifications-Release.zip">unsigned binaries</a> (<strong>recommended</strong>) or the <a href="http://teamcity.codebetter.com/guestAuth/repository/download/bt345/.lastSuccessful/Machine.Specifications-Signed-Release.zip">signed binaries</a> directly from the <a href="http://teamcity.codebetter.com/project.html?projectId=project27">TeamCity server</a>. But, we recommended installing <a href="http://nuget.org/packages/Machine.Specifications">the NuGet package</a>. Install on the command line from your solution directory:</p>
+
+<div class="highlight highlight-bash"><pre>cmd&gt; nuget install Machine.Specifications
+cmd&gt; nuget install Machine.Specifications.Should
+
+<span class="c"># or:</span>
+cmd&gt; nuget install Machine.Specifications-Signed
+cmd&gt; nuget install Machine.Specifications.Should-Signed
+</pre></div>
+
+<p>Or use the Package Manager console in Visual Studio:</p>
+
+<div class="highlight highlight-powershell"><pre><span class="n">PM</span><span class="p">&gt;</span> <span class="n">Install-Package</span> <span class="n">Machine</span><span class="p">.</span><span class="n">Specifications</span>
+<span class="n">PM</span><span class="p">&gt;</span> <span class="n">Install-Package</span> <span class="n">Machine</span><span class="p">.</span><span class="n">Specifications</span><span class="p">.</span><span class="n">Should</span>
+
+<span class="c"># or:</span>
+<span class="n">PM</span><span class="p">&gt;</span> <span class="n">Install-Package</span> <span class="n">Machine</span><span class="p">.</span><span class="n">Specifications-Signed</span>
+<span class="n">PM</span><span class="p">&gt;</span> <span class="n">Install-Package</span> <span class="n">Machine</span><span class="p">.</span><span class="n">Specifications</span><span class="p">.</span><span class="n">Should-Signed</span>
+</pre></div>
+
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>MSpec is called a "context/specification" test framework because of the "grammar" that is used in describing and coding the tests or "specs". That grammar reads roughly like this</p>
+
+<blockquote>
+<p>When the system is in such a state, and a certain action occurs, it should do such-and-such or be in some end state.</p>
+</blockquote>
+
+<p>You should be able to see the components of the traditional <a href="http://c2.com/cgi/wiki?ArrangeActAssert">Arrange-Act-Assert</a> model in there. To support readability and remove as much "noise" as possible, MSpec eschews the traditional attribute-on-method model of test construction. It instead uses custom .NET Delegates that you assign anonymous methods and asks you to name them following a certain convention.</p>
+
+<p>Read on to construct a simple MSpec styled specification class.</p>
+
+<h2>
+<a name="user-content-subject" class="anchor" href="#subject" aria-hidden="true"><span class="octicon octicon-link"></span></a>Subject</h2>
+
+<p>The <code>Subject</code> attribute is the first part of a spec class. It describes the "context", which can be the literal <code>Type</code> under test or a broader description. The subject is not required, but it is good practice to add it. Also, the attribute allows <a href="#resharper-integration">ReSharper</a> to detect context classes such that <a href="#establish">delegate members</a> will not be regarded as unused.</p>
+
+<p>The class naming convention is to use <code>Sentence_snake_case</code> and to start with the word "When".</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Subject("Authentication")]</span>                           <span class="c1">// a description</span>
+<span class="na">[Subject(typeof(SecurityService))]</span>                    <span class="c1">// the type under test</span>
+<span class="na">[Subject(typeof(SecurityService), "Authentication")]</span>  <span class="c1">// or a combo!</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_a_user</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>       <span class="c1">// remember: you can only use one Subject Attribute!</span>
+</pre></div>
+
+<h2>
+<a name="user-content-tags" class="anchor" href="#tags" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tags</h2>
+
+<p>The <code>Tags</code> attribute is used to organize your spec classes for inclusion or exclusion in test runs. You can identify tests that hit the database by tagging them "Slow" or tests for special reports by tagging them "AcceptanceTest".</p>
+
+<p>Tags can be used to <a href="#command-line-reference">include or exclude certain contexts during a spec run</a>.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Tags("RegressionTest")]</span>  <span class="c1">// this attribute supports any number of tags via a params string[] argument!</span>
+<span class="na">[Subject(typeof(SecurityService), "Authentication")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_a_user</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-establish" class="anchor" href="#establish" aria-hidden="true"><span class="octicon octicon-link"></span></a>Establish</h2>
+
+<p>The <code>Establish</code> delegate is the "Arrange" part of the spec class. The establish will only run <em>once</em>, so your assertions should not mutate any state or you may be in trouble.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Subject("Authentication")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_a_new_user</span>
+<span class="p">{</span>
+    <span class="n">Establish</span> <span class="n">context</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="c1">// ... any mocking, stubbing, or other setup ...</span>
+        <span class="n">Subject</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SecurityService</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="n">bar</span><span class="p">);</span>
+    <span class="p">};</span>
+
+    <span class="k">static</span> <span class="n">SecurityService</span> <span class="n">Subject</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-cleanup" class="anchor" href="#cleanup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cleanup</h2>
+
+<p>The pair to Establish is <code>Cleanup</code>, which is also called <em>once</em> after all of the specs have been run.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Subject("Authentication")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_a_user</span>
+<span class="p">{</span>
+    <span class="n">Establish</span> <span class="n">context</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">Subject</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SecurityService</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="n">bar</span><span class="p">);</span>
+    <span class="p">};</span>
+
+    <span class="n">Cleanup</span> <span class="n">after</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">Subject</span><span class="p">.</span><span class="n">Dispose</span><span class="p">();</span>
+    <span class="p">};</span>
+
+    <span class="k">static</span> <span class="n">SecurityService</span> <span class="n">Subject</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-because" class="anchor" href="#because" aria-hidden="true"><span class="octicon octicon-link"></span></a>Because</h2>
+
+<p>The <code>Because</code> delegate is the "Act" part of the spec class. It should be the single action for this context, the only part that mutates state, against which all of the assertions can be made. Most <code>Because</code> statements are only <em>one</em> line, which allows you to leave off the squiggly brackets!</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Subject("Authentication")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_a_user</span>
+<span class="p">{</span>
+    <span class="n">Establish</span> <span class="n">context</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">Subject</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SecurityService</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="n">bar</span><span class="p">);</span>
+    <span class="p">};</span>
+
+    <span class="n">Because</span> <span class="n">of</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Subject</span><span class="p">.</span><span class="n">Authenticate</span><span class="p">(</span><span class="s">"username"</span><span class="p">,</span> <span class="s">"password"</span><span class="p">);</span>
+
+    <span class="k">static</span> <span class="n">SecurityService</span> <span class="n">Subject</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>If you have a multi-line because statement, you probably need to identify which of those lines are actually setup and move them into the establish. Or, your spec may be concerned with too many contexts and needs to be split or the subject-under-test needs to be refactored.</p>
+
+<h2>
+<a name="user-content-it" class="anchor" href="#it" aria-hidden="true"><span class="octicon octicon-link"></span></a>It</h2>
+
+<p>The <code>It</code> delegate is the "Assert" part of the spec class. It may appear one or more times in your spec class. Each statement should contain a single assertion, so that the intent and failure reporting is crystal clear. Like <code>Because</code> statements, <code>It</code> statements are usually one-liners and may not have squiggly brackets.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Subject("Authentication")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_an_admin_user</span>
+<span class="p">{</span>
+    <span class="n">Establish</span> <span class="n">context</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">Subject</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SecurityService</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="n">bar</span><span class="p">);</span>
+    <span class="p">};</span>
+
+    <span class="n">Because</span> <span class="n">of</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Token</span> <span class="p">=</span> <span class="n">Subject</span><span class="p">.</span><span class="n">Authenticate</span><span class="p">(</span><span class="s">"username"</span><span class="p">,</span> <span class="s">"password"</span><span class="p">);</span>
+
+    <span class="n">It</span> <span class="n">should_indicate_the_users_role</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Token</span><span class="p">.</span><span class="n">Role</span><span class="p">.</span><span class="n">ShouldEqual</span><span class="p">(</span><span class="n">Roles</span><span class="p">.</span><span class="n">Admin</span><span class="p">);</span>
+    <span class="n">It</span> <span class="n">should_have_a_unique_session_id</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Token</span><span class="p">.</span><span class="n">SessionId</span><span class="p">.</span><span class="n">ShouldNotBeNull</span><span class="p">();</span>
+
+    <span class="k">static</span> <span class="n">SecurityService</span> <span class="n">Subject</span><span class="p">;</span>
+    <span class="k">static</span> <span class="n">UserToken</span> <span class="n">Token</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>An <code>It</code> statement without an assignment will be reported by the test runner in the "Not implemented" state. You may find that "stubbing" your assertions like this helps you practice TDD.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">It</span> <span class="n">should_list_your_authorized_actions</span><span class="p">;</span>
+</pre></div>
+
+<h3>
+<a name="user-content-assertion-extension-methods" class="anchor" href="#assertion-extension-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Assertion Extension Methods</h3>
+
+<p>As you can see above, the <code>It</code> assertions make use of these <code>Should</code> extension methods. They encourage readability and a good flow to your assertions when read aloud or on paper. You <em>should</em> use them wherever possible, just "dot" off of your object and browse the IntelliSense!</p>
+
+<p>It's good practice to make your own <code>Should</code> assertion extension methods for complicated custom objects or domain concepts.</p>
+
+<h3>
+<a name="user-content-ignore" class="anchor" href="#ignore" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ignore</h3>
+
+<p>Every test framework lets you ignore incomplete or failing (we hope not) specs, MSpec provides the <code>Ignore</code> attribute for just that. Just leave a note describing the reason that you ignored this spec.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Ignore("We are switching out the session ID factory for a better implementation")]</span>
+<span class="n">It</span> <span class="n">should_have_a_unique_session_id</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Token</span><span class="p">.</span><span class="n">SessionId</span><span class="p">.</span><span class="n">ShouldNotBeNull</span><span class="p">();</span>
+</pre></div>
+
+<h2>
+<a name="user-content-catch" class="anchor" href="#catch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Catch</h2>
+
+<p>When testing that exceptions are thrown from the "action" you should use a <code>Catch</code> statement. This prevents thrown exceptions from escaping the spec and failing the test run. You can inspect the exception's expected properites in your assertions.</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Subject("Authentication")]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">When_authenticating_a_user_fails_due_to_bad_credentials</span>
+<span class="p">{</span>
+    <span class="n">Establish</span> <span class="n">context</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">Subject</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SecurityService</span><span class="p">(</span><span class="n">foo</span><span class="p">,</span> <span class="n">bar</span><span class="p">);</span>
+    <span class="p">};</span>
+
+    <span class="n">Because</span> <span class="n">of</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Exception</span> <span class="p">=</span> <span class="n">Catch</span><span class="p">.</span><span class="n">Exception</span><span class="p">(()</span> <span class="p">=&gt;</span> <span class="n">Subject</span><span class="p">.</span><span class="n">Authenticate</span><span class="p">(</span><span class="s">"username"</span><span class="p">,</span> <span class="s">"password"</span><span class="p">));</span>
+
+    <span class="n">It</span> <span class="n">should_fail</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Exception</span><span class="p">.</span><span class="n">ShouldBeOfType</span><span class="p">&lt;</span><span class="n">AuthenticationFailedException</span><span class="p">&gt;();</span>
+    <span class="n">It</span> <span class="n">should_have_a_specific_reason</span> <span class="p">=</span> <span class="p">()</span> <span class="p">=&gt;</span> <span class="n">Exception</span><span class="p">.</span><span class="n">Message</span><span class="p">.</span><span class="n">ShouldContain</span><span class="p">(</span><span class="s">"credentials"</span><span class="p">);</span>
+
+    <span class="k">static</span> <span class="n">SecurityService</span> <span class="n">Subject</span><span class="p">;</span>
+    <span class="k">static</span> <span class="n">Exception</span> <span class="n">Exception</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<h1>
+<a name="user-content-command-line-reference" class="anchor" href="#command-line-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Line Reference</h1>
+
+<p>MSpec, like other testing frameworks, provides a robust command-line runner that can be used to execute specs in one or more assemblies and allows a number of output formats to suit your needs. The runner comes in different flavors:</p>
+
+<ul class="task-list">
+<li>
+<code>mspec.exe</code>, AnyCPU, runs on the CLR 2.0</li>
+<li>
+<code>mspec-x86.exe</code>, x86, runs on the CLR 2.0</li>
+<li>
+<code>mspec-clr4.exe</code>, AnyCPU, runs on the CLR 4.0</li>
+<li>
+<code>mspec-x86-clr4.exe</code>, x86, runs on the CLR 4.0</li>
+</ul><p>Usage of the command-line runner is as follows (from <code>mspec.exe --help</code>):</p>
+
+<div class="highlight highlight-text"><pre>Usage: mspec.exe [options] &lt;assemblies&gt;
+Options:
+-f, --filters               Filter file specifying contexts to execute (full type name, one per line). Takes precedence over tags
+-i, --include               Executes all specifications in contexts with these comma delimited tags. Ex. -i "foo,bar,foo_bar"
+-x, --exclude               Exclude specifications in contexts with these comma delimited tags. Ex. -x "foo,bar,foo_bar"
+-t, --timeinfo              Shows time-related information in HTML output
+-s, --silent                Suppress progress output (print fatal errors, failures and summary)
+-p, --progress              Print dotted progress output
+-c, --no-color              Suppress colored console output
+-w, --wait                  Wait 15 seconds for debugger to be attached
+--teamcity                  Reporting for TeamCity CI integration (also auto-detected)
+--no-teamcity-autodetect    Disables TeamCity autodetection
+--html &lt;PATH&gt;               Outputs the HTML report to path, one-per-assembly w/ index.html (if directory, otherwise all are in one file)
+--xml &lt;PATH&gt;                Outputs the XML report to the file referenced by the path
+-h, --help                  Shows this help message
+Usage: mspec.exe [options] &lt;assemblies&gt;
+</pre></div>
+
+<h3>
+<a name="user-content-teamcity-reports" class="anchor" href="#teamcity-reports" aria-hidden="true"><span class="octicon octicon-link"></span></a>TeamCity Reports</h3>
+
+<p>MSpec can output <a href="http://www.jetbrains.com/teamcity/">TeamCity</a> <a href="http://confluence.jetbrains.com/display/TCD7/Build+Script+Interaction+with+TeamCity#BuildScriptInteractionwithTeamCity-ReportingTests">service messages</a> to update the test run status in real time. This feature is enabled by passing the <code>--teamcity</code> switch, but the command-line runner <em>can</em> auto-detect that it is running in the TeamCity context.</p>
+
+<h3>
+<a name="user-content-html-reports" class="anchor" href="#html-reports" aria-hidden="true"><span class="octicon octicon-link"></span></a>HTML Reports</h3>
+
+<p>MSpec can output human-readable HTML reports of the test run by passing the <code>--html</code> option. If a filename is provided, the output is placed at that path, overwriting existing files. If multiple assemblies are being testing, the output is grouped into a single file. If no filename is provided, it will use the name of the assembly(s). If multiple assemblies are being tested, an <code>index.html</code> is created with links to each assembly-specific report. You can use this option if your CI server supports capturing HTML as build reports.</p>
+
+<h3>
+<a name="user-content-xml-reports" class="anchor" href="#xml-reports" aria-hidden="true"><span class="octicon octicon-link"></span></a>XML Reports</h3>
+
+<p>MSpec can output XML test run reports by passing the <code>--xml</code> option. This option behaves the same as the <code>--html</code> option, in terms of file naming.</p>
+
+<h3>
+<a name="user-content-selenium-reports" class="anchor" href="#selenium-reports" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selenium Reports</h3>
+
+<p>The MSpec HTML reports can show additional <a href="http://seleniumhq.org/">Selenium</a>-specific information, like screenshots and debug statements. Instructions on <a href="http://codebetter.com/blogs/aaron.jensen/archive/2009/10/19/advanced-selenium-logging-with-mspec.aspx">how to integrate this feature</a> into your specs is available on the web. There is also a <a href="https://github.com/agross/mspec-samples/tree/master/WebSpecs/LoginApp.Selenium.Specs">sample implementation</a> available.</p>
+
+<h1>
+<a name="user-content-resharper-integration" class="anchor" href="#resharper-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>ReSharper Integration</h1>
+
+<p>MSpec provides a batch file to integrate with the ReSharper test runner, custom naming rules, and code annotations. MSpec currently supports ReSharper 6.1, 7.0, 7.1, 8.0 and 8.1.</p>
+
+<h3>
+<a name="user-content-code-annotations" class="anchor" href="#code-annotations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code Annotations</h3>
+
+<p>By default, ReSharper thinks that specification classes (those with the <code>[Subject]</code> attribute) and their internals are unused. To change this behavior in Visual Studio:</p>
+
+<ol class="task-list">
+<li>Open the ReSharper Options (ReSharper -&gt; Options...)</li>
+<li>Select "Code Annotations"</li>
+<li>Ensure that the namespace "Machine.Specifications.Annotations" is checked</li>
+<li>Click "OK"</li>
+</ol><h3>
+<a name="user-content-templates" class="anchor" href="#templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Templates</h3>
+
+<p>The file, live, and surround templates can be imported from <code>Misc\ReSharper.*.DotSettings</code>. The single file template creates a basic context. The single surround template wraps a <code>Catch.Exception</code> call (<a href="http://therightstuff.de/2010/03/03/MachineSpecifications-Templates-For-ReSharper.aspx">more information how to use them</a>). The live templates cover the major delegates:</p>
+
+<ul class="task-list">
+<li>
+<code>mse</code>, an <code>Establish</code> delegate</li>
+<li>
+<code>msb</code>, a <code>Because</code> delegate</li>
+<li>
+<code>msi</code>, an <code>It</code> delegate</li>
+<li>
+<code>msf</code>, a failing <code>It</code> delegate, use in combination with the <code>Catch</code> surround template</li>
+</ul><h1>
+<a name="user-content-testdrivennet-integration" class="anchor" href="#testdrivennet-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>TestDriven.Net Integration</h1>
+
+<p>MSpec provides a batch file for setting up TD.NET integration. Newer versions (2.24+) support an xcopy integration that avoids the versioning issues arising from the registry-based scheme. If you use NuGet, you're already set. If you're not using NuGet, make sure to  copy <code>Machine.Specifications.dll.tdnet</code> and <code>Machine.Specifications.TDNetRunner.dll</code> to your project's output directory.</p></article></div>

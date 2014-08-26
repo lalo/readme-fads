@@ -1,0 +1,524 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-oab-java" class="anchor" href="#oab-java" aria-hidden="true"><span class="octicon octicon-link"></span></a>OAB-Java</h1>
+
+<p>oab-java.sh v0.3.0 - Create a local 'apt' repository for Sun Java 6 and/or Oracle Java 7 packages.</p>
+
+<p>Copyright (c) Martin Wimpress, <a href="http://flexion.org">http://flexion.org</a>. MIT License</p>
+
+<p>By running this script to download Java you acknowledge that you have
+read and accepted the terms of the Oracle end user license agreement.</p>
+
+<ul class="task-list">
+<li><a href="http://www.oracle.com/technetwork/java/javase/terms/license/">http://www.oracle.com/technetwork/java/javase/terms/license/</a></li>
+</ul><h2>
+<a name="user-content-donate" class="anchor" href="#donate" aria-hidden="true"><span class="octicon octicon-link"></span></a>Donate</h2>
+
+<p>If you or your organisation has found oab-java.sh useful please consider
+donating to this project. It is nice to have the effort I've put into this
+script recognised, I don't ask for much, it is at your discretion.</p>
+
+<p><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=ESP59ZNJHLBZ8"><img src="https://camo.githubusercontent.com/7f7cc4a4a25b1dcfb57772d2d16d8c5b5b1a0dea/68747470733a2f2f7777772e70617970616c6f626a656374732e636f6d2f656e5f47422f692f62746e2f62746e5f646f6e6174655f534d2e676966" alt="Donate to OAB-Java" data-canonical-src="https://www.paypalobjects.com/en_GB/i/btn/btn_donate_SM.gif" style="max-width:100%;"></a>  <a href="https://flattr.com/submit/auto?user_id=flexiondotorg&amp;url=https://github.com/flexiondotorg/oab-java6&amp;title=oab-java6&amp;language=shell&amp;tags=github&amp;category=software"><img src="https://camo.githubusercontent.com/739a757846f69c1cc10163619eec008e871b591b/687474703a2f2f6170692e666c617474722e636f6d2f627574746f6e2f666c617474722d62616467652d6c617267652e706e67" alt="Flattr OAB-Java" data-canonical-src="http://api.flattr.com/button/flattr-badge-large.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<pre><code>sudo ./oab-java.sh
+</code></pre>
+
+<p>Optional parameters</p>
+
+<ul class="task-list">
+<li>-7              : Build oracle-java7 packages instead of sun-java6</li>
+<li>-c              : Remove pre-existing packages from /var/local/oab/deb and sources from /var/local/oab/src.</li>
+<li>-k  : Use the specified existing key instead of generating one</li>
+<li>-s              : Skip building if the packages already exist</li>
+<li>-t              : Specify the Java version tag to use from the upstream Debian packaging script.</li>
+<li>-h              : This help</li>
+</ul><h2>
+<a name="user-content-how-do-i-download-and-run-this-thing" class="anchor" href="#how-do-i-download-and-run-this-thing" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I download and run this thing?</h2>
+
+<p>Like this.</p>
+
+<pre><code>cd ~/
+wget https://github.com/flexiondotorg/oab-java6/raw/0.3.0/oab-java.sh -O oab-java.sh
+chmod +x oab-java.sh
+sudo ./oab-java.sh
+</code></pre>
+
+<p>If you are behind a proxy you may need to run using:</p>
+
+<pre><code>sudo -i ./oab-java.sh
+</code></pre>
+
+<p>If you want to see what this script is doing while it is running then execute
+the following from another shell:</p>
+
+<pre><code>tail -f ./oab-java.sh.log
+</code></pre>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<p>This script is merely a wrapper for the most excellent Debian packaging
+scripts prepared by Janusz Dziemidowicz.</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/rraptorr/sun-java6">https://github.com/rraptorr/sun-java6</a></li>
+<li><a href="https://github.com/rraptorr/oracle-java7">https://github.com/rraptorr/oracle-java7</a></li>
+</ul><p>The basic execution steps are:</p>
+
+<ul class="task-list">
+<li>Remove, my now disabled, Java PPA ppa:flexiondotorg/java.</li>
+<li>Install the tools required to build the Java packages.</li>
+<li>Create download cache in /var/local/oab/pkg.</li>
+<li>Download the i586 and x64 Java install binaries from Oracle. Yes, both are required (for sun-java6 only).</li>
+<li>Clone the build scripts from <a href="https://github.com/rraptorr/">https://github.com/rraptorr/</a>
+</li>
+<li>Build the Java packages applicable to your system.</li>
+<li>Create local apt repository in /var/local/oab/deb for the newly built Java Packages.</li>
+<li>Create a GnuPG signing key in /var/local/oab/gpg if none exists.</li>
+<li>Sign the local apt repository using the local GnuPG signing key.</li>
+</ul><h2>
+<a name="user-content-what-gets-installed" class="anchor" href="#what-gets-installed" aria-hidden="true"><span class="octicon octicon-link"></span></a>What gets installed?</h2>
+
+<p>This script will no longer try and directly install or upgrade any Java
+packages, instead a local apt repository is created that hosts locally
+built Java packages applicable to your system. It is up to you to install
+or upgrade the Java packages you require using apt-get, aptitude or
+synaptic, etc. For example, once this script has been run you can simply
+install the JRE by executing the following from a shell.</p>
+
+<pre><code>sudo apt-get install sun-java6-jre
+</code></pre>
+
+<p>Or if you ran the script with the -7 option.</p>
+
+<pre><code>sudo apt-get install oracle-java7-jre
+</code></pre>
+
+<p>If you already have the <em>"official"</em> Ubuntu packages installed then you
+can upgrade by executing the following from a shell.</p>
+
+<pre><code>sudo apt-get upgrade
+</code></pre>
+
+<p>The local apt repository is just that, <strong>local</strong>. It is not accessible
+remotely and oab-java.sh will never enable that capability to ensure
+compliance with Oracle's asinine license requirements.</p>
+
+<p>By default, the script creates a temporary GPG keyring in the working
+directory. In order to use the current user's GPG chain instead, specify
+the key ID of an existing secret key. Run gpg -K to list available keys.</p>
+
+<h2>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Issues</h2>
+
+<ul class="task-list">
+<li>Building Java 7 on Ubuntu Lucid 10.04 is no longer supported as the upstream scripts
+require debhelper&gt;=8 which is not officially available for Lucid.</li>
+<li>The Oracle download servers can be horribly slow. My script caches the downloads
+so you only need download each file once.</li>
+</ul><h2>
+<a name="user-content-what-is-oab" class="anchor" href="#what-is-oab" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is 'oab'?</h2>
+
+<p>Because, O.A.B! ;-)</p>
+
+<h1>
+<a name="user-content-history" class="anchor" href="#history" aria-hidden="true"><span class="octicon octicon-link"></span></a>History</h1>
+
+<h2>
+<a name="user-content-030" class="anchor" href="#030" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.0</h2>
+
+<ul class="task-list">
+<li>Fixed download Java7 JCE. Thanks to Michał Kowalczuk.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/115">https://github.com/flexiondotorg/oab-java6/issues/115</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/114">https://github.com/flexiondotorg/oab-java6/issues/114</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/113">https://github.com/flexiondotorg/oab-java6/issues/113</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-029" class="anchor" href="#029" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.9</h2>
+
+<ul class="task-list">
+<li>Fixed downloading Java6 JCE. Thanks to Naoya Nakazawa.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/111">https://github.com/flexiondotorg/oab-java6/issues/111</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/109">https://github.com/flexiondotorg/oab-java6/issues/109</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/108">https://github.com/flexiondotorg/oab-java6/issues/108</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/107">https://github.com/flexiondotorg/oab-java6/issues/107</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/106">https://github.com/flexiondotorg/oab-java6/issues/106</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/105">https://github.com/flexiondotorg/oab-java6/issues/105</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/104">https://github.com/flexiondotorg/oab-java6/issues/104</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/103">https://github.com/flexiondotorg/oab-java6/issues/103</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/101">https://github.com/flexiondotorg/oab-java6/issues/101</a>
+</li>
+</ul>
+</li>
+<li>Fixed downloading Java7.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/102">https://github.com/flexiondotorg/oab-java6/issues/102</a>
+</li>
+</ul>
+</li>
+<li>Building Java7 on Ubunu Lucid 10.04 is no longer supported.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/110">https://github.com/flexiondotorg/oab-java6/issues/110</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-028" class="anchor" href="#028" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.8</h2>
+
+<ul class="task-list">
+<li>Fixed building on Ubuntu 13.04 and Debian 7.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/98">https://github.com/flexiondotorg/oab-java6/issues/98</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/92">https://github.com/flexiondotorg/oab-java6/issues/92</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/66">https://github.com/flexiondotorg/oab-java6/issues/66</a>
+</li>
+</ul>
+</li>
+<li>Added spinner overide support. Thanks to Paul Scott.</li>
+<li>Added manual overide of Java version to build using the upstream Git tags. Thanks to Jonathan Harker.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/40">https://github.com/flexiondotorg/oab-java6/issues/40</a>
+</li>
+</ul>
+</li>
+<li>Updated (<code>-c</code>) option to optionally clean <code>.deb</code> packages and sources.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/95">https://github.com/flexiondotorg/oab-java6/issues/95</a>
+</li>
+</ul>
+</li>
+<li>Updated documentation and migrated to Markdown.</li>
+<li>Removed <code>imvirt</code> requirement.</li>
+<li>Tested on Ubuntu 10.04, Ubuntu 12.04, Ubuntu 13.04, Debian 6 and Debian 7.</li>
+</ul><h2>
+<a name="user-content-027" class="anchor" href="#027" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.7</h2>
+
+<ul class="task-list">
+<li>Many fixes and improvements. Thanks for all the contributions!
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/72">https://github.com/flexiondotorg/oab-java6/issues/72</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/74">https://github.com/flexiondotorg/oab-java6/issues/74</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/75">https://github.com/flexiondotorg/oab-java6/issues/75</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/77">https://github.com/flexiondotorg/oab-java6/issues/77</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-026" class="anchor" href="#026" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.6</h2>
+
+<ul class="task-list">
+<li>Fixed screen scraping of the Oracle website.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/55">https://github.com/flexiondotorg/oab-java6/issues/55</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/56">https://github.com/flexiondotorg/oab-java6/issues/56</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/57">https://github.com/flexiondotorg/oab-java6/issues/57</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/58">https://github.com/flexiondotorg/oab-java6/issues/58</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-025" class="anchor" href="#025" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.5</h2>
+
+<ul class="task-list">
+<li>Fixed building Oracle Java 7 by adding <code>libxrender1</code> to the dependencies.</li>
+</ul><h2>
+<a name="user-content-024" class="anchor" href="#024" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.4</h2>
+
+<ul class="task-list">
+<li>Added support for JCE Unlimited Strength Jurisdiction Policy Files. Thanks to Ladios Jonquil and Jameson J Lee.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/31">https://github.com/flexiondotorg/oab-java6/issues/31</a>
+</li>
+</ul>
+</li>
+<li>Reverted to https for git clone of upstream tools.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/32">https://github.com/flexiondotorg/oab-java6/issues/32</a>
+</li>
+</ul>
+</li>
+<li>Updated download links to Sun Java 6 and Oracle Java 7. Thanks to Ladios Jonquil and Jameson J Lee.
+
+<ul class="task-list">
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/33">https://github.com/flexiondotorg/oab-java6/issues/33</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/34">https://github.com/flexiondotorg/oab-java6/issues/34</a>
+</li>
+<li>Closes: <a href="https://github.com/flexiondotorg/oab-java6/issues/39">https://github.com/flexiondotorg/oab-java6/issues/39</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-023" class="anchor" href="#023" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.3</h2>
+
+<ul class="task-list">
+<li>Added an option to build <code>oracle-java7</code> packages.</li>
+<li>Integrated common function into oab-java6.sh
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/23">https://github.com/flexiondotorg/oab-java6/issues/23</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-022" class="anchor" href="#022" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.2</h2>
+
+<ul class="task-list">
+<li>Added an option to use a pre-existing signing key. Thanks to Hannes Schmidt.</li>
+<li>The <code>git clone</code> of <code>rraptorr/sun-java6</code> now uses http rather than https.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/27">https://github.com/flexiondotorg/oab-java6/issues/27</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-021" class="anchor" href="#021" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.1</h2>
+
+<ul class="task-list">
+<li>Fixed downloading from <code>edelivery.oracle.com</code> (again). Thanks to onlymostlydead (Mark).
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/28">https://github.com/flexiondotorg/oab-java6/issues/28</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-020" class="anchor" href="#020" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.2.0</h2>
+
+<ul class="task-list">
+<li>Fixed downloading from <code>edelivery.oracle.com</code> when <code>ca-certificates</code> is not installed.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/22">https://github.com/flexiondotorg/oab-java6/issues/22</a>
+</li>
+</ul>
+</li>
+<li>Fixed the skip rebuilding behaviour so it works as described.</li>
+<li>Fixed the format of <code>apt</code> source file.</li>
+<li>Documentation is now self referencing.</li>
+</ul><h2>
+<a name="user-content-019" class="anchor" href="#019" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.9</h2>
+
+<ul class="task-list">
+<li>Fixed download of the Oracle binary packages, which now requires cookies. Thanks to Martin Polden and Miah Johnson.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/18">https://github.com/flexiondotorg/oab-java6/issues/18</a>
+</li>
+</ul>
+</li>
+<li>Added an option (<code>-s</code>) to skip rebuilding if packages already exist, tanks to Derek Chen-Becker.</li>
+<li>Added a comment to the <code>apt</code> source file, thanks to Eshwar Andhavarapu.</li>
+<li>Added documentation for user running the script behind a proxy server, thanks to Olzhas.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/12">https://github.com/flexiondotorg/oab-java6/issues/12</a>
+</li>
+</ul>
+</li>
+<li>Should now build on Ubuntu 12.04 LTS, but untested.</li>
+<li>Updated documentation which is now correctly formatted as reStructuredText.</li>
+</ul><h2>
+<a name="user-content-018" class="anchor" href="#018" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.8</h2>
+
+<ul class="task-list">
+<li>Added dynamic determination of Java package URLs and sizes.</li>
+<li>Added an option (<code>-c</code>) to optionally clean <code>.deb</code> package.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/10">https://github.com/flexiondotorg/oab-java6/issues/10</a>
+</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-017" class="anchor" href="#017" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.7</h2>
+
+<ul class="task-list">
+<li>Fixed GPG key creation on VMware ESX Server.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/11">https://github.com/flexiondotorg/oab-java6/issues/11</a>
+</li>
+</ul>
+</li>
+<li>Fixed clone of the <code>sun-java6</code> repository for users behind restrictive firewalls, thanks to Thorsten Möllers.</li>
+</ul><h2>
+<a name="user-content-016" class="anchor" href="#016" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.6</h2>
+
+<ul class="task-list">
+<li>Fixed downloading of <code>common.sh</code> when ca-certificates is not installed.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/3">https://github.com/flexiondotorg/oab-java6/issues/3</a>
+</li>
+</ul>
+</li>
+<li>Updated to support Java6u31
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/7">https://github.com/flexiondotorg/oab-java6/issues/7</a>
+</li>
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/8">https://github.com/flexiondotorg/oab-java6/issues/8</a>
+</li>
+</ul>
+</li>
+<li>NOTE! Requires that the upstream script tags Java6u31 as stable, see the following ticket <a href="https://github.com/rraptorr/sun-java6/issues/3">https://github.com/rraptorr/sun-java6/issues/3</a>
+</li>
+<li>Prevent script from running under Ubuntu Precise as it is currently known to be unsupported.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/4">https://github.com/flexiondotorg/oab-java6/issues/4</a>
+</li>
+</ul>
+</li>
+<li>Prevent automated key generation when running in an OpenVZ container because I'm too stupid to work out a proper solution</li>
+</ul><h2>
+<a name="user-content-015" class="anchor" href="#015" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.5</h2>
+
+<ul class="task-list">
+<li>Added the missing code that actually does the build. Doh!</li>
+</ul><h2>
+<a name="user-content-014" class="anchor" href="#014" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.4</h2>
+
+<ul class="task-list">
+<li>Added GnuPG signing of the local <code>apt</code> repository.</li>
+<li>Updated package building to preserve the upstream package urgency.</li>
+<li>Re-factored to remove hard coded versions, now uses <code>debian/changelog</code>.</li>
+<li>Fixed the <code>override</code> file generation to ensure it doesn't contain duplicates.</li>
+<li>Updated documentation.</li>
+</ul><h2>
+<a name="user-content-013" class="anchor" href="#013" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.3</h2>
+
+<ul class="task-list">
+<li>Added checking out of tagged releases of the upstream scripts.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/1">https://github.com/flexiondotorg/oab-java6/issues/1</a>
+</li>
+</ul>
+</li>
+<li>Added loose distribution checking so it should now work with Linux Mint and other Ubuntu derivatives.
+
+<ul class="task-list">
+<li>Closes : <a href="https://github.com/flexiondotorg/oab-java6/issues/2">https://github.com/flexiondotorg/oab-java6/issues/2</a>
+</li>
+</ul>
+</li>
+<li>Added the creation of a local <code>apt</code> repository.</li>
+<li>Removed installation of Java packages, you can now use <code>apt-get</code> yourself.</li>
+<li>Updated documentation.</li>
+</ul><h2>
+<a name="user-content-012" class="anchor" href="#012" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.2</h2>
+
+<ul class="task-list">
+<li>Fixed build requirements.</li>
+<li>Fixed install of <code>ia32-sun-java6-bin</code> on 64-bit systems.</li>
+<li>Fixed install of Java browser plug-in on systems without a supported browser.</li>
+<li>Added runtime requirements.</li>
+<li>Added TODO.</li>
+<li>Updated documentation.</li>
+</ul><h2>
+<a name="user-content-011" class="anchor" href="#011" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.1</h2>
+
+<ul class="task-list">
+<li>Updated to use dynamic version detection throughout.</li>
+<li>Fixed package installation when upgrading.</li>
+<li>Minor documentation updates.</li>
+</ul><h2>
+<a name="user-content-010" class="anchor" href="#010" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.1.0</h2>
+
+<ul class="task-list">
+<li>Initial release.</li>
+</ul><h1>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h1>
+
+<p>This package is written and maintained by Martin Wimpress, <a href="mailto:code@flexion.org">code@flexion.org</a></p>
+
+<p>Other contributors, listed alphabetically, are:</p>
+
+<ul class="task-list">
+<li>Björgvin Ragnarsson</li>
+<li>David Kovach</li>
+<li>Derek Chen-Becker</li>
+<li>Eshwar Andhavarapu</li>
+<li>Greg Swallow</li>
+<li>Hannes Schmidt</li>
+<li>Ihor Kaharlichenko</li>
+<li>Jameson J Lee</li>
+<li>Jonathan Harker</li>
+<li>Ladios Jonquil</li>
+<li>Martin Polden</li>
+<li>Miah Johnson</li>
+<li>Michał Kowalczuk</li>
+<li>Naoya Nakazawa</li>
+<li>onlymostlydead</li>
+<li>Paul Scott</li>
+<li>Peter Leibiger</li>
+<li>Robert Pendell</li>
+<li>Thorsten Möllers</li>
+</ul><p>Many thanks for all contributions!</p>
+
+<h1>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Todo</h1>
+
+<ul class="task-list">
+<li>Check the binary packages downloaded from Oracle are the correct size.</li>
+<li>Add support to build for a given Ubuntu distribution.</li>
+<li>Add support to build using <code>pbuilder</code> or use <code>fakeroot</code>.</li>
+</ul><h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>Copyright (c) 2013 Martin Wimpress, <a href="http://flexion.org/">http://flexion.org/</a></p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

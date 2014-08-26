@@ -1,0 +1,140 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-project-description" class="anchor" href="#project-description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Description</h2>
+
+<p>Write maintainable unit tests, faster.</p>
+
+<p>AutoFixture makes it easier for developers to do Test-Driven Development by automating non-relevant Test Fixture Setup, allowing the Test Developer to focus on the essentials of each test case.</p>
+
+<blockquote>
+<p><a href="#who-uses-autofixture">"saved us quite some time"</a></p>
+
+<p>-<a href="#who-uses-autofixture">Florian Hötzinger, GAB Enterprise IT Solutions GmbH</a> </p>
+</blockquote>
+
+<h2>
+<a name="user-content-overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h2>
+
+<p>(Jump straight to the <a href="https://github.com/AutoFixture/AutoFixture/wiki/Cheat-Sheet">CheatSheet</a> if you just want to see some code samples right away.)</p>
+
+<p>AutoFixture is designed to make Test-Driven Development more productive and unit tests more refactoring-safe. It does so by removing the need for hand-coding anonymous variables as part of a test's Fixture Setup phase. Among other features, it offers a generic implementation of the <a href="http://www.natpryce.com/articles/000714.html">Test Data Builder</a> pattern.</p>
+
+<p>When writing unit tests, you typically need to create some objects that represent the initial state of the test. Often, an API will force you to specify much more data than you really care about, so you frequently end up creating objects that has no influence on the test, simply to make the code compile.</p>
+
+<p>AutoFixture can help by creating such <a href="http://blogs.msdn.com/ploeh/archive/2008/11/17/anonymous-variables.aspx">Anonymous Variables</a> for you. Here's a simple example:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[TestMethod]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">IntroductoryTest</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="c1">// Fixture setup</span>
+    <span class="n">Fixture</span> <span class="n">fixture</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Fixture</span><span class="p">();</span>
+
+    <span class="kt">int</span> <span class="n">expectedNumber</span> <span class="p">=</span> <span class="n">fixture</span><span class="p">.</span><span class="n">Create</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;();</span>
+    <span class="n">MyClass</span> <span class="n">sut</span> <span class="p">=</span> <span class="n">fixture</span><span class="p">.</span><span class="n">Create</span><span class="p">&lt;</span><span class="n">MyClass</span><span class="p">&gt;();</span>
+    <span class="c1">// Exercise system</span>
+    <span class="kt">int</span> <span class="n">result</span> <span class="p">=</span> <span class="n">sut</span><span class="p">.</span><span class="n">Echo</span><span class="p">(</span><span class="n">expectedNumber</span><span class="p">);</span>
+    <span class="c1">// Verify outcome</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(</span><span class="n">expectedNumber</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="s">"Echo"</span><span class="p">);</span>
+    <span class="c1">// Teardown</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This example illustrates the basic principle of AutoFixture: It can create values of virtually any type without the need for you to explicitly define which values should be used. The number <em>expectedNumber</em> is created by a call to Create - this will create a 'nice', regular integer value, saving you the effort of explicitly coming up with one.</p>
+
+<p>The example also illustrates how AutoFixture can be used as a <a href="http://blog.ploeh.dk/2009/02/13/SUTFactory.aspx">SUT Factory</a> that creates the actual System Under Test (the MyClass instance).</p>
+
+<p>Given the right combination of unit testing framework and extensions for AutoFixture, we can further reduce the above test to be even more declarative: </p>
+
+<p><a href="http://blog.ploeh.dk/2010/10/08/AutoDataTheoriesWithAutoFixture.aspx">xUnit</a> </p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Theory, AutoData]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">IntroductoryTest</span><span class="p">(</span>
+    <span class="kt">int</span> <span class="n">expectedNumber</span><span class="p">,</span> <span class="n">MyClass</span> <span class="n">sut</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">result</span> <span class="p">=</span> <span class="n">sut</span><span class="p">.</span><span class="n">Echo</span><span class="p">(</span><span class="n">expectedNumber</span><span class="p">);</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">Equal</span><span class="p">(</span><span class="n">expectedNumber</span><span class="p">,</span> <span class="n">result</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>and </p>
+
+<p><a href="http://gertjvr.wordpress.com/2013/09/25/howto-autofixture-nunit2">NUnit</a></p>
+
+<div class="highlight highlight-csharp"><pre><span class="na">[Test, AutoData]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">IntroductoryTest</span><span class="p">(</span>
+    <span class="kt">int</span> <span class="n">expectedNumber</span><span class="p">,</span> <span class="n">MyClass</span> <span class="n">sut</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">result</span> <span class="p">=</span> <span class="n">sut</span><span class="p">.</span><span class="n">Echo</span><span class="p">(</span><span class="n">expectedNumber</span><span class="p">);</span>
+    <span class="n">Assert</span><span class="p">.</span><span class="n">Equal</span><span class="p">(</span><span class="n">expectedNumber</span><span class="p">,</span> <span class="n">result</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Notice how we can reduce unit tests to state only the relevant parts of the test. The rest (variables, Fixture object) is relegated to attributes and parameter values that are supplied automatically by AutoFixture. The test is now only two lines of code.</p>
+
+<p>Using AutoFixture is as easy as referencing the library and creating a new instance of the Fixture class!</p>
+
+<h2>
+<a name="user-content-downloads" class="anchor" href="#downloads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Downloads</h2>
+
+<p>AutoFixture is available via NuGet:</p>
+
+<ul class="task-list">
+<li><a href="http://nuget.org/packages/AutoFixture">AutoFixture</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.AutoMoq">AutoFixture.AutoMoq</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.AutoRhinoMocks">AutoFixture.AutoRhinoMocks</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.AutoFakeItEasy">AutoFixture.AutoFakeItEasy</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.AutoNSubstitute">AutoFixture.AutoNSubstitute</a></li>
+<li><a href="http://www.nuget.org/packages/AutoFixture.AutoFoq">AutoFixture.AutoFoq</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.Xunit">AutoFixture.Xunit</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.NUnit2">AutoFixture.NUnit2</a></li>
+<li><a href="http://nuget.org/packages/AutoFixture.Idioms">AutoFixture.Idioms</a></li>
+<li><a href="http://nuget.org/packages/SemanticComparison">SemanticComparison</a></li>
+</ul><h2>
+<a name="user-content-versioning" class="anchor" href="#versioning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Versioning</h2>
+
+<p>AutoFixture follows <a href="http://semver.org/spec/v2.0.0.html">Semantic Versioning 2.0.0</a>.</p>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/AutoFixture/AutoFixture/wiki/Cheat-Sheet">CheatSheet</a></li>
+<li><a href="https://github.com/AutoFixture/AutoFixture/wiki/FAQ">FAQ</a></li>
+</ul><h2>
+<a name="user-content-questions" class="anchor" href="#questions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Questions</h2>
+
+<p>If you have questions, feel free to ask. The best places to ask are:</p>
+
+<ul class="task-list">
+<li><a href="http://stackoverflow.com/questions/tagged/autofixture">Stack Overflow - use the <em>autofixture</em> tag</a></li>
+<li><a href="http://github.com/AutoFixture/AutoFixture/issues">GitHub issues</a></li>
+</ul><h2>
+<a name="user-content-who-uses-autofixture" class="anchor" href="#who-uses-autofixture" aria-hidden="true"><span class="octicon octicon-link"></span></a>Who uses AutoFixture?</h2>
+
+<p>AutoFixture is used around the world, as the following quotes testify:</p>
+
+<blockquote>
+<p>"I’ve introduced AutoFixture to my developers (at <a href="http://www.gab.de">www.gab.de</a> ) some time ago. We’ve been using it successfully with xunit in multiple projects all across the .NET technology stack. We also use it for feeding dummy data to the UI when developing prototypes. That saved us quite some time.</p>
+
+<p>-<a href="https://twitter.com/hoetz">Florian Hötzinger</a>, <a href="http://www.gab.de">GAB Enterprise IT Solutions GmbH</a></p>
+
+<p>"I have used AutoFixture for 3 years, it's a vital tool in my TDD toolbox, a real time-saver. Setting up maintainable and robust unit tests with AutoFixture is easy and straightforward - highly recommendable"</p>
+
+<p>-<a href="http://madstt.dk">Mads Tjørnelund Toustrup</a>, Senior .Net Developer, <a href="http://d60.dk">d60 a/s</a></p>
+
+<p>"Autofixture is more than just another test data generator. It helps me to write tests faster, which are robust against changes in my production code. Moreover, with Autofixture I can focus the tests on the behavior I want to check which why they are easier to read and understand."</p>
+
+<p>-<a href="http://www.just-about.net">Hendrik Lösch</a>, <a href="http://www.saxsys.de">Saxonia Systems AG</a></p>
+</blockquote>
+
+<p>If you want to add your own testimonial to this list, we (the AutoFixture maintainers) would be very grateful. Send us a pull request to this README.md file.</p>
+
+<h2>
+<a name="user-content-additional-resources" class="anchor" href="#additional-resources" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional resources</h2>
+
+<ul class="task-list">
+<li><a href="http://blog.ploeh.dk/tags.html#AutoFixture-ref">ploeh blog</a></li>
+<li><a href="http://nikosbaxevanis.com/categories/autofixture">Nikos Baxevanis' blog</a></li>
+<li><a href="http://megakemp.com/tag/autofixture">Enrico Campidoglio's blog</a></li>
+<li><a href="http://gertjvr.wordpress.com/category/autofixture">Gert Jansen van Rensburg's blog</a></li>
+<li><a href="http://stackoverflow.com/questions/tagged/autofixture">Questions on Stack Overflow</a></li>
+</ul></article></div>

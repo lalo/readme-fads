@@ -1,0 +1,551 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-pundit" class="anchor" href="#pundit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pundit</h1>
+
+<p><a href="https://travis-ci.org/elabs/pundit"><img src="https://camo.githubusercontent.com/630bdde03c30c95c31fa2b5b87fdf2271795788a/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f656c6162732f70756e6469742e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/elabs/pundit.png?branch=master" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/elabs/pundit"><img src="https://camo.githubusercontent.com/0ff2186c3822409e4a1c1989ca09dda7a67e5625/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f656c6162732f70756e6469742e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/elabs/pundit.png" style="max-width:100%;"></a>
+<a href="http://inch-ci.org/github/elabs/pundit"><img src="https://camo.githubusercontent.com/2e27dd510147d192518b78c9ec80916727c53549/687474703a2f2f696e63682d63692e6f72672f6769746875622f656c6162732f70756e6469742e706e67" alt="Inline docs" data-canonical-src="http://inch-ci.org/github/elabs/pundit.png" style="max-width:100%;"></a></p>
+
+<p>Pundit provides a set of helpers which guide you in leveraging regular Ruby
+classes and object oriented design patterns to build a simple, robust and
+scaleable authorization system.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s2">"pundit"</span>
+</pre></div>
+
+<p>Include Pundit in your application controller:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">Pundit</span>
+  <span class="n">protect_from_forgery</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Optionally, you can run the generator, which will set up an application policy
+with some useful defaults for you:</p>
+
+<div class="highlight highlight-sh"><pre>rails g pundit:install
+</pre></div>
+
+<p>After generating your application policy, restart the Rails server so that Rails
+can pick up any classes in the new <code>app/policies/</code> directory.</p>
+
+<h2>
+<a name="user-content-policies" class="anchor" href="#policies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Policies</h2>
+
+<p>Pundit is focused around the notion of policy classes. We suggest that you put
+these classes in <code>app/policies</code>. This is a simple example that allows updating
+a post if the user is an admin, or if the post is unpublished:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostPolicy</span>
+  <span class="kp">attr_reader</span> <span class="ss">:user</span><span class="p">,</span> <span class="ss">:post</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">post</span><span class="p">)</span>
+    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
+    <span class="vi">@post</span> <span class="o">=</span> <span class="n">post</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">update?</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">admin?</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">post</span><span class="o">.</span><span class="n">published?</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>As you can see, this is just a plain Ruby class. Pundit makes the following
+assumptions about this class:</p>
+
+<ul class="task-list">
+<li>The class has the same name as some kind of model class, only suffixed
+with the word "Policy".</li>
+<li>The first argument is a user. In your controller, Pundit will call the
+<code>current_user</code> method to retrieve what to send into this argument</li>
+<li>The second argument is some kind of model object, whose authorization
+you want to check. This does not need to be an ActiveRecord or even
+an ActiveModel object, it can be anything really.</li>
+<li>The class implements some kind of query method, in this case <code>update?</code>.
+Usually, this will map to the name of a particular controller action.</li>
+</ul><p>That's it really.</p>
+
+<p>Usually you'll want to inherit from the application policy created by the
+generator, or set up your own base class to inherit from:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+  <span class="k">def</span> <span class="nf">update?</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">admin?</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">published?</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>In the generated <code>ApplicationPolicy</code>, the model object is called <code>record</code>.</p>
+
+<p>Supposing that you have an instance of class <code>Post</code>, Pundit now lets you do
+this in your controller:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">update</span>
+  <span class="vi">@post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+  <span class="n">authorize</span> <span class="vi">@post</span>
+  <span class="k">if</span> <span class="vi">@post</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">post_params</span><span class="p">)</span>
+    <span class="n">redirect_to</span> <span class="vi">@post</span>
+  <span class="k">else</span>
+    <span class="n">render</span> <span class="ss">:edit</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The authorize method automatically infers that <code>Post</code> will have a matching
+<code>PostPolicy</code> class, and instantiates this class, handing in the current user
+and the given record. It then infers from the action name, that it should call
+<code>update?</code> on this instance of the policy. In this case, you can imagine that
+<code>authorize</code> would have done something like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">raise</span> <span class="s2">"not authorized"</span> <span class="k">unless</span> <span class="no">PostPolicy</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">current_user</span><span class="p">,</span> <span class="vi">@post</span><span class="p">)</span><span class="o">.</span><span class="n">update?</span>
+</pre></div>
+
+<p>You can pass a second argument to <code>authorize</code> if the name of the permission you
+want to check doesn't match the action name. For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">publish</span>
+  <span class="vi">@post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+  <span class="n">authorize</span> <span class="vi">@post</span><span class="p">,</span> <span class="ss">:update?</span>
+  <span class="vi">@post</span><span class="o">.</span><span class="n">publish!</span>
+  <span class="n">redirect_to</span> <span class="vi">@post</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can easily get a hold of an instance of the policy through the <code>policy</code>
+method in both the view and controller. This is especially useful for
+conditionally showing links or buttons in the view:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%</span> <span class="k">if</span> <span class="n">policy</span><span class="p">(</span><span class="vi">@post</span><span class="p">)</span><span class="o">.</span><span class="n">update?</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  </span><span class="cp">&lt;%=</span> <span class="n">link_to</span> <span class="s2">"Edit post"</span><span class="p">,</span> <span class="n">edit_post_path</span><span class="p">(</span><span class="vi">@post</span><span class="p">)</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<h2>
+<a name="user-content-headless-policies" class="anchor" href="#headless-policies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Headless policies</h2>
+
+<p>Given there is a policy without a corresponding model / ruby class,
+you can retrieve it by passing a symbol.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/policies/dashboard_policy.rb</span>
+<span class="k">class</span> <span class="nc">DashboardPolicy</span> <span class="o">&lt;</span> <span class="no">Struct</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:user</span><span class="p">,</span> <span class="ss">:dashboard</span><span class="p">)</span>
+  <span class="c1"># ...</span>
+<span class="k">end</span>
+
+<span class="c1"># In controllers</span>
+<span class="n">authorize</span> <span class="ss">:dashboard</span><span class="p">,</span> <span class="ss">:show?</span>
+
+<span class="c1"># In views</span>
+<span class="o">&lt;</span><span class="sx">% if </span><span class="n">policy</span><span class="p">(</span><span class="ss">:dashboard</span><span class="p">)</span><span class="o">.</span><span class="n">show?</span> <span class="sx">%&gt;</span>
+<span class="sx">  &lt;%= link_to 'Dashboard', dashboard_path %&gt;</span>
+<span class="o">&lt;</span><span class="sx">% end </span><span class="o">%&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-ensuring-policies-are-used" class="anchor" href="#ensuring-policies-are-used" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ensuring policies are used</h2>
+
+<p>Pundit adds a method called <code>verify_authorized</code> to your controllers. This
+method will raise an exception if <code>authorize</code> has not yet been called. You
+should run this method in an <code>after_action</code> to ensure that you haven't
+forgotten to authorize the action. For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">after_action</span> <span class="ss">:verify_authorized</span><span class="p">,</span> <span class="ss">:except</span> <span class="o">=&gt;</span> <span class="ss">:index</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Likewise, Pundit also adds <code>verify_policy_scoped</code> to your controller.  This
+will raise an exception in the vein of <code>verify_authorized</code>.  However it tracks
+if <code>policy_scope</code> is used instead of <code>authorize</code>.  This is mostly useful for
+controller actions like <code>index</code> which find collections with a scope and don't
+authorize individual instances.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">after_action</span> <span class="ss">:verify_policy_scoped</span><span class="p">,</span> <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="ss">:index</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-scopes" class="anchor" href="#scopes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scopes</h2>
+
+<p>Often, you will want to have some kind of view listing records which a
+particular user has access to. When using Pundit, you are expected to
+define a class called a policy scope. It can look something like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+  <span class="k">class</span> <span class="nc">Scope</span>
+    <span class="kp">attr_reader</span> <span class="ss">:user</span><span class="p">,</span> <span class="ss">:scope</span>
+
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">scope</span><span class="p">)</span>
+      <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
+      <span class="vi">@scope</span> <span class="o">=</span> <span class="n">scope</span>
+    <span class="k">end</span>
+
+    <span class="k">def</span> <span class="nf">resolve</span>
+      <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">admin?</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">all</span>
+      <span class="k">else</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">:published</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">update?</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">admin?</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">post</span><span class="o">.</span><span class="n">published?</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Pundit makes the following assumptions about this class:</p>
+
+<ul class="task-list">
+<li>The class has the name <code>Scope</code> and is nested under the policy class.</li>
+<li>The first argument is a user. In your controller, Pundit will call the
+<code>current_user</code> method to retrieve what to send into this argument.</li>
+<li>The second argument is a scope of some kind on which to perform some kind of
+query. It will usually be an ActiveRecord class or a
+<code>ActiveRecord::Relation</code>, but it could be something else entirely.</li>
+<li>Instances of this class respond to the method <code>resolve</code>, which should return
+some kind of result which can be iterated over. For ActiveRecord classes,
+this would usually be an <code>ActiveRecord::Relation</code>.</li>
+</ul><p>You'll probably want to inherit from the application policy scope generated by the
+generator, or create your own base class to inherit from:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+  <span class="k">class</span> <span class="nc">Scope</span> <span class="o">&lt;</span> <span class="no">Scope</span>
+    <span class="k">def</span> <span class="nf">resolve</span>
+      <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">admin?</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">all</span>
+      <span class="k">else</span>
+        <span class="n">scope</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">:published</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">update?</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">admin?</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">post</span><span class="o">.</span><span class="n">published?</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can now use this class from your controller via the <code>policy_scope</code> method:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="vi">@posts</span> <span class="o">=</span> <span class="n">policy_scope</span><span class="p">(</span><span class="no">Post</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Just as with your policy, this will automatically infer that you want to use
+the <code>PostPolicy::Scope</code> class, it will instantiate this class and call
+<code>resolve</code> on the instance. In this case it is a shortcut for doing:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">index</span>
+  <span class="vi">@posts</span> <span class="o">=</span> <span class="no">PostPolicy</span><span class="o">::</span><span class="no">Scope</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">current_user</span><span class="p">,</span> <span class="no">Post</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can, and are encouraged to, use this method in views:</p>
+
+<div class="highlight highlight-erb"><pre><span class="cp">&lt;%</span> <span class="n">policy_scope</span><span class="p">(</span><span class="vi">@user</span><span class="o">.</span><span class="n">posts</span><span class="p">)</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">post</span><span class="o">|</span> <span class="cp">%&gt;</span><span class="x"></span>
+<span class="x">  &lt;p&gt;</span><span class="cp">&lt;%=</span> <span class="n">link_to</span> <span class="n">post</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span> <span class="cp">%&gt;</span><span class="x">&lt;/p&gt;</span>
+<span class="cp">&lt;%</span> <span class="k">end</span> <span class="cp">%&gt;</span><span class="x"></span>
+</pre></div>
+
+<h2>
+<a name="user-content-manually-specifying-policy-classes" class="anchor" href="#manually-specifying-policy-classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually specifying policy classes</h2>
+
+<p>Sometimes you might want to explicitly declare which policy to use for a given
+class, instead of letting Pundit infer it. This can be done like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span>
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">policy_class</span>
+    <span class="no">PostablePolicy</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-just-plain-old-ruby" class="anchor" href="#just-plain-old-ruby" aria-hidden="true"><span class="octicon octicon-link"></span></a>Just plain old Ruby</h2>
+
+<p>As you can see, Pundit doesn't do anything you couldn't have easily done
+yourself.  It's a very small library, it just provides a few neat helpers.
+Together these give you the power of building a well structured, fully working
+authorization system without using any special DSLs or funky syntax or
+anything.</p>
+
+<p>Remember that all of the policy and scope classes are just plain Ruby classes,
+which means you can use the same mechanisms you always use to DRY things up.
+Encapsulate a set of permissions into a module and include them in multiple
+policies. Use <code>alias_method</code> to make some permissions behave the same as
+others. Inherit from a base set of permissions. Use metaprogramming if you
+really have to.</p>
+
+<h2>
+<a name="user-content-generator" class="anchor" href="#generator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Generator</h2>
+
+<p>Use the supplied generator to generate policies:</p>
+
+<div class="highlight highlight-sh"><pre>rails g pundit:policy post
+</pre></div>
+
+<h2>
+<a name="user-content-closed-systems" class="anchor" href="#closed-systems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Closed systems</h2>
+
+<p>In many applications, only logged in users are really able to do anything. If
+you're building such a system, it can be kind of cumbersome to check that the
+user in a policy isn't <code>nil</code> for every single permission.</p>
+
+<p>We suggest that you define a filter that redirects unauthenticated users to the
+login page. As a secondary defence, if you've defined an ApplicationPolicy, it
+might be a good idea to raise an exception if somehow an unauthenticated user
+got through. This way you can fail more gracefully.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationPolicy</span>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="no">Pundit</span><span class="o">::</span><span class="no">NotAuthorizedError</span><span class="p">,</span> <span class="s2">"must be logged in"</span> <span class="k">unless</span> <span class="n">user</span>
+    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
+    <span class="vi">@record</span> <span class="o">=</span> <span class="n">record</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-rescuing-a-denied-authorization-in-rails" class="anchor" href="#rescuing-a-denied-authorization-in-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rescuing a denied Authorization in Rails</h2>
+
+<p>Pundit raises a <code>Pundit::NotAuthorizedError</code> you can
+<a href="http://guides.rubyonrails.org/action_controller_overview.html#rescue-from">rescue_from</a>
+in your <code>ApplicationController</code>. You can customize the <code>user_not_authorized</code>
+method in every controller.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">protect_from_forgery</span>
+  <span class="kp">include</span> <span class="no">Pundit</span>
+
+  <span class="n">rescue_from</span> <span class="no">Pundit</span><span class="o">::</span><span class="no">NotAuthorizedError</span><span class="p">,</span> <span class="ss">with</span><span class="p">:</span> <span class="ss">:user_not_authorized</span>
+
+  <span class="kp">private</span>
+
+  <span class="k">def</span> <span class="nf">user_not_authorized</span>
+    <span class="n">flash</span><span class="o">[</span><span class="ss">:error</span><span class="o">]</span> <span class="o">=</span> <span class="s2">"You are not authorized to perform this action."</span>
+    <span class="n">redirect_to</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">referrer</span> <span class="o">||</span> <span class="n">root_path</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-creating-custom-error-messages" class="anchor" href="#creating-custom-error-messages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating custom error messages</h2>
+
+<p><code>NotAuthorizedError</code>s provide information on what query (e.g. <code>:create?</code>), what
+record (e.g. an instance of <code>Post</code>), and what policy (e.g. an instance of
+<code>PostPolicy</code>) caused the error to be raised.</p>
+
+<p>One way to use these <code>query</code>, <code>record</code>, and <code>policy</code> properties is to connect
+them with <code>I18n</code> to generate error messages. Here's how you might go about doing
+that.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+ <span class="n">rescue_from</span> <span class="no">Pundit</span><span class="o">::</span><span class="no">NotAuthorizedError</span><span class="p">,</span> <span class="ss">with</span><span class="p">:</span> <span class="ss">:user_not_authorized</span>
+
+ <span class="kp">private</span>
+
+ <span class="k">def</span> <span class="nf">user_not_authorized</span><span class="p">(</span><span class="n">exception</span><span class="p">)</span>
+   <span class="n">policy_name</span> <span class="o">=</span> <span class="n">exception</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">class</span><span class="o">.</span><span class="n">to_s</span><span class="o">.</span><span class="n">underscore</span>
+
+   <span class="n">flash</span><span class="o">[</span><span class="ss">:error</span><span class="o">]</span> <span class="o">=</span> <span class="no">I18n</span><span class="o">.</span><span class="n">t</span> <span class="s2">"pundit.</span><span class="si">#{</span><span class="n">policy_name</span><span class="si">}</span><span class="s2">.</span><span class="si">#{</span><span class="n">exception</span><span class="o">.</span><span class="n">query</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+     <span class="ss">default</span><span class="p">:</span> <span class="s1">'You cannot perform this action.'</span>
+   <span class="n">redirect_to</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">referrer</span> <span class="o">||</span> <span class="n">root_path</span><span class="p">)</span>
+ <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<div class="highlight highlight-yaml"><pre><span class="l-Scalar-Plain">en</span><span class="p-Indicator">:</span>
+ <span class="l-Scalar-Plain">pundit</span><span class="p-Indicator">:</span>
+   <span class="l-Scalar-Plain">post_policy</span><span class="p-Indicator">:</span>
+     <span class="l-Scalar-Plain">update?</span><span class="p-Indicator">:</span> <span class="s">'You</span><span class="nv"> </span><span class="s">cannot</span><span class="nv"> </span><span class="s">edit</span><span class="nv"> </span><span class="s">this</span><span class="nv"> </span><span class="s">post!'</span>
+     <span class="l-Scalar-Plain">create?</span><span class="p-Indicator">:</span> <span class="s">'You</span><span class="nv"> </span><span class="s">cannot</span><span class="nv"> </span><span class="s">create</span><span class="nv"> </span><span class="s">posts!'</span>
+</pre></div>
+
+<p>Of course, this is just an example. Pundit is agnostic as to how you implement
+your error messaging.</p>
+
+<h2>
+<a name="user-content-manually-retrieving-policies-and-scopes" class="anchor" href="#manually-retrieving-policies-and-scopes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually retrieving policies and scopes</h2>
+
+<p>Sometimes you want to retrieve a policy for a record outside the controller or
+view. For example when you delegate permissions from one policy to another.</p>
+
+<p>You can easily retrieve policies and scopes like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Pundit</span><span class="o">.</span><span class="n">policy!</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">post</span><span class="p">)</span>
+<span class="no">Pundit</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">post</span><span class="p">)</span>
+
+<span class="no">Pundit</span><span class="o">.</span><span class="n">policy_scope!</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="no">Post</span><span class="p">)</span>
+<span class="no">Pundit</span><span class="o">.</span><span class="n">policy_scope</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="no">Post</span><span class="p">)</span>
+</pre></div>
+
+<p>The bang methods will raise an exception if the policy does not exist, whereas
+those without the bang will return nil.</p>
+
+<h2>
+<a name="user-content-customize-pundit-user" class="anchor" href="#customize-pundit-user" aria-hidden="true"><span class="octicon octicon-link"></span></a>Customize Pundit user</h2>
+
+<p>In some cases your controller might not have access to <code>current_user</code>, or your
+<code>current_user</code> is not the method that should be invoked by Pundit. Simply
+define a method in your controller called <code>pundit_user</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">pundit_user</span>
+  <span class="no">User</span><span class="o">.</span><span class="n">find_by_other_means</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-additional-context" class="anchor" href="#additional-context" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional context</h2>
+
+<p>Pundit strongly encourages you to model your application in such a way that the
+only context you need for authorization is a user object and a domain model that
+you want to check authorization for. If you find yourself needing more context than
+that, consider whether you are authorizing the right domain model, maybe another
+domain model (or a wrapper around multiple domain models) can provide the context
+you need.</p>
+
+<p>Pundit does not allow you to pass additional arguments to policies for precisely
+this reason.</p>
+
+<p>However, in very rare cases, you might need to authorize based on more context than just
+the currently authenticated user. Suppose for example that authorization is dependent
+on IP address in addition to the authenticated user. In that case, one option is to
+create a special class which wraps up both user and IP and passes it to the policy.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">UserContext</span>
+  <span class="kp">attr_reader</span> <span class="ss">:user</span><span class="p">,</span> <span class="ss">:ip</span>
+
+  <span class="k">def</span> <span class="nf">initialze</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+    <span class="vi">@user</span> <span class="o">=</span> <span class="n">user</span>
+    <span class="vi">@ip</span> <span class="o">=</span> <span class="n">ip</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">ApplicationController</span>
+  <span class="kp">include</span> <span class="no">Pundit</span>
+
+  <span class="k">def</span> <span class="nf">pundit_user</span>
+    <span class="no">UserContext</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">current_user</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">ip</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-strong-parameters" class="anchor" href="#strong-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Strong parameters</h2>
+
+<p>In Rails 4 (or Rails 3.2 with the
+<a href="https://github.com/rails/strong_parameters">strong_parameters</a> gem),
+mass-assignment protection is handled in the controller.
+Pundit helps you permit different users to set different attributes. Don't
+forget to provide your policy an instance of object or a class so correct
+permissions could be loaded.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># app/policies/post_policy.rb</span>
+<span class="k">class</span> <span class="nc">PostPolicy</span> <span class="o">&lt;</span> <span class="no">ApplicationPolicy</span>
+  <span class="k">def</span> <span class="nf">permitted_attributes</span>
+    <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">admin?</span> <span class="o">||</span> <span class="n">user</span><span class="o">.</span><span class="n">owner_of?</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
+      <span class="o">[</span><span class="ss">:title</span><span class="p">,</span> <span class="ss">:body</span><span class="p">,</span> <span class="ss">:tag_list</span><span class="o">]</span>
+    <span class="k">else</span>
+      <span class="o">[</span><span class="ss">:tag_list</span><span class="o">]</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># app/controllers/posts_controller.rb</span>
+<span class="k">class</span> <span class="nc">PostsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">update</span>
+    <span class="vi">@post</span> <span class="o">=</span> <span class="no">Post</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">params</span><span class="o">[</span><span class="ss">:id</span><span class="o">]</span><span class="p">)</span>
+    <span class="k">if</span> <span class="vi">@post</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">post_params</span><span class="p">)</span>
+      <span class="n">redirect_to</span> <span class="vi">@post</span>
+    <span class="k">else</span>
+      <span class="n">render</span> <span class="ss">:edit</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="kp">private</span>
+
+  <span class="k">def</span> <span class="nf">post_params</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="ss">:post</span><span class="p">)</span><span class="o">.</span><span class="n">permit</span><span class="p">(</span><span class="o">*</span><span class="n">policy</span><span class="p">(</span><span class="vi">@post</span> <span class="o">||</span> <span class="no">Post</span><span class="p">)</span><span class="o">.</span><span class="n">permitted_attributes</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-rspec" class="anchor" href="#rspec" aria-hidden="true"><span class="octicon octicon-link"></span></a>RSpec</h2>
+
+<h3>
+<a name="user-content-policy-specs" class="anchor" href="#policy-specs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Policy Specs</h3>
+
+<p>Pundit includes a mini-DSL for writing expressive tests for your policies in RSpec.
+Require <code>pundit/rspec</code> in your <code>spec_helper.rb</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s2">"pundit/rspec"</span>
+</pre></div>
+
+<p>Then put your policy specs in <code>spec/policies</code>, and make them look somewhat like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">describe</span> <span class="no">PostPolicy</span> <span class="k">do</span>
+  <span class="n">subject</span> <span class="p">{</span> <span class="no">PostPolicy</span> <span class="p">}</span>
+
+  <span class="n">permissions</span> <span class="ss">:update?</span> <span class="k">do</span>
+    <span class="n">it</span> <span class="s2">"denies access if post is published"</span> <span class="k">do</span>
+      <span class="n">expect</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span><span class="o">.</span><span class="n">not_to</span> <span class="n">permit</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:admin</span> <span class="o">=&gt;</span> <span class="kp">false</span><span class="p">),</span> <span class="no">Post</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:published</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">))</span>
+    <span class="k">end</span>
+
+    <span class="n">it</span> <span class="s2">"grants access if post is published and user is an admin"</span> <span class="k">do</span>
+      <span class="n">expect</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">permit</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:admin</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">),</span> <span class="no">Post</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:published</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">))</span>
+    <span class="k">end</span>
+
+    <span class="n">it</span> <span class="s2">"grants access if post is unpublished"</span> <span class="k">do</span>
+      <span class="n">expect</span><span class="p">(</span><span class="n">subject</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">permit</span><span class="p">(</span><span class="no">User</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:admin</span> <span class="o">=&gt;</span> <span class="kp">false</span><span class="p">),</span> <span class="no">Post</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:published</span> <span class="o">=&gt;</span> <span class="kp">false</span><span class="p">))</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>An alternative approach to Pundit policy specs is scoping them to a user context as outlined in this
+<a href="http://thunderboltlabs.com/blog/2013/03/27/testing-pundit-policies-with-rspec/">excellent post</a>.</p>
+
+<h3>
+<a name="user-content-view-specs" class="anchor" href="#view-specs" aria-hidden="true"><span class="octicon octicon-link"></span></a>View Specs</h3>
+
+<p>When writing view specs, you'll notice that the policy helper is not available
+and views under test that use it will fail. Thankfully, it's very easy to stub
+out the policy to have it return whatever is appropriate for the spec.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">describe</span> <span class="s2">"users/show"</span> <span class="k">do</span>
+  <span class="n">before</span><span class="p">(</span><span class="ss">:each</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">assign</span><span class="p">(</span><span class="ss">:user</span><span class="p">,</span> <span class="n">build_stubbed</span><span class="p">(</span><span class="ss">:user</span><span class="p">))</span>
+    <span class="n">controller</span><span class="o">.</span><span class="n">stub</span><span class="p">(</span><span class="ss">:current_user</span><span class="p">)</span><span class="o">.</span><span class="n">and_return</span> <span class="n">user</span>
+  <span class="k">end</span>
+
+  <span class="n">it</span> <span class="s2">"renders the destroy action"</span> <span class="k">do</span>
+    <span class="n">allow</span><span class="p">(</span><span class="n">view</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:policy</span><span class="p">)</span><span class="o">.</span><span class="n">and_return</span> <span class="n">double</span><span class="p">(</span><span class="n">edit?</span><span class="p">:</span> <span class="kp">false</span><span class="p">,</span> <span class="n">destroy?</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+
+    <span class="n">render</span>
+    <span class="n">expect</span><span class="p">(</span><span class="n">rendered</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">match</span> <span class="s1">'Destroy'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This technique enables easy unit testing of tricky conditionaly view logic
+based on what is or is not authorized.</p>
+
+<h1>
+<a name="user-content-external-resources" class="anchor" href="#external-resources" aria-hidden="true"><span class="octicon octicon-link"></span></a>External Resources</h1>
+
+<ul class="task-list">
+<li><a href="https://github.com/RailsApps/rails-devise-pundit">RailsApps Example Application: Pundit and Devise</a></li>
+<li><a href="http://blog.carbonfive.com/2013/10/21/migrating-to-pundit-from-cancan/">Migrating to Pundit from CanCan</a></li>
+<li><a href="http://thunderboltlabs.com/blog/2013/03/27/testing-pundit-policies-with-rspec/">Testing Pundit Policies with RSpec</a></li>
+<li><a href="https://github.com/elabs/pundit/pull/136">Using Pundit outside of a Rails controller</a></li>
+</ul><h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>Licensed under the MIT license, see the separate LICENSE.txt file.</p></article></div>

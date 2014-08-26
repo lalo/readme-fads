@@ -1,0 +1,440 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-lichessorg" class="anchor" href="#lichessorg" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="http://lichess.org">lichess.org</a>
+</h2>
+
+<p>It's a free online chess game focused on <a href="http://lichess.org/games">realtime</a> and ease of use</p>
+
+<p>It haz a <a href="http://lichess.org/games/search">search engine</a>,
+<a href="http://lichess.org/analyse/ief49lif">computer analysis</a>,
+<a href="http://lichess.org/tournament">tournaments</a>,
+<a href="http://lichess.org/forum">forums</a>,
+<a href="http://lichess.org/team">teams</a>,
+<a href="http://lichess.org/training">puzzles</a>,
+a weird <a href="http://lichess.org/monitor">monitoring console</a>,
+and a <a href="http://map.lichess.org">world map</a>.
+The UI is available in <a href="http://lichess.org/translation/contribute">80 languages</a> thanks to the community.</p>
+
+<p>Lichess is written in <a href="http://www.scala-lang.org/">Scala 2.11</a>,
+and relies on <a href="http://www.playframework.com/">Play 2.3</a> for the routing, templating, and JSON.
+Pure chess logic is contained in <a href="http://github.com/ornicar/scalachess">scalachess</a> submodule.
+The codebase is fully asynchronous, making heavy use of Scala Futures and <a href="http://akka.io">Akka 2 actors</a>.
+Lichess talks to <a href="http://stockfishchess.org/">Stockfish 5</a> using a <a href="https://github.com/ornicar/lila/blob/master/modules/ai/src/main/ActorFSM.scala">FSM Actor</a> to handle AI moves and analysis.
+It uses <a href="http://mongodb.org">MongoDB 2.4</a> to store more than 30 million games, which are indexed by <a href="http://elasticsearch.org">elasticsearch</a>.
+HTTP requests and websocket connections are proxied by <a href="http://nginx.org">nginx 1.4</a>.
+New client-side features are written in <a href="https://github.com/ornicar/lila/tree/master/cljs/puzzle/src">ClojureScript</a>.
+The <a href="http://lichess.org/blog">blog</a> uses a free open content plan from <a href="http://prismic.io">prismic.io</a>.</p>
+
+<p>Join us on #lichess IRC channel on freenode for more info.
+See the roadmap on <a href="https://etherpad.mozilla.org/ep/pad/view/ro.3bIwxJwTQYW/latest">https://etherpad.mozilla.org/ep/pad/view/ro.3bIwxJwTQYW/latest</a>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<blockquote>
+<p>If you want to add a live chess section to your website, you are welcome to <a href="http://lichess.org/developers">embed lichess</a>. It's very easy.</p>
+
+<p>This project source code is open for other developers to have an example of non-trivial scala/play2/mongodb application. You're welcome to reuse as much code as you want for your projects, and to get inspired by the solutions I propose to many common web development problems. But please don't just create a public lichess clone. Instead, just <a href="http://lichess.org/developers">embed lichess using an &lt;iframe&gt;</a>.</p>
+
+<p>Also note that if I provide the source code, I do <strong>not</strong> offer support for your lichess instance. I will probably ignore any question about lichess installation and runtime issues.</p>
+</blockquote>
+
+<h2>
+<a name="user-content-http-api" class="anchor" href="#http-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>HTTP API</h2>
+
+<p>Feel free to use lichess API in your applications and websites.</p>
+
+<p>If the resource you need is not available yet,
+drop me an email at <a href="mailto:thibault.duplessis@gmail.com">thibault.duplessis@gmail.com</a>, and we'll discuss it.</p>
+
+<h3>
+<a name="user-content-get-apiuserusername-fetch-one-user" class="anchor" href="#get-apiuserusername-fetch-one-user" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /api/user/&lt;username&gt;</code> fetch one user</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/api/user/thibault
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"username"</span><span class="o">:</span> <span class="s2">"thibault"</span><span class="p">,</span>
+  <span class="s2">"title"</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span>                            <span class="c1">// chess title like FM or LM (lichess master)</span>
+  <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"http://lichess.org/@/thibault"</span><span class="p">,</span>   <span class="c1">// profile url</span>
+  <span class="s2">"online"</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>                           <span class="c1">// is the player currently using lichess?</span>
+  <span class="s2">"playing"</span><span class="o">:</span> <span class="s2">"http://lichess.org/abcdefgh"</span><span class="p">,</span> <span class="c1">// game being played, if any</span>
+  <span class="s2">"engine"</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>                          <span class="c1">// true if the user is known to use a chess engine</span>
+  <span class="s2">"language"</span><span class="o">:</span> <span class="s2">"en"</span><span class="p">,</span>                         <span class="c1">// prefered language</span>
+  <span class="s2">"profile"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"bio"</span><span class="o">:</span> <span class="s2">"Developer of lichess"</span><span class="p">,</span>
+    <span class="s2">"country"</span><span class="o">:</span> <span class="s2">"FR"</span><span class="p">,</span>
+    <span class="s2">"firstName"</span><span class="o">:</span> <span class="s2">"Thibault"</span><span class="p">,</span>
+    <span class="s2">"lastName"</span><span class="o">:</span> <span class="s2">"Duplessis"</span><span class="p">,</span>
+    <span class="s2">"location"</span><span class="o">:</span> <span class="s2">"Paris"</span>
+  <span class="p">},</span>
+  <span class="s2">"perfs"</span><span class="o">:</span> <span class="p">{</span>                                <span class="c1">// user performances in different games</span>
+    <span class="s2">"bullet"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"games"</span><span class="o">:</span> <span class="mi">35</span><span class="p">,</span>                          <span class="c1">// number of rated games played</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1624</span><span class="p">,</span>                       <span class="c1">// Glicko2 rating</span>
+      <span class="s2">"rd"</span><span class="o">:</span> <span class="mi">80</span><span class="p">,</span>                             <span class="c1">// Glicko2 rating deviation</span>
+      <span class="s2">"prog"</span><span class="o">:</span> <span class="o">-</span><span class="mi">13</span>                           <span class="c1">// progress over the last twelve games</span>
+    <span class="p">},</span>
+    <span class="s2">"chess960"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"games"</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1739</span><span class="p">,</span>
+      <span class="s2">"rd"</span><span class="o">:</span> <span class="mi">277</span><span class="p">,</span>
+      <span class="s2">"prog"</span><span class="o">:</span> <span class="mi">33</span>
+    <span class="p">},</span>
+    <span class="s2">"classical"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"games"</span><span class="o">:</span> <span class="mi">331</span><span class="p">,</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1603</span><span class="p">,</span>
+      <span class="s2">"rd"</span><span class="o">:</span> <span class="mi">65</span><span class="p">,</span>
+      <span class="s2">"prog"</span><span class="o">:</span> <span class="mi">9</span>
+    <span class="p">},</span>
+    <span class="s2">"kingOfTheHill"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"games"</span><span class="o">:</span> <span class="mi">3</span><span class="p">,</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1622</span><span class="p">,</span>
+      <span class="s2">"rd"</span><span class="o">:</span> <span class="mi">223</span><span class="p">,</span>
+      <span class="s2">"prog"</span><span class="o">:</span> <span class="o">-</span><span class="mi">62</span>
+    <span class="p">},</span>
+    <span class="s2">"puzzle"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"games"</span><span class="o">:</span> <span class="mi">9</span><span class="p">,</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">902</span><span class="p">,</span>
+      <span class="s2">"rd"</span><span class="o">:</span> <span class="mi">117</span><span class="p">,</span>
+      <span class="s2">"prog"</span><span class="o">:</span> <span class="o">-</span><span class="mi">328</span>
+    <span class="p">},</span>
+    <span class="s2">"threeCheck"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"games"</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1662</span><span class="p">,</span>
+      <span class="s2">"rd"</span><span class="o">:</span> <span class="mi">290</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Example usage with JSONP:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
+  <span class="nx">url</span><span class="o">:</span><span class="s1">'http://en.lichess.org/api/user/thibault'</span><span class="p">,</span>
+  <span class="nx">dataType</span><span class="o">:</span><span class="s1">'jsonp'</span><span class="p">,</span>
+  <span class="nx">jsonp</span><span class="o">:</span><span class="s1">'callback'</span><span class="p">,</span>
+  <span class="nx">success</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// data is a javascript object, do something with it!</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">data</span><span class="p">));</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-get-apiuser-fetch-many-users" class="anchor" href="#get-apiuser-fetch-many-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /api/user</code> fetch many users</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/api/user?team=coders&amp;nb=100
+</code></pre>
+
+<p>All parameters are optional.</p>
+
+<table>
+<thead><tr>
+<th>name</th>
+<th>type</th>
+<th>default</th>
+<th>description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>team</strong></td>
+<td>string</td>
+<td>-</td>
+<td>filter users by team</td>
+</tr>
+<tr>
+<td><strong>nb</strong></td>
+<td>int</td>
+<td>10</td>
+<td>maximum number of users to return</td>
+</tr>
+</tbody>
+</table><div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"list"</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="p">...</span> <span class="c1">// see user document above</span>
+    <span class="p">},</span>
+    <span class="p">...</span> <span class="c1">// other users</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Example usage with JSONP:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">({</span>
+  <span class="nx">url</span><span class="o">:</span><span class="s1">'http://en.lichess.org/api/user'</span><span class="p">,</span>
+  <span class="nx">data</span><span class="o">:</span> <span class="p">{</span>
+    <span class="nx">team</span><span class="o">:</span> <span class="s1">'coders'</span><span class="p">,</span>
+    <span class="nx">nb</span><span class="o">:</span> <span class="mi">100</span>
+  <span class="p">},</span>
+  <span class="nx">dataType</span><span class="o">:</span><span class="s1">'jsonp'</span><span class="p">,</span>
+  <span class="nx">jsonp</span><span class="o">:</span><span class="s1">'callback'</span><span class="p">,</span>
+  <span class="nx">success</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// data is a javascript object, do something with it!</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">list</span><span class="p">));</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</pre></div>
+
+<h3>
+<a name="user-content-get-apigame-fetch-many-games" class="anchor" href="#get-apigame-fetch-many-games" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /api/game</code> fetch many games</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/api/game?username=thibault&amp;rated=1&amp;nb=10
+</code></pre>
+
+<p>Games are returned by descendant chronological order.
+All parameters are optional.</p>
+
+<table>
+<thead><tr>
+<th>name</th>
+<th>type</th>
+<th>default</th>
+<th>description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>username</strong></td>
+<td>string</td>
+<td>-</td>
+<td>filter games by user</td>
+</tr>
+<tr>
+<td><strong>rated</strong></td>
+<td>1 or 0</td>
+<td>-</td>
+<td>filter rated or casual games</td>
+</tr>
+<tr>
+<td><strong>analysed</strong></td>
+<td>1 or 0</td>
+<td>-</td>
+<td>filter only analysed (or not analysed) games</td>
+</tr>
+<tr>
+<td><strong>nb</strong></td>
+<td>int</td>
+<td>10</td>
+<td>maximum number of games to return</td>
+</tr>
+<tr>
+<td><strong>with_analysis</strong></td>
+<td>1 or 0</td>
+<td>0</td>
+<td>include deep analysis data in the result</td>
+</tr>
+<tr>
+<td><strong>token</strong></td>
+<td>string</td>
+<td>-</td>
+<td>security token (unlocks secret game data)</td>
+</tr>
+</tbody>
+</table><div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"list"</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">"id"</span><span class="o">:</span> <span class="s2">"39b12Ikl"</span><span class="p">,</span>
+      <span class="s2">"variant"</span><span class="o">:</span> <span class="s2">"chess960"</span><span class="p">,</span> <span class="c1">// standard/chess960/fromPosition/kingOfTheHill/threeCheck</span>
+      <span class="s2">"speed"</span><span class="o">:</span> <span class="s2">"blitz"</span><span class="p">,</span> <span class="c1">// bullet|blitz|classical|unlimited</span>
+      <span class="s2">"perf"</span><span class="o">:</span> <span class="s2">"chess960"</span><span class="p">,</span> <span class="c1">// bullet|blitz|classical|chess960|kingOfTheHill|threeCheck</span>
+      <span class="s2">"rated"</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="s2">"status"</span><span class="o">:</span> <span class="s2">"mate"</span><span class="p">,</span> <span class="c1">// (1)</span>
+      <span class="s2">"clock"</span><span class="o">:</span><span class="p">{</span>          <span class="c1">// all clock values are expressed in seconds</span>
+        <span class="s2">"initial"</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="s2">"increment"</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="s2">"totalTime"</span><span class="o">:</span> <span class="mi">540</span>  <span class="c1">// evaluation of the game duration = initial + 30 * increment</span>
+      <span class="p">},</span>
+      <span class="s2">"timestamp"</span><span class="o">:</span> <span class="mi">1389100907239</span><span class="p">,</span>
+      <span class="s2">"turns"</span><span class="o">:</span> <span class="mi">44</span><span class="p">,</span>
+      <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"http://lichess.org/x2kpaixn"</span><span class="p">,</span>
+      <span class="s2">"winner"</span><span class="o">:</span> <span class="s2">"black"</span><span class="p">,</span>
+      <span class="s2">"players"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"white"</span><span class="o">:</span> <span class="p">{</span>
+          <span class="s2">"userId"</span><span class="o">:</span> <span class="s2">"thibault"</span>
+          <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1642</span><span class="p">,</span>
+          <span class="s2">"analysis"</span><span class="o">:</span> <span class="p">{</span>
+            <span class="s2">"blunder"</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">"inaccuracy"</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">"mistake"</span><span class="o">:</span> <span class="mi">2</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s2">"black"</span><span class="o">:</span> <span class="p">...</span> <span class="c1">// other player</span>
+      <span class="p">}</span>
+      <span class="s2">"analysis"</span><span class="o">:</span> <span class="p">[</span> <span class="c1">// only if the with_analysis flag is set</span>
+        <span class="p">{</span>
+          <span class="s2">"eval"</span><span class="o">:</span> <span class="o">-</span><span class="mi">26</span><span class="p">,</span> <span class="c1">// board evaluation in centipawns</span>
+          <span class="s2">"move"</span><span class="o">:</span> <span class="s2">"e4"</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="s2">"eval"</span><span class="o">:</span> <span class="o">-</span><span class="mi">8</span><span class="p">,</span>
+          <span class="s2">"move"</span><span class="o">:</span> <span class="s2">"b5"</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="s2">"eval"</span><span class="o">:</span> <span class="o">-</span><span class="mi">66</span><span class="p">,</span>
+          <span class="s2">"move"</span><span class="o">:</span> <span class="s2">"Nfe3"</span><span class="p">,</span>
+          <span class="s2">"variation"</span><span class="o">:</span> <span class="s2">"c4 bxc4 Nfe3 c5 Qf1 f6 Rxc4 Bb7 b4 Ba6"</span>
+        <span class="p">},</span>
+        <span class="c1">// ... more moves</span>
+      <span class="p">],</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="p">...</span> <span class="c1">// other game</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>(1) All game statuses: <a href="https://github.com/ornicar/scalachess/blob/master/src/main/scala/Status.scala#L16-L25">https://github.com/ornicar/scalachess/blob/master/src/main/scala/Status.scala#L16-L25</a></p>
+
+<h3>
+<a name="user-content-get-apigameid-fetch-one-game-by-id" class="anchor" href="#get-apigameid-fetch-one-game-by-id" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /api/game/{id}</code> fetch one game by ID</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/api/game/x2kpaixn
+</code></pre>
+
+<p>A single game is returned.
+All parameters are optional.</p>
+
+<table>
+<thead><tr>
+<th>name</th>
+<th>type</th>
+<th>default</th>
+<th>description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>with_analysis</strong></td>
+<td>1 or 0</td>
+<td>0</td>
+<td>include deep analysis data in the result</td>
+</tr>
+<tr>
+<td><strong>token</strong></td>
+<td>string</td>
+<td>-</td>
+<td>security token (unlocks secret game data)</td>
+</tr>
+</tbody>
+</table><div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"id"</span><span class="o">:</span> <span class="s2">"39b12Ikl"</span><span class="p">,</span>
+  <span class="s2">"variant"</span><span class="o">:</span> <span class="s2">"chess960"</span><span class="p">,</span> <span class="c1">// standard/chess960/fromPosition/kingofthehill/threeCheck</span>
+  <span class="s2">"speed"</span><span class="o">:</span> <span class="s2">"blitz"</span><span class="p">,</span> <span class="c1">// bullet|blitz|classical|unlimited</span>
+  <span class="s2">"perf"</span><span class="o">:</span> <span class="s2">"chess960"</span><span class="p">,</span> <span class="c1">// bullet|blitz|classical|chess960|kingOfTheHill|threeCheck</span>
+  <span class="s2">"rated"</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="s2">"status"</span><span class="o">:</span> <span class="s2">"mate"</span><span class="p">,</span> <span class="c1">// (1)</span>
+  <span class="s2">"clock"</span><span class="o">:</span><span class="p">{</span>          <span class="c1">// all clock values are expressed in seconds</span>
+    <span class="s2">"initial"</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
+    <span class="s2">"increment"</span><span class="o">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s2">"totalTime"</span><span class="o">:</span> <span class="mi">540</span>  <span class="c1">// evaluation of the game duration = initial + 30 * increment</span>
+  <span class="p">},</span>
+  <span class="s2">"timestamp"</span><span class="o">:</span> <span class="mi">1389100907239</span><span class="p">,</span>
+  <span class="s2">"turns"</span><span class="o">:</span> <span class="mi">44</span><span class="p">,</span>
+  <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"http://lichess.org/x2kpaixn"</span><span class="p">,</span>
+  <span class="s2">"winner"</span><span class="o">:</span> <span class="s2">"black"</span><span class="p">,</span>
+  <span class="s2">"players"</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">"white"</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">"userId"</span><span class="o">:</span> <span class="s2">"thibault"</span>
+      <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1642</span><span class="p">,</span>
+      <span class="s2">"analysis"</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">"blunder"</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">"inaccuracy"</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">"mistake"</span><span class="o">:</span> <span class="mi">2</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">"black"</span><span class="o">:</span> <span class="p">...</span> <span class="c1">// other player</span>
+  <span class="p">},</span>
+  <span class="s2">"analysis"</span><span class="o">:</span> <span class="p">[</span> <span class="c1">// only if the with_analysis flag is set</span>
+    <span class="p">{</span>
+      <span class="s2">"eval"</span><span class="o">:</span> <span class="o">-</span><span class="mi">26</span><span class="p">,</span> <span class="c1">// board evaluation in centipawns</span>
+      <span class="s2">"move"</span><span class="o">:</span> <span class="s2">"e4"</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="s2">"eval"</span><span class="o">:</span> <span class="o">-</span><span class="mi">8</span><span class="p">,</span>
+      <span class="s2">"move"</span><span class="o">:</span> <span class="s2">"b5"</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="s2">"eval"</span><span class="o">:</span> <span class="o">-</span><span class="mi">66</span><span class="p">,</span>
+      <span class="s2">"move"</span><span class="o">:</span> <span class="s2">"Nfe3"</span><span class="p">,</span>
+      <span class="s2">"variation"</span><span class="o">:</span> <span class="s2">"c4 bxc4 Nfe3 c5 Qf1 f6 Rxc4 Bb7 b4 Ba6"</span>
+    <span class="p">},</span>
+    <span class="c1">// ... more moves</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>(1) All game statuses: <a href="https://github.com/ornicar/scalachess/blob/master/src/main/scala/Status.scala#L16-L25">https://github.com/ornicar/scalachess/blob/master/src/main/scala/Status.scala#L16-L25</a></p>
+
+<h3>
+<a name="user-content-get-idpgn-fetch-one-game-pgn-by-id" class="anchor" href="#get-idpgn-fetch-one-game-pgn-by-id" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /{id}/pgn</code> fetch one game PGN by ID</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/Qa7FJNk2/pgn
+</code></pre>
+
+<p>This returns the raw PGN for a game.</p>
+
+<pre><code>[Event "Rated game"]
+[Site "http://lichess.org/Qa7FJNk2"]
+[Date "2014.06.12"]
+[White "onpurplesz"]
+[Black "LauraSchmidt"]
+[Result "1-0"]
+[WhiteElo "1516"]
+[BlackElo "1698"]
+[PlyCount "37"]
+[Variant "Standard"]
+[TimeControl "1020+0"]
+[ECO "C50"]
+[Opening "Italian Game, General"]
+[WhiteClock ":11:9"]
+[BlackClock ":14:6"]
+[Annotator "lichess.org"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 { Italian Game, General } Qf6?! { (0.13 → 0.98) Inaccuracy. The best move was Nf6. } (3... Nf6 4. d3 Bc5 5. O-O O-O 6. Bg5 Be7 7. a3 d6 8. h3 a6) 4. d3 h6 5. Be3 d6 6. h3?! { (0.84 → 0.31) Inaccuracy. The best move was Nc3. } (6. Nc3 Be6 7. Nd5 Qd8 8. d4 exd4 9. Nxd4 Nxd4 10. Qxd4 c6 11. Nc3 Bxc4 12. Qxc4 Nf6 13. O-O Be7) 6... a6 7. Nbd2 Be6 8. Qe2 Bxc4 9. Nxc4 Nge7 10. a3 Nd4?! { (0.29 → 0.79) Inaccuracy. The best move was O-O-O. } (10... O-O-O 11. O-O g5 12. a4 Bg7 13. Bd2 Kb8 14. Rae1 Qe6 15. b4 f5 16. b5 fxe4) 11. Bxd4 exd4 12. O-O-O Nc6 13. Rhe1 O-O-O 14. e5 dxe5 15. Nfxe5 Nxe5 16. Qxe5 Qxe5? { (0.35 → 1.78) Mistake. The best move was Qxf2. } (16... Qxf2 17. Re2 Qf6 18. Qxf6 gxf6 19. Rf1 Bg7 20. Nd2 h5 21. Ne4 Rhe8 22. Ref2 Re5 23. b3 Rdd5 24. Kb2) 17. Nxe5 Rg8?! { (1.76 → 2.32) Inaccuracy. The best move was Rd7. } (17... Rd7 18. Nxd7 Kxd7 19. Re4 c5 20. c3 dxc3 21. bxc3 Bd6 22. Kc2 b5 23. a4 Ra8 24. d4 Kc6 25. dxc5) 18. Nxf7 Rd7? { (2.35 → Mate in 2) Checkmate is now unavoidable. The best move was Rd5. } (18... Rd5 19. Re8+ Kd7 20. Rde1 Bb4 21. Rxg8 Bxe1 22. Rxg7 Bxf2 23. Nxh6+ Kc6 24. Kd1 Rb5 25. b3 Rh5 26. Nf7) 19. Re8+ { Black resigns } 1-0
+</code></pre>
+
+<h3>
+<a name="user-content-get-apipuzzleid-fetch-one-puzzle" class="anchor" href="#get-apipuzzleid-fetch-one-puzzle" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /api/puzzle/&lt;id&gt;</code> fetch one puzzle</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/api/puzzle/23045
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"id"</span><span class="o">:</span> <span class="mi">16177</span><span class="p">,</span>
+  <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"http://lichess.org/training/16177"</span><span class="p">,</span>         <span class="c1">// URL of the puzzle</span>
+  <span class="s2">"color"</span><span class="o">:</span> <span class="s2">"black"</span><span class="p">,</span>                                   <span class="c1">// color of the player</span>
+  <span class="s2">"position"</span><span class="o">:</span> <span class="s2">"6NK/5k2/2r5/2n3PP/8/8/8/8 w - - 7 39"</span><span class="p">,</span> <span class="c1">// FEN initial position</span>
+  <span class="s2">"solution"</span><span class="o">:</span> <span class="p">[</span><span class="s2">"c6h6"</span><span class="p">,</span> <span class="s2">"g5h6"</span><span class="p">,</span> <span class="s2">"c5e6"</span><span class="p">,</span> <span class="s2">"h8h7"</span><span class="p">,</span> <span class="s2">"e6g5"</span><span class="p">,</span>
+               <span class="s2">"h7h8"</span><span class="p">,</span> <span class="s2">"f7f8"</span><span class="p">,</span> <span class="s2">"h6h7"</span><span class="p">,</span> <span class="s2">"g5f7"</span><span class="p">],</span>       <span class="c1">// solution moves</span>
+  <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1799</span>                                      <span class="c1">// puzzle glicko2 rating</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-get-apipuzzledaily-fetch-daily-puzzle" class="anchor" href="#get-apipuzzledaily-fetch-daily-puzzle" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<code>GET /api/puzzle/daily</code> fetch daily puzzle</h3>
+
+<pre><code>&gt; curl http://en.lichess.org/api/puzzle/daily
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
+  <span class="s2">"id"</span><span class="o">:</span> <span class="mi">16177</span><span class="p">,</span>
+  <span class="s2">"url"</span><span class="o">:</span> <span class="s2">"http://lichess.org/training/16177"</span><span class="p">,</span>         <span class="c1">// URL of the puzzle</span>
+  <span class="s2">"color"</span><span class="o">:</span> <span class="s2">"black"</span><span class="p">,</span>                                   <span class="c1">// color of the player</span>
+  <span class="s2">"position"</span><span class="o">:</span> <span class="s2">"6NK/5k2/2r5/2n3PP/8/8/8/8 w - - 7 39"</span><span class="p">,</span> <span class="c1">// FEN initial position</span>
+  <span class="s2">"solution"</span><span class="o">:</span> <span class="p">[</span><span class="s2">"c6h6"</span><span class="p">,</span> <span class="s2">"g5h6"</span><span class="p">,</span> <span class="s2">"c5e6"</span><span class="p">,</span> <span class="s2">"h8h7"</span><span class="p">,</span> <span class="s2">"e6g5"</span><span class="p">,</span>
+               <span class="s2">"h7h8"</span><span class="p">,</span> <span class="s2">"f7f8"</span><span class="p">,</span> <span class="s2">"h6h7"</span><span class="p">,</span> <span class="s2">"g5f7"</span><span class="p">],</span>       <span class="c1">// solution moves</span>
+  <span class="s2">"rating"</span><span class="o">:</span> <span class="mi">1799</span>                                      <span class="c1">// puzzle glicko2 rating</span>
+<span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<p>See the <a href="http://lichess.org/thanks">lichess Thanks page</a></p></article></div>

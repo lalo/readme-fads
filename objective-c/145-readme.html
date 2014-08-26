@@ -1,0 +1,77 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-tmcache" class="anchor" href="#tmcache" aria-hidden="true"><span class="octicon octicon-link"></span></a>TMCache</h1>
+
+<h2>
+<a name="user-content-fast-parallel-object-cache-for-ios-and-os-x" class="anchor" href="#fast-parallel-object-cache-for-ios-and-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fast parallel object cache for iOS and OS X.</h2>
+
+<p><a href="TMCache/TMCache.h">TMCache</a> is a key/value store designed for persisting temporary objects that are expensive to reproduce, such as downloaded data or the results of slow processing. It is comprised of two self-similar stores, one in memory (<a href="TMCache/TMMemoryCache.h">TMMemoryCache</a>) and one on disk (<a href="TMCache/TMDiskCache.h">TMDiskCache</a>), all backed by GCD and safe to access from multiple threads simultaneously. On iOS, <code>TMMemoryCache</code> will clear itself when the app receives a memory warning or goes into the background. Objects stored in <code>TMDiskCache</code> remain until you trim the cache yourself, either manually or by setting a byte or age limit.</p>
+
+<p><code>TMCache</code> and <code>TMDiskCache</code> accept any object conforming to <a href="https://developer.apple.com/library/ios/#documentation/Cocoa/Reference/Foundation/Protocols/NSCoding_Protocol/Reference/Reference.html">NSCoding</a>. Put things in like this:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="bp">UIImage</span> <span class="o">*</span><span class="n">img</span> <span class="o">=</span> <span class="p">[[</span><span class="bp">UIImage</span> <span class="n">alloc</span><span class="p">]</span> <span class="nl">initWithData</span><span class="p">:</span><span class="n">data</span> <span class="nl">scale</span><span class="p">:[[</span><span class="bp">UIScreen</span> <span class="n">mainScreen</span><span class="p">]</span> <span class="n">scale</span><span class="p">]];</span>
+<span class="p">[[</span><span class="n">TMCache</span> <span class="n">sharedCache</span><span class="p">]</span> <span class="nl">setObject</span><span class="p">:</span><span class="n">img</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"image"</span> <span class="nl">block</span><span class="p">:</span><span class="nb">nil</span><span class="p">];</span> <span class="c1">// returns immediately</span>
+</pre></div>
+
+<p>Get them back out like this:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">[[</span><span class="n">TMCache</span> <span class="n">sharedCache</span><span class="p">]</span> <span class="nl">objectForKey</span><span class="p">:</span><span class="s">@"image"</span>
+                              <span class="nl">block</span><span class="p">:</span><span class="o">^</span><span class="p">(</span><span class="n">TMCache</span> <span class="o">*</span><span class="n">cache</span><span class="p">,</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">key</span><span class="p">,</span> <span class="kt">id</span> <span class="n">object</span><span class="p">)</span> <span class="p">{</span>
+                                  <span class="bp">UIImage</span> <span class="o">*</span><span class="n">image</span> <span class="o">=</span> <span class="p">(</span><span class="bp">UIImage</span> <span class="o">*</span><span class="p">)</span><span class="n">object</span><span class="p">;</span>
+                                  <span class="n">NSLog</span><span class="p">(</span><span class="s">@"image scale: %f"</span><span class="p">,</span> <span class="n">image</span><span class="p">.</span><span class="n">scale</span><span class="p">);</span>
+                              <span class="p">}];</span>
+</pre></div>
+
+<p><code>TMMemoryCache</code> allows for concurrent reads and serialized writes, while <code>TMDiskCache</code> serializes disk access across all instances in the app to increase performance and prevent file contention. <code>TMCache</code> coordinates them so that objects added to memory are available immediately to other threads while being written to disk safely in the background. Both caches are public properties of <code>TMCache</code>, so it's easy to manipulate one or the other separately if necessary.</p>
+
+<p>Collections work too. Thanks to the magic of <code>NSKeyedArchiver</code>, objects repeated in a collection only occupy the space of one on disk:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="bp">NSArray</span> <span class="o">*</span><span class="n">images</span> <span class="o">=</span> <span class="l">@[</span> <span class="n">image</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image</span> <span class="l">]</span><span class="p">;</span>
+<span class="p">[[</span><span class="n">TMCache</span> <span class="n">sharedCache</span><span class="p">]</span> <span class="nl">setObject</span><span class="p">:</span><span class="n">images</span> <span class="nl">forKey</span><span class="p">:</span><span class="s">@"images"</span><span class="p">];</span>
+<span class="n">NSLog</span><span class="p">(</span><span class="s">@"3 for the price of 1: %d"</span><span class="p">,</span> <span class="p">[[[</span><span class="n">TMCache</span> <span class="n">sharedCache</span><span class="p">]</span> <span class="n">diskCache</span><span class="p">]</span> <span class="n">byteCount</span><span class="p">]);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-manually" class="anchor" href="#manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually</h3>
+
+<p><a href="https://github.com/tumblr/TMCache/tags">Download the latest tag</a> and drag the <code>TMCache</code> folder into your Xcode project.</p>
+
+<p>Install the docs by double clicking the <code>.docset</code> file under <code>docs/</code>, or view them online at <a href="http://cocoadocs.org/docsets/TMCache/">cocoadocs.org</a></p>
+
+<h3>
+<a name="user-content-git-submodule" class="anchor" href="#git-submodule" aria-hidden="true"><span class="octicon octicon-link"></span></a>Git Submodule</h3>
+
+<pre><code>git submodule add https://github.com/tumblr/TMCache.git
+git submodule update --init
+</code></pre>
+
+<h3>
+<a name="user-content-cocoapods" class="anchor" href="#cocoapods" aria-hidden="true"><span class="octicon octicon-link"></span></a>CocoaPods</h3>
+
+<p>Add <a href="http://cocoapods.org/?q=name%3ATMCache">TMCache</a> to your <code>Podfile</code> and run <code>pod install</code>.</p>
+
+<h2>
+<a name="user-content-build-status" class="anchor" href="#build-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build Status</h2>
+
+<p><a href="https://travis-ci.org/tumblr/TMCache"><img src="https://camo.githubusercontent.com/f708c159d78d719e872c61009ed4fb5f4cf2c028/68747470733a2f2f7472617669732d63692e6f72672f74756d626c722f544d43616368652e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/tumblr/TMCache.png?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p><strong>TMCache</strong> requires iOS 5.0 or OS X 10.7 and greater.</p>
+
+<h2>
+<a name="user-content-contact" class="anchor" href="#contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contact</h2>
+
+<p><a href="mailto:jstn@tumblr.com">Justin Ouellette</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright 2013 Tumblr, Inc.</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. <a href="LICENSE.txt">See the License</a> for the specific language governing permissions and limitations under the License.</p></article></div>

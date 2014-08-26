@@ -1,0 +1,340 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1></h1>
+
+<h1>
+<a name="user-content-marlin-3d-printer-firmware" class="anchor" href="#marlin-3d-printer-firmware" aria-hidden="true"><span class="octicon octicon-link"></span></a>Marlin 3D Printer Firmware</h1>
+
+<p><a href="https://scan.coverity.com/projects/2224"><img src="https://camo.githubusercontent.com/64a9869359bb849ece9faf6e32d9065274a4afe0/68747470733a2f2f7363616e2e636f7665726974792e636f6d2f70726f6a656374732f323232342f62616467652e737667" alt="Coverity Scan Build Status" data-canonical-src="https://scan.coverity.com/projects/2224/badge.svg" style="max-width:100%;"></a></p>
+
+<p>Marlin has a GPL license because I believe in open development.
+Please do not use this code in products (3D printers, CNC etc) that are closed source or are crippled by a patent.</p>
+
+<p><a href="https://flattr.com/submit/auto?user_id=ErikZalm&amp;url=https://github.com/ErikZalm/Marlin&amp;title=Marlin&amp;language=&amp;tags=github&amp;category=software"><img src="https://camo.githubusercontent.com/739a757846f69c1cc10163619eec008e871b591b/687474703a2f2f6170692e666c617474722e636f6d2f627574746f6e2f666c617474722d62616467652d6c617267652e706e67" alt="Flattr this git repo" data-canonical-src="http://api.flattr.com/button/flattr-badge-large.png" style="max-width:100%;"></a></p>
+
+<h1>
+<a name="user-content-quick-information" class="anchor" href="#quick-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Information</h1>
+
+<p>This RepRap firmware is a mashup between <a href="https://github.com/kliment/Sprinter">Sprinter</a>, <a href="https://github.com/simen/grbl/tree">grbl</a> and many original parts.</p>
+
+<p>Derived from Sprinter and Grbl by Erik van der Zalm.
+Sprinters lead developers are Kliment and caru.
+Grbls lead developer is Simen Svale Skogsrud. Sonney Jeon (Chamnit) improved some parts of grbl
+A fork by bkubicek for the Ultimaker was merged, and further development was aided by him.
+Some features have been added by:
+Lampmaker, Bradley Feldman, and others...</p>
+
+<h1>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features:</h1>
+
+<ul class="task-list">
+<li>  Interrupt based movement with real linear acceleration</li>
+<li>  High steprate</li>
+<li>  Look ahead (Keep the speed high when possible. High cornering speed)</li>
+<li>  Interrupt based temperature protection</li>
+<li>  preliminary support for Matthew Roberts advance algorithm
+For more info see: <a href="http://reprap.org/pipermail/reprap-dev/2011-May/003323.html">http://reprap.org/pipermail/reprap-dev/2011-May/003323.html</a>
+</li>
+<li>  Full endstop support</li>
+<li>  SD Card support</li>
+<li>  SD Card folders (works in pronterface)</li>
+<li>  SD Card autostart support</li>
+<li>  LCD support (ideally 20x4)</li>
+<li>  LCD menu system for autonomous SD card printing, controlled by an click-encoder.</li>
+<li>  EEPROM storage of e.g. max-velocity, max-acceleration, and similar variables</li>
+<li>  many small but handy things originating from bkubicek's fork.</li>
+<li>  Arc support</li>
+<li>  Temperature oversampling</li>
+<li>  Dynamic Temperature setpointing aka "AutoTemp"</li>
+<li>  Support for QTMarlin, a very beta GUI for PID-tuning and velocity-acceleration testing. <a href="https://github.com/bkubicek/QTMarlin">https://github.com/bkubicek/QTMarlin</a>
+</li>
+<li>  Endstop trigger reporting to the host software.</li>
+<li>  Updated sdcardlib</li>
+<li>  Heater power reporting. Useful for PID monitoring.</li>
+<li>  PID tuning</li>
+<li>  CoreXY kinematics (<a href="http://www.corexy.com/theory.html">www.corexy.com/theory.html</a>)</li>
+<li>  Delta kinematics</li>
+<li>  Dual X-carriage support for multiple extruder systems</li>
+<li>  Configurable serial port to support connection of wireless adaptors.</li>
+<li>  Automatic operation of extruder/cold-end cooling fans based on nozzle temperature</li>
+<li>  RC Servo Support, specify angle or duration for continuous rotation servos.</li>
+<li>  Bed Auto Leveling.</li>
+</ul><p>The default baudrate is 250000. This baudrate has less jitter and hence errors than the usual 115200 baud, but is less supported by drivers and host-environments.</p>
+
+<h1>
+<a name="user-content-differences-and-additions-to-the-already-good-sprinter-firmware" class="anchor" href="#differences-and-additions-to-the-already-good-sprinter-firmware" aria-hidden="true"><span class="octicon octicon-link"></span></a>Differences and additions to the already good Sprinter firmware:</h1>
+
+<h2>
+<a name="user-content-look-ahead" class="anchor" href="#look-ahead" aria-hidden="true"><span class="octicon octicon-link"></span></a>Look-ahead:</h2>
+
+<p>Marlin has look-ahead. While sprinter has to break and re-accelerate at each corner,
+lookahead will only decelerate and accelerate to a velocity,
+so that the change in vectorial velocity magnitude is less than the xy_jerk_velocity.
+This is only possible, if some future moves are already processed, hence the name.
+It leads to less over-deposition at corners, especially at flat angles.</p>
+
+<h2>
+<a name="user-content-arc-support" class="anchor" href="#arc-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Arc support:</h2>
+
+<p>Slic3r can find curves that, although broken into segments, were ment to describe an arc.
+Marlin is able to print those arcs. The advantage is the firmware can choose the resolution,
+and can perform the arc with nearly constant velocity, resulting in a nice finish.
+Also, less serial communication is needed.</p>
+
+<h2>
+<a name="user-content-temperature-oversampling" class="anchor" href="#temperature-oversampling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Temperature Oversampling:</h2>
+
+<p>To reduce noise and make the PID-differential term more useful, 16 ADC conversion results are averaged.</p>
+
+<h2>
+<a name="user-content-autotemp" class="anchor" href="#autotemp" aria-hidden="true"><span class="octicon octicon-link"></span></a>AutoTemp:</h2>
+
+<p>If your gcode contains a wide spread of extruder velocities, or you realtime change the building speed, the temperature should be changed accordingly.
+Usually, higher speed requires higher temperature.
+This can now be performed by the AutoTemp function
+By calling M109 S B F you enter the autotemp mode.</p>
+
+<p>You can leave it by calling M109 without any F.
+If active, the maximal extruder stepper rate of all buffered moves will be calculated, and named "maxerate" [steps/sec].
+The wanted temperature then will be set to t=tempmin+factor*maxerate, while being limited between tempmin and tempmax.
+If the target temperature is set manually or by gcode to a value less then tempmin, it will be kept without change.
+Ideally, your gcode can be completely free of temperature controls, apart from a M109 S T F in the start.gcode, and a M109 S0 in the end.gcode.</p>
+
+<h2>
+<a name="user-content-eeprom" class="anchor" href="#eeprom" aria-hidden="true"><span class="octicon octicon-link"></span></a>EEPROM:</h2>
+
+<p>If you know your PID values, the acceleration and max-velocities of your unique machine, you can set them, and finally store them in the EEPROM.
+After each reboot, it will magically load them from EEPROM, independent what your Configuration.h says.</p>
+
+<h2>
+<a name="user-content-lcd-menu" class="anchor" href="#lcd-menu" aria-hidden="true"><span class="octicon octicon-link"></span></a>LCD Menu:</h2>
+
+<p>If your hardware supports it, you can build yourself a LCD-CardReader+Click+encoder combination. It will enable you to realtime tune temperatures,
+accelerations, velocities, flow rates, select and print files from the SD card, preheat, disable the steppers, and do other fancy stuff.
+One working hardware is documented here: <a href="http://www.thingiverse.com/thing:12663">http://www.thingiverse.com/thing:12663</a>
+Also, with just a 20x4 or 16x2 display, useful data is shown.</p>
+
+<h2>
+<a name="user-content-sd-card-folders" class="anchor" href="#sd-card-folders" aria-hidden="true"><span class="octicon octicon-link"></span></a>SD card folders:</h2>
+
+<p>If you have an SD card reader attached to your controller, also folders work now. Listing the files in pronterface will show "/path/subpath/file.g".
+You can write to file in a subfolder by specifying a similar text using small letters in the path.
+Also, backup copies of various operating systems are hidden, as well as files not ending with ".g".</p>
+
+<h2>
+<a name="user-content-sd-card-folders-1" class="anchor" href="#sd-card-folders-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>SD card folders:</h2>
+
+<p>If you place a file auto[0-9].g into the root of the sd card, it will be automatically executed if you boot the printer. The same file will be executed by selecting "Autostart" from the menu.
+First *0 will be performed, than *1 and so on. That way, you can heat up or even print automatically without user interaction.</p>
+
+<h2>
+<a name="user-content-endstop-trigger-reporting" class="anchor" href="#endstop-trigger-reporting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Endstop trigger reporting:</h2>
+
+<p>If an endstop is hit while moving towards the endstop, the location at which the firmware thinks that the endstop was triggered is outputed on the serial port.
+This is useful, because the user gets a warning message.
+However, also tools like QTMarlin can use this for finding acceptable combinations of velocity+acceleration.</p>
+
+<h2>
+<a name="user-content-coding-paradigm" class="anchor" href="#coding-paradigm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Coding paradigm:</h2>
+
+<p>Not relevant from a user side, but Marlin was split into thematic junks, and has tried to partially enforced private variables.
+This is intended to make it clearer, what interacts which what, and leads to a higher level of modularization.
+We think that this is a useful prestep for porting this firmware to e.g. an ARM platform in the future.
+A lot of RAM (with enabled LCD ~2200 bytes) was saved by storing char []="some message" in Program memory.
+In the serial communication, a #define based level of abstraction was enforced, so that it is clear that
+some transfer is information (usually beginning with "echo:"), an error "error:", or just normal protocol,
+necessary for backwards compatibility.</p>
+
+<h2>
+<a name="user-content-interrupt-based-temperature-measurements" class="anchor" href="#interrupt-based-temperature-measurements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interrupt based temperature measurements:</h2>
+
+<p>An interrupt is used to manage ADC conversions, and enforce checking for critical temperatures.
+This leads to less blocking in the heater management routine.</p>
+
+<h1>
+<a name="user-content-implemented-g-codes" class="anchor" href="#implemented-g-codes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Implemented G Codes:</h1>
+
+<ul class="task-list">
+<li> G0  -&gt; G1</li>
+<li> G1  - Coordinated Movement X Y Z E</li>
+<li> G2  - CW ARC</li>
+<li> G3  - CCW ARC</li>
+<li> G4  - Dwell S or P</li>
+<li> G10 - retract filament according to settings of M207</li>
+<li> G11 - retract recover filament according to settings of M208</li>
+<li> G28 - Home all Axis</li>
+<li> G29 - Detailed Z-Probe, probes the bed at 3 points.  You must de at the home position for this to work correctly.</li>
+<li> G30 - Single Z Probe, probes bed at current XY location.</li>
+<li> G90 - Use Absolute Coordinates</li>
+<li> G91 - Use Relative Coordinates</li>
+<li> G92 - Set current position to cordinates given</li>
+</ul><p>M Codes</p>
+
+<ul class="task-list">
+<li> M0   - Unconditional stop - Wait for user to press a button on the LCD (Only if ULTRA_LCD is enabled)</li>
+<li> M1   - Same as M0</li>
+<li> M17  - Enable/Power all stepper motors</li>
+<li> M18  - Disable all stepper motors; same as M84</li>
+<li> M20  - List SD card</li>
+<li> M21  - Init SD card</li>
+<li> M22  - Release SD card</li>
+<li> M23  - Select SD file (M23 filename.g)</li>
+<li> M24  - Start/resume SD print</li>
+<li> M25  - Pause SD print</li>
+<li> M26  - Set SD position in bytes (M26 S12345)</li>
+<li> M27  - Report SD print status</li>
+<li> M28  - Start SD write (M28 filename.g)</li>
+<li> M29  - Stop SD write</li>
+<li> M30  - Delete file from SD (M30 filename.g)</li>
+<li> M31  - Output time since last M109 or SD card start to serial</li>
+<li> M32  - Select file and start SD print (Can be used when printing from SD card)</li>
+<li> M42  - Change pin status via gcode Use M42 Px Sy to set pin x to value y, when omitting Px the onboard led will be used.</li>
+<li> M80  - Turn on Power Supply</li>
+<li> M81  - Turn off Power Supply</li>
+<li> M82  - Set E codes absolute (default)</li>
+<li> M83  - Set E codes relative while in Absolute Coordinates (G90) mode</li>
+<li> M84  - Disable steppers until next move, or use S to specify an inactivity timeout, after which the steppers will be disabled.  S0 to disable the timeout.</li>
+<li> M85  - Set inactivity shutdown timer with parameter S. To disable set zero (default)</li>
+<li> M92  - Set axis_steps_per_unit - same syntax as G92</li>
+<li> M104 - Set extruder target temp</li>
+<li> M105 - Read current temp</li>
+<li> M106 - Fan on</li>
+<li> M107 - Fan off</li>
+<li> M109 - Sxxx Wait for extruder current temp to reach target temp. Waits only when heating</li>
+<li>        Rxxx Wait for extruder current temp to reach target temp. Waits when heating and cooling</li>
+<li> M112 - Emergency stop</li>
+<li> M114 - Output current position to serial port</li>
+<li> M115 - Capabilities string</li>
+<li> M117 - display message</li>
+<li> M119 - Output Endstop status to serial port</li>
+<li> M126 - Solenoid Air Valve Open (BariCUDA support by jmil)</li>
+<li> M127 - Solenoid Air Valve Closed (BariCUDA vent to atmospheric pressure by jmil)</li>
+<li> M128 - EtoP Open (BariCUDA EtoP = electricity to air pressure transducer by jmil)</li>
+<li> M129 - EtoP Closed (BariCUDA EtoP = electricity to air pressure transducer by jmil)</li>
+<li> M140 - Set bed target temp</li>
+<li> M190 - Sxxx Wait for bed current temp to reach target temp. Waits only when heating</li>
+<li>        Rxxx Wait for bed current temp to reach target temp. Waits when heating and cooling</li>
+<li> M200 D- set filament diameter and set E axis units to cubic millimeters (use S0 to set back to millimeters).</li>
+<li> M201 - Set max acceleration in units/s^2 for print moves (M201 X1000 Y1000)</li>
+<li> M202 - Set max acceleration in units/s^2 for travel moves (M202 X1000 Y1000) Unused in Marlin!!</li>
+<li> M203 - Set maximum feedrate that your machine can sustain (M203 X200 Y200 Z300 E10000) in mm/sec</li>
+<li> M204 - Set default acceleration: S normal moves T filament only moves (M204 S3000 T7000) im mm/sec^2  also sets minimum segment time in ms (B20000) to prevent buffer underruns and M20 minimum feedrate</li>
+<li> M205 -  advanced settings:  minimum travel speed S=while printing T=travel only,  B=minimum segment time X= maximum xy jerk, Z=maximum Z jerk, E=maximum E jerk</li>
+<li> M206 - set additional homeing offset</li>
+<li> M207 - set retract length S[positive mm] F[feedrate mm/min] Z[additional zlift/hop], stays in mm regardless of M200 setting</li>
+<li> M208 - set recover=unretract length S[positive mm surplus to the M207 S*] F[feedrate mm/min]</li>
+<li> M209 - S enable automatic retract detect if the slicer did not support G10/11: every normal extrude-only move will be classified as retract depending on the direction.</li>
+<li> M218 - set hotend offset (in mm): T X Y</li>
+<li> M220 S- set speed factor override percentage</li>
+<li> M221 S- set extrude factor override percentage</li>
+<li> M240 - Trigger a camera to take a photograph</li>
+<li> M280 - Position an RC Servo P S, ommit S to report back current angle</li>
+<li> M300 - Play beepsound S P</li>
+<li> M301 - Set PID parameters P I and D</li>
+<li> M302 - Allow cold extrudes</li>
+<li> M303 - PID relay autotune S sets the target temperature. (default target temperature = 150C)</li>
+<li> M304 - Set bed PID parameters P I and D</li>
+<li> M400 - Finish all moves</li>
+<li> M401 - Lower z-probe if present</li>
+<li> M402 - Raise z-probe if present</li>
+<li> M500 - stores paramters in EEPROM</li>
+<li> M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).</li>
+<li> M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.</li>
+<li> M503 - print the current settings (from memory not from eeprom)</li>
+<li> M540 - Use S[0|1] to enable or disable the stop SD card print on endstop hit (requires ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)</li>
+<li> M600 - Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]</li>
+<li> M907 - Set digital trimpot motor current using axis codes.</li>
+<li> M908 - Control digital trimpot directly.</li>
+<li> M350 - Set microstepping mode.</li>
+<li> M351 - Toggle MS1 MS2 pins directly.</li>
+<li> M928 - Start SD logging (M928 filename.g) - ended by M29</li>
+<li> M999 - Restart after being stopped by error</li>
+</ul><h1>
+<a name="user-content-configuring-and-compilation" class="anchor" href="#configuring-and-compilation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring and compilation:</h1>
+
+<p>Install the arduino software IDE/toolset v23 (Some configurations also work with 1.x.x)
+   <a href="http://www.arduino.cc/en/Main/Software">http://www.arduino.cc/en/Main/Software</a></p>
+
+<p>Download the Marlin firmware
+   <a href="https://github.com/ErikZalm/Marlin/tree/Marlin_v1">https://github.com/ErikZalm/Marlin/tree/Marlin_v1</a>
+   Use the "Download Zip" button on the right.</p>
+
+<p>For gen6/gen7 and sanguinololu the Sanguino directory in the Marlin dir needs to be copied to the arduino environment.
+  copy ArduinoAddons\Arduino_x.x.x\sanguino \hardware\Sanguino</p>
+
+<p>Start the arduino IDE.
+Select Tools -&gt; Board -&gt; Arduino Mega 2560    or your microcontroller
+Select the correct serial port in Tools -&gt;Serial Port
+Open Marlin.pde</p>
+
+<p>Click the Verify/Compile button</p>
+
+<p>Click the Upload button
+If all goes well the firmware is uploading</p>
+
+<p>That's ok.  Enjoy Silky Smooth Printing.</p>
+
+<h1></h1>
+
+<h1>
+<a name="user-content-instructions-for-configuring-bed-auto-leveling" class="anchor" href="#instructions-for-configuring-bed-auto-leveling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions for configuring Bed Auto Leveling</h1>
+
+<p>Uncomment the "ENABLE_AUTO_BED_LEVELING" define (commented by default)</p>
+
+<p>You will probably need a swivel Z-MIN endstop in the extruder. A rc servo do a great job.
+Check the system working here: <a href="http://www.youtube.com/watch?v=3IKMeOYz-1Q">http://www.youtube.com/watch?v=3IKMeOYz-1Q</a> (Enable English subtitles)
+Teasing ;-) video: <a href="http://www.youtube.com/watch?v=x8eqSQNAyro">http://www.youtube.com/watch?v=x8eqSQNAyro</a></p>
+
+<p>In order to get the servo working, you need to enable:</p>
+
+<ul class="task-list">
+<li><p>#define NUM_SERVOS 1 // Servo index starts with 0 for M280 command</p></li>
+<li><p>#define SERVO_ENDSTOPS {-1, -1, 0} // Servo index for X, Y, Z. Disable with -1</p></li>
+<li><p>#define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 165,60} // X,Y,Z Axis Extend and Retract angles</p></li>
+</ul><p>The first define tells firmware how many servos you have.
+The second tells what axis this servo will be attached to. In the example above, we have a servo in Z axis.
+The third one tells the angle in 2 situations: Probing (165º) and resting (60º). Check this with command M280 P0 S{angle} (example: M280 P0 S60 moves the servo to 60º)</p>
+
+<h2>
+<a name="user-content-for-ramps-users" class="anchor" href="#for-ramps-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>For RAMPS users:</h2>
+
+<p>By default, RAMPS have no power on servo bus (if you happen to have a multimeter, check the voltage on servo power pins).
+In order to get the servo working, you need to supply 5V to 5V pin.. You can do it using your power supply (if it has a 5V output) or jumping the "Vcc" from Arduino to the 5V RAMPS rail.
+These 2 pins are located just between the Reset Button and the yellow fuses... There are marks in the board showing 5V and VCC.. just connect them..
+If jumping the arduino Vcc do RAMPS 5V rail, take care to not use a power hungry servo, otherwise you will cause a blackout in the arduino board ;-)</p>
+
+<p>Next you need to define the Z endstop (probe) offset from hotend.
+My preferred method:</p>
+
+<ul class="task-list">
+<li>a) Make a small mark in the bed with a marker/felt-tip pen.</li>
+<li>b) Place the hotend tip as <em>exactly</em> as possible on the mark, touching the bed. Raise the hotend 0.1mm (a regular paper thickness) and zero all axis (G92 X0 Y0 Z0);</li>
+<li>d) Raise the hotend 10mm (or more) for probe clearance, lower the Z probe (Z-Endstop) with M401 and place it just on that mark by moving X, Y and Z;</li>
+<li>e) Lower the Z in 0.1mm steps, with the probe always touching the mark (it may be necessary to adjust X and Y as well) until you hear the "click" meaning the mechanical endstop was trigged. You can confirm with M119;</li>
+<li>f) Now you have the probe in the same place as your hotend tip was before. Perform a M114 and write down the values, for example: X:24.3 Y:-31.4 Z:5.1;</li>
+<li>g) You can raise the z probe with M402 command;</li>
+<li><p>h) Fill the defines bellow multiplying the values by "-1" (just change the signal)</p></li>
+<li><p>#define X_PROBE_OFFSET_FROM_EXTRUDER -24.3</p></li>
+<li>#define Y_PROBE_OFFSET_FROM_EXTRUDER 31.4</li>
+<li>#define Z_PROBE_OFFSET_FROM_EXTRUDER -5.1</li>
+</ul><p>The following options define the probing positions. These are good starting values.
+I recommend to keep a better clearance from borders in the first run and then make the probes as close as possible to borders:</p>
+
+<ul class="task-list">
+<li>#define LEFT_PROBE_BED_POSITION 30</li>
+<li>#define RIGHT_PROBE_BED_POSITION 140</li>
+<li>#define BACK_PROBE_BED_POSITION 140</li>
+<li>#define FRONT_PROBE_BED_POSITION 30</li>
+</ul><p>A few more options:</p>
+
+<ul class="task-list">
+<li>#define XY_TRAVEL_SPEED 6000</li>
+</ul><p>X and Y axis travel speed between probes, in mm/min.
+Bear in mind that really fast moves may render step skipping. 6000 mm/min (100mm/s) is a good value.</p>
+
+<ul class="task-list">
+<li>#define Z_RAISE_BEFORE_PROBING 10</li>
+<li>#define Z_RAISE_BETWEEN_PROBINGS 10</li>
+</ul><p>The Z axis is lifted when traveling to the first probe point by Z_RAISE_BEFORE_PROBING value
+and then lifted when traveling from first to second and second to third point by Z_RAISE_BETWEEN_PROBINGS.
+All values are in mm as usual. </p>
+
+<p>That's it.. enjoy never having to calibrate your Z endstop neither leveling your bed by hand anymore ;-)</p></article></div>

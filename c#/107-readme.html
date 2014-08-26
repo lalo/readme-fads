@@ -1,0 +1,292 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-biggy-a-very-fast-documentrelational-query-tool-with-full-linq-compliance" class="anchor" href="#biggy-a-very-fast-documentrelational-query-tool-with-full-linq-compliance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Biggy: A Very Fast Document/Relational Query Tool with Full LINQ Compliance</h1>
+
+<p>I like working with Document databases, and I like working with relational ones. I like LINQ, I like Postgres, and sometimes I just want to store data on disk in a JSON file: <strong>so I made Biggy</strong>.</p>
+
+<p>This project started life as an implementation of ICollection that persisted itself to a file using JSON seriliazation. That quickly evolved into using Postgres as a JSON store, and then SQL Server. What we ended up with is the fastest data tool you can use.</p>
+
+<p>Data is loaded into memory when your application starts, and you query it with Linq. That's it. It loads incredibly fast (100,000 records in about 1 second) and from there will sync your in-memory list with whatever store you choose. </p>
+
+<h2>
+<a name="user-content-database-document-storage" class="anchor" href="#database-document-storage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Database Document Storage</h2>
+
+<p>Biggy supports both SQL Server and Postgres - but we develop with Postgres first so there are a few more bells and whistles for this amazing database (specifically: Full Text search over documents).</p>
+
+<p>To define a Document Store, create an instance of DBDocumentList:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">class</span> <span class="nc">Clown</span> <span class="p">{</span>
+  <span class="k">public</span> <span class="kt">int</span> <span class="n">ID</span> <span class="p">{</span><span class="k">get</span><span class="p">;</span><span class="k">set</span><span class="p">;}</span>
+  <span class="k">public</span> <span class="kt">string</span> <span class="n">Name</span> <span class="p">{</span><span class="k">get</span><span class="p">;</span><span class="k">set</span><span class="p">;}</span>
+<span class="na">  [FullText]</span>
+  <span class="k">public</span> <span class="kt">string</span> <span class="n">LifeStory</span> <span class="p">{</span><span class="k">get</span><span class="p">;</span><span class="k">set</span><span class="p">;}</span>
+  <span class="k">public</span> <span class="n">DateTime</span> <span class="n">Birthday</span> <span class="p">{</span><span class="k">get</span><span class="p">;</span><span class="k">set</span><span class="p">;}</span>
+
+  <span class="k">public</span> <span class="nf">Clown</span><span class="p">(){</span>
+    <span class="n">Birthday</span> <span class="p">=</span> <span class="n">DateTime</span><span class="p">.</span><span class="n">Today</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="kt">var</span> <span class="n">clowns</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PGDocumentList</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;(</span><span class="n">connectionStringName</span> <span class="p">:</span> <span class="s">"Northwind"</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">newClown</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Clown</span><span class="p">{</span><span class="n">Name</span> <span class="p">:</span> <span class="s">"Dougy Buns"</span><span class="p">,</span> <span class="n">Birthday</span> <span class="p">=</span> <span class="n">DateTime</span><span class="p">.</span><span class="n">Today</span><span class="p">.</span><span class="n">AddDays</span><span class="p">(-</span><span class="m">100</span><span class="p">),</span> <span class="n">LifeStory</span> <span class="p">=</span> <span class="s">"Once upon a time, I was a little clown"</span><span class="p">};</span>
+<span class="n">clowns</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">newClown</span><span class="p">);</span>
+
+</pre></div>
+
+<p>The above code will do a number of things:</p>
+
+<ul class="task-list">
+<li>Creates a table called "clowns" in the database with an integer primary key (auto-incrementing). </li>
+<li>Tries to load every record in the "clowns" table on instantiation</li>
+<li>Creates an ICollection (which is <code>clowns</code> itself) that you can query with LINQ as you know how already</li>
+</ul><p>The table structure under this is interesting too. We tagged the LifeStory property with the <code>FullText</code> attribute. This tells the Biggy to create a column on the "clowns" table called "search" which is of type <code>tsvector</code> - this is how Postgres indexes text (in SQL Server it's nvarchar(MAX) with a special index). </p>
+
+<p>There are 3 total columns in the "clowns" table:</p>
+
+<ul class="task-list">
+<li>id (integer)</li>
+<li>body (json)</li>
+<li>search (tsvector)</li>
+</ul><p>When Biggy loads the data it deserializes it into the backing store and you can access it just like any ICollection. You can also query the full text engine easily:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">clowns</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PGDocumentList</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;(</span><span class="n">connectionStringName</span> <span class="p">:</span> <span class="s">"Northwind"</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">results</span> <span class="p">=</span> <span class="n">clowns</span><span class="p">.</span><span class="n">FullText</span><span class="p">(</span><span class="s">"happy"</span><span class="p">);</span>
+<span class="k">foreach</span><span class="p">(</span><span class="kt">var</span> <span class="n">clown</span> <span class="k">in</span> <span class="n">results</span><span class="p">){</span>
+  <span class="c1">//play with results here</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The same thing works for SQL Server.</p>
+
+<h2>
+<a name="user-content-file-based-document-storage" class="anchor" href="#file-based-document-storage" aria-hidden="true"><span class="octicon octicon-link"></span></a>File-based Document Storage</h2>
+
+<p>If you don't want to install a database engine, you don't have to. Biggy can load and write to disk easily:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">class</span> <span class="nc">Product</span> <span class="p">{</span>
+  <span class="k">public</span> <span class="n">String</span> <span class="n">Sku</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="n">String</span> <span class="n">Name</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="n">Decimal</span> <span class="n">Price</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="n">DateTime</span> <span class="n">CreatedAt</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+  <span class="k">public</span> <span class="nf">Product</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="n">CreatedAt</span> <span class="p">=</span> <span class="n">DateTime</span><span class="p">.</span><span class="n">Now</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">public</span> <span class="k">override</span> <span class="kt">bool</span> <span class="nf">Equals</span><span class="p">(</span><span class="kt">object</span> <span class="n">obj</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">var</span> <span class="n">p1</span> <span class="p">=</span> <span class="p">(</span><span class="n">Product</span><span class="p">)</span><span class="n">obj</span><span class="p">;</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="n">Sku</span> <span class="p">==</span> <span class="n">p1</span><span class="p">.</span><span class="n">Sku</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">}</span> 
+
+<span class="c1">//add and save to this list as above</span>
+<span class="c1">//this will create a Data/products.json file in your project/site root</span>
+<span class="kt">var</span> <span class="n">products</span> <span class="p">=</span> <span class="k">new</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;(</span><span class="k">new</span> <span class="n">JsonStore</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;());</span>
+
+<span class="kt">var</span> <span class="n">newProduct</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Product</span><span class="p">{</span><span class="n">Sku</span> <span class="p">:</span> <span class="s">"STUFF"</span><span class="p">,</span> <span class="n">Name</span> <span class="p">:</span> <span class="s">"A new product"</span><span class="p">,</span> <span class="n">Price</span> <span class="p">:</span> <span class="m">120.00</span><span class="p">};</span>
+
+<span class="c1">//gets appended immediately in a single line-write to file</span>
+<span class="n">products</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">newProduct</span><span class="p">);</span>
+
+<span class="c1">//this won't hit the disk as you're querying in-memory only</span>
+<span class="kt">var</span> <span class="n">p</span> <span class="p">=</span> <span class="n">products</span><span class="p">.</span><span class="n">FirstOrDefault</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Sku</span> <span class="p">==</span> <span class="s">"STUFF"</span><span class="p">);</span>
+<span class="n">p</span><span class="p">.</span><span class="n">Name</span> <span class="p">=</span> <span class="s">"Something Fun"</span><span class="p">;</span>
+
+<span class="c1">//this writes to disk in a single asynchronous flush - so it's fast too</span>
+<span class="n">products</span><span class="p">.</span><span class="n">Update</span><span class="p">(</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+
+<p>You can move from the file store over to the relational store by a single type change (as well as moving data over). This makes Biggy attractive for greenfield projects and just trying stuff out.</p>
+
+<h2>
+<a name="user-content-good-old-relational-query-tool" class="anchor" href="#good-old-relational-query-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Good Old Relational Query Tool</h2>
+
+<p>The engine behind Biggy is a newer version of <a href="http://github.com/robconery/massive">Massive</a> that has some type-driven love built into it. If you want to run queries and do things like you always have, go for it:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="c1">//this should look familiar to Massive fans</span>
+<span class="kt">var</span> <span class="n">clowns</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SqlServerTable</span><span class="p">(</span><span class="n">connectionStringName</span><span class="p">=</span> <span class="s">"northwind"</span><span class="p">,</span> <span class="n">tableName</span><span class="p">=</span> <span class="s">"clowns"</span><span class="p">,</span> <span class="n">primaryKeyField</span> <span class="p">=</span> <span class="s">"ID"</span><span class="p">);</span>
+
+<span class="c1">//find by key</span>
+<span class="kt">var</span> <span class="n">dougy</span> <span class="p">=</span> <span class="n">clowns</span><span class="p">.</span><span class="n">Find</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;(</span><span class="m">1</span><span class="p">);</span>
+
+<span class="c1">//same thing</span>
+<span class="n">dougy</span> <span class="p">=</span> <span class="n">clowns</span><span class="p">.</span><span class="n">FirstOrDefault</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;(</span><span class="s">"id=@0"</span><span class="p">,</span><span class="m">1</span><span class="p">);</span>
+
+<span class="c1">//get them all</span>
+<span class="kt">var</span> <span class="n">allClowns</span> <span class="p">=</span> <span class="n">clowns</span><span class="p">.</span><span class="n">All</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;();</span>
+
+<span class="c1">//get some</span>
+<span class="kt">var</span> <span class="n">someClowns</span> <span class="p">=</span> <span class="n">clowns</span><span class="p">.</span><span class="n">Where</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;(</span><span class="s">"id &gt; @0"</span><span class="p">,</span> <span class="m">0</span><span class="p">);</span>
+
+<span class="c1">//stop telling me what to do - returns a dynamic result</span>
+<span class="kt">var</span> <span class="n">myOwnClowns</span> <span class="p">=</span> <span class="n">clowns</span><span class="p">.</span><span class="n">Query</span><span class="p">(</span><span class="s">"select ID, newid() as SomeGuid, Birthday from Clowns"</span><span class="p">);</span>
+
+<span class="c1">//add one</span>
+<span class="n">clowns</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="k">new</span> <span class="n">Clown</span><span class="p">{...});</span>
+<span class="c1">//update</span>
+<span class="n">clowns</span><span class="p">.</span><span class="n">Update</span><span class="p">(</span><span class="n">someClown</span><span class="p">);</span>
+<span class="c1">//remove</span>
+<span class="n">clowns</span><span class="p">.</span><span class="n">Delete</span><span class="p">(</span><span class="n">someClown</span><span class="p">);</span>
+<span class="c1">//remove a bunch</span>
+<span class="n">clowns</span><span class="p">.</span><span class="n">DeleteWhere</span><span class="p">(</span><span class="s">"id &gt; 0"</span><span class="p">);</span>
+
+</pre></div>
+
+<p>This is using the straight-up PGTable (or SqlServerTable) - you can have in-memory performance and <strong>full LINQ capabilities using PGList and SqlServerList</strong>:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">products</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PGList</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;(</span><span class="s">"northwind"</span><span class="p">,</span><span class="s">"products"</span><span class="p">,</span><span class="s">"productid"</span><span class="p">);</span>
+
+<span class="c1">//we've connected to Postgres and all records are read into memory - let's rock some LINQ:</span>
+<span class="kt">var</span> <span class="n">discontinued</span> <span class="p">=</span> <span class="n">products</span><span class="p">.</span><span class="n">Where</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">x</span><span class="p">.</span><span class="n">Discontinued</span> <span class="p">==</span> <span class="k">true</span><span class="p">);</span>
+
+</pre></div>
+
+<h2>
+<a name="user-content-hooks-callbacks-events" class="anchor" href="#hooks-callbacks-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hooks, Callbacks, Events</h2>
+
+<p>SQlServerTable and PGTable are very, very close to Massive with a few things removed - specifically the dynamic query builder and the validation stuff. You can add that in as you see fit using the hooks we've always had:</p>
+
+<div class="highlight highlight-csharp"><pre>  <span class="c1">//Hooks</span>
+  <span class="k">public</span> <span class="k">virtual</span> <span class="k">void</span> <span class="nf">Inserted</span><span class="p">(</span><span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="k">virtual</span> <span class="k">void</span> <span class="nf">Updated</span><span class="p">(</span><span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="k">virtual</span> <span class="k">void</span> <span class="nf">Deleted</span><span class="p">(</span><span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="k">virtual</span> <span class="kt">bool</span> <span class="nf">BeforeDelete</span><span class="p">(</span><span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="k">true</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">public</span> <span class="k">virtual</span> <span class="kt">bool</span> <span class="nf">BeforeSave</span><span class="p">(</span><span class="n">T</span> <span class="n">item</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="k">true</span><span class="p">;</span> <span class="p">}</span>
+</pre></div>
+
+<p>Just override them as needed in your derived class:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">class</span> <span class="nc">ClownTable</span> <span class="p">:</span> <span class="n">SqlServerTable</span><span class="p">&lt;</span><span class="n">Clown</span><span class="p">&gt;{</span>
+  <span class="k">public</span> <span class="nf">ClownTable</span><span class="p">(</span><span class="n">connectionStringName</span><span class="p">,</span><span class="n">tableName</span><span class="p">,</span><span class="n">primaryKeyField</span><span class="p">)</span> <span class="p">:</span> <span class="k">base</span><span class="p">(</span><span class="n">connectionStringName</span><span class="p">,</span><span class="n">tableName</span><span class="p">,</span><span class="n">primaryKeyField</span><span class="p">);</span>
+
+  <span class="k">public</span> <span class="k">override</span> <span class="kt">bool</span> <span class="nf">BeforeSave</span><span class="p">(</span><span class="n">Clown</span> <span class="n">item</span><span class="p">){</span>
+    <span class="c1">//do your validations here... be sure to return false if things are bad</span>
+  <span class="p">}</span>
+
+<span class="p">}</span>
+
+</pre></div>
+
+<p>Using events is pretty straightforward:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="kt">var</span> <span class="n">clowns</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SqlServerTable</span><span class="p">(</span><span class="n">connectionStringName</span><span class="p">=</span> <span class="s">"northwind"</span><span class="p">,</span> <span class="n">tableName</span><span class="p">=</span> <span class="s">"clowns"</span><span class="p">,</span> <span class="n">primaryKeyField</span> <span class="p">=</span> <span class="s">"ID"</span><span class="p">);</span>
+<span class="n">clowns</span><span class="p">.</span><span class="n">Loaded</span><span class="p">+=</span><span class="n">Clowns_Loaded</span><span class="p">;</span>
+
+<span class="k">public</span> <span class="k">void</span> <span class="nf">ClownsLoaded</span><span class="p">(</span><span class="kt">object</span> <span class="n">sender</span><span class="p">,</span> <span class="n">EventArgs</span> <span class="n">e</span><span class="p">){</span>
+  <span class="kt">var</span> <span class="n">biggyArgs</span> <span class="p">=</span> <span class="p">(</span><span class="n">BiggyEventArgs</span><span class="p">)</span><span class="n">e</span><span class="p">;</span>
+  <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">"We have {0} clowns y'all"</span><span class="p">,</span><span class="n">e</span><span class="p">.</span><span class="n">Items</span><span class="p">.</span><span class="n">Count</span><span class="p">);</span>
+<span class="p">}</span>
+
+</pre></div>
+
+<h2>
+<a name="user-content-what-its-good-for" class="anchor" href="#what-its-good-for" aria-hidden="true"><span class="octicon octicon-link"></span></a>What It's Good For</h2>
+
+<p>A document-centric, "NoSQL"-style of development is great for high-read, quick changing things. Products, Customers, Promotions and Coupons - these things get read from the database continually and it's sort of silly. Querying in-memory makes perfect sense for this use case. For these you could use one of the document storage ideas above.could </p>
+
+<p>A relational, write-oriented transactional situation is great for "slowly changing over time" records - like Orders, Invoices, SecurityLogs, etc. For this you could use a regular relational table using the PGTable or SQLServerTable as you see fit.</p>
+
+<h2>
+<a name="user-content-strategies" class="anchor" href="#strategies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Strategies</h2>
+
+<p>You only want to read the <code>InMemoryList&lt;T&gt;</code> stuff off disk once - and this should be when your app starts up. This is pretty straightforward if you're using a Console or Forms-based app, but if you're using a web app this gets more difficult.</p>
+
+<p>Fortunately, you have a few nice choices.</p>
+
+<p>The first is to use your IoC container to instantiate Biggy for you. For this, create a wrapper class just like you would with EF:</p>
+
+<div class="highlight highlight-csharp"><pre>  <span class="k">public</span> <span class="k">class</span> <span class="nc">StoreDB</span> <span class="p">{</span>
+
+    <span class="k">public</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;</span> <span class="n">Products</span><span class="p">;</span>
+    <span class="k">public</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Customer</span><span class="p">&gt;</span> <span class="n">Customers</span><span class="p">;</span>
+
+    <span class="k">public</span> <span class="nf">StoreDB</span><span class="p">()</span> <span class="p">{</span>
+      <span class="n">Products</span> <span class="p">=</span> <span class="k">new</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;(</span><span class="n">dbPath</span><span class="p">:</span> <span class="n">HttpRuntime</span><span class="p">.</span><span class="n">AppDomainAppPath</span><span class="p">);</span>
+      <span class="n">Customers</span> <span class="p">=</span> <span class="k">new</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Customer</span><span class="p">&gt;(</span><span class="n">dbPath</span><span class="p">:</span> <span class="n">HttpRuntime</span><span class="p">.</span><span class="n">AppDomainAppPath</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div>
+
+<p>Passing in the HttpRuntime.AppDomainAppPath here tells Biggy where your web root is. </p>
+
+<h3>
+<a name="user-content-using-inversion-of-control" class="anchor" href="#using-inversion-of-control" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Inversion of Control</h3>
+
+<p>If you're a fan of IoC then managing Biggy should be simple. Just make sure your wrapper class is in Singleton scope - here's how Ninject does it:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="n">Bind</span><span class="p">&lt;</span><span class="n">StoreDb</span><span class="p">&gt;().</span><span class="n">ToSelf</span><span class="p">().</span><span class="n">InSingletonScope</span><span class="p">();</span>
+</pre></div>
+
+<p>StructureMap and other IoC containers do the same kind of thing.</p>
+
+<h3>
+<a name="user-content-simple-instance-in-app_start" class="anchor" href="#simple-instance-in-app_start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple Instance in App_Start</h3>
+
+<p>You can do the same thing with a static property on your web app class. Here's the example MVC app that's in the source:</p>
+
+<div class="highlight highlight-csharp"><pre><span class="k">using</span> <span class="nn">System.Web.Routing</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Biggy</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Biggy.JSON</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Biggy.Postgres</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Web.Models</span><span class="p">;</span>
+
+<span class="k">namespace</span> <span class="nn">Web</span> <span class="p">{</span>
+
+  <span class="k">public</span> <span class="k">class</span> <span class="nc">StoreDB</span> <span class="p">{</span>
+
+    <span class="k">public</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;</span> <span class="n">Products</span><span class="p">;</span>
+    <span class="k">public</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Customer</span><span class="p">&gt;</span> <span class="n">Customers</span><span class="p">;</span>
+
+    <span class="k">public</span> <span class="nf">StoreDB</span><span class="p">()</span> <span class="p">{</span>
+      <span class="n">Products</span> <span class="p">=</span> <span class="k">new</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Product</span><span class="p">&gt;(</span><span class="n">dbPath</span><span class="p">:</span> <span class="n">HttpRuntime</span><span class="p">.</span><span class="n">AppDomainAppPath</span><span class="p">);</span>
+      <span class="n">Customers</span> <span class="p">=</span> <span class="k">new</span> <span class="n">BiggyList</span><span class="p">&lt;</span><span class="n">Customer</span><span class="p">&gt;(</span><span class="n">dbPath</span><span class="p">:</span> <span class="n">HttpRuntime</span><span class="p">.</span><span class="n">AppDomainAppPath</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+
+  <span class="k">public</span> <span class="k">class</span> <span class="nc">MvcApplication</span> <span class="p">:</span> <span class="n">System</span><span class="p">.</span><span class="n">Web</span><span class="p">.</span><span class="n">HttpApplication</span> <span class="p">{</span>
+
+    <span class="k">public</span> <span class="k">static</span> <span class="n">StoreDB</span> <span class="n">StoreDB</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+
+    <span class="k">protected</span> <span class="k">void</span> <span class="nf">Application_Start</span><span class="p">()</span> <span class="p">{</span>
+      <span class="c1">//load up the DB</span>
+      <span class="n">MvcApplication</span><span class="p">.</span><span class="n">StoreDB</span> <span class="p">=</span> <span class="k">new</span> <span class="n">StoreDB</span><span class="p">();</span>
+      <span class="n">AreaRegistration</span><span class="p">.</span><span class="n">RegisterAllAreas</span><span class="p">();</span>
+      <span class="n">FilterConfig</span><span class="p">.</span><span class="n">RegisterGlobalFilters</span><span class="p">(</span><span class="n">GlobalFilters</span><span class="p">.</span><span class="n">Filters</span><span class="p">);</span>
+      <span class="n">RouteConfig</span><span class="p">.</span><span class="n">RegisterRoutes</span><span class="p">(</span><span class="n">RouteTable</span><span class="p">.</span><span class="n">Routes</span><span class="p">);</span>
+      <span class="n">BundleConfig</span><span class="p">.</span><span class="n">RegisterBundles</span><span class="p">(</span><span class="n">BundleTable</span><span class="p">.</span><span class="n">Bundles</span><span class="p">);</span>
+
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>It's only called once on start - and from here on out you have high-speed, in-memory querying with full LINQ and your data store can be SQL Server, Postgres, or file storage.</p>
+
+<h2>
+<a name="user-content-a-note-on-speed-and-memory" class="anchor" href="#a-note-on-speed-and-memory" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Note on Speed and Memory</h2>
+
+<p>Some applications have a ton of data and for that, Biggy might not be the best fit if you need to read from that ton of data consistently. We've focused on prying apart data into two camps: High Read, and High Write.</p>
+
+<p>We're still solidifying our benchmarks, but in-memory read is about as fast as you can get. Our writes are getting there too - currently we can drop 100,000 documents to disk in about 2 seconds - which isn't so bad. We can write 10,000 records to Postgres and SQL Server in about 500ms - again not bad.</p>
+
+<p>So if you want to log with Biggy - go for it! Just understand that if you use a <code>DBList&lt;T&gt;</code>, it assumes you want to read too so it will store the contents in memory as well as on disk. If you don't need this, just use a <code>DBTable&lt;T&gt;</code> (Postgres or SQLServer) and write your heart out.</p>
+
+<p>You might also wonder about memory use. Since you're storing everything in memory - for a small web app this might be a concern. Currently the smallest, free sites on Azure allow you 1G RAM. Is this enough space for your data? <a href="http://openmymind.net/redis.pdf">Borrowing from Karl Seguin</a>:</p>
+
+<blockquote>
+<p>I do feel that some developers have lost touch with how little space data can take. The Complete Works of William
+Shakespeare takes roughly 5.5MB of storage</p>
+</blockquote>
+
+<p>The entire customer, catalog, logging, and sales history of Tekpub was around 6MB. If you're bumping up against your data limit - just move from an in-memory list to a regular table object (as shown above) and you're good to go.</p>
+
+<h2>
+<a name="user-content-wanna-help" class="anchor" href="#wanna-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wanna Help?</h2>
+
+<p>Please do! Here's what we ask of you:</p>
+
+<ul class="task-list">
+<li>If you've found a bug, please log it in the Issue list. </li>
+<li>If you want to fork and fix (thanks!) - please fork then open a branch on your fork specifically for this issue. Give it a nice name.</li>
+<li>Make the fix and then in your final commit message please use the Github magic syntax ("Closes #X" or Fixes etc) so we can tie your PR to you and your issue</li>
+<li>Please please please verify your bug or issue with a test (we use XUnit and it's simple to get going)</li>
+</ul><p>Thanks so much!</p></article></div>

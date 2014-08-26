@@ -1,0 +1,1120 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-papertrail--" class="anchor" href="#papertrail--" aria-hidden="true"><span class="octicon octicon-link"></span></a>PaperTrail <a href="https://travis-ci.org/airblade/paper_trail"><img src="https://camo.githubusercontent.com/f4b14a280755a77dbe0d196c6e3db36d1b25e4ce/68747470733a2f2f696d672e736869656c64732e696f2f7472617669732f616972626c6164652f70617065725f747261696c2f6d61737465722e737667" alt="Build Status" data-canonical-src="https://img.shields.io/travis/airblade/paper_trail/master.svg" style="max-width:100%;"></a> <a href="https://gemnasium.com/airblade/paper_trail"><img src="https://camo.githubusercontent.com/8237304c79a65dae42044f6bbf82e1f6405d70ba/68747470733a2f2f696d672e736869656c64732e696f2f67656d6e617369756d2f616972626c6164652f70617065725f747261696c2e737667" alt="Dependency Status" data-canonical-src="https://img.shields.io/gemnasium/airblade/paper_trail.svg" style="max-width:100%;"></a>
+</h1>
+
+<p>PaperTrail lets you track changes to your models' data.  It's good for auditing or versioning.  You can see how a model looked at any stage in its lifecycle, revert it to any version, and even undelete it after it's been destroyed.</p>
+
+<p>There's an excellent <a href="http://railscasts.com/episodes/255-undo-with-paper-trail">RailsCast on implementing Undo with Paper Trail</a>.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Stores every create, update and destroy (or only the lifecycle events you specify).</li>
+<li>Does not store updates which don't change anything.</li>
+<li>Allows you to specify attributes (by inclusion or exclusion) which must change for a Version to be stored.</li>
+<li>Allows you to get at every version, including the original, even once destroyed.</li>
+<li>Allows you to get at every version even if the schema has since changed.</li>
+<li>Allows you to get at the version as of a particular time.</li>
+<li>Option to automatically restore <code>has_one</code> associations as they were at the time.</li>
+<li>Automatically records who was responsible via your controller.  PaperTrail calls <code>current_user</code> by default, if it exists, but you can have it call any method you like.</li>
+<li>Allows you to set who is responsible at model-level (useful for migrations).</li>
+<li>Allows you to store arbitrary model-level metadata with each version (useful for filtering versions).</li>
+<li>Allows you to store arbitrary controller-level information with each version, e.g. remote IP.</li>
+<li>Can be turned off/on per class (useful for migrations).</li>
+<li>Can be turned off/on per request (useful for testing with an external service).</li>
+<li>Can be turned off/on globally (useful for testing).</li>
+<li>No configuration necessary.</li>
+<li>Stores everything in a single database table by default (generates migration for you), or can use separate tables for separate models.</li>
+<li>Supports custom version classes so different models' versions can have different behaviour.</li>
+<li>Supports custom name for versions association.</li>
+<li>Thoroughly tested.</li>
+<li>Threadsafe.</li>
+</ul><h2>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h2>
+
+<p>Works with ActiveRecord 4 and ActiveRecord 3. Note: this code is on the <code>master</code> branch and tagged <code>v3.x</code>.</p>
+
+<p>Version 2 is on the branch named <a href="https://github.com/airblade/paper_trail/tree/2.7-stable"><code>2.7-stable</code></a> and is tagged <code>v2.x</code>, and works with Rails 3.</p>
+
+<p>The Rails 2.3 code is on the <a href="https://github.com/airblade/paper_trail/tree/rails2"><code>rails2</code></a> branch and tagged <code>v1.x</code>. These branches are both stable with their respective versions of Rails but will not have new features added/backported to them.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-rails-3--4" class="anchor" href="#rails-3--4" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rails 3 &amp; 4</h3>
+
+<ol class="task-list">
+<li>
+<p>Add PaperTrail to your <code>Gemfile</code>.</p>
+
+<p><code>gem 'paper_trail', '~&gt; 3.0.3'</code></p>
+</li>
+<li>
+<p>Generate a migration which will add a <code>versions</code> table to your database.</p>
+
+<p><code>bundle exec rails generate paper_trail:install</code></p>
+</li>
+<li>
+<p>Run the migration.</p>
+
+<p><code>bundle exec rake db:migrate</code></p>
+</li>
+<li><p>Add <code>has_paper_trail</code> to the models you want to track.</p></li>
+</ol><h3>
+<a name="user-content-sinatra" class="anchor" href="#sinatra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sinatra</h3>
+
+<p>In order to configure PaperTrail for usage with <a href="http://www.sinatrarb.com">Sinatra</a>,
+your <code>Sinatra</code> app must be using <code>ActiveRecord</code> 3 or 4. It is also recommended to use the
+<a href="https://github.com/janko-m/sinatra-activerecord">Sinatra ActiveRecord Extension</a> or something similar for managing
+your applications <code>ActiveRecord</code> connection in a manner similar to the way <code>Rails</code> does. If using the aforementioned
+<code>Sinatra ActiveRecord Extension</code>, steps for setting up your app with PaperTrail will look something like this:</p>
+
+<ol class="task-list">
+<li>
+<p>Add PaperTrail to your <code>Gemfile</code>.</p>
+
+<p><code>gem 'paper_trail', '~&gt; 3.0.3'</code></p>
+</li>
+<li>
+<p>Generate a migration to add a <code>versions</code> table to your database.</p>
+
+<p><code>bundle exec rake db:create_migration NAME=create_versions</code></p>
+</li>
+<li><p>Copy contents of <a href="https://raw.github.com/airblade/paper_trail/master/lib/generators/paper_trail/templates/create_versions.rb">create_versions.rb</a>
+into the <code>create_versions</code> migration that was generated into your <code>db/migrate</code> directory.</p></li>
+<li>
+<p>Run the migration.</p>
+
+<p><code>bundle exec rake db:migrate</code></p>
+</li>
+<li><p>Add <code>has_paper_trail</code> to the models you want to track.</p></li>
+</ol><p>PaperTrail provides a helper extension that acts similar to the controller mixin it provides for <code>Rails</code> applications.</p>
+
+<p>It will set <code>PaperTrail.whodunnit</code> to whatever is returned by a method named <code>user_for_paper_trail</code> which you can define inside your Sinatra Application. (by default it attempts to invoke a method named <code>current_user</code>)</p>
+
+<p>If you're using the modular <a href="http://www.sinatrarb.com/intro.html#Modular%20vs.%20Classic%20Style"><code>Sinatra::Base</code></a> style of application, you will need to register the extension:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># bleh_app.rb</span>
+<span class="nb">require</span> <span class="s1">'sinatra/base'</span>
+
+<span class="k">class</span> <span class="nc">BlehApp</span> <span class="o">&lt;</span> <span class="no">Sinatra</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">register</span> <span class="no">PaperTrail</span><span class="o">::</span><span class="no">Sinatra</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-api-summary" class="anchor" href="#api-summary" aria-hidden="true"><span class="octicon octicon-link"></span></a>API Summary</h2>
+
+<p>When you declare <code>has_paper_trail</code> in your model, you get these methods:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Widget</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span>   <span class="c1"># you can pass various options here</span>
+<span class="k">end</span>
+
+<span class="c1"># Returns this widget's versions.  You can customise the name of the association.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">versions</span>
+
+<span class="c1"># Return the version this widget was reified from, or nil if it is live.</span>
+<span class="c1"># You can customise the name of the method.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">version</span>
+
+<span class="c1"># Returns true if this widget is the current, live one; or false if it is from a previous version.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">live?</span>
+
+<span class="c1"># Returns who put the widget into its current state.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">originator</span>
+
+<span class="c1"># Returns the widget (not a version) as it looked at the given timestamp.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">version_at</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+
+<span class="c1"># Returns the widget (not a version) as it was most recently.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">previous_version</span>
+
+<span class="c1"># Returns the widget (not a version) as it became next.</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">next_version</span>
+
+<span class="c1"># Generates a version for a `touch` event (`widget.touch` does NOT generate a version)</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">touch_with_version</span>
+
+<span class="c1"># Turn PaperTrail off for all widgets.</span>
+<span class="no">Widget</span><span class="o">.</span><span class="n">paper_trail_off!</span>
+
+<span class="c1"># Turn PaperTrail on for all widgets.</span>
+<span class="no">Widget</span><span class="o">.</span><span class="n">paper_trail_on!</span>
+
+<span class="c1"># Check wheter PaperTrail is enabled for all widgets</span>
+<span class="no">Widget</span><span class="o">.</span><span class="n">paper_trail_enabled_for_model?</span>
+<span class="n">widget</span><span class="o">.</span><span class="n">paper_trail_enabled_for_model?</span>
+</pre></div>
+
+<p>And a <code>PaperTrail::Version</code> instance has these methods:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Returns the item restored from this version.</span>
+<span class="n">version</span><span class="o">.</span><span class="n">reify</span><span class="p">(</span><span class="n">options</span> <span class="o">=</span> <span class="p">{})</span>
+
+<span class="c1"># Return a new item from this version</span>
+<span class="n">version</span><span class="o">.</span><span class="n">reify</span><span class="p">(</span><span class="nb">dup</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+
+<span class="c1"># Returns who put the item into the state stored in this version.</span>
+<span class="n">version</span><span class="o">.</span><span class="n">originator</span>
+
+<span class="c1"># Returns who changed the item from the state it had in this version.</span>
+<span class="n">version</span><span class="o">.</span><span class="n">terminator</span>
+<span class="n">version</span><span class="o">.</span><span class="n">whodunnit</span>
+<span class="n">version</span><span class="o">.</span><span class="n">version_author</span>
+
+<span class="c1"># Returns the next version.</span>
+<span class="n">version</span><span class="o">.</span><span class="n">next</span>
+
+<span class="c1"># Returns the previous version.</span>
+<span class="n">version</span><span class="o">.</span><span class="n">previous</span>
+
+<span class="c1"># Returns the index of this version in all the versions.</span>
+<span class="n">version</span><span class="o">.</span><span class="n">index</span>
+
+<span class="c1"># Returns the event that caused this version (create|update|destroy).</span>
+<span class="n">version</span><span class="o">.</span><span class="n">event</span>
+</pre></div>
+
+<p>In your controllers you can override these methods:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Returns the user who is responsible for any changes that occur.</span>
+<span class="c1"># Defaults to current_user.</span>
+<span class="n">user_for_paper_trail</span>
+
+<span class="c1"># Returns any information about the controller or request that you want</span>
+<span class="c1"># PaperTrail to store alongside any changes that occur.</span>
+<span class="n">info_for_paper_trail</span>
+</pre></div>
+
+<h2>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h2>
+
+<p>PaperTrail is simple to use.  Just add 15 characters to a model to get a paper trail of every <code>create</code>, <code>update</code>, and <code>destroy</code>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Widget</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This gives you a <code>versions</code> method which returns the paper trail of changes to your model.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">42</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span>             <span class="c1"># [&lt;PaperTrail::Version&gt;, &lt;PaperTrail::Version&gt;, ...]</span>
+</pre></div>
+
+<p>Once you have a version, you can find out what happened:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">v</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span>
+<span class="o">&gt;&gt;</span> <span class="n">v</span><span class="o">.</span><span class="n">event</span>                     <span class="c1"># 'update' (or 'create' or 'destroy')</span>
+<span class="o">&gt;&gt;</span> <span class="n">v</span><span class="o">.</span><span class="n">whodunnit</span>                 <span class="c1"># '153'  (if the update was via a controller and</span>
+                               <span class="c1">#         the controller has a current_user method,</span>
+                               <span class="c1">#         here returning the id of the current user)</span>
+<span class="o">&gt;&gt;</span> <span class="n">v</span><span class="o">.</span><span class="n">created_at</span>                <span class="c1"># when the update occurred</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">reify</span>            <span class="c1"># the widget as it was before the update;</span>
+                               <span class="c1"># would be nil for a create event</span>
+</pre></div>
+
+<p>PaperTrail stores the pre-change version of the model, unlike some other auditing/versioning plugins, so you can retrieve the original version.  This is useful when you start keeping a paper trail for models that already have records in the database.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">153</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">name</span>                                 <span class="c1"># 'Doobly'</span>
+
+<span class="c1"># Add has_paper_trail to Widget model.</span>
+
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span>                             <span class="c1"># []</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Wotsit'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">reify</span><span class="o">.</span><span class="n">name</span>             <span class="c1"># 'Doobly'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">event</span>                  <span class="c1"># 'update'</span>
+</pre></div>
+
+<p>This also means that PaperTrail does not waste space storing a version of the object as it currently stands.  The <code>versions</code> method gives you previous versions; to get the current one just call a finder on your <code>Widget</code> model as usual.</p>
+
+<p>Here's a helpful table showing what PaperTrail stores:</p>
+
+<table>
+<tr>
+<th>Event</th>
+    <th>Model Before</th>
+    <th>Model After</th>
+  </tr>
+<tr>
+<td>create</td>
+    <td>nil</td>
+    <td>widget</td>
+  </tr>
+<tr>
+<td>update</td>
+    <td>widget</td>
+    <td>widget'</td>
+  </tr>
+<tr>
+<td>destroy</td>
+    <td>widget</td>
+    <td>nil</td>
+  </tr>
+</table><p>PaperTrail stores the values in the Model Before column.  Most other auditing/versioning plugins store the After column.</p>
+
+<h2>
+<a name="user-content-choosing-lifecycle-events-to-monitor" class="anchor" href="#choosing-lifecycle-events-to-monitor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing Lifecycle Events To Monitor</h2>
+
+<p>You can choose which events to track with the <code>on</code> option.  For example, to ignore <code>create</code> events:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:on</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:update</span><span class="p">,</span> <span class="ss">:destroy</span><span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You may also have the <code>PaperTrail::Version</code> model save a custom string in it's <code>event</code> field instead of the typical <code>create</code>, <code>update</code>, <code>destroy</code>.
+PaperTrail supplies a custom accessor method called <code>paper_trail_event</code>, which it will attempt to use to fill the <code>event</code> field before
+falling back on one of the default events.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">create</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">size</span>                           <span class="c1"># 1</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">event</span>                     <span class="c1"># 'create'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">paper_trail_event</span> <span class="o">=</span> <span class="s1">'update title'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s1">'My Title'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">size</span>                           <span class="c1"># 2</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">event</span>                     <span class="c1"># 'update title'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">paper_trail_event</span> <span class="o">=</span> <span class="kp">nil</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s2">"Alternate"</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">size</span>                           <span class="c1"># 3</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">event</span>                     <span class="c1"># 'update'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-choosing-when-to-save-new-versions" class="anchor" href="#choosing-when-to-save-new-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing When To Save New Versions</h2>
+
+<p>You can choose the conditions when to add new versions with the <code>if</code> and <code>unless</code> options. For example, to save versions only for US non-draft translations:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Translation</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:if</span>     <span class="o">=&gt;</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span> <span class="n">t</span><span class="o">.</span><span class="n">language_code</span> <span class="o">==</span> <span class="s1">'US'</span> <span class="p">},</span>
+                  <span class="ss">:unless</span> <span class="o">=&gt;</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">t</span><span class="o">|</span> <span class="n">t</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">'DRAFT'</span>       <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-choosing-attributes-to-monitor" class="anchor" href="#choosing-attributes-to-monitor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Choosing Attributes To Monitor</h2>
+
+<p>You can ignore changes to certain attributes like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:ignore</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:title</span><span class="p">,</span> <span class="ss">:rating</span><span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This means that changes to just the <code>title</code> or <code>rating</code> will not store another version of the article.  It does not mean that the <code>title</code> and <code>rating</code> attributes will be ignored if some other change causes a new <code>PaperTrail::Version</code> to be created.  For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">create</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 1</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s1">'My Title'</span><span class="p">,</span> <span class="ss">:rating</span> <span class="o">=&gt;</span> <span class="mi">3</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 1</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s1">'Greeting'</span><span class="p">,</span> <span class="ss">:content</span> <span class="o">=&gt;</span> <span class="s1">'Hello'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 2</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">previous_version</span><span class="o">.</span><span class="n">title</span>                  <span class="c1"># 'My Title'</span>
+</pre></div>
+
+<p>Or, you can specify a list of all attributes you care about:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:title</span><span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This means that only changes to the <code>title</code> will save a version of the article:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">create</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 1</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s1">'My Title'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 2</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:content</span> <span class="o">=&gt;</span> <span class="s1">'Hello'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 2</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">previous_version</span><span class="o">.</span><span class="n">content</span>                <span class="c1"># nil</span>
+</pre></div>
+
+<p>The <code>:ignore</code> and <code>:only</code> options can also accept <code>Hash</code> arguments, where the :</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:only</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:title</span> <span class="o">=&gt;</span> <span class="no">Proc</span><span class="o">.</span><span class="n">new</span> <span class="p">{</span> <span class="o">|</span><span class="n">obj</span><span class="o">|</span> <span class="o">!</span><span class="n">obj</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">blank?</span> <span class="p">}</span> <span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This means that if the <code>title</code> is not blank, then only changes to the <code>title</code> will save a version of the article:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">a</span> <span class="o">=</span> <span class="no">Article</span><span class="o">.</span><span class="n">create</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 1</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:content</span> <span class="o">=&gt;</span> <span class="s1">'Hello'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 2</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s1">'My Title'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 3</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:content</span> <span class="o">=&gt;</span> <span class="s1">'Hai'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 3</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">previous_version</span><span class="o">.</span><span class="n">content</span>                <span class="c1"># "Hello"</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:title</span> <span class="o">=&gt;</span> <span class="s1">'Dif Title'</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>                         <span class="c1"># 4</span>
+<span class="o">&gt;&gt;</span> <span class="n">a</span><span class="o">.</span><span class="n">previous_version</span><span class="o">.</span><span class="n">content</span>                <span class="c1"># "Hai"</span>
+</pre></div>
+
+<p>Passing both <code>:ignore</code> and <code>:only</code> options will result in the article being saved if a changed attribute is included in <code>:only</code> but not in <code>:ignore</code>.</p>
+
+<p>You can skip fields altogether with the <code>:skip</code> option.  As with <code>:ignore</code>, updates to these fields will not create a new <code>PaperTrail::Version</code>.  In addition, these fields will not be included in the serialized version of the object whenever a new <code>PaperTrail::Version</code> is created.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:skip</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:file_upload</span><span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-reverting-and-undeleting-a-model" class="anchor" href="#reverting-and-undeleting-a-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reverting And Undeleting A Model</h2>
+
+<p>PaperTrail makes reverting to a previous version easy:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">42</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Blah blah'</span>
+<span class="c1"># Time passes....</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">previous_version</span>  <span class="c1"># the widget as it was before the update</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">save</span>                       <span class="c1"># reverted</span>
+</pre></div>
+
+<p>Alternatively you can find the version at a given time:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">version_at</span><span class="p">(</span><span class="mi">1</span><span class="o">.</span><span class="n">day</span><span class="o">.</span><span class="n">ago</span><span class="p">)</span>  <span class="c1"># the widget as it was one day ago</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">save</span>                            <span class="c1"># reverted</span>
+</pre></div>
+
+<p>Note <code>version_at</code> gives you the object, not a version, so you don't need to call <code>reify</code>.</p>
+
+<p>Undeleting is just as simple:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">42</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">destroy</span>
+<span class="c1"># Time passes....</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">PaperTrail</span><span class="o">::</span><span class="no">Version</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">153</span><span class="p">)</span><span class="o">.</span><span class="n">reify</span>  <span class="c1"># the widget as it was before destruction</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">save</span>                         <span class="c1"># the widget lives!</span>
+</pre></div>
+
+<p>In fact you could use PaperTrail to implement an undo system, though I haven't had the opportunity yet to do it myself.  However <a href="http://railscasts.com/episodes/255-undo-with-paper-trail">Ryan Bates has</a>!</p>
+
+<h2>
+<a name="user-content-navigating-versions" class="anchor" href="#navigating-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Navigating Versions</h2>
+
+<p>You can call <code>previous_version</code> and <code>next_version</code> on an item to get it as it was/became.  Note that these methods reify the item for you.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">live_widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">42</span>
+<span class="o">&gt;&gt;</span> <span class="n">live_widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">length</span>           <span class="c1"># 4 for example</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">live_widget</span><span class="o">.</span><span class="n">previous_version</span> <span class="c1"># =&gt; widget == live_widget.versions.last.reify</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">previous_version</span>      <span class="c1"># =&gt; widget == live_widget.versions[-2].reify</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">next_version</span>          <span class="c1"># =&gt; widget == live_widget.versions.last.reify</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">next_version</span>                   <span class="c1"># live_widget</span>
+</pre></div>
+
+<p>If instead you have a particular <code>version</code> of an item you can navigate to the previous and next versions.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">42</span>
+<span class="o">&gt;&gt;</span> <span class="n">version</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">[-</span><span class="mi">2</span><span class="o">]</span>    <span class="c1"># assuming widget has several versions</span>
+<span class="o">&gt;&gt;</span> <span class="n">previous</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">previous</span>
+<span class="o">&gt;&gt;</span> <span class="k">next</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">next</span>
+</pre></div>
+
+<p>You can find out which of an item's versions yours is:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">current_version_number</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">index</span>    <span class="c1"># 0-based</span>
+</pre></div>
+
+<p>Finally, if you got an item by reifying one of its versions, you can navigate back to the version it came from:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">latest_version</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">latest_version</span><span class="o">.</span><span class="n">reify</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="n">latest_version</span>    <span class="c1"># true</span>
+</pre></div>
+
+<p>You can find out whether a model instance is the current, live one -- or whether it came instead from a previous version -- with <code>live?</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">42</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">live?</span>                        <span class="c1"># true</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">previous_version</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">live?</span>                        <span class="c1"># false</span>
+</pre></div>
+
+<h2>
+<a name="user-content-finding-out-who-was-responsible-for-a-change" class="anchor" href="#finding-out-who-was-responsible-for-a-change" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finding Out Who Was Responsible For A Change</h2>
+
+<p>If your <code>ApplicationController</code> has a <code>current_user</code> method, PaperTrail will store the value it returns in the version's <code>whodunnit</code> column.  Note that this column is of type <code>String</code>, so you will have to convert it to an integer if it's an id and you want to look up the user later on:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">last_change</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span>
+<span class="o">&gt;&gt;</span> <span class="n">user_who_made_the_change</span> <span class="o">=</span> <span class="no">User</span><span class="o">.</span><span class="n">find</span> <span class="n">last_change</span><span class="o">.</span><span class="n">whodunnit</span><span class="o">.</span><span class="n">to_i</span>
+</pre></div>
+
+<p>You may want PaperTrail to call a different method to find out who is responsible.  To do so, override the <code>user_for_paper_trail</code> method in your controller like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">user_for_paper_trail</span>
+    <span class="n">logged_in?</span> <span class="p">?</span> <span class="n">current_member</span><span class="o">.</span><span class="n">id</span> <span class="p">:</span> <span class="s1">'Public user'</span>  <span class="c1"># or whatever</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>In a console session you can manually set who is responsible like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">whodunnit</span> <span class="o">=</span> <span class="s1">'Andy Stewart'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Wibble'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">whodunnit</span>              <span class="c1"># Andy Stewart</span>
+</pre></div>
+
+<p>You can avoid having to do this manually by setting your initializer to pick up the username of the current user from the OS, like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/initializers/paper_trail.rb</span>
+
+<span class="c1"># the following line is required for PaperTrail &gt;= 3.0.3 with Rails</span>
+<span class="no">PaperTrail</span><span class="o">::</span><span class="no">Rails</span><span class="o">::</span><span class="no">Engine</span><span class="o">.</span><span class="n">eager_load!</span>
+
+<span class="k">if</span> <span class="n">defined?</span><span class="p">(</span><span class="o">::</span><span class="no">Rails</span><span class="o">::</span><span class="no">Console</span><span class="p">)</span>
+  <span class="no">PaperTrail</span><span class="o">.</span><span class="n">whodunnit</span> <span class="o">=</span> <span class="s2">"</span><span class="si">#{</span><span class="sb">`whoami`</span><span class="o">.</span><span class="n">strip</span><span class="si">}</span><span class="s2">: console"</span>
+<span class="k">elsif</span> <span class="no">File</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="vg">$0</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"rake"</span>
+  <span class="no">PaperTrail</span><span class="o">.</span><span class="n">whodunnit</span> <span class="o">=</span> <span class="s2">"</span><span class="si">#{</span><span class="sb">`whoami`</span><span class="o">.</span><span class="n">strip</span><span class="si">}</span><span class="s2">: rake </span><span class="si">#{</span><span class="no">ARGV</span><span class="o">.</span><span class="n">join</span> <span class="s1">' '</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Sometimes you want to define who is responsible for a change in a small scope without overwriting value of <code>PaperTrail.whodunnit</code>. It is possible to define the <code>whodunnit</code> value for an operation inside a block like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">whodunnit</span> <span class="o">=</span> <span class="s1">'Andy Stewart'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">whodunnit</span><span class="p">(</span><span class="s1">'Lucas Souza'</span><span class="p">)</span> <span class="k">do</span>
+<span class="o">&gt;&gt;</span>   <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Wibble'</span>
+<span class="o">&gt;&gt;</span> <span class="k">end</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">whodunnit</span>              <span class="c1"># Lucas Souza</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Clair'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">whodunnit</span>              <span class="c1"># Andy Stewart</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">whodunnit</span><span class="p">(</span><span class="s1">'Ben Atkins'</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">w</span><span class="o">|</span> <span class="n">w</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Beth'</span> <span class="p">}</span> <span class="c1"># this syntax also works</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">whodunnit</span>              <span class="c1"># Ben Atkins</span>
+</pre></div>
+
+<p>A version's <code>whodunnit</code> records who changed the object causing the <code>version</code> to be stored.  Because a version stores the object as it looked before the change (see the table above), <code>whodunnit</code> returns who stopped the object looking like this -- not who made it look like this.  Hence <code>whodunnit</code> is aliased as <code>terminator</code>.</p>
+
+<p>To find out who made a version's object look that way, use <code>version.originator</code>.  And to find out who made a "live" object look like it does, use <code>originator</code> on the object.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">find</span> <span class="mi">153</span>                    <span class="c1"># assume widget has 0 versions</span>
+<span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">whodunnit</span> <span class="o">=</span> <span class="s1">'Alice'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Yankee'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">originator</span>                           <span class="c1"># 'Alice'</span>
+<span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">whodunnit</span> <span class="o">=</span> <span class="s1">'Bob'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Zulu'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">originator</span>                           <span class="c1"># 'Bob'</span>
+<span class="o">&gt;&gt;</span> <span class="n">first_version</span><span class="p">,</span> <span class="n">last_version</span> <span class="o">=</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">first</span><span class="p">,</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span>
+<span class="o">&gt;&gt;</span> <span class="n">first_version</span><span class="o">.</span><span class="n">whodunnit</span>                     <span class="c1"># 'Alice'</span>
+<span class="o">&gt;&gt;</span> <span class="n">first_version</span><span class="o">.</span><span class="n">originator</span>                    <span class="c1"># nil</span>
+<span class="o">&gt;&gt;</span> <span class="n">first_version</span><span class="o">.</span><span class="n">terminator</span>                    <span class="c1"># 'Alice'</span>
+<span class="o">&gt;&gt;</span> <span class="n">last_version</span><span class="o">.</span><span class="n">whodunnit</span>                      <span class="c1"># 'Bob'</span>
+<span class="o">&gt;&gt;</span> <span class="n">last_version</span><span class="o">.</span><span class="n">originator</span>                     <span class="c1"># 'Alice'</span>
+<span class="o">&gt;&gt;</span> <span class="n">last_version</span><span class="o">.</span><span class="n">terminator</span>                     <span class="c1"># 'Bob'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-custom-version-classes" class="anchor" href="#custom-version-classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Version Classes</h2>
+
+<p>You can specify custom version subclasses with the <code>:class_name</code> option:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostVersion</span> <span class="o">&lt;</span> <span class="no">PaperTrail</span><span class="o">::</span><span class="no">Version</span>
+  <span class="c1"># custom behaviour, e.g:</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">table_name</span> <span class="o">=</span> <span class="ss">:post_versions</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:class_name</span> <span class="o">=&gt;</span> <span class="s1">'PostVersion'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This allows you to store each model's versions in a separate table, which is useful if you have a lot of versions being created.</p>
+
+<p>If you are using Postgres, you should also define the sequence that your custom version class will use:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">PostVersion</span> <span class="o">&lt;</span> <span class="no">PaperTrail</span><span class="o">::</span><span class="no">Version</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">table_name</span> <span class="o">=</span> <span class="ss">:post_versions</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">sequence_name</span> <span class="o">=</span> <span class="ss">:post_version_id_seq</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Alternatively you could store certain metadata for one type of version, and other metadata for other versions.</p>
+
+<p>If you only use custom version classes and don't use PaperTrail's built-in one, on Rails <code>&gt;= 3.2</code> you must:</p>
+
+<ul class="task-list">
+<li>either declare the <code>PaperTrail::Version</code> class to be abstract like this (in an initializer):</li>
+</ul><div class="highlight highlight-ruby"><pre><span class="c1"># config/initializers/paper_trail.rb</span>
+
+<span class="c1"># the following line is required for PaperTrail &gt;= 3.0.3 with Rails</span>
+<span class="no">PaperTrail</span><span class="o">::</span><span class="no">Rails</span><span class="o">::</span><span class="no">Engine</span><span class="o">.</span><span class="n">eager_load!</span>
+
+<span class="no">PaperTrail</span><span class="o">::</span><span class="no">Version</span><span class="o">.</span><span class="n">module_eval</span> <span class="k">do</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">abstract_class</span> <span class="o">=</span> <span class="kp">true</span>
+<span class="k">end</span>
+</pre></div>
+
+<ul class="task-list">
+<li>or create a <code>versions</code> table in the database so Rails can instantiate the <code>PaperTrail::Version</code> superclass.</li>
+</ul><p>You can also specify custom names for the versions and version associations.  This is useful if you already have <code>versions</code> or/and <code>version</code> methods on your model.  For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:versions</span> <span class="o">=&gt;</span> <span class="ss">:paper_trail_versions</span><span class="p">,</span>
+                  <span class="ss">:version</span>  <span class="o">=&gt;</span> <span class="ss">:paper_trail_version</span>
+
+  <span class="c1"># Existing versions method.  We don't want to clash.</span>
+  <span class="k">def</span> <span class="nf">versions</span>
+    <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+  <span class="k">end</span>
+  <span class="c1"># Existing version method.  We don't want to clash.</span>
+  <span class="k">def</span> <span class="nf">version</span>
+    <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-associations" class="anchor" href="#associations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Associations</h2>
+
+<p>I haven't yet found a good way to get PaperTrail to automatically restore associations when you reify a model.  See <a href="http://airbladesoftware.com/notes/undo-and-redo-with-papertrail">here for a little more info</a>.</p>
+
+<p>If you can think of a good way to achieve this, please let me know.</p>
+
+<h2>
+<a name="user-content-has-one-associations" class="anchor" href="#has-one-associations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Has-One Associations</h2>
+
+<p>PaperTrail can restore <code>:has_one</code> associations as they were at (actually, 3 seconds before) the time.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Location</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:treasure</span>
+  <span class="n">has_paper_trail</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Treasure</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_one</span> <span class="ss">:location</span>
+  <span class="n">has_paper_trail</span>
+<span class="k">end</span>
+
+<span class="o">&gt;&gt;</span> <span class="n">treasure</span><span class="o">.</span><span class="n">amount</span>                  <span class="c1"># 100</span>
+<span class="o">&gt;&gt;</span> <span class="n">treasure</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">latitude</span>       <span class="c1"># 12.345</span>
+
+<span class="o">&gt;&gt;</span> <span class="n">treasure</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:amount</span> <span class="o">=&gt;</span> <span class="mi">153</span>
+<span class="o">&gt;&gt;</span> <span class="n">treasure</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:latitude</span> <span class="o">=&gt;</span> <span class="mi">54</span><span class="o">.</span><span class="mi">321</span>
+
+<span class="o">&gt;&gt;</span> <span class="n">t</span> <span class="o">=</span> <span class="n">treasure</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">reify</span><span class="p">(</span><span class="ss">:has_one</span> <span class="o">=&gt;</span> <span class="kp">true</span><span class="p">)</span>
+<span class="o">&gt;&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">amount</span>                         <span class="c1"># 100</span>
+<span class="o">&gt;&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">latitude</span>              <span class="c1"># 12.345</span>
+</pre></div>
+
+<p>The implementation is complicated by the edge case where the parent and child are updated in one go, e.g. in one web request or database transaction.  PaperTrail doesn't know about different models being updated "together", so you can't ask it definitively to get the child as it was before the joint parent-and-child update.</p>
+
+<p>The correct solution is to make PaperTrail aware of requests or transactions (c.f. <a href="http://github.com/efficiency20/ops_middleware/blob/master/lib/e20/ops/middleware/transaction_id_middleware.rb">Efficiency's transaction ID middleware</a>).  In the meantime we work around the problem by finding the child as it was a few seconds before the parent was updated.  By default we go 3 seconds before but you can change this by passing the desired number of seconds to the <code>:has_one</code> option:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">t</span> <span class="o">=</span> <span class="n">treasure</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">reify</span><span class="p">(</span><span class="ss">:has_one</span> <span class="o">=&gt;</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># look back 1 second instead of 3</span>
+</pre></div>
+
+<p>If you are shuddering, take solace from knowing PaperTrail opts out of these shenanigans by default. This means your <code>:has_one</code> associated objects will be the live ones, not the ones the user saw at the time.  Since PaperTrail doesn't auto-restore <code>:has_many</code> associations (I can't get it to work) or <code>:belongs_to</code> (I ran out of time looking at <code>:has_many</code>), this at least makes your associations wrong consistently ;)</p>
+
+<h2>
+<a name="user-content-has-many-through-associations" class="anchor" href="#has-many-through-associations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Has-Many-Through Associations</h2>
+
+<p>PaperTrail can track most changes to the join table.  Specifically it can track all additions but it can only track removals which fire the <code>after_destroy</code> callback on the join table.  Here are some examples:</p>
+
+<p>Given these models:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Book</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_many</span> <span class="ss">:authorships</span><span class="p">,</span> <span class="ss">:dependent</span> <span class="o">=&gt;</span> <span class="ss">:destroy</span>
+  <span class="n">has_many</span> <span class="ss">:authors</span><span class="p">,</span> <span class="ss">:through</span> <span class="o">=&gt;</span> <span class="ss">:authorships</span><span class="p">,</span> <span class="ss">:source</span> <span class="o">=&gt;</span> <span class="ss">:person</span>
+  <span class="n">has_paper_trail</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Authorship</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:book</span>
+  <span class="n">belongs_to</span> <span class="ss">:person</span>
+  <span class="n">has_paper_trail</span>      <span class="c1"># NOTE</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">Person</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_many</span> <span class="ss">:authorships</span><span class="p">,</span> <span class="ss">:dependent</span> <span class="o">=&gt;</span> <span class="ss">:destroy</span>
+  <span class="n">has_many</span> <span class="ss">:books</span><span class="p">,</span> <span class="ss">:through</span> <span class="o">=&gt;</span> <span class="ss">:authorships</span>
+  <span class="n">has_paper_trail</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then each of the following will store authorship versions:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">authors</span> <span class="o">&lt;&lt;</span> <span class="vi">@dostoyevsky</span>
+<span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">authors</span><span class="o">.</span><span class="n">create</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Tolstoy'</span>
+<span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">authorships</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">destroy</span>
+<span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">authorships</span><span class="o">.</span><span class="n">clear</span>
+</pre></div>
+
+<p>But none of these will:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">authors</span><span class="o">.</span><span class="n">delete</span> <span class="vi">@tolstoy</span>
+<span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">author_ids</span> <span class="o">=</span> <span class="o">[</span><span class="vi">@solzhenistyn</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="vi">@dostoyevsky</span><span class="o">.</span><span class="n">id</span><span class="o">]</span>
+<span class="o">&gt;&gt;</span> <span class="vi">@book</span><span class="o">.</span><span class="n">authors</span> <span class="o">=</span> <span class="o">[]</span>
+</pre></div>
+
+<p>Having said that, you can apparently get all these working (I haven't tested it myself) with this patch:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># In config/initializers/active_record_patch.rb</span>
+<span class="k">module</span> <span class="nn">ActiveRecord</span>
+  <span class="c1"># = Active Record Has Many Through Association</span>
+  <span class="k">module</span> <span class="nn">Associations</span>
+    <span class="k">class</span> <span class="nc">HasManyThroughAssociation</span> <span class="o">&lt;</span> <span class="no">HasManyAssociation</span> <span class="c1">#:nodoc:</span>
+      <span class="n">alias_method</span> <span class="ss">:original_delete_records</span><span class="p">,</span> <span class="ss">:delete_records</span>
+
+      <span class="k">def</span> <span class="nf">delete_records</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="nb">method</span><span class="p">)</span>
+        <span class="nb">method</span> <span class="o">||=</span> <span class="ss">:destroy</span>
+        <span class="n">original_delete_records</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="nb">method</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>See <a href="https://github.com/airblade/paper_trail/issues/113">issue 113</a> for a discussion about this.</p>
+
+<p>There may be a way to store authorship versions, probably using association callbacks, no matter how the collection is manipulated but I haven't found it yet.  Let me know if you do.</p>
+
+<p>There has been some discussion of how to implement PaperTrail to fully track HABTM associations. See <a href="https://github.com/airblade/paper_trail/pull/90">pull 90</a> for an implementation that has worked for some.</p>
+
+<h2>
+<a name="user-content-storing-metadata" class="anchor" href="#storing-metadata" aria-hidden="true"><span class="octicon octicon-link"></span></a>Storing metadata</h2>
+
+<p>You can store arbitrary model-level metadata alongside each version like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Article</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:author</span>
+  <span class="n">has_paper_trail</span> <span class="ss">:meta</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:author_id</span>  <span class="o">=&gt;</span> <span class="ss">:author_id</span><span class="p">,</span>
+                             <span class="ss">:word_count</span> <span class="o">=&gt;</span> <span class="ss">:count_words</span><span class="p">,</span>
+                             <span class="ss">:answer</span>     <span class="o">=&gt;</span> <span class="mi">42</span> <span class="p">}</span>
+  <span class="k">def</span> <span class="nf">count_words</span>
+    <span class="mi">153</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>PaperTrail will call your proc with the current article and store the result in the <code>author_id</code> column of the <code>versions</code> table.</p>
+
+<p>N.B.  You must also:</p>
+
+<ul class="task-list">
+<li>Add your metadata columns to the <code>versions</code> table.</li>
+<li>Declare your metadata columns using <code>attr_accessible</code>. (If you are using <code>ActiveRecord 3</code>, or <code>ActiveRecord 4</code> with the <a href="https://github.com/rails/protected_attributes">ProtectedAttributes</a> gem)</li>
+</ul><p>For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># config/initializers/paper_trail.rb</span>
+
+<span class="c1"># the following line is required for PaperTrail &gt;= 3.0.3 with Rails</span>
+<span class="no">PaperTrail</span><span class="o">::</span><span class="no">Rails</span><span class="o">::</span><span class="no">Engine</span><span class="o">.</span><span class="n">eager_load!</span>
+
+<span class="k">module</span> <span class="nn">PaperTrail</span>
+  <span class="k">class</span> <span class="nc">Version</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+    <span class="n">attr_accessible</span> <span class="ss">:author_id</span><span class="p">,</span> <span class="ss">:word_count</span><span class="p">,</span> <span class="ss">:answer</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Why would you do this?  In this example, <code>author_id</code> is an attribute of <code>Article</code> and PaperTrail will store it anyway in a serialized form in the <code>object</code> column of the <code>version</code> record.  But let's say you wanted to pull out all versions for a particular author; without the metadata you would have to deserialize (reify) each <code>version</code> object to see if belonged to the author in question.  Clearly this is inefficient.  Using the metadata you can find just those versions you want:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">PaperTrail</span><span class="o">::</span><span class="no">Version</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="ss">:author_id</span> <span class="o">=&gt;</span> <span class="n">author_id</span><span class="p">)</span>
+</pre></div>
+
+<p>Note you can pass a symbol as a value in the <code>meta</code> hash to signal a method to call.</p>
+
+<p>You can also store any information you like from your controller.  Just override the <code>info_for_paper_trail</code> method in your controller to return a hash whose keys correspond to columns in your <code>versions</code> table.  E.g.:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span>
+  <span class="k">def</span> <span class="nf">info_for_paper_trail</span>
+    <span class="p">{</span> <span class="ss">:ip</span> <span class="o">=&gt;</span> <span class="n">request</span><span class="o">.</span><span class="n">remote_ip</span><span class="p">,</span> <span class="ss">:user_agent</span> <span class="o">=&gt;</span> <span class="n">request</span><span class="o">.</span><span class="n">user_agent</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Remember to add those extra columns to your <code>versions</code> table and use <code>attr_accessible</code> ;)</p>
+
+<p><strong>NOTE FOR RAILS 4:</strong> If you're using <a href="https://github.com/rails/strong_parameters">Strong Parameters</a> in Rails 4 and have <em>not</em> included the <code>protected_attributes</code> gem, there's no need to declare your metadata columns using <code>attr_accessible</code>.</p>
+
+<h2>
+<a name="user-content-diffing-versions" class="anchor" href="#diffing-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Diffing Versions</h2>
+
+<p>There are two scenarios: diffing adjacent versions and diffing non-adjacent versions.</p>
+
+<p>The best way to diff adjacent versions is to get PaperTrail to do it for you.  If you add an <code>object_changes</code> text column to your <code>versions</code> table, either at installation time with the <code>rails generate paper_trail:install --with-changes</code> option or manually, PaperTrail will store the <code>changes</code> diff (excluding any attributes PaperTrail is ignoring) in each <code>update</code> version.  You can use the <code>version.changeset</code> method to retrieve it.  For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="n">widget</span> <span class="o">=</span> <span class="no">Widget</span><span class="o">.</span><span class="n">create</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Bob'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">changeset</span>                <span class="c1"># {'name' =&gt; [nil, 'Bob']}</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Robert'</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">changeset</span>                <span class="c1"># {'name' =&gt; ['Bob', 'Robert']}</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">destroy</span>
+<span class="o">&gt;&gt;</span> <span class="n">widget</span><span class="o">.</span><span class="n">versions</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">changeset</span>                <span class="c1"># {}</span>
+</pre></div>
+
+<p>Note PaperTrail only stores the changes for creation and updates; it doesn't store anything when an object is destroyed.</p>
+
+<p>Please be aware that PaperTrail doesn't use diffs internally.  When I designed PaperTrail I wanted simplicity and robustness so I decided to make each version of an object self-contained.  A version stores all of its object's data, not a diff from the previous version.  This means you can delete any version without affecting any other.</p>
+
+<p>To diff non-adjacent versions you'll have to write your own code.  These libraries may help:</p>
+
+<p>For diffing two strings:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://github.com/myobie/htmldiff">htmldiff</a>: expects but doesn't require HTML input and produces HTML output.  Works very well but slows down significantly on large (e.g. 5,000 word) inputs.</li>
+<li>
+<a href="http://github.com/pvande/differ">differ</a>: expects plain text input and produces plain text/coloured/HTML/any output.  Can do character-wise, word-wise, line-wise, or arbitrary-boundary-string-wise diffs.  Works very well on non-HTML input.</li>
+<li>
+<a href="https://github.com/halostatue/diff-lcs">diff-lcs</a>: old-school, line-wise diffs.</li>
+</ul><p>For diffing two ActiveRecord objects:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://github.com/jeremyw/paper_trail/blob/master/lib/paper_trail/has_paper_trail.rb#L151-156">Jeremy Weiskotten's PaperTrail fork</a>: uses ActiveSupport's diff to return an array of hashes of the changes.</li>
+<li>
+<a href="http://github.com/tim/activerecord-diff">activerecord-diff</a>: rather like ActiveRecord::Dirty but also allows you to specify which columns to compare.</li>
+</ul><h2>
+<a name="user-content-turning-papertrail-offon" class="anchor" href="#turning-papertrail-offon" aria-hidden="true"><span class="octicon octicon-link"></span></a>Turning PaperTrail Off/On</h2>
+
+<p>Sometimes you don't want to store changes.  Perhaps you are only interested in changes made by your users and don't need to store changes you make yourself in, say, a migration -- or when testing your application.</p>
+
+<p>You can turn PaperTrail on or off in three ways: globally, per request, or per class.</p>
+
+<h3>
+<a name="user-content-globally" class="anchor" href="#globally" aria-hidden="true"><span class="octicon octicon-link"></span></a>Globally</h3>
+
+<p>On a global level you can turn PaperTrail off like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">false</span>
+</pre></div>
+
+<p>For example, you might want to disable PaperTrail in your Rails application's test environment to speed up your tests.  This will do it (note: this gets done automatically for <code>RSpec</code> and <code>Cucumber</code>, please see the <a href="#testing">Testing section</a>):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># in config/environments/test.rb</span>
+<span class="n">config</span><span class="o">.</span><span class="n">after_initialize</span> <span class="k">do</span>
+  <span class="no">PaperTrail</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">false</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you disable PaperTrail in your test environment but want to enable it for specific tests, you can add a helper like this to your test helper:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># in test/test_helper.rb</span>
+<span class="k">def</span> <span class="nf">with_versioning</span>
+  <span class="n">was_enabled</span> <span class="o">=</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">enabled?</span>
+  <span class="no">PaperTrail</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">true</span>
+  <span class="k">begin</span>
+    <span class="k">yield</span>
+  <span class="k">ensure</span>
+    <span class="no">PaperTrail</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">was_enabled</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>And then use it in your tests like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">test</span> <span class="s2">"something that needs versioning"</span> <span class="k">do</span>
+  <span class="n">with_versioning</span> <span class="k">do</span>
+    <span class="c1"># your test</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-per-request" class="anchor" href="#per-request" aria-hidden="true"><span class="octicon octicon-link"></span></a>Per request</h3>
+
+<p>You can turn PaperTrail on or off per request by adding a <code>paper_trail_enabled_for_controller</code> method to your controller which returns <code>true</code> or <code>false</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ApplicationController</span> <span class="o">&lt;</span> <span class="no">ActionController</span><span class="o">::</span><span class="no">Base</span>
+  <span class="k">def</span> <span class="nf">paper_trail_enabled_for_controller</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">user_agent</span> <span class="o">!=</span> <span class="s1">'Disable User-Agent'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-per-class" class="anchor" href="#per-class" aria-hidden="true"><span class="octicon octicon-link"></span></a>Per class</h3>
+
+<p>If you are about change some widgets and you don't want a paper trail of your changes, you can turn PaperTrail off like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">Widget</span><span class="o">.</span><span class="n">paper_trail_off!</span>
+</pre></div>
+
+<p>And on again like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">Widget</span><span class="o">.</span><span class="n">paper_trail_on!</span>
+</pre></div>
+
+<h3>
+<a name="user-content-per-method-call" class="anchor" href="#per-method-call" aria-hidden="true"><span class="octicon octicon-link"></span></a>Per method call</h3>
+
+<p>You can call a method without creating a new version using <code>without_versioning</code>.  It takes either a method name as a symbol:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@widget</span><span class="o">.</span><span class="n">without_versioning</span> <span class="ss">:destroy</span>
+</pre></div>
+
+<p>Or a block:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@widget</span><span class="o">.</span><span class="n">without_versioning</span> <span class="k">do</span>
+  <span class="vi">@widget</span><span class="o">.</span><span class="n">update_attributes</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Ford'</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-using-a-custom-serializer" class="anchor" href="#using-a-custom-serializer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using a custom serializer</h2>
+
+<p>By default, PaperTrail stores your changes as a <code>YAML</code> dump. You can override this with the serializer config option:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">serializer</span> <span class="o">=</span> <span class="no">MyCustomSerializer</span>
+</pre></div>
+
+<p>A valid serializer is a <code>module</code> (or <code>class</code>) that defines a <code>load</code> and <code>dump</code> method.  These serializers are included in the gem for your convenience:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/airblade/paper_trail/blob/master/lib/paper_trail/serializers/yaml.rb">YAML</a> - Default</li>
+<li><a href="https://github.com/airblade/paper_trail/blob/master/lib/paper_trail/serializers/json.rb">JSON</a></li>
+</ul><h2>
+<a name="user-content-limiting-the-number-of-versions-created-per-object-instance" class="anchor" href="#limiting-the-number-of-versions-created-per-object-instance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limiting the number of versions created per object instance</h2>
+
+<p>If you are wary of your <code>versions</code> table growing to an unwieldy size, or just don't care to track more than a certain number of versions per object,
+there is a configuration option that can be set to cap the number of versions saved per object. Note that this value must be numeric, and it only applies to
+versions other than <code>create</code> events (which will always be preserved if they are stored).</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># will make it so that a maximum of 4 versions will be stored for each object</span>
+<span class="c1"># (the 3 most recent ones plus a `create` event)</span>
+<span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">version_limit</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="c1"># disables/removes the version limit</span>
+<span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">version_limit</span> <span class="o">=</span> <span class="kp">nil</span>
+</pre></div>
+
+<h2>
+<a name="user-content-deleting-old-versions" class="anchor" href="#deleting-old-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deleting Old Versions</h2>
+
+<p>Over time your <code>versions</code> table will grow to an unwieldy size.  Because each version is self-contained (see the Diffing section above for more) you can simply delete any records you don't want any more.  For example:</p>
+
+<div class="highlight highlight-sql"><pre><span class="k">sql</span><span class="o">&gt;</span> <span class="k">delete</span> <span class="k">from</span> <span class="n">versions</span> <span class="k">where</span> <span class="n">created_at</span> <span class="o">&lt;</span> <span class="mi">2010</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">01</span><span class="p">;</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="o">&gt;&gt;</span> <span class="no">PaperTrail</span><span class="o">::</span><span class="no">Version</span><span class="o">.</span><span class="n">delete_all</span> <span class="o">[</span><span class="s2">"created_at &lt; ?"</span><span class="p">,</span> <span class="mi">1</span><span class="o">.</span><span class="n">week</span><span class="o">.</span><span class="n">ago</span><span class="o">]</span>
+</pre></div>
+
+<h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>You may want to turn PaperTrail off to speed up your tests.  See the <a href="#turning-papertrail-offon">Turning PaperTrail Off/On</a> section above for tips on usage with <code>Test::Unit</code>.</p>
+
+<h3>
+<a name="user-content-rspec" class="anchor" href="#rspec" aria-hidden="true"><span class="octicon octicon-link"></span></a>RSpec</h3>
+
+<p>PaperTrail provides a helper that works with <a href="https://github.com/rspec/rspec">RSpec</a> to make it easier to control when <code>PaperTrail</code> is enabled
+during testing. By default, PaperTrail will be turned off for all tests.
+When you wish to enable PaperTrail for a test you can either wrap the test in a <code>with_versioning</code> block, or pass in <code>:versioning =&gt; true</code> option to a spec block, like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">describe</span> <span class="s2">"RSpec test group"</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="s1">'by default, PaperTrail will be turned off'</span> <span class="k">do</span>
+    <span class="no">PaperTrail</span><span class="o">.</span><span class="n">should_not</span> <span class="n">be_enabled</span>
+  <span class="k">end</span>
+
+  <span class="n">with_versioning</span> <span class="k">do</span>
+    <span class="n">it</span> <span class="s1">'within a `with_versioning` block it will be turned on'</span> <span class="k">do</span>
+      <span class="no">PaperTrail</span><span class="o">.</span><span class="n">should</span> <span class="n">be_enabled</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="n">it</span> <span class="s1">'can be turned on at the `it` or `describe` level like this'</span><span class="p">,</span> <span class="ss">:versioning</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="k">do</span>
+    <span class="no">PaperTrail</span><span class="o">.</span><span class="n">should</span> <span class="n">be_enabled</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The helper will also reset the <code>PaperTrail.whodunnit</code> value to <code>nil</code> before each test to help prevent data spillover between tests.
+If you are using PaperTrail with Rails, the helper will automatically set the <code>PaperTrail.controller_info</code> value to <code>{}</code> as well, again, to help prevent data spillover between tests.</p>
+
+<p>There is also a <code>be_versioned</code> matcher provided by PaperTrail's RSpec helper which can be leveraged like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Widget</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+<span class="k">end</span>
+
+<span class="n">describe</span> <span class="no">Widget</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="p">{</span> <span class="n">should_not</span> <span class="n">be_versioned</span> <span class="p">}</span>
+
+  <span class="n">describe</span> <span class="s2">"add versioning to the `Widget` class"</span> <span class="k">do</span>
+    <span class="n">before</span><span class="p">(</span><span class="ss">:all</span><span class="p">)</span> <span class="k">do</span>
+      <span class="k">class</span> <span class="nc">Widget</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+        <span class="n">has_paper_trail</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+
+    <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">be_versioned</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>It is also possible to do assertions on the versions using <code>have_a_version_with</code> matcher</p>
+
+<pre><code> describe '`have_a_version_with` matcher' do
+    before do
+      widget.update_attributes!(:name =&gt; 'Leonard', :an_integer =&gt; 1 )
+      widget.update_attributes!(:name =&gt; 'Tom')
+      widget.update_attributes!(:name =&gt; 'Bob')
+    end
+
+    it "is possible to do assertions on versions" do
+       widget.should have_a_version_with :name =&gt; 'Leonard', :an_integer =&gt; 1
+       widget.should have_a_version_with :an_integer =&gt; 1
+       widget.should have_a_version_with :name =&gt; 'Tom'
+    end
+  end
+
+</code></pre>
+
+<h3>
+<a name="user-content-cucumber" class="anchor" href="#cucumber" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cucumber</h3>
+
+<p>PaperTrail provides a helper for <a href="http://cukes.info">Cucumber</a> that works similar to the RSpec helper.
+By default, PaperTrail will be turned off for all scenarios by a <code>before</code> hook added by the helper.
+When you wish to enable PaperTrail for a scenario, you can wrap code in a <code>with_versioning</code> block in a step, like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Given</span> <span class="sr">/I want versioning on my model/</span> <span class="k">do</span>
+  <span class="n">with_versioning</span> <span class="k">do</span>
+    <span class="c1"># PaperTrail will be turned on for all code inside of this block</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The helper will also reset the <code>PaperTrail.whodunnit</code> value to <code>nil</code> before each test to help prevent data spillover between tests.
+If you are using PaperTrail with Rails, the helper will automatically set the <code>PaperTrail.controller_info</code> value to <code>{}</code> as well, again, to help prevent data spillover between tests.</p>
+
+<h3>
+<a name="user-content-spork" class="anchor" href="#spork" aria-hidden="true"><span class="octicon octicon-link"></span></a>Spork</h3>
+
+<p>If you wish to use the <code>RSpec</code> or <code>Cucumber</code> helpers with <a href="https://github.com/sporkrb/spork">Spork</a>, you will need to
+manually require the helper(s) in your <code>prefork</code> block on your test helper, like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># spec/spec_helper.rb</span>
+
+<span class="nb">require</span> <span class="s1">'spork'</span>
+
+<span class="no">Spork</span><span class="o">.</span><span class="n">prefork</span> <span class="k">do</span>
+  <span class="c1"># This file is copied to spec/ when you run 'rails generate rspec:install'</span>
+  <span class="no">ENV</span><span class="o">[</span><span class="s2">"RAILS_ENV"</span><span class="o">]</span> <span class="o">||=</span> <span class="s1">'test'</span>
+  <span class="nb">require</span> <span class="no">File</span><span class="o">.</span><span class="n">expand_path</span><span class="p">(</span><span class="s2">"../../config/environment"</span><span class="p">,</span> <span class="bp">__FILE__</span><span class="p">)</span>
+  <span class="nb">require</span> <span class="s1">'rspec/rails'</span>
+  <span class="nb">require</span> <span class="s1">'rspec/autorun'</span>
+  <span class="nb">require</span> <span class="s1">'paper_trail/frameworks/rspec'</span>
+  <span class="nb">require</span> <span class="s1">'paper_trail/frameworks/cucumber'</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-zeus-or-spring" class="anchor" href="#zeus-or-spring" aria-hidden="true"><span class="octicon octicon-link"></span></a>Zeus or Spring</h3>
+
+<p>If you wish to use the <code>RSpec</code> or <code>Cucumber</code> helpers with <a href="https://github.com/burke/zeus">Zeus</a> or <a href="https://github.com/rails/spring">Spring</a>, you will need to
+manually require the helper(s) in your test helper, like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># spec/spec_helper.rb</span>
+
+<span class="no">ENV</span><span class="o">[</span><span class="s2">"RAILS_ENV"</span><span class="o">]</span> <span class="o">||=</span> <span class="s1">'test'</span>
+<span class="nb">require</span> <span class="no">File</span><span class="o">.</span><span class="n">expand_path</span><span class="p">(</span><span class="s2">"../../config/environment"</span><span class="p">,</span> <span class="bp">__FILE__</span><span class="p">)</span>
+<span class="nb">require</span> <span class="s1">'rspec/rails'</span>
+<span class="nb">require</span> <span class="s1">'paper_trail/frameworks/rspec'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-testing-papertrail" class="anchor" href="#testing-papertrail" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing PaperTrail</h2>
+
+<p>Paper Trail has facilities to test aganist Postgres, Mysql and SQLite. To switch between DB engines you will need to export the DB Variable for the engine you wish to test aganist.</p>
+
+<p>Though be aware we do not have the abilty to create the db's (except sqlite) for you.   You can look at .travis.yml before_script for an example of how to create the db's needed.</p>
+
+<pre><code>export DB=postgres
+export DB=mysql
+export DB=sqlite # this is default
+</code></pre>
+
+<h2>
+<a name="user-content-articles" class="anchor" href="#articles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Articles</h2>
+
+<ul class="task-list">
+<li>
+<a href="http://www.sitepoint.com/versioning-papertrail">Versioning with PaperTrail</a>, <a href="http://www.sitepoint.com/author/ibodrov">Ilya Bodrov</a>, 10th April 2014</li>
+<li>
+<a href="http://rubyrailsexpert.com/?p=36">Using PaperTrail to track stack traces</a>, T James Corcoran's blog, 1st October 2013.</li>
+<li>
+<a href="http://railscasts.com/episodes/255-undo-with-paper-trail">RailsCast #255 - Undo with PaperTrail</a>, 28th February 2011.</li>
+<li>
+<a href="http://www.linux-mag.com/id/7528">Keep a Paper Trail with PaperTrail</a>, Linux Magazine, 16th September 2009.</li>
+</ul><h2>
+<a name="user-content-problems" class="anchor" href="#problems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Problems</h2>
+
+<p>Please use GitHub's <a href="http://github.com/airblade/paper_trail/issues">issue tracker</a>.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p>Many thanks to:</p>
+
+<ul class="task-list">
+<li><a href="https://github.com/dmitry">Dmitry Polushkin</a></li>
+<li><a href="https://github.com/rposborne">Russell Osborne</a></li>
+<li><a href="http://github.com/zacheryph">Zachery Hostens</a></li>
+<li><a href="http://github.com/jeremyw">Jeremy Weiskotten</a></li>
+<li><a href="http://github.com/revo">Phan Le</a></li>
+<li><a href="http://github.com/jdrucza">jdrucza</a></li>
+<li><a href="http://github.com/conickal">conickal</a></li>
+<li><a href="http://github.com/thibaudgg">Thibaud Guillaume-Gentil</a></li>
+<li>Danny Trelogan</li>
+<li><a href="http://github.com/mkurkov">Mikl Kurkov</a></li>
+<li><a href="https://github.com/francocatena">Franco Catena</a></li>
+<li><a href="https://github.com/emmanuel">Emmanuel Gomez</a></li>
+<li><a href="https://github.com/mattmacleod">Matthew MacLeod</a></li>
+<li><a href="https://github.com/benzittlau">benzittlau</a></li>
+<li><a href="https://github.com/EgoH">Tom Derks</a></li>
+<li><a href="https://github.com/jhoglund">Jonas Hoglund</a></li>
+<li><a href="https://github.com/MSNexploder">Stefan Huber</a></li>
+<li><a href="https://github.com/thinkcast">thinkcast</a></li>
+<li><a href="https://github.com/dsander">Dominik Sander</a></li>
+<li><a href="https://github.com/burke">Burke Libbey</a></li>
+<li><a href="https://github.com/6twenty">6twenty</a></li>
+<li><a href="https://github.com/nir0">nir0</a></li>
+<li><a href="https://github.com/edtsech">Eduard Tsech</a></li>
+<li><a href="https://github.com/mat813">Mathieu Arnold</a></li>
+<li><a href="https://github.com/throwern">Nicholas Thrower</a></li>
+<li><a href="https://github.com/stympy">Benjamin Curtis</a></li>
+<li><a href="https://github.com/pushcx">Peter Harkins</a></li>
+<li><a href="https://github.com/amree">Mohd Amree</a></li>
+<li><a href="https://github.com/nikitachernov">Nikita Cernovs</a></li>
+<li><a href="https://github.com/jasonnoble">Jason Noble</a></li>
+<li><a href="https://github.com/jrmehle">Jared Mehle</a></li>
+<li><a href="https://github.com/emschwar">Eric Schwartz</a></li>
+<li><a href="https://github.com/Empact">Ben Woosley</a></li>
+<li><a href="https://github.com/parndt">Philip Arndt</a></li>
+<li><a href="https://github.com/dvydra">Daniel Vydra</a></li>
+<li><a href="https://github.com/BM5k">Byron Bowerman</a></li>
+<li><a href="https://github.com/budu">Nicolas Buduroi</a></li>
+<li><a href="https://github.com/pikender">Pikender Sharma</a></li>
+<li><a href="https://github.com/cout">Paul Brannan</a></li>
+<li><a href="https://github.com/bmorrall">Ben Morrall</a></li>
+<li><a href="https://github.com/senny">Yves Senn</a></li>
+<li><a href="https://github.com/fullbridge-batkins">Ben Atkins</a></li>
+<li><a href="https://github.com/TylerRick">Tyler Rick</a></li>
+<li><a href="https://github.com/bradleypriest">Bradley Priest</a></li>
+<li><a href="https://github.com/dwbutler">David Butler</a></li>
+<li><a href="https://github.com/belt">Paul Belt</a></li>
+<li><a href="https://github.com/razum2um">Vlad Bokov</a></li>
+<li><a href="https://github.com/SeanMarcia">Sean Marcia</a></li>
+<li><a href="https://github.com/chulkilee">Chulki Lee</a></li>
+<li><a href="https://github.com/lucasas">Lucas Souza</a></li>
+<li><a href="https://github.com/rposborne">Russell Osborne</a></li>
+</ul><h2>
+<a name="user-content-inspirations" class="anchor" href="#inspirations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inspirations</h2>
+
+<ul class="task-list">
+<li><a href="http://github.com/github/simply_versioned">Simply Versioned</a></li>
+<li><a href="http://github.com/collectiveidea/acts_as_audited">Acts As Audited</a></li>
+</ul><h2>
+<a name="user-content-intellectual-property" class="anchor" href="#intellectual-property" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intellectual Property</h2>
+
+<p>Copyright (c) 2011 Andy Stewart (<a href="mailto:boss@airbladesoftware.com">boss@airbladesoftware.com</a>).
+Released under the MIT licence.</p></article></div>

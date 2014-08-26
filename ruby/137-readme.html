@@ -1,0 +1,293 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-vcr" class="anchor" href="#vcr" aria-hidden="true"><span class="octicon octicon-link"></span></a>VCR</h1>
+
+<p>Record your test suite's HTTP interactions and replay them during future test runs for fast, deterministic, accurate tests.</p>
+
+<p><a href="http://travis-ci.org/vcr/vcr"><img src="https://camo.githubusercontent.com/40bbaaa8fc90406dde27202395bd9acaa6ca73b7/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f7663722f7663722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/vcr/vcr.png?branch=master" style="max-width:100%;"></a> <a href="https://codeclimate.com/github/vcr/vcr"><img src="https://camo.githubusercontent.com/d312c84dd97960f656c5bec59429e0349bff209e/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f7663722f7663722e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/vcr/vcr.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synopsis</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'rubygems'</span>
+<span class="nb">require</span> <span class="s1">'test/unit'</span>
+<span class="nb">require</span> <span class="s1">'vcr'</span>
+
+<span class="no">VCR</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">c</span><span class="o">|</span>
+  <span class="n">c</span><span class="o">.</span><span class="n">cassette_library_dir</span> <span class="o">=</span> <span class="s1">'fixtures/vcr_cassettes'</span>
+  <span class="n">c</span><span class="o">.</span><span class="n">hook_into</span> <span class="ss">:webmock</span> <span class="c1"># or :fakeweb</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">VCRTest</span> <span class="o">&lt;</span> <span class="no">Test</span><span class="o">::</span><span class="no">Unit</span><span class="o">::</span><span class="no">TestCase</span>
+  <span class="k">def</span> <span class="nf">test_example_dot_com</span>
+    <span class="no">VCR</span><span class="o">.</span><span class="n">use_cassette</span><span class="p">(</span><span class="s1">'synopsis'</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">response</span> <span class="o">=</span> <span class="no">Net</span><span class="o">::</span><span class="no">HTTP</span><span class="o">.</span><span class="n">get_response</span><span class="p">(</span><span class="no">URI</span><span class="p">(</span><span class="s1">'http://www.iana.org/domains/reserved'</span><span class="p">))</span>
+      <span class="n">assert_match</span> <span class="sr">/Example domains/</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">body</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Run this test once, and VCR will record the http request to <code>fixtures/vcr_cassettes/synopsis.yml</code>.  Run it again, and VCR
+will replay the response from iana.org when the http request is made.  This test is now fast (no real HTTP requests are
+made anymore), deterministic (the test will continue to pass, even if you are offline, or iana.org goes down for
+maintenance) and accurate (the response will contain the same headers and body you get from a real request).</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Automatically records and replays your HTTP interactions with minimal setup/configuration code.</li>
+<li>Supports and works with the HTTP stubbing facilities of multiple libraries.  Currently, the
+following are supported:
+
+<ul class="task-list">
+<li><a href="https://github.com/bblimke/webmock">WebMock</a></li>
+<li><a href="https://github.com/typhoeus/typhoeus">Typhoeus</a></li>
+<li><a href="https://github.com/lostisland/faraday">Faraday</a></li>
+<li><a href="https://github.com/geemus/excon">Excon</a></li>
+<li>
+<a href="https://github.com/chrisk/fakeweb">FakeWeb</a> (deprecated)</li>
+</ul>
+</li>
+<li>Supports multiple HTTP libraries:
+
+<ul class="task-list">
+<li>
+<a href="http://github.com/toland/patron">Patron</a> (when using WebMock)</li>
+<li>
+<a href="http://github.com/taf2/curb">Curb</a> (when using WebMock -- only supports Curl::Easy at the moment)</li>
+<li>
+<a href="http://github.com/nahi/httpclient">HTTPClient</a> (when using WebMock)</li>
+<li>
+<a href="http://github.com/igrigorik/em-http-request">em-http-request</a> (when using WebMock)</li>
+<li>
+<a href="http://www.ruby-doc.org/stdlib/libdoc/net/http/rdoc/index.html">Net::HTTP</a> (when using FakeWeb and WebMock)</li>
+<li>
+<a href="https://github.com/typhoeus/typhoeus">Typhoeus</a> (Typhoeus::Hydra, but not Typhoeus::Easy or Typhoeus::Multi)</li>
+<li><a href="https://github.com/geemus/excon">Excon</a></li>
+<li><a href="https://github.com/lostisland/faraday">Faraday</a></li>
+<li>And of course any library built on Net::HTTP, such as <a href="http://github.com/sparklemotion/mechanize">Mechanize</a>,
+<a href="http://github.com/jnunemaker/httparty">HTTParty</a> or <a href="http://github.com/rest-client/rest-client">Rest Client</a>.</li>
+</ul>
+</li>
+<li>Request matching is configurable based on HTTP method, URI, host, path, body and headers, or you can easily
+implement a custom request matcher to handle any need.</li>
+<li>The same request can receive different responses in different tests--just use different cassettes.</li>
+<li>The recorded requests and responses are stored on disk in a serialization format of your choice
+(currently YAML and JSON are built in, and you can easily implement your own custom serializer)
+and can easily be inspected and edited.</li>
+<li>Dynamic responses are supported using ERB.</li>
+<li>Automatically re-records cassettes on a configurable regular interval to keep them fresh and current.</li>
+<li>Disables all HTTP requests that you don't explicitly allow.</li>
+<li>Simple cucumber integration is provided using tags.</li>
+<li>Includes convenient RSpec macro and integration with RSpec 2 metadata.</li>
+<li>Known to work well with many popular ruby libraries including RSpec 1 &amp; 2, Cucumber, Test::Unit,
+Capybara, Mechanize, Rest-Client and HTTParty.</li>
+<li>Includes Rack and Faraday middleware.</li>
+</ul><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The docs come in two flavors:</p>
+
+<ul class="task-list">
+<li>The <a href="https://relishapp.com/vcr/vcr/docs">relish docs</a> contain
+example-based documentation (VCR's cucumber suite, in fact). It's a
+good place to look when you are first getting started with VCR, or if
+you want to see an example of how to use a feature.</li>
+<li>The <a href="http://rubydoc.info/gems/vcr/frames">rubydoc.info docs</a> contain
+API documentation. The API docs contain detailed info about all of VCR's
+public API.</li>
+</ul><p>See the <a href="https://github.com/vcr/vcr/blob/master/Upgrade.md">Upgrade</a> doc
+for info about what's new and changed in VCR 2.0.</p>
+
+<p>There is also a Railscast, which will get you up and running in no-time <a href="http://railscasts.com/episodes/291-testing-with-vcr">http://railscasts.com/episodes/291-testing-with-vcr</a></p>
+
+<h2>
+<a name="user-content-release-policy" class="anchor" href="#release-policy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Release Policy</h2>
+
+<p>VCR follows the principles of <a href="http://semver.org/">semantic versioning</a>.
+The <a href="http://rubydoc.info/gems/vcr/frames">API documentation</a> define
+VCR's public API.  Patch level releases contain only bug fixes.  Minor
+releases contain backward-compatible new features.  Major new releases
+contain backwards-incompatible changes to the public API.</p>
+
+<h2>
+<a name="user-content-ruby-interpreter-compatibility" class="anchor" href="#ruby-interpreter-compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ruby Interpreter Compatibility</h2>
+
+<p>VCR has been tested on the following ruby interpreters:</p>
+
+<ul class="task-list">
+<li>MRI 1.8.7</li>
+<li>MRI 1.9.2</li>
+<li>MRI 1.9.3</li>
+<li>MRI 2.0.0</li>
+<li>REE 1.8.7</li>
+<li>JRuby</li>
+<li>Rubinius</li>
+</ul><p>Note that as of VCR 2, 1.8.6 and 1.9.1 are not supported.</p>
+
+<h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<ul class="task-list">
+<li>Source hosted on <a href="http://github.com/vcr/vcr">GitHub</a>.</li>
+<li>Direct questions and discussions to the IRC channel or
+the <a href="http://groups.google.com/group/vcr-ruby">mailing list</a>.</li>
+<li>Report issues on <a href="http://github.com/vcr/vcr/issues">GitHub Issues</a>.</li>
+<li>Pull requests are very welcome! Please include spec and/or feature coverage for every patch,
+and create a topic branch for every separate change you make.</li>
+<li>See the <a href="https://github.com/vcr/vcr/blob/master/CONTRIBUTING.md">Contributing</a>
+guide for instructions on running the specs and features.</li>
+<li>Code quality metrics are checked by <a href="https://codeclimate.com/github/vcr/vcr">Code Climate</a>.</li>
+<li>Documentation is generated with <a href="http://yardoc.org/">YARD</a> (<a href="http://cheat.errtheblog.com/s/yard">cheat sheet</a>).
+To generate while developing:</li>
+</ul><pre><code>yard server --reload
+</code></pre>
+
+<h2>
+<a name="user-content-thanks" class="anchor" href="#thanks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thanks</h2>
+
+<ul class="task-list">
+<li>
+<a href="http://github.com/aslakhellesoy">Aslak Hellesøy</a> for <a href="http://github.com/aslakhellesoy/cucumber">Cucumber</a>.</li>
+<li>
+<a href="http://github.com/bblimke">Bartosz Blimke</a> for <a href="http://github.com/bblimke/webmock">WebMock</a>.</li>
+<li>
+<a href="http://github.com/chrisk">Chris Kampmeier</a> for <a href="http://github.com/chrisk/fakeweb">FakeWeb</a>.</li>
+<li>
+<a href="http://github.com/chrisyoung">Chris Young</a> for <a href="http://github.com/chrisyoung/netrecorder">NetRecorder</a>,
+the inspiration for VCR.</li>
+<li>
+<a href="https://github.com/dbalatero">David Balatero</a> and <a href="https://github.com/i0rek">Hans Hasselberg</a>
+for help with <a href="https://github.com/typhoeus/typhoeus">Typhoeus</a> support.</li>
+<li>
+<a href="https://github.com/geemus">Wesley Beary</a> for help with <a href="https://github.com/geemus/excon">Excon</a>
+support.</li>
+<li>
+<a href="https://github.com/Jacobkg">Jacob Green</a> for help with ongoing VCR
+maintenance.</li>
+</ul><p>Thanks also to the following people who have contributed patches or helpful suggestions:</p>
+
+<ul class="task-list">
+<li><a href="http://github.com/aaronbrethorst">Aaron Brethorst</a></li>
+<li><a href="https://github.com/wenzowski">Alexander Wenzowski</a></li>
+<li><a href="https://github.com/austenito">Austen Ito</a></li>
+<li><a href="https://github.com/avdi">Avdi Grimm</a></li>
+<li><a href="http://github.com/bblimke">Bartosz Blimke</a></li>
+<li><a href="https://github.com/benjaminoakes">Benjamin Oakes</a></li>
+<li><a href="http://github.com/benhutton">Ben Hutton</a></li>
+<li><a href="https://github.com/bradleyisotope">Bradley Isotope</a></li>
+<li><a href="https://github.com/kirkconnell">Carlos Kirkconnell</a></li>
+<li><a href="https://github.com/cjolly">Chad Jolly</a></li>
+<li><a href="https://github.com/chrisle">Chris Le</a></li>
+<li><a href="https://github.com/cgunther">Chris Gunther</a></li>
+<li><a href="https://github.com/emaiax">Eduardo Maia</a></li>
+<li><a href="http://github.com/rubymaverick">Eric Allam</a></li>
+<li><a href="https://github.com/ezkl">Ezekiel Templin</a></li>
+<li><a href="https://github.com/closedbracket">Flaviu Simihaian</a></li>
+<li><a href="https://github.com/gordoncww">Gordon Wilson</a></li>
+<li><a href="https://github.com/i0rek">Hans Hasselberg</a></li>
+<li><a href="https://github.com/Hermanverschooten">Herman Verschooten</a></li>
+<li><a href="https://github.com/sigmavirus24">Ian Cordasco</a></li>
+<li><a href="https://github.com/ingemar">Ingemar</a></li>
+<li><a href="https://github.com/quidproquo">Ilya Scharrenbroich</a></li>
+<li><a href="https://github.com/Jacobkg">Jacob Green</a></li>
+<li><a href="https://github.com/jbence">James Bence</a></li>
+<li><a href="https://github.com/jayshepherd">Jay Shepherd</a></li>
+<li><a href="https://github.com/Fluxx">Jeff Pollard</a></li>
+<li><a href="https://github.com/begriffs">Joe Nelson</a></li>
+<li><a href="https://github.com/JonathanTron">Jonathan Tron</a></li>
+<li><a href="https://github.com/jsmestad">Justin Smestad</a></li>
+<li><a href="https://github.com/kbaum">Karl Baum</a></li>
+<li><a href="https://github.com/kris-luminar">Kris Luminar</a></li>
+<li><a href="https://github.com/kurtfunai">Kurt Funai</a></li>
+<li><a href="https://github.com/plukevdh">Luke van der Hoeven</a></li>
+<li><a href="https://github.com/markburns">Mark Burns</a></li>
+<li><a href="https://github.com/kavu">Max Riveiro</a></li>
+<li><a href="https://github.com/vrish88">Michael Lavrisha</a></li>
+<li><a href="https://github.com/mdemare">Michiel de Mare</a></li>
+<li><a href="https://github.com/kcdragon">Mike Dalton</a></li>
+<li><a href="https://github.com/mislav">Mislav Marohnić</a></li>
+<li><a href="https://github.com/nbibler">Nathaniel Bibler</a></li>
+<li><a href="https://github.com/noahd1">Noah Davis</a></li>
+<li><a href="https://github.com/opsb">Oliver Searle-Barnes</a></li>
+<li><a href="https://github.com/rauchy">Omer Rauchwerger</a></li>
+<li><a href="https://github.com/pacoguzman">Paco Guzmán</a></li>
+<li><a href="https://github.com/jumanjiman">Paul Morgan</a></li>
+<li><a href="https://github.com/playupchris">playupchris</a></li>
+<li><a href="https://github.com/ronwsmith">Ron Smith</a></li>
+<li><a href="https://github.com/ryanb">Ryan Bates</a></li>
+<li><a href="https://github.com/rhburrows">Ryan Burrows</a></li>
+<li><a href="https://github.com/rmcastil">Ryan Castillo</a></li>
+<li><a href="https://github.com/sfsekaran">Sathya Sekaran</a></li>
+<li><a href="https://github.com/ScotterC">Scott Carleton</a></li>
+<li><a href="https://github.com/shayfrendt">Shay Frendt</a></li>
+<li><a href="https://github.com/southpolesteve">Steve Faulkner</a></li>
+<li><a href="https://github.com/bendycode">Stephen Anderson</a></li>
+<li><a href="https://github.com/tlunter">Todd Lunter</a></li>
+<li><a href="https://github.com/tylerhunt">Tyler Hunt</a></li>
+<li><a href="https://github.com/ugisozols">Uģis Ozols</a></li>
+<li><a href="https://github.com/vzvu3k6k">vzvu3k6k</a></li>
+<li><a href="https://github.com/geemus">Wesley Beary</a></li>
+</ul><h2>
+<a name="user-content-ports-in-other-languages" class="anchor" href="#ports-in-other-languages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ports in other languages</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/robfletcher/betamax">Betamax</a> (Groovy/JVM)</li>
+<li>
+<a href="https://github.com/sigmavirus24/betamax">Betamax</a> (Python)</li>
+<li>
+<a href="https://github.com/thegreatape/betamax">Betamax</a> (Go)</li>
+<li>
+<a href="https://github.com/wjlroe/betamax">Betamax</a> (Clojure)</li>
+<li>
+<a href="https://github.com/mfloryan/Betamax.Net">Betamax.NET</a> (C#/.NET)</li>
+<li>
+<a href="https://github.com/parroty/exvcr">ExVCR</a> (Elixir)</li>
+<li>
+<a href="https://github.com/cordawyn/havcr">HAVCR</a> (Haskell)</li>
+<li>
+<a href="https://github.com/acoulton/mimic">Mimic</a> (PHP/Kohana)</li>
+<li>
+<a href="https://github.com/carbonfive/nock-vcr">Nock-VCR</a> (JavaScript/Node)</li>
+<li>
+<a href="https://bitbucket.org/martijnthe/nsurlconnectionvcr">NSURLConnectionVCR</a> (Objective-C)</li>
+<li>
+<a href="https://github.com/php-vcr/php-vcr">PHP-VCR</a> (PHP)</li>
+<li>
+<a href="https://github.com/linkedin/sepia">Sepia</a> (Javascript/Node)</li>
+<li>
+<a href="https://github.com/EndangeredMassa/TapeDeck.js">TapeDeck.js</a> (JavaScript)</li>
+<li>
+<a href="https://github.com/elcuervo/vcr.js">VCR.js</a> (JavaScript)</li>
+<li>
+<a href="https://github.com/kevin1024/vcrpy">VCR.py</a> (Python)</li>
+<li>
+<a href="https://github.com/dstnbrkr/VCRURLConnection">VCRURLConnection</a> (Objective-C)</li>
+<li>
+<a href="https://github.com/ifesdjeen/vcr-clj">vcr-clj</a> (Clojure)</li>
+<li>
+<a href="https://github.com/diegoeche/vhs">VHS</a> (Erlang)</li>
+</ul><h2>
+<a name="user-content-related-projects" class="anchor" href="#related-projects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Related Projects</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/quidproquo/mr_video">Mr. Video</a> (Rails engine for managing VCR cassettes and episodes)</li>
+</ul><h2>
+<a name="user-content-similar-libraries-in-ruby" class="anchor" href="#similar-libraries-in-ruby" aria-hidden="true"><span class="octicon octicon-link"></span></a>Similar Libraries in Ruby</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/sandro/ephemeral_response">Ephemeral Response</a></li>
+<li><a href="http://github.com/martinbtt/net-http-spy">Net::HTTP Spy</a></li>
+<li><a href="https://github.com/chrisyoung/netrecorder">NetRecorder</a></li>
+<li><a href="https://github.com/oesmith/puffing-billy">Puffing Billy</a></li>
+<li><a href="https://github.com/artemave/REST-assured">REST-assured</a></li>
+<li><a href="https://github.com/jsmestad/stale_fish">Stale Fish</a></li>
+<li><a href="http://github.com/trydionel/web_fixtures">WebFixtures</a></li>
+</ul><h2>
+<a name="user-content-copyright" class="anchor" href="#copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright</h2>
+
+<p>Copyright (c) 2010-2014 Myron Marston. Released under the terms of the
+MIT license. See LICENSE for details.</p></article></div>

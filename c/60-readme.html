@@ -1,0 +1,336 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-nginx-based-media-streaming-server" class="anchor" href="#nginx-based-media-streaming-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>NGINX-based Media Streaming Server</h1>
+
+<h2>
+<a name="user-content-nginx-rtmp-module" class="anchor" href="#nginx-rtmp-module" aria-hidden="true"><span class="octicon octicon-link"></span></a>nginx-rtmp-module</h2>
+
+<h3>
+<a name="user-content-project-blog" class="anchor" href="#project-blog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project blog</h3>
+
+<p><a href="http://nginx-rtmp.blogspot.com">http://nginx-rtmp.blogspot.com</a></p>
+
+<h3>
+<a name="user-content-wiki-manual" class="anchor" href="#wiki-manual" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wiki manual</h3>
+
+<p><a href="https://github.com/arut/nginx-rtmp-module/wiki/Directives">https://github.com/arut/nginx-rtmp-module/wiki/Directives</a></p>
+
+<h3>
+<a name="user-content-google-group" class="anchor" href="#google-group" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google group</h3>
+
+<p><a href="https://groups.google.com/group/nginx-rtmp">https://groups.google.com/group/nginx-rtmp</a></p>
+
+<p><a href="https://groups.google.com/group/nginx-rtmp-ru">https://groups.google.com/group/nginx-rtmp-ru</a> (Russian)</p>
+
+<h3>
+<a name="user-content-donation-page-paypal-etc" class="anchor" href="#donation-page-paypal-etc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Donation page (Paypal etc)</h3>
+
+<p><a href="http://arut.github.com/nginx-rtmp-module/">http://arut.github.com/nginx-rtmp-module/</a></p>
+
+<h3>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h3>
+
+<ul class="task-list">
+<li><p>RTMP/HLS/MPEG-DASH live streaming</p></li>
+<li><p>RTMP Video on demand FLV/MP4,
+playing from local filesystem or HTTP</p></li>
+<li><p>Stream relay support for distributed
+streaming: push &amp; pull models</p></li>
+<li><p>Recording streams in multiple FLVs</p></li>
+<li><p>H264/AAC support</p></li>
+<li><p>Online transcoding with FFmpeg</p></li>
+<li><p>HTTP callbacks (publish/play/record/update etc)</p></li>
+<li><p>Running external programs on certain events (exec)</p></li>
+<li><p>HTTP control module for recording audio/video and dropping clients</p></li>
+<li><p>Advanced buffering techniques
+to keep memory allocations at a minimum
+level for faster streaming and low
+memory footprint</p></li>
+<li><p>Proved to work with Wirecast, FMS, Wowza,
+JWPlayer, FlowPlayer, StrobeMediaPlayback,
+ffmpeg, avconv, rtmpdump, flvstreamer
+and many more</p></li>
+<li><p>Statistics in XML/XSL in machine- &amp; human-
+readable form</p></li>
+<li><p>Linux/FreeBSD/MacOS/Windows</p></li>
+</ul><h3>
+<a name="user-content-build" class="anchor" href="#build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build</h3>
+
+<p>cd to NGINX source directory &amp; run this:</p>
+
+<pre><code>./configure --add-module=/path/to/nginx-rtmp-module
+make
+make install
+</code></pre>
+
+<p>Several versions of nginx (1.3.14 - 1.5.0) require http_ssl_module to be
+added as well:</p>
+
+<pre><code>./configure --add-module=/path/to/nginx-rtmp-module --with-http_ssl_module
+</code></pre>
+
+<p>For building debug version of nginx add <code>--with-debug</code></p>
+
+<pre><code>./configure --add-module=/path/to-nginx/rtmp-module --with-debug
+</code></pre>
+
+<p><a href="https://github.com/arut/nginx-rtmp-module/wiki/Debug-log">Read more about debug log</a></p>
+
+<h3>
+<a name="user-content-windows-limitations" class="anchor" href="#windows-limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows limitations</h3>
+
+<p>Windows support is limited. These features are not supported</p>
+
+<ul class="task-list">
+<li>execs</li>
+<li>static pulls</li>
+<li>auto_push</li>
+</ul><h3>
+<a name="user-content-rtmp-url-format" class="anchor" href="#rtmp-url-format" aria-hidden="true"><span class="octicon octicon-link"></span></a>RTMP URL format</h3>
+
+<pre><code>rtmp://rtmp.example.com/app[/name]
+</code></pre>
+
+<p>app -  should match one of application {}
+         blocks in config</p>
+
+<p>name - interpreted by each application
+         can be empty</p>
+
+<h3>
+<a name="user-content-multi-worker-live-streaming" class="anchor" href="#multi-worker-live-streaming" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-worker live streaming</h3>
+
+<p>Module supports multi-worker live
+streaming through automatic stream pushing
+to nginx workers. This option is toggled with
+rtmp_auto_push directive.</p>
+
+<h3>
+<a name="user-content-example-nginxconf" class="anchor" href="#example-nginxconf" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example nginx.conf</h3>
+
+<pre><code>rtmp {
+
+    server {
+
+        listen 1935;
+
+        chunk_size 4000;
+
+        # TV mode: one publisher, many subscribers
+        application mytv {
+
+            # enable live streaming
+            live on;
+
+            # record first 1K of stream
+            record all;
+            record_path /tmp/av;
+            record_max_size 1K;
+
+            # append current timestamp to each flv
+            record_unique on;
+
+            # publish only from localhost
+            allow publish 127.0.0.1;
+            deny publish all;
+
+            #allow play all;
+        }
+
+        # Transcoding (ffmpeg needed)
+        application big {
+            live on;
+
+            # On every pusblished stream run this command (ffmpeg)
+            # with substitutions: $app/${app}, $name/${name} for application &amp; stream name.
+            #
+            # This ffmpeg call receives stream from this application &amp;
+            # reduces the resolution down to 32x32. The stream is the published to
+            # 'small' application (see below) under the same name.
+            #
+            # ffmpeg can do anything with the stream like video/audio
+            # transcoding, resizing, altering container/codec params etc
+            #
+            # Multiple exec lines can be specified.
+
+            exec ffmpeg -re -i rtmp://localhost:1935/$app/$name -vcodec flv -acodec copy -s 32x32
+                        -f flv rtmp://localhost:1935/small/${name};
+        }
+
+        application small {
+            live on;
+            # Video with reduced resolution comes here from ffmpeg
+        }
+
+        application webcam {
+            live on;
+
+            # Stream from local webcam
+            exec_static ffmpeg -f video4linux2 -i /dev/video0 -c:v libx264 -an
+                               -f flv rtmp://localhost:1935/webcam/mystream;
+        }
+
+        application mypush {
+            live on;
+
+            # Every stream published here
+            # is automatically pushed to
+            # these two machines
+            push rtmp1.example.com;
+            push rtmp2.example.com:1934;
+        }
+
+        application mypull {
+            live on;
+
+            # Pull all streams from remote machine
+            # and play locally
+            pull rtmp://rtmp3.example.com pageUrl=www.example.com/index.html;
+        }
+
+        application mystaticpull {
+            live on;
+
+            # Static pull is started at nginx start
+            pull rtmp://rtmp4.example.com pageUrl=www.example.com/index.html name=mystream static;
+        }
+
+        # video on demand
+        application vod {
+            play /var/flvs;
+        }
+
+        application vod2 {
+            play /var/mp4s;
+        }
+
+        # Many publishers, many subscribers
+        # no checks, no recording
+        application videochat {
+
+            live on;
+
+            # The following notifications receive all
+            # the session variables as well as
+            # particular call arguments in HTTP POST
+            # request
+
+            # Make HTTP request &amp; use HTTP retcode
+            # to decide whether to allow publishing
+            # from this connection or not
+            on_publish http://localhost:8080/publish;
+
+            # Same with playing
+            on_play http://localhost:8080/play;
+
+            # Publish/play end (repeats on disconnect)
+            on_done http://localhost:8080/done;
+
+            # All above mentioned notifications receive
+            # standard connect() arguments as well as
+            # play/publish ones. If any arguments are sent
+            # with GET-style syntax to play &amp; publish
+            # these are also included.
+            # Example URL:
+            #   rtmp://localhost/myapp/mystream?a=b&amp;c=d
+
+            # record 10 video keyframes (no audio) every 2 minutes
+            record keyframes;
+            record_path /tmp/vc;
+            record_max_frames 10;
+            record_interval 2m;
+
+            # Async notify about an flv recorded
+            on_record_done http://localhost:8080/record_done;
+
+        }
+
+
+        # HLS
+
+        # For HLS to work please create a directory in tmpfs (/tmp/hls here)
+        # for the fragments. The directory contents is served via HTTP (see
+        # http{} section in config)
+        #
+        # Incoming stream must be in H264/AAC. For iPhones use baseline H264
+        # profile (see ffmpeg example).
+        # This example creates RTMP stream from movie ready for HLS:
+        #
+        # ffmpeg -loglevel verbose -re -i movie.avi  -vcodec libx264
+        #    -vprofile baseline -acodec libmp3lame -ar 44100 -ac 1
+        #    -f flv rtmp://localhost:1935/hls/movie
+        #
+        # If you need to transcode live stream use 'exec' feature.
+        #
+        application hls {
+            live on;
+            hls on;
+            hls_path /tmp/hls;
+        }
+
+        # MPEG-DASH is similar to HLS
+
+        application dash {
+            live on;
+            dash on;
+            dash_path /tmp/dash;
+        }
+    }
+}
+
+# HTTP can be used for accessing RTMP stats
+http {
+
+    server {
+
+        listen      8080;
+
+        # This URL provides RTMP statistics in XML
+        location /stat {
+            rtmp_stat all;
+
+            # Use this stylesheet to view XML as web page
+            # in browser
+            rtmp_stat_stylesheet stat.xsl;
+        }
+
+        location /stat.xsl {
+            # XML stylesheet to view RTMP stats.
+            # Copy stat.xsl wherever you want
+            # and put the full directory path here
+            root /path/to/stat.xsl/;
+        }
+
+        location /hls {
+            # Serve HLS fragments
+            types {
+                application/vnd.apple.mpegurl m3u8;
+                video/mp2t ts;
+            }
+            root /tmp;
+            add_header Cache-Control no-cache;
+        }
+
+        location /dash {
+            # Serve DASH fragments
+            root /tmp;
+            add_header Cache-Control no-cache;
+        }
+    }
+}
+</code></pre>
+
+<h3>
+<a name="user-content-multi-worker-streaming-example" class="anchor" href="#multi-worker-streaming-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-worker streaming example</h3>
+
+<pre><code>rtmp_auto_push on;
+
+rtmp {
+    server {
+        listen 1935;
+
+        application mytv {
+            live on;
+        }
+    }
+}
+</code></pre></article></div>

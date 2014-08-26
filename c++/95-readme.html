@@ -1,0 +1,93 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-what-the-hell-is-it-" class="anchor" href="#what-the-hell-is-it-" aria-hidden="true"><span class="octicon octicon-link"></span></a>What the hell is it? <a href="https://travis-ci.org/cocaine/cocaine-core"><img src="https://camo.githubusercontent.com/c81a6706897ad4b49f45196216c9d3097e6c64ac/68747470733a2f2f7472617669732d63692e6f72672f636f6361696e652f636f6361696e652d636f72652e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/cocaine/cocaine-core.png?branch=master" style="max-width:100%;"></a>
+</h1>
+
+<blockquote>
+<p>If you wanna hang out you've got to take her out; cocaine.<br>
+If you wanna get down, down on the ground; cocaine.<br>
+She don't lie, she don't lie, she don't lie; cocaine.<br></p>
+</blockquote>
+
+<p>-- <a href="http://en.wikipedia.org/wiki/JJ_Cale">J. J. Cale</a>, cover version by <a href="https://www.youtube.com/watch?v=Q3L4spg8vyo">Eric Clapton</a></p>
+
+<p><strong>Your personal app engine.</strong> Technically speaking, it's an open-source cloud platform enabling you to build your own PaaS clouds using simple yet effective dynamic components.</p>
+
+<p>Notable features:</p>
+
+<ul class="task-list">
+<li>You are not restricted by a language or a framework. Similar to Heroku model, Cocaine simply spawns whatever you tell it to spawn. The only requirement is that these newly spawned apps must connect to their app controller for request load balancing. But we plan to get rid of this last requirement as well.</li>
+<li>Your apps are driven by events, which is fancy. There are two sources of events for every app, and we got lots of predefined plugins providing those sources, so unless you need to handle clients via a PS/2 port, you're good.
+
+<ul class="task-list">
+<li>First, there are services: this concept is similar to Google App Engine's services. Simply speaking, services are other apps running in the same cloud. These apps can be anything ranging from a distributed storage access service or a publish-subscribe notification service to specially-crafted service for your own personal needs.</li>
+<li>Second, there are event drivers: these are simple statically configurable objects attached to your app generating events from some predefined source, for example a recurring timer or a watched file on the filesystem.</li>
+</ul>
+</li>
+<li>We got dynamic self-managing worker pools for each app with a rich but simple configuration and resource usage control to scale with the app needs. Yeah, it's scales automatically, you don't need to think about it. As of now, we got support for CGroups and LXC containerization via <a href="http://docker.io">Docker</a>.</li>
+<li>Even more, it scales automatically across your server cluser via automatic node discovery and smart peer-to-peer balancing. You can use a simple adhoc round-robin balancing for simple setups or a hardcore IPVS-based realtime balancer.</li>
+<li>If your startup idea is about processing terabytes of pirated video, we got data streaming and pipelining for you as well, enjoy.</li>
+</ul><p>At the moment, Cocaine Core supports the following languages and specifications:</p>
+
+<ul class="task-list">
+<li>C++</li>
+<li>Go</li>
+<li>Java</li>
+<li>Node.js</li>
+<li>Python</li>
+<li>Ruby</li>
+<li>[In development] Racket</li>
+</ul><p>We have the following services:</p>
+
+<ul class="task-list">
+<li>Logging</li>
+<li>Node-local file storage</li>
+<li>MongoDB storage</li>
+<li>
+<a href="https://github.com/reverbrain/elliptics">Elliptics</a> storage</li>
+<li>Node-local in-memory cache</li>
+<li>Distributed in-memory cache</li>
+<li>URL Fetch</li>
+<li>Jabber</li>
+<li>[In development] Notifications</li>
+<li>[In development] Distributed time service</li>
+</ul><p>And the following event drivers built-in:</p>
+
+<ul class="task-list">
+<li>Simple timer</li>
+<li>Filesystem monitor</li>
+<li>ZeroMQ</li>
+</ul><h1>
+<a name="user-content-a-motivating-example" class="anchor" href="#a-motivating-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>A motivating example</h1>
+
+<p>Here's some extremely useful Cocaine app written in Python.</p>
+
+<div class="highlight highlight-python"><pre><span class="c">#!/usr/bin/env python</span>
+
+<span class="kn">from</span> <span class="nn">cocaine.services</span> <span class="kn">import</span> <span class="n">Service</span>
+<span class="kn">from</span> <span class="nn">cocaine.worker</span> <span class="kn">import</span> <span class="n">Worker</span>
+
+<span class="n">storage</span> <span class="o">=</span> <span class="n">Service</span><span class="p">(</span><span class="s">"storage"</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">request</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">storage</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s">"collection"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="n">response</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">process</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<span class="n">Worker</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">({</span>
+    <span class="s">'calculate_length'</span><span class="p">:</span> <span class="n">handle</span>
+<span class="p">})</span>
+</pre></div>
+
+<h1>
+<a name="user-content-okay-i-want-to-try-it" class="anchor" href="#okay-i-want-to-try-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Okay, I want to try it!</h1>
+
+<p>Hey kids, don't try cocaine! For serious web developers only.</p>
+
+<p>Check out <a href="https://github.com/cocaine/cocaine-core/wiki">our wiki</a> for installation instructions, reference manuals and cookies! We also got a bit <a href="https://github.com/cocaine/cocaine-docs-en/wiki">outdated docs</a> for v0.9, but worry not, up-to-date documentation is on its way!</p>
+
+<p>Also you can find us on Freenode IRC, we're available for a chat on the #cocaine channel.</p></article></div>

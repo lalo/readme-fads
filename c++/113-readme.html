@@ -1,0 +1,75 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-darner" class="anchor" href="#darner" aria-hidden="true"><span class="octicon octicon-link"></span></a>Darner</h1>
+
+<p>Darner is a very simple message queue server.  Unlike in-memory servers such as <a href="http://redis.io/">redis</a>, Darner is
+designed to handle queues much larger than what can be held in RAM.  And unlike enterprise queue servers such as
+<a href="http://www.rabbitmq.com/">RabbitMQ</a>, Darner keeps all messages <strong>out of process</strong>, relying instead on the kernel's
+virtual memory manager via <a href="https://code.google.com/p/leveldb/">log-structured storage</a>.</p>
+
+<p>The result is a durable queue server that uses a small amount of in-resident memory regardless of queue size, while
+still achieving <a href="/docs/benchmarks.md">remarkable performance</a>.</p>
+
+<p>Darner is based on Robey Pointer's <a href="/robey/kestrel">Kestrel</a> simple, distributed message queue.  Like Kestrel, Darner
+follows the "No talking! Shhh!" approach to distributed queues:  A single Darner server has a set of queues identified
+by name.  Each queue is a strictly-ordered FIFO, and querying from a fleet of Darner servers provides a loosely-ordered
+queue.  Darner also supports Kestrel's two-phase reliable fetch: if a client disconnects before confirming it handled
+a message, the message will be handed to the next client.</p>
+
+<p>Compared to Kestrel, Darner boasts much higher throughput, better concurrency, an order of magnitude better tp99, and
+uses an order of magnitude less memory.  But Darner has less configuration, and far fewer features than Kestrel. Check
+out the <a href="/docs/benchmarks.md">benchmarks</a>!</p>
+
+<p>Darner is used at <a href="http://wavii.com/">Wavii</a>, and is written and maintained by <a href="/erikfrey">Erik Frey</a>.</p>
+
+<h2>
+<a name="user-content-installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing</h2>
+
+<h3>
+<a name="user-content-osx" class="anchor" href="#osx" aria-hidden="true"><span class="octicon octicon-link"></span></a>OSX</h3>
+
+<p>Darner installs on a Mac via <a href="/mxcl/homebrew">Homebrew</a>:</p>
+
+<div class="highlight highlight-bash"><pre>brew install darner
+</pre></div>
+
+<p>Remember to update your Homebrew install if the formula is not available.</p>
+
+<h3>
+<a name="user-content-ubuntu" class="anchor" href="#ubuntu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu</h3>
+
+<p>You'll need build tools, <a href="http://www.cmake.org/">CMake</a>, <a href="http://www.boost.org/">Boost</a>, and
+<a href="https://code.google.com/p/leveldb/">LevelDB</a>/<a href="https://code.google.com/p/snappy/">snappy</a> to build Darner.  The
+following works on Ubuntu 12.04:</p>
+
+<div class="highlight highlight-bash"><pre>sudo apt-get install -y build-essential cmake libboost-all-dev libsnappy-dev libleveldb-dev
+</pre></div>
+
+<p>Then fetch and install Darner:</p>
+
+<div class="highlight highlight-bash"><pre>git clone git://github.com/wavii/darner.git
+<span class="nb">cd </span>darner
+cmake . <span class="o">&amp;&amp;</span> make <span class="o">&amp;&amp;</span> sudo make install
+</pre></div>
+
+<h2>
+<a name="user-content-running" class="anchor" href="#running" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running</h2>
+
+<p>Make a directory for Darner to store its queues, say <code>/var/spool/darner/</code>, then run Darner like so.</p>
+
+<div class="highlight highlight-bash"><pre>user@home:~<span class="nv">$ </span>darner -d /var/spool/darner/
+<span class="o">[</span>INFO<span class="o">]</span> 2012-Aug-13 03:59:41.047739: darner: queue server
+<span class="o">[</span>INFO<span class="o">]</span> 2012-Aug-13 03:59:41.048051: build: Aug <span class="m">26</span> <span class="m">2012</span> <span class="o">(</span>15:47:48<span class="o">)</span> v0.1.2 <span class="o">(</span>c<span class="o">)</span> Wavii, Inc.
+<span class="o">[</span>INFO<span class="o">]</span> 2012-Aug-13 03:59:41.048132: listening on port: 22133
+<span class="o">[</span>INFO<span class="o">]</span> 2012-Aug-13 03:59:41.048507: data dir: /var/spool/darner/
+<span class="o">[</span>INFO<span class="o">]</span> 2012-Aug-13 03:59:41.048798: starting up
+</pre></div>
+
+<p>Voila!  By default, Darner listens on port 22133.</p>
+
+<h2>
+<a name="user-content-protocol" class="anchor" href="#protocol" aria-hidden="true"><span class="octicon octicon-link"></span></a>Protocol</h2>
+
+<p>Darner follows the same protocol as <a href="/robey/kestrel/blob/master/docs/guide.md#memcache">Kestrel</a>, which is the memcache
+protocol.</p>
+
+<p>Currently missing from the Darner implementation but TODO: some stats.</p></article></div>

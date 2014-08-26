@@ -1,0 +1,275 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content--postgresql-async--mysql-async---async-netty-based-database-drivers-for-mysql-and-postgresql-written-in-scala---210" class="anchor" href="#-postgresql-async--mysql-async---async-netty-based-database-drivers-for-mysql-and-postgresql-written-in-scala---210" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<a href="https://travis-ci.org/mauricio/postgresql-async"><img src="https://camo.githubusercontent.com/814a662253c064d3b7b67060b42f4a24ec652c25/68747470733a2f2f7472617669732d63692e6f72672f6d6175726963696f2f706f737467726573716c2d6173796e632e706e67" alt="Build Status" data-canonical-src="https://travis-ci.org/mauricio/postgresql-async.png" style="max-width:100%;"></a> postgresql-async &amp; mysql-async - async, Netty based, database drivers for MySQL and PostgreSQL written in Scala - 2.10</h1>
+
+<p>The main goal for this project is to implement simple, async, performant and reliable database drivers for
+PostgreSQL and MySQL in Scala. This is not supposed to be a JDBC replacement, these drivers aim to cover the common
+process of <em>send a statement, get a response</em> that you usually see in applications out there. So it's unlikely
+there will be support for updating result sets live or stuff like that.</p>
+
+<p>This project always returns <a href="http://joda-time.sourceforge.net/">JodaTime</a> when dealing with date types and not the
+<code>java.util.Date</code> class.</p>
+
+<p>If you want information specific to the drivers, check the <a href="postgresql-async/README.md">PostgreSQL README</a> and the
+<a href="mysql-async/README.md">MySQL README</a>.</p>
+
+<p>You can view the project's <a href="CHANGELOG.md">CHANGELOG here</a>.</p>
+
+<h2>
+<a name="user-content-abstractions-and-integrations" class="anchor" href="#abstractions-and-integrations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Abstractions and integrations</h2>
+
+<ul class="task-list">
+<li>
+<a href="http://activate-framework.org/">Activate Framework</a> - full ORM solution for persisting objects using a software
+transactional memory (STM) layer;</li>
+<li>
+<a href="https://github.com/scalikejdbc/scalikejdbc-async">ScalikeJDBC-Async</a> - provides an abstraction layer on top of the
+driver allowing you to write less SQL and make use of a nice high level database access API;</li>
+<li>
+<a href="https://github.com/vert-x/mod-mysql-postgresql">mod-mysql-postgresql</a> - <a href="http://vertx.io/">vert.x</a> module that integrates
+the driver into a vert.x application;</li>
+</ul><h2>
+<a name="user-content-include-them-as-dependencies" class="anchor" href="#include-them-as-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Include them as dependencies</h2>
+
+<p>And if you're in a hurry, you can include them in your build like this, if you're using PostgreSQL:</p>
+
+<div class="highlight highlight-scala"><pre><span class="s">"com.github.mauricio"</span> <span class="o">%%</span> <span class="s">"postgresql-async"</span> <span class="o">%</span> <span class="s">"0.2.12"</span>
+</pre></div>
+
+<p>Or Maven:</p>
+
+<div class="highlight highlight-xml"><pre><span class="nt">&lt;dependency&gt;</span>
+  <span class="nt">&lt;groupId&gt;</span>com.github.mauricio<span class="nt">&lt;/groupId&gt;</span>
+  <span class="nt">&lt;artifactId&gt;</span>postgresql-async_2.10<span class="nt">&lt;/artifactId&gt;</span>
+  <span class="nt">&lt;version&gt;</span>0.2.12<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</pre></div>
+
+<p>And if you're into MySQL:</p>
+
+<div class="highlight highlight-scala"><pre><span class="s">"com.github.mauricio"</span> <span class="o">%%</span> <span class="s">"mysql-async"</span> <span class="o">%</span> <span class="s">"0.2.12"</span>
+</pre></div>
+
+<p>Or Maven:</p>
+
+<div class="highlight highlight-xml"><pre><span class="nt">&lt;dependency&gt;</span>
+  <span class="nt">&lt;groupId&gt;</span>com.github.mauricio<span class="nt">&lt;/groupId&gt;</span>
+  <span class="nt">&lt;artifactId&gt;</span>mysql-async_2.10<span class="nt">&lt;/artifactId&gt;</span>
+  <span class="nt">&lt;version&gt;</span>0.2.12<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-database-connections-and-encodings" class="anchor" href="#database-connections-and-encodings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Database connections and encodings</h2>
+
+<p><strong>READ THIS NOW</strong></p>
+
+<p>Both clients will let you set the database encoding for something else. Unless you are <strong>1000% sure</strong> of what you are doing,
+<strong>DO NOT</strong> change the default encoding (currently, UTF-8). Some people assume the connection encoding is the <strong>database</strong>
+or <strong>columns</strong> encoding but <strong>IT IS NOT</strong>, this is just the connection encoding that is used between client and servers
+doing communication.</p>
+
+<p>When you change the encoding of the <strong>connection</strong> you are not affecting your database's encoding and your columns
+<strong>WILL NOT</strong> be stored with the connection encoding. If the connection and database/column encoding is different, your
+database will automatically translate from the connection encoding to the correct encoding and all your data will be
+safely stored at your database/column encoding.</p>
+
+<p>This is as long as you are using the correct string types, BLOB columns will not be translated since they're supposed
+to hold a stream of bytes.</p>
+
+<p>So, just don't touch it, create your tables and columns with the correct encoding and be happy.</p>
+
+<h2>
+<a name="user-content-prepared-statements-gotcha" class="anchor" href="#prepared-statements-gotcha" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prepared statements gotcha</h2>
+
+<p>If you have used JDBC before, you might have heard that prepared statements are the best thing on earth when talking
+to databases. This isn't exactly true all the time (as you can see on <a href="http://www.youtube.com/watch?v=kWOAHIpmLAI">this presentation</a>
+by <a href="http://github.com/tenderlove">@tenderlove</a>) and there is a memory cost in keeping prepared statements.</p>
+
+<p>Prepared statements are tied to a connection, they are not database-wide, so, if you generate your queries dynamically
+all the time you might eventually blow up your connection memory and your database memory.</p>
+
+<p>Why?</p>
+
+<p>Because when you create a prepared statement, locally, the connection keeps the prepared statement description in memory.
+This can be the returned columns information, input parameters information, query text, query identifier that will be
+used to execute the query and other flags. This also causes a data structure to be created at your server <strong>for every
+connection</strong>.</p>
+
+<p>So, prepared statements are awesome, but are not free. Use them judiciously.</p>
+
+<h2>
+<a name="user-content-what-are-the-design-goals" class="anchor" href="#what-are-the-design-goals" aria-hidden="true"><span class="octicon octicon-link"></span></a>What are the design goals?</h2>
+
+<ul class="task-list">
+<li>fast, fast and faster</li>
+<li>small memory footprint</li>
+<li>avoid copying data as much as possible (we're always trying to use wrap and slice on buffers)</li>
+<li>easy to use, call a method, get a future or a callback and be happy</li>
+<li>never, ever, block</li>
+<li>all features covered by tests</li>
+<li>next to zero dependencies (it currently depends on Netty, JodaTime and SFL4J only)</li>
+</ul><h2>
+<a name="user-content-what-is-missing" class="anchor" href="#what-is-missing" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is missing?</h2>
+
+<ul class="task-list">
+<li>more authentication mechanisms</li>
+<li>benchmarks</li>
+<li>more tests (run the <code>jacoco:cover</code> sbt task and see where you can improve)</li>
+<li>timeout handler for initial handshare and queries</li>
+</ul><h2>
+<a name="user-content-how-can-you-help" class="anchor" href="#how-can-you-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>How can you help?</h2>
+
+<ul class="task-list">
+<li>checkout the source code</li>
+<li>find bugs, find places where performance can be improved</li>
+<li>check the <strong>What is missing</strong> piece</li>
+<li>check the <a href="https://github.com/mauricio/postgresql-async/issues">issues page</a> for bugs or new features</li>
+<li>send a pull request with specs</li>
+</ul><h2>
+<a name="user-content-main-public-interface" class="anchor" href="#main-public-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Main public interface</h2>
+
+<h3>
+<a name="user-content-connection" class="anchor" href="#connection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Connection</h3>
+
+<p>Represents a connection to the database. This is the <strong>root</strong> object you will be using in your application. You will
+find three classes that implement this trait, <code>PostgreSQLConnection</code>, <code>MySQLConnection</code> and <code>ConnectionPool</code>. 
+The difference between them is that <code>ConnectionPool</code> is, as the name implies, a pool of connections and you
+need to give it an connection factory so it can create connections and manage them.</p>
+
+<p>To create both you will need a <code>Configuration</code> object with your database details. You can create one manually or
+create one from a JDBC or Heroku database URL using the <code>URLParser</code> object.</p>
+
+<h3>
+<a name="user-content-queryresult" class="anchor" href="#queryresult" aria-hidden="true"><span class="octicon octicon-link"></span></a>QueryResult</h3>
+
+<p>It's the output of running a statement against the database (either using <code>sendQuery</code> or <code>sendPreparedStatement</code>).
+This object will contain the amount of rows, status message and the possible <code>ResultSet</code> (Option[ResultSet]) if the
+query returns any rows.</p>
+
+<h3>
+<a name="user-content-resultset" class="anchor" href="#resultset" aria-hidden="true"><span class="octicon octicon-link"></span></a>ResultSet</h3>
+
+<p>It's an IndexedSeq[Array[Any]], every item is a row returned by the database. The database types are returned as Scala
+objects that fit the original type, so <code>smallint</code> becomes a <code>Short</code>, <code>numeric</code> becomes <code>BigDecimal</code>, <code>varchar</code> becomes
+<code>String</code> and so on. You can find the whole default transformation list at the project specific documentation.</p>
+
+<h3>
+<a name="user-content-prepared-statements" class="anchor" href="#prepared-statements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prepared statements</h3>
+
+<p>Databases support prepared or precompiled statements. These statements allow the database to precompile the query
+on the first execution and reuse this compiled representation on future executions, this makes it faster and also allows
+for safer data escaping when dealing with user provided data.</p>
+
+<p>To execute a prepared statement you grab a connection and:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">connection</span> <span class="k">:</span> <span class="kt">Connection</span> <span class="o">=</span> <span class="o">...</span>
+<span class="k">val</span> <span class="n">future</span> <span class="k">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">sendPreparedStatement</span><span class="o">(</span> <span class="s">"SELECT * FROM products WHERE products.name = ?"</span><span class="o">,</span> <span class="nc">Array</span><span class="o">(</span> <span class="s">"Dominion"</span> <span class="o">)</span> <span class="o">)</span>
+</pre></div>
+
+<p>The <code>?</code> (question mark) in the query is a parameter placeholder, it allows you to set a value in that place in the
+query without having to escape stuff yourself. The driver itself will make sure this parameter is delivered to the
+database in a safe way so you don't have to worry about SQL injection attacks.</p>
+
+<p>The basic numbers, Joda Time date, time, timestamp objects, strings and arrays of these objects are all valid values
+as prepared statement parameters and they will be encoded to their respective database types. Remember that not all databases
+are created equal, so not every type will work or might work in unexpected ways. For instance, MySQL doesn't have array
+types, so, if you send an array or collection to MySQL it won't work.</p>
+
+<p>Remember that parameters are positional the order they show up at query should be the same as the one in the array or
+sequence given to the method call.</p>
+
+<h2>
+<a name="user-content-transactions" class="anchor" href="#transactions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transactions</h2>
+
+<p>Both drivers support transactions at the database level, the isolation level is the default for your database/connection,
+to change the isolation level just call your database's command to set the isolation level for what you want.</p>
+
+<p>Here's an example of how transactions work:</p>
+
+<div class="highlight highlight-scala"><pre>  <span class="k">val</span> <span class="n">future</span> <span class="k">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">inTransaction</span> <span class="o">{</span>
+    <span class="n">c</span> <span class="k">=&gt;</span>
+    <span class="n">c</span><span class="o">.</span><span class="n">sendPreparedStatement</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="n">insert</span><span class="o">)</span>
+     <span class="o">.</span><span class="n">flatMap</span><span class="o">(</span> <span class="n">r</span> <span class="k">=&gt;</span> <span class="n">c</span><span class="o">.</span><span class="n">sendPreparedStatement</span><span class="o">(</span><span class="k">this</span><span class="o">.</span><span class="n">insert</span><span class="o">))</span>
+  <span class="o">}</span>
+</pre></div>
+
+<p>The <code>inTransaction</code> method allows you to execute a collection of statements in a single transactions, just use the
+connection object you will receive in your block and send your statements to it. Given each statement causes a new
+future to be returned, you need to <code>flatMap</code> the calls to be able to get a <code>Future[T]</code> instead of <code>Future[Future[...]]</code>
+ back.</p>
+
+<p>If all futures succeed, the transaction is committed normally, if any of them fail, a <code>rollback</code> is issued to the
+database. You should not reuse a database connection that has rolled back a transaction, just close it and create a
+new connection to continue using it.</p>
+
+<h2>
+<a name="user-content-example-usage-for-postgresql-but-it-looks-almost-the-same-on-mysql" class="anchor" href="#example-usage-for-postgresql-but-it-looks-almost-the-same-on-mysql" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example usage (for PostgreSQL, but it looks almost the same on MySQL)</h2>
+
+<p>You can find a small Play 2 app using it <a href="https://github.com/mauricio/postgresql-async-app">here</a> and a blog post about
+it <a href="http://mauricio.github.io/2013/04/29/async-database-access-with-postgresql-play-scala-and-heroku.html">here</a>.</p>
+
+<p>In short, what you would usually do is:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.github.mauricio.async.db.postgresql.PostgreSQLConnection</span>
+<span class="k">import</span> <span class="nn">com.github.mauricio.async.db.postgresql.util.URLParser</span>
+<span class="k">import</span> <span class="nn">com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext</span>
+<span class="k">import</span> <span class="nn">com.github.mauricio.async.db.</span><span class="o">{</span><span class="nc">RowData</span><span class="o">,</span> <span class="nc">QueryResult</span><span class="o">,</span> <span class="nc">Connection</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.</span><span class="o">{</span><span class="nc">Await</span><span class="o">,</span> <span class="nc">Future</span><span class="o">}</span>
+
+<span class="k">object</span> <span class="nc">BasicExample</span> <span class="o">{</span>
+
+  <span class="k">def</span> <span class="n">main</span><span class="o">(</span><span class="n">args</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">{</span>
+
+    <span class="k">val</span> <span class="n">configuration</span> <span class="k">=</span> <span class="nc">URLParser</span><span class="o">.</span><span class="n">parse</span><span class="o">(</span><span class="s">"jdbc:postgresql://localhost:5233/my_database?user=postgres&amp;password=somepassword"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">connection</span><span class="k">:</span> <span class="kt">Connection</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">PostgreSQLConnection</span><span class="o">(</span><span class="n">configuration</span><span class="o">)</span>
+
+    <span class="nc">Await</span><span class="o">.</span><span class="n">result</span><span class="o">(</span><span class="n">connection</span><span class="o">.</span><span class="n">connect</span><span class="o">,</span> <span class="mi">5</span> <span class="n">seconds</span><span class="o">)</span>
+
+    <span class="k">val</span> <span class="n">future</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">QueryResult</span><span class="o">]</span> <span class="k">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">sendQuery</span><span class="o">(</span><span class="s">"SELECT 0"</span><span class="o">)</span>
+
+    <span class="k">val</span> <span class="n">mapResult</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Any</span><span class="o">]</span> <span class="k">=</span> <span class="n">future</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">queryResult</span> <span class="k">=&gt;</span> <span class="n">queryResult</span><span class="o">.</span><span class="n">rows</span> <span class="k">match</span> <span class="o">{</span>
+      <span class="k">case</span> <span class="nc">Some</span><span class="o">(</span><span class="n">resultSet</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="o">{</span>
+        <span class="k">val</span> <span class="n">row</span> <span class="k">:</span> <span class="kt">RowData</span> <span class="o">=</span> <span class="n">resultSet</span><span class="o">.</span><span class="n">head</span>
+        <span class="n">row</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+      <span class="o">}</span>
+      <span class="k">case</span> <span class="nc">None</span> <span class="k">=&gt;</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="o">}</span>
+    <span class="o">)</span>
+
+    <span class="k">val</span> <span class="n">result</span> <span class="k">=</span> <span class="nc">Await</span><span class="o">.</span><span class="n">result</span><span class="o">(</span> <span class="n">mapResult</span><span class="o">,</span> <span class="mi">5</span> <span class="n">seconds</span> <span class="o">)</span>
+
+    <span class="n">println</span><span class="o">(</span><span class="n">result</span><span class="o">)</span>
+
+    <span class="n">connection</span><span class="o">.</span><span class="n">disconnect</span>
+
+  <span class="o">}</span>
+
+<span class="o">}</span>
+</pre></div>
+
+<p>First, create a <code>PostgreSQLConnection</code>, connect it to the database, execute queries (this object is not thread
+safe, so you must execute only one query at a time) and work with the futures it returns. Once you are done, call
+disconnect and the connection is closed.</p>
+
+<p>You can also use the <code>ConnectionPool</code> provided by the driver to simplify working with database connections in your app.
+Check the blog post above for more details and the project's ScalaDocs.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Contributing to the project is simple, fork it on Github, hack on what you're insterested in seeing done or at the
+bug you want to fix and send a pull request back. If you thing the change is too big or requires architectural changes
+please create an issue <strong>before</strong> you start working on it so we can discuss what you're trying to do.</p>
+
+<p>You should be easily able to build this project in your favorite IDE since it's built by <a href="http://www.scala-sbt.org/">SBT</a>
+using a plugin that generates your IDE's project files. You can use <a href="https://github.com/mpeltonen/sbt-idea">sbt-idea</a>
+for IntelliJ Idea and <a href="https://github.com/typesafehub/sbteclipse">sbteclipse</a> for Eclipse integration.</p>
+
+<p><a href="https://github.com/mauricio/postgresql-async/graphs/contributors">Check our list of contributors!</a></p>
+
+<h2>
+<a name="user-content-licence" class="anchor" href="#licence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Licence</h2>
+
+<p>This project is freely available under the Apache 2 licence, fork, fix and send back :)</p></article></div>

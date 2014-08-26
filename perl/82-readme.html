@@ -1,0 +1,199 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hostdb" class="anchor" href="#hostdb" aria-hidden="true"><span class="octicon octicon-link"></span></a>HostDB</h1>
+
+<p>HostDB: a new tool to help manage data center inventory and write applications around it. </p>
+
+<p>HostDB is our attempt to solve the problem of finding hosts and their purposes in a large environment. HostDB acts as a Single source of truth about all Physical and Virtual servers and is used to define their purpose. It helps us group our servers through tags and all the software written by the operations team revolves around HostDB. HostDB acts as the centralized configuration store for all sorts of information.</p>
+
+<p>PS: Though the names are same, this project is not related to <a href="https://code.google.com/p/hostdb/">this hostdb</a></p>
+
+<h2>
+<a name="user-content-hosts" class="anchor" href="#hosts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hosts</h2>
+
+<p>Any Host that exists is created inside HostDB upon birth and has information about itself in YAML. This info can be Hardware info, amount of CPU/RAM or Network FQDN, IP address, Rack, Switch, Physical location or Function, e.g what application software the host needs? The YAML can contain just about anything, it can be varied across hosts and can be ever evolving.</p>
+
+<h2>
+<a name="user-content-tags" class="anchor" href="#tags" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tags</h2>
+
+<p>Hosts are grouped together with tags, similar to a host - a tag also has information about itself in YAML This information is applied to all hosts which are members of a tag. e.g a tag called VM can be applied to all virtual machines and can be used to define properties that are shared by all VMs. To be useful a tag must have member hosts.</p>
+
+<h2>
+<a name="user-content-versioning" class="anchor" href="#versioning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Versioning</h2>
+
+<p>HostDB provides versioning and the ability to roll back to a previous version for each and every host or tag.</p>
+
+<h2>
+<a name="user-content-api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h2>
+
+<p>The above concepts may look simple, but, can be used in extremely powerful ways with an API. and that’s exactly what HostDB provides. HostDB provides a REST api which can be used to create hosts, get members of a particular tag etc. We use this feature to automate just about everything at flipkart. Creating Virtual hosts, creating DNS records, automatic monitoring and escalations and building automated infrastructures. Services can do a periodic lookups to Hostdb and keep updating themselves of changes.</p>
+
+<h2>
+<a name="user-content-user-interfaces" class="anchor" href="#user-interfaces" aria-hidden="true"><span class="octicon octicon-link"></span></a>User Interfaces</h2>
+
+<p>HostDB provides a variety of user interfaces which can be used to interact with HostDB by applications and users.</p>
+
+<ul class="task-list">
+<li>Web Application</li>
+<li>Rest API</li>
+<li>Command Line Interface</li>
+<li>HostDB::Client Perl Module</li>
+<li>Some example use of HostDB</li>
+</ul><h2>
+<a name="user-content-hostdb-keyvalue-store-with-a-difference" class="anchor" href="#hostdb-keyvalue-store-with-a-difference" aria-hidden="true"><span class="octicon octicon-link"></span></a>HostDB: Key/Value Store with a difference</h2>
+
+<p>HostDB is a key-value store, keys are grouped into namespaces based on type. ‘hosts’ is a special namespace which is central to all other namespaces. Keys inside ‘hosts’ are server names and their values contains mostly information and configuration details needed by server itself or applications it runs.</p>
+
+<p>Applications can create unique keys(tags) which are application specific. You can add servers as ‘members’ of these keys which in turn helps you to consider your key(tag) as a group of hosts.</p>
+
+<p>HostDB provides namespaces e.g you can create  keys(tags) that exist in a specific namespace and are access controlled, only member applications can read/write to keys of this namespace.  One can create access controls for each namespace or even for each key.</p>
+
+<p>HostDB uses plain text files as its storage. The namespaces are represented as directories and keys are files inside the namespace directory. These files contain a key’s config in YAML.</p>
+
+<p>The ‘members’ are also stored in files in a subdirectory in the namespace’s directory. The access permissions on the namespaces are also stored in a subdirectory.</p>
+
+<h2>
+<a name="user-content-git" class="anchor" href="#git" aria-hidden="true"><span class="octicon octicon-link"></span></a>GIT</h2>
+
+<p>The complete file structure of HostDB is in a git repository and git handles the versioning and transactions for HostDB. leveraging git means that we have a simple transactional store, which offers history as well as versioning. We can go to a previous version of a host or tag config at any point in time.</p>
+
+<h2>
+<a name="user-content-web-based-interface" class="anchor" href="#web-based-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Web based Interface</h2>
+
+<p>HostDB provides a Web based interface for uses to interact. </p>
+
+<h2>
+<a name="user-content-command-line-tool" class="anchor" href="#command-line-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Line tool</h2>
+
+<p>HostDB provides a command line tool that is extremely helpful in writing those small bash one liners to get information out fast. Want to find out all machines with 24 GB of ram which are part of the search cluster. no problem!</p>
+
+<pre>
+
+Add an object:
+$ hostdb add hosts/host1.yourdomain.com
+Add host to tag:
+$ hostdb add -m "adding new member" tags/nm-prod/members/new.yourdomain.com
+Get host IP: 
+$ hostdb get hosts/host1.yourdomain.com/Network/IP
+Get tag members: 
+$ hostdb get tags/nm-prod/members
+
+</pre>
+
+<h2>
+<a name="user-content-hostdbclient-perl-module" class="anchor" href="#hostdbclient-perl-module" aria-hidden="true"><span class="octicon octicon-link"></span></a>HostDB::Client Perl Module</h2>
+
+<p>We use Perl extensively and have a Perl Module that can be used by applications to interact with HostDB.  This module provides an object oriented interface over HostDB REST API.</p>
+
+<pre>
+
+use HostDB::Client;
+my $hdb - HostDB::Client-&gt;new(\%options);
+my $output - $hdb-&gt;get($id[, $revision, $raw]);
+my $output - $hdb-&gt;revisions($id[, $limit]);
+
+</pre>
+
+<p>HostDB has been central to almost all software written by the devops at flipkart and has allowed us to scale exponentially without a fuss. We hope you find it useful too. HostDB is now available on github, so go fork it,</p>
+
+<h2>
+<a name="user-content-setting-up-server" class="anchor" href="#setting-up-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting up Server</h2>
+
+<p>Update: The install-server-debian.sh scripts does almost everything for you without creating debian packages.</p>
+
+<ol class="task-list">
+<li>Go to src/server/</li>
+<li>Make config changes as necessary. You might need to modify these:</li>
+</ol><pre>
+
+DEBIAN/control                     - Package name and version
+etc/apache2/sites-available/hostdb - Apache config for API
+etc/hostdb/server_conf.yaml        - Main server config
+etc/hostdb/clients                 - App users config
+/etc/logrotate.d/hostdb            - Log rotation config
+
+</pre>
+
+<ol class="task-list">
+<li>Go back to src</li>
+<li>dpkg-deb -b server/ hostdb-server.deb</li>
+<li>dpkg -i hostdb-server.deb</li>
+<li>Put a cipher key in /var/lib/hostdb/cipher_key - Used for creating session token</li>
+<li>Create a directory structure like this in /var/lib/hostdb/namespaces</li>
+</ol><pre>
+
+namespaces/
+|-- .git/            
+|-- hosts/           
+|   |-- server1      
+|   |-- server2
+|   |-- .perms/
+|       |-- .default  
+|       |-- server2  
+|-- tags/            
+    |-- tag1         
+    |-- tag2
+    |-- .members/
+    |   |-- tag1     
+    |   |-- tag2
+    |-- .perms/
+        |-- .default  
+        |-- tag1     
+
+ACL file format:
+---
+user1:
+  data: RO
+  members: RW
+group1:
+  members: RO
+
+</pre>
+
+<ol class="task-list">
+<li>All above files should be readable and writable for your apache user</li>
+<li>Restart apache</li>
+<li>Test - <a href="https://hostdb.yourdomain.com/v1/">https://hostdb.yourdomain.com/v1/</a>
+</li>
+</ol><h2>
+<a name="user-content-setting-up-cli-tool" class="anchor" href="#setting-up-cli-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting up CLI tool</h2>
+
+<p>Update: The install-client-debian.sh scripts does almost everything for you without creating debian packages.</p>
+
+<ol class="task-list">
+<li>Go to src/client</li>
+<li>Make config changes as necessary. You might need to modify these:</li>
+</ol><pre>
+
+DEBIAN/control              - Package name and version
+etc/hostdb/client_conf.yaml - Mention server name in this
+
+</pre>
+
+<ol class="task-list">
+<li>Go back to src</li>
+<li>dpkg-deb -b client/ hostdb-client.deb</li>
+<li>dpkg -i hostdb-client.deb</li>
+<li>Test - /usr/local/bin/hostdb get hosts</li>
+</ol><h2>
+<a name="user-content-setting-up-web-interface" class="anchor" href="#setting-up-web-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting up Web interface</h2>
+
+<p>Update: The install-server-debian.sh scripts does almost everything for you without creating debian packages.</p>
+
+<ol class="task-list">
+<li>Go to src/webui/</li>
+<li>Make config changes as necessary. You might need to modify these:</li>
+</ol><pre>
+
+DEBIAN/control                     - Package name and version
+var/www/hostdb/index.html          - Change cookie domain name, modify to support your namespaces.
+etc/apache2/sites-available/hostdb - Apache config for WEB UI
+
+</pre>
+
+<ol class="task-list">
+<li>Go back to src</li>
+<li>dpkg-deb -b webui/ hostdb-webui.deb</li>
+<li>dpkg -i hostdb-webui.deb</li>
+<li>Test - <a href="https://hostdb.yourdomain.com">https://hostdb.yourdomain.com</a>
+</li>
+</ol></article></div>

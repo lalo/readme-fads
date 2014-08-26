@@ -1,0 +1,184 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-vim-slime" class="anchor" href="#vim-slime" aria-hidden="true"><span class="octicon octicon-link"></span></a>vim-slime</h1>
+
+<p>Grab some text and "send" it to a <a href="http://www.gnu.org/software/screen/">GNU Screen</a> / <a href="http://tmux.sourceforge.net/">tmux</a> / <a href="https://github.com/malyn/lein-whimrepl">whimrepl</a> session.</p>
+
+<pre><code>VIM ---(text)---&gt; screen / tmux / whimrepl
+</code></pre>
+
+<p>Presumably, your screen contains something interesting like, say, a Clojure <a href="http://en.wikipedia.org/wiki/REPL">REPL</a>. But if it can
+receive typed text, it can receive it from vim-slime.</p>
+
+<p>The reason you're doing this? Because you want the benefits of a REPL and the benefits of using Vim (familiar environment, syntax highlighting, persistence ...).</p>
+
+<p>Read the <a href="http://technotales.wordpress.com/2007/10/03/like-slime-for-vim/">blog post</a>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>I recommend installing <a href="https://github.com/tpope/vim-pathogen">pathogen.vim</a>, and
+then simply copy and paste:</p>
+
+<pre><code>cd ~/.vim/bundle
+git clone git://github.com/jpalardy/vim-slime.git
+</code></pre>
+
+<p>If you like it the hard way, copy plugin/slime.vim from this repo into ~/.vim/plugin.</p>
+
+<h2>
+<a name="user-content-configuration-gnu-screen" class="anchor" href="#configuration-gnu-screen" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration (GNU Screen)</h2>
+
+<p>By default, GNU Screen is assumed, you don't have to do anything. If you want
+to be explicit, you can add this line to your .vimrc:</p>
+
+<pre><code>let g:slime_target = "screen"
+</code></pre>
+
+<p>Because Screen doesn't accept input from STDIN, a file is used to pipe data
+between Vim and Screen. By default this file is set to <code>$HOME/.slime_paste</code>.
+The name of the file used can be configured through a variable:</p>
+
+<pre><code>let g:slime_paste_file = "$HOME/.slime_paste"
+</code></pre>
+
+<p>This file is not erased by the plugin and will always contain the last thing
+you sent over. If this is a problem, I recommend you switch to tmux.</p>
+
+<p>When you invoke vim-slime for the first time (see below), you will be prompted for more configuration.</p>
+
+<p>screen session name</p>
+
+<pre><code>This is what you put in the -S flag, or one of the line of "screen -ls".
+</code></pre>
+
+<p>screen window name</p>
+
+<pre><code>This is the window number or name, zero-based.
+</code></pre>
+
+<h2>
+<a name="user-content-configuration-tmux" class="anchor" href="#configuration-tmux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration (tmux)</h2>
+
+<p>Tmux is <em>not</em> the default, to use it you will have to add this line to your .vimrc:</p>
+
+<pre><code>let g:slime_target = "tmux"
+</code></pre>
+
+<p>When you invoke vim-slime for the first time (see below), you will be prompted for more configuration.</p>
+
+<p>tmux socket name</p>
+
+<pre><code>This is what you put in the -L flag, it will be "default" if you didn't put anything.
+</code></pre>
+
+<p>tmux target pane</p>
+
+<pre><code>":" means current window, current pane (a reasonable default)
+":i" means the ith window, current pane
+":i.j" means the ith window, jth pane
+"h:i.j" means the tmux session where h is the session identifier (either session name or number), the ith window and the jth pane
+</code></pre>
+
+<p>By default <code>STDIN</code> is used to pass the text to tmux.
+If you experience issues with this you may be able to work around them
+by configuring slime to use a file instead:</p>
+
+<pre><code>let g:slime_paste_file = "$HOME/.slime_paste"
+</code></pre>
+
+<p>This file is not erased by the plugin and will always contain the last thing
+you sent over.  If this behavior is undesired, one alternative is to use a temporary file:</p>
+
+<pre><code>let g:slime_paste_file = tempname()
+</code></pre>
+
+<p>If you do not want vim-slime to prompt for every buffer, you can set a default configuration</p>
+
+<pre><code>let g:slime_default_config = {"socket_name": "default", "target_pane": "1"}
+</code></pre>
+
+<p>If this default config is not appropriate for a given buffer, you can call <code>:SlimeConfig</code>
+to reset it.</p>
+
+<h2>
+<a name="user-content-configuration-whimrepl" class="anchor" href="#configuration-whimrepl" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration (whimrepl)</h2>
+
+<p>whimrepl is also not the default, to use it you will have to add this line to your .vimrc:</p>
+
+<pre><code>let g:slime_target = "whimrepl"
+</code></pre>
+
+<p>When you invoke vim-slime for the first time (see below), you will be prompted for more configuration.</p>
+
+<p>whimrepl server name</p>
+
+<pre><code>This is the name of the whimrepl server that you wish to target.  whimrepl displays that name in its banner every time you start up an instance of whimrepl.
+</code></pre>
+
+<h2>
+<a name="user-content-key-bindings" class="anchor" href="#key-bindings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Key Bindings</h2>
+
+<p>By default, the current paragraph will be sent. This is equivalent to typing <code>vip</code>. If you (visually) select text, that will be sent over:</p>
+
+<pre><code>C-c, C-c  --- the same as slime
+</code></pre>
+
+<p><em>You can just hold <code>Ctrl</code> and double-tap <code>c</code>.</em></p>
+
+<p>There will be a few questions, as to where you want to send your text, but the answers will be remembered. If you need to reconfigure:</p>
+
+<pre><code>C-c, v    --- mnemonic: "variables"
+</code></pre>
+
+<h2>
+<a name="user-content-haskell" class="anchor" href="#haskell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Haskell</h2>
+
+<p>This plugin has support for sending haskell source code to the <code>ghci</code>. Syntax differences between <code>ghci</code>
+are automatically detected and fixed and comments (which aren't allowed in <code>ghci</code>) are filtered. Try
+sending the following (correct haskell source code) snippet to <code>ghci</code>:</p>
+
+<pre><code>f :: a -&gt; [a]
+f = replicate 3
+</code></pre>
+
+<p>This translates to the follwing on the <code>ghci</code>:</p>
+
+<pre><code>:{
+let f :: a -&gt; [a]
+    f = replicate 3
+:}
+</code></pre>
+
+<p>because <code>ghci</code> expects a <code>let</code> in front of a function definition, needs correct indentation and chains multiple lines together
+when they are wrapped in a <code>:{</code> <code>:}</code> block.</p>
+
+<p>All of this is very nice but my workflow sometimes requires that I send the same code to the <code>ghci</code> over
+and over, so I usually put it in a separate "script" file that holds some testing instructions
+so I can send them quickly.</p>
+
+<p>However since some of the syntax is different between the <code>ghci</code> and normal haskell
+and I write these script files as if I were writing in <code>ghci</code>, sometimes the syntax translation would get in 
+the way. Eg. I would write a function call to test a certain function and check it's type:</p>
+
+<pre><code>(++) "This is a: " "TEST"
+:type (++)
+</code></pre>
+
+<p>and it get translated to:</p>
+
+<pre><code>:{
+let (++) "This is a: " "TEST"
+    :type (++)
+:}
+</code></pre>
+
+<p>which is not what I wanted obviously.</p>
+
+<p>To get around this, there is another handler that only kicks in if the filetype in vim is set to <code>haskell.script</code>.
+If you want access to this handler call <code>set ft=haskell.script</code> or create a new ftdetect file which does this for you
+for a certain file extension. For instance, I have:</p>
+
+<pre><code>au BufRead,BufNewFile,BufNew *.hss setl ft=haskell.script
+</code></pre>
+
+<p>in <code>~/.vim/ftdetect/hss.vim</code>.</p></article></div>

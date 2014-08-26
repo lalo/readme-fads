@@ -1,0 +1,140 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-homomorphic-learning" class="anchor" href="#homomorphic-learning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Homomorphic Learning</h1>
+
+<p>HLearn is a suite of libraries for interpreting machine learning models according to their algebraic structure.  Every structure has associated algorithms useful for learning.  when we show that a model is an instance of a particular structure, we get the associated algorithms "for free."</p>
+
+<table>
+<thead><tr>
+<th align="left">Structure</th>
+<th align="left">What we get</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">Monoid</td>
+<td align="left">parallel batch training</td>
+</tr>
+<tr>
+<td align="left">Monoid</td>
+<td align="left">online training</td>
+</tr>
+<tr>
+<td align="left">Monoid</td>
+<td align="left">fast cross-validation</td>
+</tr>
+<tr>
+<td align="left">Abelian group</td>
+<td align="left">"untraining" of data points</td>
+</tr>
+<tr>
+<td align="left">Abelian group</td>
+<td align="left">more fast cross-validation</td>
+</tr>
+<tr>
+<td align="left">R-Module</td>
+<td align="left">weighted data points</td>
+</tr>
+<tr>
+<td align="left">Vector space</td>
+<td align="left">fractionally weighted data points</td>
+</tr>
+<tr>
+<td align="left">Functor</td>
+<td align="left">fast simple preprocessing of data</td>
+</tr>
+<tr>
+<td align="left">Monad</td>
+<td align="left">fast complex preprocessing of data</td>
+</tr>
+</tbody>
+</table><p>This interpretation of machine learning is somewhat limitting in that not all models have obvious algebraic structure.  But many important models do.  Currently implemented models include:</p>
+
+<ul class="task-list">
+<li><p><strong>Univariate distributions</strong>: exponential, log-normal, normal, kernel density estimator, binomial, categorical, geometric, poisson</p></li>
+<li><p><strong>Multivariate distributions</strong>:  normal, categorical, subset of markov networks</p></li>
+<li><p><strong>Classifiers</strong>: naive bayes, full bayes, perceptron, bagging, boosting (sort of)</p></li>
+<li><p><strong>Univariate regression</strong>: exponential, logistic, power law, polynomial</p></li>
+<li><p><strong>NP-hard approximations</strong>: k-centers, bin packing, multiprocessor scheduling</p></li>
+<li><p><strong>Other</strong>: markov chains, many nearest neighbor based algorithms with cover trees</p></li>
+</ul><p>Note: These models not included in the latest hackage releases: decision stumps/trees, and k-nearest neighbor (kd-tree based)</p>
+
+<h2>
+<a name="user-content-example-normal-distribution" class="anchor" href="#example-normal-distribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example: normal distribution</h2>
+
+<p>Every model in HLearn is trained from a data set using the function <code>train</code>.  The type signature specifies which model we're training.</p>
+
+<pre><code>let dataset =  [1,2,3,4,5,6]
+let dist = train dataset :: Normal Double
+</code></pre>
+
+<p>We can train in parallel using the higher order function <code>parallel</code>.  The GHC run time automatically takes advantage of multiple cores on your compuer.  If you have 4 cores, then run time is 4x faster.</p>
+
+<pre><code>let dist' = parallel train dataset :: Normal Double
+</code></pre>
+
+<p>We can also train in online mode.  This is where you add data points to an already existing model using either the function <code>add1dp</code> or <code>addBatch</code>.</p>
+
+<pre><code>let dist_online1 = add1dp dist 7
+let dist_online2 = addBatch dist [7,8,9,10]
+</code></pre>
+
+<p>Finally, once we've trained a data point, we can do all the normal operations on it we would expect.  One common operation on distributions is evaluating the probability density function.  We do this with the <code>pdf</code> function.</p>
+
+<pre><code>pdf dist 10
+</code></pre>
+
+<p>For more details on why the Normal distribution has algebraic structure and what we can do with it, see the blog post <a href="http://izbicki.me/blog/gausian-distributions-are-monoids">Normal distributions form a monoid and why machine learning experts should care</a>.</p>
+
+<h2>
+<a name="user-content-more-documentation" class="anchor" href="#more-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>More documentation</h2>
+
+<p>There are three main sources of documentation.  First, there are a number of tutorials on my personal blog.  These provide the most detail and are geared towards the beginner.  They're probably the easiest way to get started.  Next, there are two papers about the internals of the HLearn library.  They are a good resource for understanding the theory behind why the library works.  Finally, there's the hackage documentation.  </p>
+
+<p>Tutorial links:</p>
+
+<ul class="task-list">
+<li>
+<p>Current version:</p>
+
+<ul class="task-list">
+<li><a href="http://izbicki.me/blog/the-categorical-distributions-algebraic-structure">The categorical distribution's monoid/group/module Structure</a></li>
+<li><a href="http://izbicki.me/blog/functors-and-monads-for-analyzing-data">The categorical distribution's functor/monad structure</a></li>
+<li><p><a href="http://izbicki.me/blog/markov-networks-monoids-and-futurama">Markov Networks, monoids, and futurama</a></p></li>
+<li><p><a href="http://izbicki.me/public/papers/monoids-for-approximating-np-complete-problems.pdf">Solving NP-complete problems with HLearn, and how to write your own HomTrainer instances</a></p></li>
+</ul>
+</li>
+<li>
+<p>Previous versions:</p>
+
+<ul class="task-list">
+<li><a href="http://izbicki.me/blog/nuclear-weapon-statistics-using-monoids-groups-and-modules-in-haskell">Nuclear weapon statistics using monoids, groups, and modules</a></li>
+<li><a href="http://izbicki.me/blog/gausian-distributions-are-monoids">Gaussian distributions form a monoid</a></li>
+</ul>
+</li>
+</ul><p>Comparison to other libraries:</p>
+
+<ul class="task-list">
+<li><a href="http://izbicki.me/blog/hlearn-cross-validates-400x-faster-than-weka">HLearn cross-validates &gt;400x faster than Weka</a></li>
+<li><a href="http://izbicki.me/blog/hlearns-code-is-shorter-and-clearer-than-wekas">HLearn's code is shorter and clearer than Weka's</a></li>
+</ul><p>Paper links:</p>
+
+<ul class="task-list">
+<li>TFP13 - <a href="http://izbicki.me/public/papers/tfp2013-hlearn-a-machine-learning-library-for-haskell.pdf">HLearn: A Machine Learning Library for Haskell</a>
+</li>
+<li>ICML13 - <a href="http://izbicki.me/public/papers/icml2013-algebraic-classifiers.pdf">Algebraic Classifiers: a generic approach to fast cross-validation, online training, and parallel training</a>
+</li>
+</ul><p>Hackage links:</p>
+
+<ul class="task-list">
+<li><a href="http://hackage.haskell.org/package/HLearn-algebra">HLearn-algebra</a></li>
+<li><a href="http://hackage.haskell.org/package/HLearn-distributions">HLearn-distributions</a></li>
+<li><a href="http://hackage.haskell.org/package/HLearn-classification">HLearn-classification</a></li>
+<li><a href="http://hackage.haskell.org/package/HLearn-datastructures">HLearn-datastructures</a></li>
+<li><a href="http://hackage.haskell.org/package/HLearn-approximation">HLearn-approximation</a></li>
+</ul><h2>
+<a name="user-content-future-directions" class="anchor" href="#future-directions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Future directions</h2>
+
+<p>HLearn is under active development.  At present, it is primarily a research tool.  This means that the interfaces may change significantly in the future (but will definitely follow the <a href="http://www.haskell.org/haskellwiki/Package_versioning_policy">PVP</a>).  I'm hoping HLearn will eventually become a stable package that will make it easy to incorporate machine learning techniques into Haskell programs.</p>
+
+<p>Current development is focused in two areas.  First, implementing new models and their algebraic structures.  Many unimplemented models have "trivial" algebraic structure.  But for many successful models it is unknown whether they can have interesting structure.  The second area is investigating new structures.  Many models have Functor/Applicative/Monoid structure (or in some strict sense <em>almost</em> have these structures) and I'm working on how to exploit these structures.</p>
+
+<p><strong>Any comments / questions / pull requests are greatly appreciated!</strong></p></article></div>

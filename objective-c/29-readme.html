@@ -1,0 +1,484 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-xctool" class="anchor" href="#xctool" aria-hidden="true"><span class="octicon octicon-link"></span></a>xctool</h1>
+
+<p><strong>xctool</strong> is a replacement for Apple's <strong>xcodebuild</strong> that makes it
+easier to build and test iOS and Mac products.  It's especially helpful
+for continuous integration.</p>
+
+<p><a href="https://travis-ci.org/facebook/xctool"><img src="https://camo.githubusercontent.com/f6da7203fd17e38650fc58a40756585d2724f9cc/68747470733a2f2f7472617669732d63692e6f72672f66616365626f6f6b2f7863746f6f6c2e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/facebook/xctool.png?branch=master" style="max-width:100%;"></a></p>
+
+<p>[ <a href="#features">Features</a> • <a href="#requirements">Requirements</a> • <a href="#usage">Usage</a>
+• <a href="#continuous-integration">Continuous Integration</a>
+• <a href="#reporters">Reporters</a> •
+<a href="#configuration-xctool-args">Configuration</a> • 
+<a href="#contributing">Contributing</a> • <a href="#known-issues--tips">Known Issues &amp; Tips</a> • <a href="#license">License</a> ]</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p><strong>xctool</strong> is drop-in replacement for xcodebuild that adds a few extra
+features:</p>
+
+<ul class="task-list">
+<li>
+<p><strong>Structured output of build and test results.</strong></p>
+
+<p><em>xctool</em> captures all build events and test results as structured JSON
+objects.  If you're building a continuous integration system, this means
+you don't have to regex parse <em>xcodebuild</em> output anymore.</p>
+
+<p>Try one of the <a href="#reporters">Reporters</a> to customize the output or get
+the full event stream with the <code>-reporter json-stream</code> option.</p>
+</li>
+<li>
+<p><strong>Human-friendly, ANSI-colored output.</strong></p>
+
+<p><em>xcodebuild</em> is incredibly verbose, printing the full compile command
+and output for every source file.  By default, <em>xctool</em> is only verbose
+if something goes wrong, making it much easier to identify where the
+problems are.</p>
+
+<p>Example:</p>
+
+<p><a href="https://camo.githubusercontent.com/f4c5388651b83663ff811969c0e2099073c25484/68747470733a2f2f66706f747465725f7075626c69632e73332e616d617a6f6e6177732e636f6d2f7863746f6f6c2d7569636174616c6f672e676966" target="_blank"><img src="https://camo.githubusercontent.com/f4c5388651b83663ff811969c0e2099073c25484/68747470733a2f2f66706f747465725f7075626c69632e73332e616d617a6f6e6177732e636f6d2f7863746f6f6c2d7569636174616c6f672e676966" alt="pretty output" data-canonical-src="https://fpotter_public.s3.amazonaws.com/xctool-uicatalog.gif" style="max-width:100%;"></a></p>
+</li>
+<li>
+<p><strong>Faster, parallelized test runs.</strong></p>
+
+<p><em>xctool</em> can optionally run all of your test bundles in parallel,
+speeding up your test runs significantly.  At Facebook, we've seen 2x
+and 3x speed ups by parallelizing our runs.</p>
+
+<p>Use the <code>-parallelize</code> option with <em>run-tests</em> or <em>test</em> to enable.
+See <a href="#parallelizing-test-runs">Parallelizing Test Runs</a> for more info.</p>
+</li>
+</ul><h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>Xcode 5 or higher</li>
+<li>Xcode 6 betas are <strong>not supported yet</strong>. There is preliminary support in <code>master</code>, please test and send pull requests!</li>
+<li>You'll need Xcode's Command Line Tools installed.  From Xcode, install
+via <em>Xcode → Preferences → Downloads</em>.</li>
+</ul><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>xctool's commands and options are mostly a superset of xcodebuild's.  In
+most cases, you can just swap <strong>xcodebuild</strong> with <strong>xctool</strong> and things will
+run as expected but with more attractive output.</p>
+
+<p>You can always get help and a full list of options with:</p>
+
+<pre><code>path/to/xctool.sh -help
+</code></pre>
+
+<h3>
+<a name="user-content-building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h3>
+
+<p>Building products with <em>xctool</em> is the same as building them with
+<em>xcodebuild</em>.</p>
+
+<p>If you use workspaces and schemes:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  build
+</code></pre>
+
+<p>If you use projects and schemes:</p>
+
+<pre><code>path/to/xctool.sh \
+  -project YourProject.xcodeproj \
+  -scheme YourScheme \
+  build
+</code></pre>
+
+<p>All of the common options like <code>-configuration</code>, <code>-sdk</code>, <code>-arch</code> work
+just as they do with <em>xcodebuild</em>.</p>
+
+<p>NOTE: <em>xctool</em> doesn't support directly building targets using
+<code>-target</code>; you must use schemes.</p>
+
+<h3>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h3>
+
+<p><em>xctool</em> has a <strong>test</strong> action which knows how to build and run the
+tests in your scheme.  You can optionally limit what tests are run
+or change the SDK they're run against.</p>
+
+<p>To build and run all tests in your scheme, you would use:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  test
+</code></pre>
+
+<p>To build and run just the tests in a specific target, use the <code>-only</code> option:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  test -only SomeTestTarget
+</code></pre>
+
+<p>You can go further and just run a specific test class:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  test -only SomeTestTarget:SomeTestClass
+</code></pre>
+
+<p>Or, even further and run just a single test method:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  test -only SomeTestTarget:SomeTestClass/testSomeMethod
+</code></pre>
+
+<p>You can also run tests against a different SDK:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  test -test-sdk iphonesimulator5.1
+</code></pre>
+
+<h4>
+<a name="user-content-building-tests" class="anchor" href="#building-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Tests</h4>
+
+<p>While <strong>test</strong> will build and run your tests, sometimes you want to
+build them without running them.  For that, use <strong>build-tests</strong>.</p>
+
+<p>For example:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  build-tests
+</code></pre>
+
+<p>You can optionally just build a single test target with the <code>-only</code> option:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  build-tests -only SomeTestTarget
+</code></pre>
+
+<h4>
+<a name="user-content-running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Tests</h4>
+
+<p>If you've already built tests with <strong>build-tests</strong>, you can use
+<strong>run-tests</strong> to run them.  This is helpful if you want to build tests
+once but run them against multiple SDKs.</p>
+
+<p>To run all tests, you would use:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  run-tests
+</code></pre>
+
+<p>Just as with the <strong>test</strong> action, you can limit which tests are run with
+the <code>-only</code>.  And, you can change which SDK they're run against
+with the <code>-test-sdk</code>.</p>
+
+<h4>
+<a name="user-content-parallelizing-test-runs" class="anchor" href="#parallelizing-test-runs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parallelizing Test Runs</h4>
+
+<p><em>xctool</em> can optionally run unit tests in parallel, making better use of
+otherwise idle CPU cores.  At Facebook, we've seen 2x and 3x gains by
+parallelizing our test runs.</p>
+
+<p>To allow test bundles to run concurrently, use the <code>-parallelize</code>
+option:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  run-tests -parallelize
+</code></pre>
+
+<p>The above gives you parallelism, but you're bounded by your slowest test
+bundle.  For example, if you had two test bundles ('A' and 'B'), but 'B'
+took 10 times as long to run because it contained 10 times as many
+tests, then the above parallelism won't help much.</p>
+
+<p>You can get further gains by breaking your test execution into buckets
+using the <code>-logicTestBucketSize</code> option:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  run-tests -parallelize -logicTestBucketSize 20
+</code></pre>
+
+<p>The above will break your test execution into buckets of <em>20</em> test
+cases each, and those bundles will be run concurrently.  If some of your
+test bundles are much larger than others, this will help even things out
+and speed up the overall test run.</p>
+
+<h2>
+<a name="user-content-continuous-integration" class="anchor" href="#continuous-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Continuous Integration</h2>
+
+<p>xctool is an excellent choice for running your tests under a continuous
+integration server such as <a href="https://travis-ci.org/">Travis CI</a> or <a href="http://jenkins-ci.org/">Jenkins</a>.
+In order to your run your tests within a continuous integration environment,
+you must create <strong>Shared Schemes</strong> for your application target and ensure that all dependencies (such as CocoaPods) are added explicitly to the Scheme. To do so:</p>
+
+<ol class="task-list">
+<li>Open up the <strong>Manage Schemes</strong> sheet by selecting the <strong>Product</strong> menu &gt; <strong>Schemes</strong> &gt; <strong>Manage Schemes...</strong>
+</li>
+<li>Locate your application target in the list. Ensure that the <strong>Shared</strong> checkbox in far right hand column of the sheet is checked.</li>
+<li>If your application or test targets include cross-project dependencies such as CocoaPods, then you will need to ensure that they have been
+configured as explicit dependencies. To do so:
+
+<ol class="task-list">
+<li>Highlight your application target and hit the <strong>Edit...</strong> button to open the Scheme editing sheet.</li>
+<li>Click the <strong>Build</strong> tab in the left-hand panel of the Scheme editor.</li>
+<li>Click the <strong>+</strong> button and add each dependency to the project. CocoaPods will appears as static library named <strong>Pods</strong>.</li>
+<li>Drag the dependency above your application target so that it is built first.</li>
+</ol>
+</li>
+</ol><p>You will now have a new file in the <strong>xcshareddata/xcschemes</strong> directory underneath your Xcode project. This is the
+shared Scheme that you just configured. Check this file into your repository and xctool will be able to find and execute
+your tests on the next CI build.</p>
+
+<h3>
+<a name="user-content-example-travis-ci-configuration" class="anchor" href="#example-travis-ci-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example Travis CI Configuration</h3>
+
+<p><a href="https://travis-ci.org/">Travis CI</a> is a very popular continuous
+integration system offered for free to Open Source projects.  It
+integrates well with Github, and it now uses <em>xctool</em> as the default
+build and test tool for Objective-C projects.  Once you have set up your
+shared Scheme for use with xctool, you will need to configure a
+<code>.travis.yml</code> file.</p>
+
+<p>If you're using workspaces, your <code>.travis.yml</code> might be:</p>
+
+<pre><code>language: objective-c
+xcode_workspace: path/to/YourApp.xcworkspace
+xcode_scheme: YourApp
+</code></pre>
+
+<p>If you're using projects, your <code>.travis.yml</code> might be:</p>
+
+<pre><code>language: objective-c
+xcode_project: path/to/YourApp.xcodeproj
+xcode_scheme: YourApp
+</code></pre>
+
+<p>For more flexibility, you can also control how Travis installs and
+invokes xctool:</p>
+
+<pre><code>language: objective-c
+before_install:
+    - brew update
+    - brew install xctool
+script: xctool -workspace MyApp.xcworkspace -scheme MyApp test
+</code></pre>
+
+<p>You can learn more about the Travis CI environment for iOS and OS X
+application by referring to the <a href="http://about.travis-ci.org/docs/user/osx-ci-environment/">About OS X Travis CI
+Environment</a>
+document and find in-depth documentation for configuring your project by
+consulting the <a href="http://about.travis-ci.org/docs/user/getting-started/">Getting
+Started</a> page.</p>
+
+<h2>
+<a name="user-content-reporters" class="anchor" href="#reporters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporters</h2>
+
+<p>xctool has reporters that output build and test results in different
+formats.  By default, <em>xctool</em> always uses the <code>pretty</code> and 
+<code>user-notifications</code> reporters.</p>
+
+<p>You can change or add reporters with the <code>-reporter</code> option:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  -reporter plain \
+  build
+</code></pre>
+
+<p>By default, reporters output to standard out, but you can also direct
+the output to a file by adding <code>:OUTPUT_PATH</code> after the reporter name:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  -reporter plain:/path/to/plain-output.txt \
+  build
+</code></pre>
+
+<h3>
+<a name="user-content-included-reporters" class="anchor" href="#included-reporters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Included Reporters</h3>
+
+<ul class="task-list">
+<li>
+<strong>pretty</strong>: a text-based reporter that uses ANSI colors and unicode
+symbols for pretty output (the default).</li>
+<li>
+<strong>plain</strong>: like <em>pretty</em>, but with with no colors or unicode.</li>
+<li>
+<strong>phabricator</strong>: outputs a JSON array of build/test results which can
+be fed into the <a href="http://phabricator.org/">Phabricator</a> code-review tool.</li>
+<li>
+<strong>junit</strong>: produces a JUnit/xUnit compatible XML file with test
+results.</li>
+<li>
+<strong>json-stream</strong>: a stream of build/test events as JSON dictionaries,
+one per line <a href="https://gist.github.com/fpotter/82ffcc3d9a49d10ee41b">(example
+output)</a>.</li>
+<li>
+<strong>json-compilation-database</strong>: outputs a <a href="http://clang.llvm.org/docs/JSONCompilationDatabase.html">JSON Compilation Database</a> of build events which can be used by <a href="http://clang.llvm.org/docs/LibTooling.html">Clang Tooling</a> based tools, e.g. <a href="http://oclint.org">OCLint</a>.</li>
+<li>
+<strong>user-notifications</strong>: sends notification to Notification Center when action is completed <a href="https://cloud.githubusercontent.com/assets/1044236/2771974/a2715306-ca74-11e3-9889-fa50607cc412.png">(example notifications)</a>.</li>
+<li>
+<strong>teamcity</strong>: sends service messages to <a href="http://www.jetbrains.com/teamcity/">TeamCity</a> Continuous Integration Server</li>
+</ul><h3>
+<a name="user-content-implementing-your-own-reporters" class="anchor" href="#implementing-your-own-reporters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Implementing Your Own Reporters</h3>
+
+<p>You can also implement your own reporters using whatever language you
+like.  Reporters in xctool are separate executables that read JSON
+objects from STDIN and write formatted results to STDOUT.</p>
+
+<p>You can invoke reporters by passing their full path via the <code>-reporter</code>
+option:</p>
+
+<pre><code>path/to/xctool.sh \
+  -workspace YourWorkspace.xcworkspace \
+  -scheme YourScheme \
+  -reporter /path/to/your/reporter \
+  test
+</code></pre>
+
+<p>For example, here's a simple reporter in Python that outputs a <em>period</em>
+for every passing test and an <em>exclamation mark</em> for every failing test:</p>
+
+<div class="highlight highlight-python"><pre><span class="c">#!/usr/bin/python</span>
+
+<span class="kn">import</span> <span class="nn">fileinput</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fileinput</span><span class="o">.</span><span class="n">input</span><span class="p">():</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">obj</span><span class="p">[</span><span class="s">'event'</span><span class="p">]</span> <span class="o">==</span> <span class="s">'end-test'</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="p">[</span><span class="s">'succeeded'</span><span class="p">]:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">'.'</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">'!'</span><span class="p">)</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">'</span><span class="se">\n</span><span class="s">'</span><span class="p">)</span>
+</pre></div>
+
+<p>If you're writing a reporter in Objective-C, you'll find the
+<code>Reporter</code> class helpful - see <a href="https://github.com/facebook/xctool/blob/master/reporters/reporters/Reporter.h">Reporter.h</a>.</p>
+
+<h2>
+<a name="user-content-configuration-xctool-args" class="anchor" href="#configuration-xctool-args" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration (.xctool-args)</h2>
+
+<p>If you routinely need to pass many arguments to <em>xctool</em> on the
+command-line, you can use an <strong>.xctool-args</strong> file to speed up your workflow.
+If <em>xctool</em> finds an <strong>.xctool-args</strong> file in the current directory, it
+will automatically pre-populate its arguments from there.</p>
+
+<p>The format is just a JSON array of arguments:</p>
+
+<pre><code>[
+  "-workspace", "YourWorkspace.xcworkspace",
+  "-scheme", "YourScheme",
+  "-configuration", "Debug",
+  "-sdk", "iphonesimulator",
+  "-arch", "i386"
+]
+</code></pre>
+
+<p>Any extra arguments you pass on the command-line will take precendence
+over those in the <em>.xctool-args</em> file.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Bug fixes, improvements, and especially new
+<a href="https://github.com/facebook/xctool/blob/master/xctool/xctool/Reporter.h">Reporter</a>
+implementations are welcome.  Before submitting a <a href="https://help.github.com/articles/using-pull-requests">pull
+request</a>, please
+be sure to sign the <a href="https://developers.facebook.com/opensource/cla">Facebook
+Contributor License
+Agreement</a>.  We can't
+accept pull requests unless it's been signed.</p>
+
+<h4>
+<a name="user-content-workflow" class="anchor" href="#workflow" aria-hidden="true"><span class="octicon octicon-link"></span></a>Workflow</h4>
+
+<ol class="task-list">
+<li>Fork.</li>
+<li>Make a feature branch: <strong>git checkout -b my-feature</strong>
+</li>
+<li>Make your feature.  Keep things tidy so you have one commit per self
+contained change (squashing can help).</li>
+<li>Push your branch to your fork: <strong>git push -u origin my-feature</strong>
+</li>
+<li>Open GitHub, under "Your recently pushed branches", click <strong>Pull
+Request</strong> for <em>my-feature</em>.</li>
+</ol><p>Be sure to use a separate feature branch and pull request for every
+self-contained feature.  If you need to make changes from feedback, make
+the changes in place rather than layering on commits (use interactive
+rebase to edit your earlier commits).  Then use <strong>git push --force
+origin my-feature</strong> to update your pull request.</p>
+
+<h4>
+<a name="user-content-workflow-for-facebook-people-other-committers" class="anchor" href="#workflow-for-facebook-people-other-committers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Workflow (for Facebook people, other committers)</h4>
+
+<p>Mostly the same, but use branches in the main xctool repo if you prefer.
+It's a nice way to keep things together.</p>
+
+<ol class="task-list">
+<li>Make a feature branch: <strong>git checkout -b myusername/my-feature</strong>
+</li>
+<li>Push your branch: <strong>git push -u origin myusername/my-feature</strong>
+</li>
+<li>Open GitHub to <a href="https://github.com/facebook/xctool">facebook/xctool</a>,
+under "Your recently pushed branches", click <strong>Pull Request</strong> for
+<em>myusername/my-feature</em>.</li>
+</ol><h2>
+<a name="user-content-known-issues--tips" class="anchor" href="#known-issues--tips" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Issues &amp; Tips</h2>
+
+<ul class="task-list">
+<li>
+<p><strong>Use shared schemes and disable the Autocreate Schemes feature.</strong></p>
+
+<p>Xcode has two kinds of schemes: shared, and user.  User schemes are
+the default, and they're stored under a folder called <code>USERNAME.xcuserdatad</code>,
+which most people correctly add to their <em>.gitignore</em>.</p>
+
+<p>Use shared schemes instead, and commit them to your repo.  This way
+everyone on your team (and your build server) are working from the
+same information, and are building in the same way.</p>
+
+<p><a href="https://camo.githubusercontent.com/6927db6c236b396d2930d98ce29ce67316320b41/68747470733a2f2f66706f747465725f7075626c69632e73332e616d617a6f6e6177732e636f6d2f7863746f6f6c2d7368617265642d736368656d65732e706e67" target="_blank"><img src="https://camo.githubusercontent.com/6927db6c236b396d2930d98ce29ce67316320b41/68747470733a2f2f66706f747465725f7075626c69632e73332e616d617a6f6e6177732e636f6d2f7863746f6f6c2d7368617265642d736368656d65732e706e67" alt="example" data-canonical-src="https://fpotter_public.s3.amazonaws.com/xctool-shared-schemes.png" style="max-width:100%;"></a></p>
+</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright 2013 Facebook</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this work except in compliance with the License. You may obtain
+a copy of the License in the LICENSE file, or at:</p>
+
+<p><a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p></article></div>

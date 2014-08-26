@@ -1,0 +1,199 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>A bunch of idiomatic, small General Purpose tools.</p>
+
+<p><a href="http://travis-ci.org/twitter/util"><img src="https://camo.githubusercontent.com/e9c675433f662a39c4b93010539f75709f5c255c/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f747769747465722f7574696c2e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/twitter/util.png" style="max-width:100%;"></a></p>
+
+<p>See the Scaladoc <a href="http://twitter.github.com/util">here</a></p>
+
+<h1>
+<a name="user-content-using-in-your-project" class="anchor" href="#using-in-your-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using in your Project</h1>
+
+<p>Pre-compiled jars for each set of tools (<code>util-core</code>, <code>util-collection</code> etc) are available in the Twitter Maven repository, here: <a href="http://maven.twttr.com/">http://maven.twttr.com/</a></p>
+
+<p>We use <a href="http://semver.org/">Semantic Versioning</a> for published artifacts.</p>
+
+<p>An example SBT dependency string for the <code>util-collection</code> tools would look like this:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">collUtils</span> <span class="k">=</span> <span class="s">"com.twitter"</span> <span class="o">%%</span> <span class="s">"util-collection"</span> <span class="o">%</span> <span class="s">"6.12.1"</span>
+</pre></div>
+
+<h1>
+<a name="user-content-units" class="anchor" href="#units" aria-hidden="true"><span class="octicon octicon-link"></span></a>Units</h1>
+
+<h2>
+<a name="user-content-time" class="anchor" href="#time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.conversions.time._</span>
+
+<span class="k">val</span> <span class="n">duration1</span> <span class="k">=</span> <span class="mf">1.</span><span class="n">second</span>
+<span class="k">val</span> <span class="n">duration2</span> <span class="k">=</span> <span class="mf">2.</span><span class="n">minutes</span>
+<span class="n">duration1</span><span class="o">.</span><span class="n">inMillis</span> <span class="c1">// =&gt; 1000L</span>
+</pre></div>
+
+<h2>
+<a name="user-content-space" class="anchor" href="#space" aria-hidden="true"><span class="octicon octicon-link"></span></a>Space</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.conversions.storage._</span>
+<span class="k">val</span> <span class="n">amount</span> <span class="k">=</span> <span class="mf">8.</span><span class="n">megabytes</span>
+<span class="n">amount</span><span class="o">.</span><span class="n">inBytes</span> <span class="c1">// =&gt; 8388608L</span>
+<span class="n">amount</span><span class="o">.</span><span class="n">inKilobytes</span> <span class="c1">// =&gt; 8192L</span>
+</pre></div>
+
+<h1>
+<a name="user-content-futures" class="anchor" href="#futures" aria-hidden="true"><span class="octicon octicon-link"></span></a>Futures</h1>
+
+<p>A Non-actor re-implementation of Scala Futures.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.util.</span><span class="o">{</span><span class="nc">Future</span><span class="o">,</span> <span class="nc">Promise</span><span class="o">}</span>
+
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Promise</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span>
+<span class="k">val</span> <span class="n">g</span> <span class="k">=</span> <span class="n">f</span> <span class="n">map</span> <span class="o">{</span> <span class="n">result</span> <span class="k">=&gt;</span> <span class="n">result</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">}</span>
+<span class="n">f</span><span class="o">.</span><span class="n">setValue</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="n">g</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="mf">1.</span><span class="n">second</span><span class="o">)</span> <span class="c1">// =&gt; This blocks for the futures result (and eventually returns 2)</span>
+
+<span class="c1">// Another option:</span>
+<span class="n">g</span> <span class="n">respond</span> <span class="o">{</span> <span class="n">result</span> <span class="k">=&gt;</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">result</span><span class="o">)</span> <span class="c1">// =&gt; prints "2"</span>
+<span class="o">}</span>
+
+<span class="c1">// Using for expressions:</span>
+<span class="k">val</span> <span class="n">xFuture</span> <span class="k">=</span> <span class="nc">Future</span><span class="o">(</span><span class="mi">1</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">yFuture</span> <span class="k">=</span> <span class="nc">Future</span><span class="o">(</span><span class="mi">2</span><span class="o">)</span>
+
+<span class="k">for</span> <span class="o">(</span>
+  <span class="n">x</span> <span class="k">&lt;-</span> <span class="n">xFuture</span>
+  <span class="n">y</span> <span class="k">&lt;-</span> <span class="n">yFuture</span>
+<span class="o">)</span> <span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="o">)</span> <span class="c1">// =&gt; prints "3"</span>
+<span class="o">}</span>
+</pre></div>
+
+<h1>
+<a name="user-content-collections" class="anchor" href="#collections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collections</h1>
+
+<h2>
+<a name="user-content-lrumap" class="anchor" href="#lrumap" aria-hidden="true"><span class="octicon octicon-link"></span></a>LruMap</h2>
+
+<p>The LruMap is an LRU with a maximum size passed in. If the map is full it expires items in FIFO order. Reading a value will move an item to the top of the stack.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.util.LruMap</span>
+
+<span class="k">val</span> <span class="n">f</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">LruMap</span><span class="o">[</span><span class="kt">Key</span>, <span class="kt">Value</span><span class="o">](</span><span class="mi">15</span><span class="o">)</span> <span class="c1">// this is of type mutable.Map[Key, Value]</span>
+</pre></div>
+
+<h2>
+<a name="user-content-google-mapmaker" class="anchor" href="#google-mapmaker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google MapMaker</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.util.MapMaker</span>
+
+<span class="k">val</span> <span class="n">map</span> <span class="k">=</span> <span class="nc">MapMaker</span><span class="o">[</span><span class="kt">Key</span>, <span class="kt">Value</span><span class="o">]</span> <span class="o">{</span> <span class="n">config</span> <span class="k">=&gt;</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">weakKeys</span><span class="o">()</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">weakValues</span><span class="o">()</span>
+<span class="o">}</span> <span class="c1">// this is of type mutable.Map[Key, Value]</span>
+</pre></div>
+
+<h1>
+<a name="user-content-object-pool" class="anchor" href="#object-pool" aria-hidden="true"><span class="octicon octicon-link"></span></a>Object Pool</h1>
+
+<p>The pool order is FIFO</p>
+
+<h2>
+<a name="user-content-a-pool-of-constants" class="anchor" href="#a-pool-of-constants" aria-hidden="true"><span class="octicon octicon-link"></span></a>A pool of constants</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">queue</span> <span class="k">=</span> <span class="k">new</span> <span class="n">mutable</span><span class="o">.</span><span class="nc">Queue</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="o">++</span> <span class="nc">List</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">pool</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">SimplePool</span><span class="o">(</span><span class="n">queue</span><span class="o">)</span>
+<span class="c1">// Note that the pool returns Futures, it doesn't block on exhaustion.</span>
+<span class="n">pool</span><span class="o">.</span><span class="n">reserve</span><span class="o">()()</span> <span class="n">mustEqual</span> <span class="mi">1</span>
+<span class="n">pool</span><span class="o">.</span><span class="n">reserve</span> <span class="o">{</span> <span class="n">item</span> <span class="k">=&gt;</span>
+  <span class="n">println</span><span class="o">(</span><span class="n">item</span><span class="o">)</span> <span class="c1">// prints "2"</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-a-pool-of-dynamically-created-objects" class="anchor" href="#a-pool-of-dynamically-created-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>A pool of dynamically created objects</h2>
+
+<p>Here is a pool of even-number generators. It stores 4 numbers at a time:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">pool</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">FactoryPool</span><span class="o">[</span><span class="kt">Int</span><span class="o">](</span><span class="mi">4</span><span class="o">)</span> <span class="o">{</span>
+  <span class="k">var</span> <span class="n">count</span> <span class="k">=</span> <span class="mi">0</span>
+  <span class="k">def</span> <span class="n">makeItem</span><span class="o">()</span> <span class="k">=</span> <span class="o">{</span> <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span><span class="o">;</span> <span class="nc">Future</span><span class="o">(</span><span class="n">count</span><span class="o">)</span> <span class="o">}</span>
+  <span class="k">def</span> <span class="n">isHealthy</span><span class="o">(</span><span class="n">i</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>It checks the health when you successfully reserve an object (i.e., when the Future yields).</p>
+
+<h1>
+<a name="user-content-eval" class="anchor" href="#eval" aria-hidden="true"><span class="octicon octicon-link"></span></a>Eval</h1>
+
+<p>Dynamically evaluates Scala strings and files.</p>
+
+<p>This is motivated by the desire to have a type-safe alternative to textual configuration formats such as
+YAML, JSON, or .properties files.  Its advantages over these text
+formats are</p>
+
+<ul class="task-list">
+<li>  Strong typing and compiler checking.  If it doesn't compile and
+doesn't conform to the type you expect, you get an exception</li>
+<li>  The full power of Scala in your config.  You don't have to use
+it.  But you can.</li>
+</ul><h2>
+<a name="user-content-in-configdevelopmentscala" class="anchor" href="#in-configdevelopmentscala" aria-hidden="true"><span class="octicon octicon-link"></span></a>in config/Development.scala</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.xxx.MyConfig</span>
+
+<span class="k">new</span> <span class="nc">MyConfig</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">myValue</span> <span class="k">=</span> <span class="mi">1</span>
+  <span class="k">val</span> <span class="n">myTime</span> <span class="k">=</span> <span class="mf">2.</span><span class="n">seconds</span>
+  <span class="k">val</span> <span class="n">myStorage</span> <span class="k">=</span> <span class="mf">14.</span><span class="n">kilobytes</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-in-mainscala" class="anchor" href="#in-mainscala" aria-hidden="true"><span class="octicon octicon-link"></span></a>in Main.scala</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.xxx.MyConfig</span>
+
+<span class="k">val</span> <span class="n">config</span> <span class="k">=</span> <span class="nc">Eval</span><span class="o">[</span><span class="kt">MyConfig</span><span class="o">](</span><span class="k">new</span> <span class="nc">File</span><span class="o">(</span><span class="s">"config/Development.scala"</span><span class="o">))</span>
+</pre></div>
+
+<h1>
+<a name="user-content-version-6x" class="anchor" href="#version-6x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version 6.x</h1>
+
+<p>Major version 6 introduced some breaking changes:</p>
+
+<ul class="task-list">
+<li>Futures are no longer <code>Cancellable</code>; cancellation is replaced with a simpler interrupt mechanism.</li>
+<li>Time and duration implement true sentinels (similar to infinities in doubles). <code>Time.now</code> uses system time instead of nanotime + offset.</li>
+<li>The (dangerous) implicit conversion from a <code>Duration</code> to a <code>Long</code> was removed.</li>
+<li>
+<code>Try</code>s and <code>Future</code>s no longer handle fatal exceptions: these are propagated to the dispatching thread.</li>
+</ul><h2>
+<a name="user-content-future-interrupts" class="anchor" href="#future-interrupts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Future interrupts</h2>
+
+<p>Method <code>raise</code> on <code>Future</code> (<code>def raise(cause: Throwable)</code>) raises the interrupt described by <code>cause</code> to the producer of this <code>Future</code>. Interrupt handlers are installed on a <code>Promise</code> using <code>setInterruptHandler</code>, which takes a partial function:</p>
+
+<pre><code>val p = new Promise[T]
+p.setInterruptHandler {
+  case exc: MyException =&gt;
+    // deal with interrupt..
+}
+</code></pre>
+
+<p>Interrupts differ in semantics from cancellation in important ways: there can only be one interrupt handler per promise, and interrupts are only delivered if the promise is not yet complete.</p>
+
+<h2>
+<a name="user-content-time-and-duration" class="anchor" href="#time-and-duration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Time and Duration</h2>
+
+<p>Like arithmetic on doubles, <code>Time</code> and <code>Duration</code> arithmetic is now free of overflows. Instead, they overflow to <code>Top</code> and <code>Bottom</code> values, which are analogous to positive and negative infinity.</p>
+
+<p>Since the resolution of <code>Time.now</code> has been reduced (and is also more expensive due to its use of system time), a new <code>Stopwatch</code> API has been introduced in order to calculate durations of time.</p>
+
+<p>It's used simply:</p>
+
+<pre><code>val elapsed: () =&gt; Duration = Stopwatch.start()
+</code></pre>
+
+<p>which is read by applying <code>elapsed</code>:</p>
+
+<pre><code>val duration: Duration = elapsed()
+</code></pre></article></div>

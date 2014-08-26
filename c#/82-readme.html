@@ -1,0 +1,179 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-what-is-membershipreboot" class="anchor" href="#what-is-membershipreboot" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is MembershipReboot</h1>
+
+<p>MembershipReboot is a user identity management and authentication library. It has nothing to do with the ASP.NET Membership Provider, but was inspired by it due to <a href="http://brockallen.com/2012/09/02/think-twice-about-using-membershipprovider-and-simplemembership/">frustrations</a> with the built-in ASP.NET Membership system. The goals are to improve upon and provide missing features from ASP.NET Membership. It is designed to encapsulate the important security logic while leaving most of the other aspects of account management either configurable or extensible for application developers to customize as needed.</p>
+
+<p>Some of the features of MembershipReboot are:</p>
+
+<ul class="task-list">
+<li>single- or multi-tenant account management</li>
+<li>flexible account storage design (relational/SQL or object/NoSql)
+
+<ul class="task-list">
+<li>samples using both EF and RavenDB</li>
+</ul>
+</li>
+<li>claims-aware user identities</li>
+<li>support for account registration, email verification, password reset, etc.</li>
+<li>account lockout for multiple failed login attempts (password guessing)</li>
+<li>extensible templating for email notifications</li>
+<li>customizable username, password and email validation</li>
+<li>notification system for account activity and updates (e.g. for auditing)</li>
+<li>account linking with external identity providers (enterprise or social)</li>
+<li>supports certificate based authentication</li>
+<li>proper password storage (via PBKDF2)
+
+<ul class="task-list">
+<li>configurable iterations</li>
+<li>defaults to OWASP recommendations for iterations (e.g. 64K in year 2012)</li>
+</ul>
+</li>
+<li>two factor authentication support via mobile phone SMS messages or client certificates</li>
+</ul><p>The most common use case will be to integrate this into an ASP.NET or ASP.NET MVC application, though the library can also be used over a network as a service.</p>
+
+<h1>
+<a name="user-content-getting-started-with-membershipreboot" class="anchor" href="#getting-started-with-membershipreboot" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started with MembershipReboot</h1>
+
+<p>There is a core project (BrockAllen.MembershipReboot), two projects to implement the storage of the user account data (one uses EF, the other uses RavenDB), and a unit test project. There are also several sample applications demonstrating various use-cases. The best way to see MembershipReboot in action is to start with the SingleTenantWebApp from the samples folder.</p>
+
+<h2>
+<a name="user-content-membershipreboot-claims-and-windows-identity-foundation-wif" class="anchor" href="#membershipreboot-claims-and-windows-identity-foundation-wif" aria-hidden="true"><span class="octicon octicon-link"></span></a>MembershipReboot, Claims and Windows Identity Foundation (WIF)</h2>
+
+<p>MembershipReboot is intended to support modern identity management, thus it heavily uses claims and some related concepts based upon Windows Identity Foundation in .NET 4.5. If you need a primer before diving in, we suggest the following one-hour video by Dominick Baier: </p>
+
+<p><a href="http://vimeo.com/43549130">Authentication &amp; Authorization in .NET 4.5 - Claims &amp; Tokens become the standard Model</a></p>
+
+<h2>
+<a name="user-content-wif-configuration" class="anchor" href="#wif-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>WIF Configuration</h2>
+
+<p>The sample application's web.config shows proper configuration of WIF which includes both of the following:</p>
+
+<div class="highlight highlight-xml"><pre>  <span class="nt">&lt;configSections&gt;</span>
+   ...
+    <span class="nt">&lt;section</span> <span class="na">name=</span><span class="s">"system.identityModel"</span>
+             <span class="na">type=</span><span class="s">"System.IdentityModel.Configuration.SystemIdentityModelSection, System.IdentityModel, Version=4.0.0.0, Culture=neutral, PublicKeyToken=B77A5C561934E089"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;section</span> <span class="na">name=</span><span class="s">"system.identityModel.services"</span>
+             <span class="na">type=</span><span class="s">"System.IdentityModel.Services.Configuration.SystemIdentityModelServicesSection, System.IdentityModel.Services, Version=4.0.0.0, Culture=neutral, PublicKeyToken=B77A5C561934E089"</span> <span class="nt">/&gt;</span>
+  <span class="nt">&lt;/configSections&gt;</span>
+</pre></div>
+
+<p>and</p>
+
+<div class="highlight highlight-xml"><pre>  <span class="nt">&lt;system.webServer&gt;</span>
+   ...
+    <span class="nt">&lt;modules&gt;</span>
+      <span class="nt">&lt;add</span> <span class="na">name=</span><span class="s">"SessionAuthenticationModule"</span>
+           <span class="na">type=</span><span class="s">"System.IdentityModel.Services.SessionAuthenticationModule, System.IdentityModel.Services, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"</span>
+           <span class="na">preCondition=</span><span class="s">"managedHandler"</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/modules&gt;</span>
+  <span class="nt">&lt;/system.webServer&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-membershipreboot-configuration" class="anchor" href="#membershipreboot-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>MembershipReboot Configuration</h2>
+
+<p>MembershipReboot allows for some flexibility in how it manages user accounts via its SecuritySettings class. It has these properties:</p>
+
+<ul class="task-list">
+<li>MultiTenant (bool)
+
+<ul class="task-list">
+<li>if the deployment is to support multi-tenant</li>
+</ul>
+</li>
+<li>DefaultTenant (string)
+
+<ul class="task-list">
+<li>the default tenant to use if one is not provided in the various APIs</li>
+</ul>
+</li>
+<li>EmailIsUsername (bool)
+
+<ul class="task-list">
+<li>is the identifier used for authentication intended to be an email address</li>
+</ul>
+</li>
+<li>UsernamesUniqueAcrossTenants
+
+<ul class="task-list">
+<li>even in a multi-tenant scenario, usernames must be unique</li>
+</ul>
+</li>
+<li>RequireAccountVerification (bool)
+
+<ul class="task-list">
+<li>requires a user's email address to be verified before then can login</li>
+</ul>
+</li>
+<li>AllowLoginAfterAccountCreation (bool)
+
+<ul class="task-list">
+<li>can a user login after account creation, or must they be approved first</li>
+</ul>
+</li>
+<li>AccountLockoutFailedLoginAttempts (integer)
+
+<ul class="task-list">
+<li>number of failed login attempts before the account is locked out</li>
+</ul>
+</li>
+<li>AccountLockoutDuration (TimeSpan)
+
+<ul class="task-list">
+<li>duration an account is locked out when the AccountLockoutFailedLoginAttempts is met</li>
+</ul>
+</li>
+<li>AllowAccountDeletion (bool)
+
+<ul class="task-list">
+<li>allow permanent account deletion in the database (or just use a "closed" flag)</li>
+</ul>
+</li>
+<li>PasswordHashingIterationCount (integer)
+
+<ul class="task-list">
+<li>number of iterations used in password storage</li>
+<li>if not specified, then the OWASP recommondations are used (dynamically based upon the current year)</li>
+</ul>
+</li>
+<li>PasswordResetFrequency (integer)
+
+<ul class="task-list">
+<li>frequency (in number of days) a user must change their password</li>
+</ul>
+</li>
+</ul><p>These settings are configurable in a .config file or in code. See the samples for examples.</p>
+
+<h2>
+<a name="user-content-email-configuration" class="anchor" href="#email-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Email Configuration</h2>
+
+<p>The default configuration uses the .NET SMTP configuration to send emails. To run the samples you must configure your own SMTP settings. Here is an example configuration for email to use the <a href="http://www.sendgrid.com">www.sendgrid.com</a> service:</p>
+
+<div class="highlight highlight-XML"><pre>  <span class="nt">&lt;system.net&gt;</span>
+    <span class="nt">&lt;mailSettings&gt;</span>
+      <span class="nt">&lt;smtp</span> <span class="na">deliveryMethod=</span><span class="s">"Network"</span> <span class="na">from=</span><span class="s">"foo+membershipreboot@gmail.com"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;network</span> 
+          <span class="na">host=</span><span class="s">"smtp.sendgrid.net"</span> <span class="na">port=</span><span class="s">"587"</span> 
+          <span class="na">userName=</span><span class="s">"mySendgridUsername"</span> <span class="na">password=</span><span class="s">"mySendgridUsername"</span>
+          <span class="na">enableSsl=</span><span class="s">"true"</span>
+        <span class="nt">/&gt;</span>
+      <span class="nt">&lt;/smtp&gt;</span>
+    <span class="nt">&lt;/mailSettings&gt;</span>
+  <span class="nt">&lt;/system.net&gt;</span>
+</pre></div>
+
+<blockquote>
+<p>TIP: If you are using Google mail, it is very easy to create multiple email addresses for testing. If your real email address
+     is <a href="mailto:foo@gmail.com">foo@gmail.com</a> then you can also use <a href="mailto:foo+abc@gmail.com">foo+abc@gmail.com</a> or <a href="mailto:foo+123@gmail.com">foo+123@gmail.com</a> and Google mail
+     sends them all to <a href="mailto:foo@gmail.com">foo@gmail.com</a>. </p>
+</blockquote>
+
+<h2>
+<a name="user-content-database-configuration" class="anchor" href="#database-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Database Configuration</h2>
+
+<p>The samples use Entity Framework and SQL Server Compact. You don't need to and can configure your own repository (such as SQL Azure, or even a NoSql database). See the samples for an example.</p>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>There is preliminary documentation <a href="https://github.com/brockallen/BrockAllen.MembershipReboot/wiki">here</a>.</p></article></div>

@@ -1,0 +1,100 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-vim-seek-" class="anchor" href="#vim-seek-" aria-hidden="true"><span class="octicon octicon-link"></span></a>vim-seek <a href="https://flattr.com/submit/auto?user_id=goldfeld&amp;url=https://github.com/goldfeld/vim-seek&amp;title=vim-seek&amp;language=en&amp;tags=github&amp;category=software"><img src="https://camo.githubusercontent.com/739a757846f69c1cc10163619eec008e871b591b/687474703a2f2f6170692e666c617474722e636f6d2f627574746f6e2f666c617474722d62616467652d6c617267652e706e67" alt="Flattr this plugin" data-canonical-src="http://api.flattr.com/button/flattr-badge-large.png" style="max-width:100%;"></a>
+</h1>
+
+<p>Seek makes navigating long lines effortless, acting like f but taking two characters.</p>
+
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>Seek is a vim plugin that aims to be your go-to characterwise motion workhorse. The motion seek, summoned with <code>s</code> by default, is similar to <code>f</code>, but instead of <strong>one</strong> it expects <strong>two</strong> characters. This greatly reduces the possible matches within the line and mostly allows you to get anywhere in a line with three keystrokes. Your cursor is left off at the first character typed, so if you seek to "th" your cursor will now be at "t". The forward seek motion is complemented by <code>S</code>, which seeks backwards.</p>
+
+<h2>
+<a name="user-content-motivation" class="anchor" href="#motivation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Motivation</h2>
+
+<p>The idea was borne out of frustration with getting at arbitrary points in longer lines, especially ones where navigating by word—on top of needing precise counts—gets mangled by symbols. The motion <code>f</code> often misfires by taking you to an earlier spot than where you aimed. And a full <code>/</code> search is often too much for a simple seek, needing an extra <code>&lt;Enter&gt;</code> and leaving a highlight, and might take you away from the current line. Seek only works within the line.</p>
+
+<h2>
+<a name="user-content-what-about-substitute" class="anchor" href="#what-about-substitute" aria-hidden="true"><span class="octicon octicon-link"></span></a>What about substitute?</h2>
+
+<p>Vim maps the key <code>s</code> to substitute. That it is the perfect mnemonic to seek is a fortunate coincidence, but the choice was made because substitute (without a count) is an often inefficient command, being—ironically—easily substituted by others. Seek doesn't take a count by default, so whenever you supply a count to <code>s</code> it will map to the substitute command. However, if you don't use the substitute commmand at all, you can add <code>let g:seek_subst_disable = 1</code> to your <code>.vimrc</code> in order to allow counts for actual seeks.</p>
+
+<p>The single character substitution can be accomplished with either <code>1s</code> or <code>cl</code>. And <code>S</code>, which is remapped to seek backwards, is completely substituted by <code>cc</code>.</p>
+
+<p>However, if you don't want to give up substitute, you can scroll down to the Customization section.</p>
+
+<h2>
+<a name="user-content-i-already-use-easymotion" class="anchor" href="#i-already-use-easymotion" aria-hidden="true"><span class="octicon octicon-link"></span></a>I already use EasyMotion..</h2>
+
+<p>Seek solves a different problem, and both are powerful tools. I use EasyMotion myself and love it—it's great for navigating across lines and around the file. But within the line, seek has more speed, for a very important reason: with seek you already know the keys you need to type before you even type <code>s</code>. Using EasyMotion there's a split second delay for it to generate the targets and another for your brain to process them. With seek you just type three quick keystrokes; you already know what to type.</p>
+
+<h2>
+<a name="user-content-advanced" class="anchor" href="#advanced" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced</h2>
+
+<p>Additional motions are provided as operator-pending only. That is, they only work when used after <code>d</code>, <code>c</code> or <code>y</code>, and not by themselves.</p>
+
+<p>The motion <code>x</code> is to seek what <code>t</code> is to <code>f</code>. Standing for 'cut short [of the target]', it acts up to the first character typed, but doesn't include it. This is in contrast to <code>s</code> itself, which does include the first character typed—to keep it consistent with <code>f</code> behavior—but not the second character.</p>
+
+<h3>
+<a name="user-content-leaping-motions" class="anchor" href="#leaping-motions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Leaping motions</h3>
+
+<p>My personal favorites, <code>r</code> (remote leap) and <code>p</code> (presential leap) act on the next word containing the characters typed. They're the equivalent of <code>iw</code>, but <code>r</code> snipes the target word from a distance, and <code>p</code> leaps to the target and stays there. So you can use <code>yrth</code> to yank the next word containing "th" without leaving your position (in reality vim goes there and leaps back), and that's useful for pasting it to where you are. Or you can type <code>code</code> to leap to the next word with "de", deleting around it (aw) and leaving you in insert mode.</p>
+
+<p>Whereas <code>r</code> and <code>p</code> use the inner word text object, the respective <code>u</code> and <code>o</code> are the equivalent outer word <code>aw</code>.</p>
+
+<p>To enable the leaping mappings you need to add the following to your vimrc: <code>let g:seek_enable_jumps = 1</code>. They don't work in diff mode by default, because the mode uses <code>dp</code> and <code>do</code> for other purposes, but you can override this by also adding <code>let g:seek_enable_jumps_in_diff = 1</code> to your vimrc.</p>
+
+<p>As expected, all these advanced mappings are complemented by their capital letter versions, which operate backwards.</p>
+
+<h3>
+<a name="user-content-customization" class="anchor" href="#customization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Customization</h3>
+
+<p>You can customize any of the keys that seek binds by adding lines such as the following to your vimrc.</p>
+
+<p>Change s and S:</p>
+
+<p><code>let g:SeekKey = '&lt;Space&gt;'</code>
+<code>let g:SeekBackKey = '&lt;S-Space&gt;'</code> // note:  doesn't work in terminal vim.</p>
+
+<p>Change x and X:</p>
+
+<p><code>let g:SeekCutShortKey = '-'</code>
+<code>let g:SeekBackCutShortKey = '+'</code></p>
+
+<p>Change p and P:</p>
+
+<p><code>let g:seekJumpPresentialInnerKey = '&lt;Leader&gt;p'</code>
+<code>let g:seekBackJumpPresentialInnerKey = '&lt;Leader&gt;P'</code></p>
+
+<p>Change r and R:</p>
+
+<p><code>let g:seekJumpRemoteInnerKey = '&lt;Leader&gt;r'</code>
+<code>let g:seekBackJumpRemoteInnerKey = '&lt;Leader&gt;R'</code></p>
+
+<p>Change o and O:</p>
+
+<p><code>let g:seekJumpPresentialAroundKey = '&lt;Leader&gt;o'</code>
+<code>let g:seekBackJumpPresentialAroundKey = '&lt;Leader&gt;O'</code></p>
+
+<p>Change u and U</p>
+
+<p><code>let g:seekJumpRemoteAroundKey = '&lt;Leader&gt;u'</code>
+<code>let g:seekBackJumpPresentialInnerKey = '&lt;Leader&gt;U'</code></p>
+
+<p>Or you can use a shorthand version to redefine all seek keys:</p>
+
+<p><code>let g:SeekKeys = '&lt;Space&gt; &lt;S-Space&gt; - + &lt;Leader&gt;p &lt;Leader&gt;P' &lt;Leader&gt;r &lt;Leader&gt;R &lt;Leader&gt;o &lt;Leader&gt;O &lt;Leader&gt;u &lt;Leader&gt;U</code></p>
+
+<p>Though it must always follow the order, you can simply use the defaults for keys you don't want to change, and you can truncate the string to leave the remaining unchanged:</p>
+
+<p><code>let g:SeekKeys = 's S - +'</code> // will not change jump keys.</p>
+
+<h2>
+<a name="user-content-planned-next" class="anchor" href="#planned-next" aria-hidden="true"><span class="octicon octicon-link"></span></a>Planned next</h2>
+
+<ul class="task-list">
+<li>Create a doc file moving customization help out of this readme.</li>
+<li>Repeating the last seek with <code>;</code> and <code>,</code> (same keys used for <code>f</code> and <code>t</code>).</li>
+<li>(Optional) Respect user's <code>ignorecase</code> and <code>smartcase</code> settings, so that you can seek to a capital letter by typing the lowercase character.</li>
+<li>Condensed jump mappings to allow you to use just one of <code>r</code> or <code>p</code> (or yet another key) for all jump motions, whereby you define which you want to be remote and which presential (e.g. <code>c</code> lends itself more to being presential, <code>y</code> to be remote, while <code>d</code> has good use of both).</li>
+</ul><p><a href="https://bitdeli.com/free" title="Bitdeli Badge"><img src="https://camo.githubusercontent.com/b0472025ef3c892dea7072c2ee0c2b8ef9f6aaa5/68747470733a2f2f64327765637a68766c38323376302e636c6f756466726f6e742e6e65742f676f6c6466656c642f76696d2d7365656b2f7472656e642e706e67" alt="Bitdeli Badge" data-canonical-src="https://d2weczhvl823v0.cloudfront.net/goldfeld/vim-seek/trend.png" style="max-width:100%;"></a></p></article></div>

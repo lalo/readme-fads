@@ -1,0 +1,245 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-the-egison-programming-language" class="anchor" href="#the-egison-programming-language" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Egison Programming Language</h1>
+
+<p>Egison is the <strong>pattern-matching-oriented</strong>, purely functional programming language.
+We can directly represent pattern-matching against lists, multisets, sets, trees, graphs and any kind of data types.
+This is the repository of the interpreter of Egison.</p>
+
+<p>For more information, visit <a target="_blank" href="http://www.egison.org">Egison website</a>.
+You can try Egison online!</p>
+
+<p>If you get interested in Egison, please contact <a target="_blank" href="http://www.egison.org/~egi/">Satoshi Egi</a> or tweet to <a target="_blank" href="https://twitter.com/Egison_Lang">@Egison_Lang</a>.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started!</h2>
+
+<p>At first, you should install <a target="_blank" href="http://www.haskell.org/platform/">Haskell Platform</a>.</p>
+
+<p>After you installed Haskell Platform, run the following commands on the terminal.</p>
+
+<pre><code>% cabal update
+% cabal install egison
+</code></pre>
+
+<p>Now, you can try Egison.</p>
+
+<pre><code>% egison
+Egison Version X.X.X(C) 2011-2014 Satoshi Egi
+http://www.egison.org
+Welcome to Egison Interpreter!
+&gt; ^D
+Leaving Egison Interpreter.
+</code></pre>
+
+<p>If you are a beginner of Egison, it would be better to install <a target="_blank" href="https://github.com/egisatoshi/egison-tutorial"><code>egison-tutorial</code></a>.</p>
+
+<pre><code>% cabal update
+% cabal install egison-tutorial
+% egison-tutorial
+Egison Tutorial for Version X.X.X (C) 2013-2014 Satoshi Egi
+http://www.egison.org
+Welcome to Egison Tutorial!
+==============================
+List of sections in the tutorial
+1: Calculate numbers
+2: Basics of functional programming
+3: Define your own functions
+4: Basic of pattern-matching
+5: Pattern-matching against infinite collections
+6: Writing scripts in Egison
+==============================
+Choose a section to learn.
+(1-6): 5
+====================
+We can write a pattern-matching against infinite lists even if that has infinite results.
+Note that Egison really enumerates all pairs of two natural numbers in the following example.
+
+Examples:
+  (take 10 (match-all nats (set integer) [&lt;cons $m &lt;cons $n _&gt;&gt; [m n]]))
+====================
+&gt;
+</code></pre>
+
+<p>Enjoy!</p>
+
+<h2>
+<a name="user-content-demonstrations" class="anchor" href="#demonstrations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Demonstrations</h2>
+
+<p>We can do non-linear pattern-matching against unfree data types in Egison.
+An unfree data type is a data type whose data have no canonical form, a standard way to represent that object.
+It enables us to write more elegant programs.</p>
+
+<h3>
+<a name="user-content-twin-primes" class="anchor" href="#twin-primes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Twin Primes</h3>
+
+<p>We can use pattern-matching for enumeration.
+The following code enumerates all twin primes from the infinite list of prime numbers with pattern-matching!</p>
+
+<pre><code>(define $twin-primes
+  (match-all primes (list integer)
+    [&lt;join _ &lt;cons $p &lt;cons ,(+ p 2) _&gt;&gt;&gt;
+     [p (+ p 2)]]))
+
+;; Enumerate first 10 twin primes
+(take 10 twin-primes)
+;=&gt;{[3 5] [5 7] [11 13] [17 19] [29 31] [41 43] [59 61] [71 73] [101 103] [107 109]}
+</code></pre>
+
+<h3>
+<a name="user-content-poker-hands" class="anchor" href="#poker-hands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Poker Hands</h3>
+
+<p>The following code is the program that determines poker-hands written in Egison.
+All hands are expressed in a single pattern.</p>
+
+<pre><code>(define $poker-hands
+  (lambda [$cs]
+    (match cs (multiset card)
+      {[&lt;cons &lt;card $s $n&gt;
+         &lt;cons &lt;card ,s ,(- n 1)&gt;
+          &lt;cons &lt;card ,s ,(- n 2)&gt;
+           &lt;cons &lt;card ,s ,(- n 3)&gt;
+            &lt;cons &lt;card ,s ,(- n 4)&gt;
+             &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Straight-Flush&gt;]
+       [&lt;cons &lt;card _ $n&gt;
+         &lt;cons &lt;card _ ,n&gt;
+          &lt;cons &lt;card _ ,n&gt;
+            &lt;cons &lt;card _ ,n&gt;
+              &lt;cons _
+                &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Four-of-Kind&gt;]
+       [&lt;cons &lt;card _ $m&gt;
+         &lt;cons &lt;card _ ,m&gt;
+          &lt;cons &lt;card _ ,m&gt;
+           &lt;cons &lt;card _ $n&gt;
+            &lt;cons &lt;card _ ,n&gt;
+              &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Full-House&gt;]
+       [&lt;cons &lt;card $s _&gt;
+         &lt;cons &lt;card ,s _&gt;
+           &lt;cons &lt;card ,s _&gt;
+             &lt;cons &lt;card ,s _&gt;
+               &lt;cons &lt;card ,s _&gt;
+                 &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Flush&gt;]
+       [&lt;cons &lt;card _ $n&gt;
+         &lt;cons &lt;card _ ,(- n 1)&gt;
+          &lt;cons &lt;card _ ,(- n 2)&gt;
+           &lt;cons &lt;card _ ,(- n 3)&gt;
+            &lt;cons &lt;card _ ,(- n 4)&gt;
+             &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Straight&gt;]
+       [&lt;cons &lt;card _ $n&gt;
+         &lt;cons &lt;card _ ,n&gt;
+          &lt;cons &lt;card _ ,n&gt;
+           &lt;cons _
+            &lt;cons _
+             &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Three-of-Kind&gt;]
+       [&lt;cons &lt;card _ $m&gt;
+         &lt;cons &lt;card _ ,m&gt;
+          &lt;cons &lt;card _ $n&gt;
+            &lt;cons &lt;card _ ,n&gt;
+             &lt;cons _
+               &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Two-Pair&gt;]
+       [&lt;cons &lt;card _ $n&gt;
+         &lt;cons &lt;card _ ,n&gt;
+          &lt;cons _
+           &lt;cons _
+            &lt;cons _
+             &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;One-Pair&gt;]
+       [&lt;cons _
+         &lt;cons _
+          &lt;cons _
+           &lt;cons _
+            &lt;cons _
+             &lt;nil&gt;&gt;&gt;&gt;&gt;&gt;
+        &lt;Nothing&gt;]})))
+
+(poker-hands {&lt;Card &lt;Club&gt; 12&gt;
+              &lt;Card &lt;Club&gt; 10&gt;
+              &lt;Card &lt;Club&gt; 13&gt;
+              &lt;Card &lt;Club&gt; 1&gt;
+              &lt;Card &lt;Club&gt; 11&gt;});=&gt;&lt;Straight-Flush&gt;
+
+(poker-hands {&lt;Card &lt;Diamond&gt; 1&gt;
+              &lt;Card &lt;Club&gt; 2&gt;
+              &lt;Card &lt;Club&gt; 1&gt;
+              &lt;Card &lt;Heart&gt; 1&gt;
+              &lt;Card &lt;Diamond&gt; 2&gt;});=&gt;&lt;Full-House&gt;
+
+(poker-hands {&lt;Card &lt;Diamond&gt; 4&gt;
+              &lt;Card &lt;Club&gt; 2&gt;
+              &lt;Card &lt;Club&gt; 5&gt;
+              &lt;Card &lt;Heart&gt; 1&gt;
+              &lt;Card &lt;Diamond&gt; 3&gt;});=&gt;&lt;Straight&gt;
+
+(poker-hands {&lt;Card &lt;Diamond&gt; 4&gt;
+              &lt;Card &lt;Club&gt; 10&gt;
+              &lt;Card &lt;Club&gt; 5&gt;
+              &lt;Card &lt;Heart&gt; 1&gt;
+              &lt;Card &lt;Diamond&gt; 3&gt;});=&gt;&lt;Nothing&gt;
+</code></pre>
+
+<p>Isn't it exciting?
+The pattern-matching of Egison is very powerful.
+We can use it for pattern-matching against graphs or tree-structures such as XML.
+Egison is not famous at all now.
+Please help us to make Egison popular.</p>
+
+<h2>
+<a name="user-content-comparison-with-related-work" class="anchor" href="#comparison-with-related-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Comparison with Related Work</h2>
+
+<p>There are <a target="_blank" href="https://ghc.haskell.org/trac/ghc/wiki/ViewPatterns#Relatedwork">a lot of existing work</a> for pattern-matching.</p>
+
+<p>The advantage of Egison is that it realized <strong>all of the following features</strong> at the same time.</p>
+
+<ul class="task-list">
+<li>Modularization of the way of pattern-matching for each data type</li>
+<li>Pattern-matching with multiple results (backtracking)</li>
+<li>Non-linear pattern-matching</li>
+</ul><p>It enables us to express non-linear pattern-matching against unfree data types intuitively as above demonstrations.</p>
+
+<p>Furthermore, Egison realized the following feature. We can even modularize patterns like functions keeping above features.</p>
+
+<ul class="task-list">
+<li>Non-linear pattern-matching with <strong>lexical scoping</strong>
+</li>
+</ul><p>The <a target="_blank" href="http://www.egison.org/manual/mechanism.html">Pattern-Matching Mechanism</a> section in Egison developer's manual explains how we realized that.</p>
+
+<p>Please read <a target="_blank" href="http://arxiv.org/abs/1407.0729">our paper on arXiv.org</a> for details.</p>
+
+<h2>
+<a name="user-content-note-for-developers" class="anchor" href="#note-for-developers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Note for Developers</h2>
+
+<h3>
+<a name="user-content-how-to-run-test" class="anchor" href="#how-to-run-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to Run Test</h3>
+
+<pre><code>% cabal install --enable-tests
+% cabal test
+</code></pre>
+
+<h3>
+<a name="user-content-how-to-profile-the-interpreter" class="anchor" href="#how-to-profile-the-interpreter" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to Profile the Interpreter</h3>
+
+<pre><code>% sudo apt-get install haskell-platform-doc haskell-platform-prof
+% cabal install --enable-library-profiling --enable-executable-profiling
+% egison +RTS -p -RTS -l sample/sequence.egi
+% cat egison.prof
+</code></pre>
+
+<h2>
+<a name="user-content-acknowledgement" class="anchor" href="#acknowledgement" aria-hidden="true"><span class="octicon octicon-link"></span></a>Acknowledgement</h2>
+
+<p>I thank Ryo Tanaka, Takahisa Watanabe, Takuya Kuwahara and Kentaro Honda for their help to implement the interpreter.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2011-2014, Satoshi Egi</p>
+
+<p>Egison is released under the <a href="https://github.com/egison/egison/blob/master/LICENSE">MIT license</a>.</p>
+
+<p>I used <a href="http://justinethier.github.io/husk-scheme/">husk-scheme</a> by Justin Ethier as reference to implement the base part of the previous version of the interpreter.</p></article></div>

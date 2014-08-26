@@ -1,0 +1,118 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-geotrellis" class="anchor" href="#geotrellis" aria-hidden="true"><span class="octicon octicon-link"></span></a>GeoTrellis</h1>
+
+<p><em>GeoTrellis</em> is a Scala library and framework for creating processes to work with raster data.</p>
+
+<h4>
+<a name="user-content-io" class="anchor" href="#io" aria-hidden="true"><span class="octicon octicon-link"></span></a>IO:</h4>
+
+<p>GeoTrellis reads, writes, and operates on raster data as fast as possible. It also has functionality to warp (change the resolution and bounding box of) rasters on loading and throughout the operation sequence.</p>
+
+<h4>
+<a name="user-content-operations" class="anchor" href="#operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Operations:</h4>
+
+<p>GeoTrellis implements many <a href="http://en.wikipedia.org/wiki/Map_algebra">Map Algebra</a> operations as well as vector to raster or raster to vector operations. This is the heart of GeoTrellis: preforming geospatial operations against raster data in the fastest way possible, no matter the scale.</p>
+
+<h5>
+<a name="user-content-web-service-framework" class="anchor" href="#web-service-framework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Web Service Framework:</h5>
+
+<p>GeoTrellis provides tools to render rasters into PNGs for web mapping applications, or to convert information about the rasters into JSON format. One of the main goals of GeoTrellis is to provide raster processing at web speeds (sub-10 ms) for RESTful endpoints that can be consumed by web applications. Another goal is to provide fast batch processing of very large raster data.</p>
+
+<p>Please visit our <strong><a href="http://geotrellis.github.com">documentation page</a></strong> for more information.</p>
+
+<p>You can also find more information at:</p>
+
+<ul class="task-list">
+<li>IRC:  #geotrellis on freenode. Come say HI, we would love to hear about what you're working on.</li>
+<li>The mailing list at <a href="https://groups.google.com/group/geotrellis-user">https://groups.google.com/group/geotrellis-user</a>.</li>
+</ul><p>GeoTrellis is available under the Apache 2 license.</p>
+
+<p>More information is also available on the <a href="http://www.azavea.com/products/geotrellis/">GeoTrellis website</a>.</p>
+
+<p><a href="http://travis-ci.org/geotrellis/geotrellis"><img src="https://camo.githubusercontent.com/4fbff62d60c3faee06b49f06e7ea8e1de7a0451a/68747470733a2f2f6170692e7472617669732d63692e6f72672f67656f7472656c6c69732f67656f7472656c6c69732e706e67" alt="Build Status" data-canonical-src="https://api.travis-ci.org/geotrellis/geotrellis.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-sbt" class="anchor" href="#sbt" aria-hidden="true"><span class="octicon octicon-link"></span></a>SBT</h2>
+
+<pre><code>scalaVersion := "2.10.3"
+
+libraryDependencies += "com.azavea.geotrellis" %% "geotrellis" % "0.9.0-RC1"
+</code></pre>
+
+<h2>
+<a name="user-content-some-sample-geotrellis-code" class="anchor" href="#some-sample-geotrellis-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Some sample GeoTrellis code</h2>
+
+<div class="highlight highlight-scala"><pre>  <span class="c1">// Import some libraries and operations we'll use</span>
+  <span class="k">import</span> <span class="nn">geotrellis._</span>
+  <span class="k">import</span> <span class="nn">geotrellis.source._</span>
+
+  <span class="c1">// Set up the rasters and weights we'll use:</span>
+  <span class="k">val</span> <span class="n">r1</span> <span class="k">=</span> <span class="nc">RasterSource</span><span class="o">(</span><span class="s">"rasterOne"</span><span class="o">)</span> <span class="c1">// raster defined in catalog</span>
+  <span class="k">val</span> <span class="n">r2</span> <span class="k">=</span> <span class="nc">RasterSource</span><span class="o">(</span><span class="s">"rasterTwo"</span><span class="o">)</span>
+
+  <span class="c1">// This will define a RasterSource that is dthe addition of the</span>
+  <span class="c1">// first raster with each cell multiplied</span>
+  <span class="c1">// by 5, and the second raster with each cell multiplied by 2.</span>
+  <span class="c1">// To understand what it means for a raster to be multiplied by an integer or</span>
+  <span class="c1">// for two rasters to be added, see Map Algebra documentation,</span>
+  <span class="c1">// GeoTrellis documentation or ask the mailing list/IRC.</span>
+  <span class="k">val</span> <span class="n">added</span>  <span class="k">=</span> <span class="o">(</span><span class="n">r1</span><span class="o">*</span><span class="mi">5</span><span class="o">)</span> <span class="o">+</span> <span class="o">(</span><span class="n">r2</span><span class="o">*</span><span class="mi">2</span><span class="o">)</span>
+
+  <span class="c1">// This divides the raster by the total weight,</span>
+  <span class="c1">// which will give us the the final Weighted Overlay</span>
+  <span class="c1">// (also called a Suitability Map).</span>
+  <span class="k">val</span> <span class="n">weightedOverlay</span> <span class="k">=</span> <span class="n">added</span> <span class="o">/</span> <span class="o">(</span><span class="mi">5</span><span class="o">+</span><span class="mi">2</span><span class="o">)</span>
+
+  <span class="c1">// Now we want to render this Weighted Overlay</span>
+  <span class="c1">// as part of a WMS service. We could run the</span>
+  <span class="c1">// renderPng operation with the default color ramp</span>
+  <span class="c1">// (which is a Blue to Red color ramp descriped</span>
+  <span class="c1">// at http://geotrellis.github.io/overviews/rendering.html).</span>
+  <span class="k">val</span> <span class="n">rendered</span> <span class="k">=</span> <span class="n">weightedOverlay</span><span class="o">.</span><span class="n">renderPng</span>
+
+  <span class="c1">// At this point we've only describe the work that</span>
+  <span class="c1">// we wish to be done. Once we call 'run' on the souce,</span>
+  <span class="c1">// we will invoke the chain of commands that we have been</span>
+  <span class="c1">// building up, from loading the rasters from disk to</span>
+  <span class="c1">// rendering the PNG of the wieghted overlay.</span>
+
+  <span class="n">rendered</span><span class="o">.</span><span class="n">run</span> <span class="k">match</span> <span class="o">{</span>
+    <span class="n">process</span><span class="o">.</span><span class="nc">Complete</span><span class="o">(</span><span class="n">png</span><span class="o">,</span> <span class="n">history</span><span class="o">)</span> <span class="k">=&gt;</span>
+      <span class="c1">// return the PNG as an Array of Bytes</span>
+      <span class="c1">// for spray:</span>
+      <span class="n">respondWithMediaType</span><span class="o">(</span><span class="nc">MediaTypes</span><span class="o">.</span><span class="n">`image/png`</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">complete</span> <span class="o">{</span> <span class="n">png</span> <span class="o">}</span>
+      <span class="o">}</span>
+    <span class="n">process</span><span class="o">.</span><span class="nc">Failure</span><span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="n">history</span><span class="o">)</span> <span class="k">=&gt;</span>
+      <span class="c1">// handle the failure.</span>
+      <span class="c1">// for spray:</span>
+      <span class="n">failWith</span> <span class="o">{</span> <span class="k">new</span> <span class="nc">RuntimeException</span><span class="o">(</span><span class="n">message</span><span class="o">)</span> <span class="o">}</span>
+  <span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-api-reference" class="anchor" href="#api-reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>API Reference</h2>
+
+<p>You can find <em>Scaladocs</em> for the latest version of the project here:</p>
+
+<p><a href="http://geotrellis.github.com/scaladocs/latest/#geotrellis.package">http://geotrellis.github.com/scaladocs/latest/#geotrellis.package</a></p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<ul class="task-list">
+<li>Josh Marcus</li>
+<li>Erik Osheim</li>
+<li>Rob Emanuele</li>
+<li>Adam Hinz</li>
+<li>Michael Tedeschi</li>
+<li>Robert Cheetham</li>
+<li>Justin Walgran</li>
+<li>Eric J. Christeson</li>
+<li>Ameet Kini</li>
+<li>Mark Landry</li>
+<li>Walt Chen</li>
+</ul><h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Feedback and contributions to the project, no matter what kind, are always very welcome. A CLA is required for contribution, see the <a href="https://github.com/geotrellis/geotrellis/wiki/Contributor-license-agreement-FAQ">CLA FAQ</a> on the wiki for more information. Please refer to the <a href="http://docs.scala-lang.org/style/">Scala style guide</a> for formatting patches to the codebase.</p></article></div>

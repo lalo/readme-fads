@@ -1,0 +1,209 @@
+<div class="announce instapaper_body rst" data-path="README.rst" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-watchdog" class="anchor" href="#watchdog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Watchdog</h1>
+<p>Python API and shell utilities to monitor file system events.</p>
+<h2>
+<a name="user-content-example-api-usage" class="anchor" href="#example-api-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example API Usage</h2>
+<p>A simple program that uses watchdog to monitor directories specified
+as command-line arguments and logs events generated:</p>
+<div class="highlight highlight-python"><pre>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="kn">import</span> <span class="n">Observer</span>
+<span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="kn">import</span> <span class="n">LoggingEventHandler</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">"__main__"</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+                        <span class="n">format</span><span class="o">=</span><span class="s">'</span><span class="si">%(asctime)s</span><span class="s"> - </span><span class="si">%(message)s</span><span class="s">'</span><span class="p">,</span>
+                        <span class="n">datefmt</span><span class="o">=</span><span class="s">'%Y-%m-</span><span class="si">%d</span><span class="s"> %H:%M:%S'</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s">'.'</span>
+    <span class="n">event_handler</span> <span class="o">=</span> <span class="n">LoggingEventHandler</span><span class="p">()</span>
+    <span class="n">observer</span> <span class="o">=</span> <span class="n">Observer</span><span class="p">()</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">event_handler</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="n">observer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+</pre></div>
+<h2>
+<a name="user-content-shell-utilities" class="anchor" href="#shell-utilities" aria-hidden="true"><span class="octicon octicon-link"></span></a>Shell Utilities</h2>
+<p>Watchdog comes with a utility script called <tt>watchmedo</tt>.
+Please type <tt>watchmedo --help</tt> at the shell prompt to
+know more about this tool.</p>
+<p>Here is how you can log the current directory recursively
+for events related only to <tt>*.py</tt> and <tt>*.txt</tt> files while
+ignoring all directory events:</p>
+<div class="highlight highlight-bash"><pre>
+watchmedo log <span class="se">\</span>
+    --patterns<span class="o">=</span><span class="s2">"*.py;*.txt"</span> <span class="se">\</span>
+    --ignore-directories <span class="se">\</span>
+    --recursive <span class="se">\</span>
+    .
+</pre></div>
+<p>You can use the <tt>shell-command</tt> subcommand to execute shell commands in
+response to events:</p>
+<div class="highlight highlight-bash"><pre>
+watchmedo shell-command <span class="se">\</span>
+    --patterns<span class="o">=</span><span class="s2">"*.py;*.txt"</span> <span class="se">\</span>
+    --recursive <span class="se">\</span>
+    --command<span class="o">=</span><span class="s1">'echo "${watch_src_path}"'</span> <span class="se">\</span>
+    .
+</pre></div>
+<p>Please see the help information for these commands by typing:</p>
+<div class="highlight highlight-bash"><pre>
+watchmedo <span class="o">[</span><span class="nb">command</span><span class="o">]</span> --help
+</pre></div>
+<h3>
+<a name="user-content-about-watchmedo-tricks" class="anchor" href="#about-watchmedo-tricks" aria-hidden="true"><span class="octicon octicon-link"></span></a>About <tt>watchmedo</tt> Tricks</h3>
+<p><tt>watchmedo</tt> can read <tt>tricks.yaml</tt> files and execute tricks within them in
+response to file system events. Tricks are actually event handlers that
+subclass <tt>watchdog.tricks.Trick</tt> and are written by plugin authors. Trick
+classes are augmented with a few additional features that regular event handlers
+don't need.</p>
+<p>An example <tt>tricks.yaml</tt> file:</p>
+<div class="highlight highlight-yaml"><pre>
+<span class="l-Scalar-Plain">tricks</span><span class="p-Indicator">:</span>
+<span class="p-Indicator">-</span> <span class="l-Scalar-Plain">watchdog.tricks.LoggerTrick</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">patterns</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">"*.py"</span><span class="p-Indicator">,</span> <span class="s">"*.js"</span><span class="p-Indicator">]</span>
+<span class="p-Indicator">-</span> <span class="l-Scalar-Plain">watchmedo_webtricks.GoogleClosureTrick</span><span class="p-Indicator">:</span>
+    <span class="l-Scalar-Plain">patterns</span><span class="p-Indicator">:</span> <span class="p-Indicator">[</span><span class="s">'*.js'</span><span class="p-Indicator">]</span>
+    <span class="l-Scalar-Plain">hash_names</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">true</span>
+    <span class="l-Scalar-Plain">mappings_format</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">json</span>                  <span class="c1"># json|yaml|python</span>
+    <span class="l-Scalar-Plain">mappings_module</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">app/javascript_mappings</span>
+    <span class="l-Scalar-Plain">suffix</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">.min.js</span>
+    <span class="l-Scalar-Plain">compilation_level</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">advanced</span>            <span class="c1"># simple|advanced</span>
+    <span class="l-Scalar-Plain">source_directory</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">app/static/js/</span>
+    <span class="l-Scalar-Plain">destination_directory</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">app/public/js/</span>
+    <span class="l-Scalar-Plain">files</span><span class="p-Indicator">:</span>
+      <span class="l-Scalar-Plain">index-page</span><span class="p-Indicator">:</span>
+      <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">app/static/js/vendor/jquery*.js</span>
+      <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">app/static/js/base.js</span>
+      <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">app/static/js/index-page.js</span>
+      <span class="l-Scalar-Plain">about-page</span><span class="p-Indicator">:</span>
+      <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">app/static/js/vendor/jquery*.js</span>
+      <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">app/static/js/base.js</span>
+      <span class="p-Indicator">-</span> <span class="l-Scalar-Plain">app/static/js/about-page/**/*.js</span>
+</pre></div>
+<p>The directory containing the <tt>tricks.yaml</tt> file will be monitored. Each trick
+class is initialized with its corresponding keys in the <tt>tricks.yaml</tt> file as
+arguments and events are fed to an instance of this class as they arrive.</p>
+<p>Tricks will be included in the 0.5.0 release. I need community input about them.
+Please file enhancement requests at the <a href="http://github.com/gorakhargosh/watchdog/issues">issue tracker</a>.</p>
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+<p>Installing from PyPI using <tt>pip</tt>:</p>
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ </span>pip install watchdog
+</pre></div>
+<p>Installing from PyPI using <tt>easy_install</tt>:</p>
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ </span>easy_install watchdog
+</pre></div>
+<p>Installing from source:</p>
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ </span>python setup.py install
+</pre></div>
+<h3>
+<a name="user-content-installation-caveats" class="anchor" href="#installation-caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation Caveats</h3>
+<p>The <tt>watchmedo</tt> script depends on <a href="http://www.pyyaml.org/">PyYAML</a> which links with <a href="http://pyyaml.org/wiki/LibYAML">LibYAML</a>,
+which brings a performance boost to the PyYAML parser. However, installing
+<a href="http://pyyaml.org/wiki/LibYAML">LibYAML</a> is optional but recommended. On Mac OS X, you can use <a href="http://mxcl.github.com/homebrew/">homebrew</a>
+to install LibYAML:</p>
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ </span>brew install libyaml
+</pre></div>
+<p>On Linux, use your favorite package manager to install LibYAML. Here's how you
+do it on Ubuntu:</p>
+<div class="highlight highlight-bash"><pre>
+<span class="nv">$ </span>sudo aptitude install libyaml-dev
+</pre></div>
+<p>On Windows, please install <a href="http://www.pyyaml.org/">PyYAML</a> using the binaries they provide.</p>
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+<p>You can browse the latest release <a href="http://packages.python.org/watchdog/">documentation</a> online.</p>
+<h2>
+<a name="user-content-contribute" class="anchor" href="#contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribute</h2>
+<p>Fork the <a href="http://github.com/gorakhargosh/watchdog">repository</a> on GitHub and send a pull request, or file an issue
+ticket at the <a href="http://github.com/gorakhargosh/watchdog/issues">issue tracker</a>. For general help and questions use the official
+<a href="http://groups.google.com/group/watchdog-python">mailing list</a> or ask on <a href="http://stackoverflow.com/questions/tagged/python-watchdog">stackoverflow</a> with tag python-watchdog.</p>
+<p>Create and activate your virtual environment, then:</p>
+<pre>
+pip install pytest
+pip install -e .
+py.tests tests
+</pre>
+<h2>
+<a name="user-content-supported-platforms" class="anchor" href="#supported-platforms" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Platforms</h2>
+<ul>
+<li>Linux 2.6 (inotify)</li>
+<li>Mac OS X (FSEvents, kqueue)</li>
+<li>FreeBSD/BSD (kqueue)</li>
+<li>Windows (ReadDirectoryChangesW with I/O completion ports;
+ReadDirectoryChangesW worker threads)</li>
+<li>OS-independent (polling the disk for directory snapshots and comparing them
+periodically; slow and not recommended)</li>
+</ul><p>Note that when using watchdog with kqueue, you need the
+number of file descriptors allowed to be opened by programs
+running on your system to be increased to more than the
+number of files that you will be monitoring. The easiest way
+to do that is to edit your <tt>~/.profile</tt> file and add
+a line similar to:</p>
+<pre>
+ulimit -n 1024
+</pre>
+<p>This is an inherent problem with kqueue because it uses
+file descriptors to monitor files. That plus the enormous
+amount of bookkeeping that watchdog needs to do in order
+to monitor file descriptors just makes this a painful way
+to monitor files and directories. In essence, kqueue is
+not a very scalable way to monitor a deeply nested
+directory of files and directories with a large number of
+files.</p>
+<h2>
+<a name="user-content-about-using-watchdog-with-editors-like-vim" class="anchor" href="#about-using-watchdog-with-editors-like-vim" aria-hidden="true"><span class="octicon octicon-link"></span></a>About using watchdog with editors like Vim</h2>
+<p>Vim does not modify files unless directed to do so.
+It creates backup files and then swaps them in to replace
+the files you are editing on the disk. This means that
+if you use Vim to edit your files, the on-modified events
+for those files will not be triggered by watchdog.
+You may need to configure Vim to appropriately to disable
+this feature.</p>
+<h2>
+<a name="user-content-dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+<ol>
+<li>Python 2.6 or above.</li>
+<li><a href="http://github.com/gorakhargosh/pathtools">pathtools</a></li>
+<li>
+<a href="http://pypi.python.org/pypi/select_backport">select_backport</a> (select.kqueue replacement for 2.6 on BSD/Mac OS X)</li>
+<li>
+<a href="http://developer.apple.com/technologies/tools/xcode.html">XCode</a> (only on Mac OS X)</li>
+<li>
+<a href="http://www.pyyaml.org/">PyYAML</a> (only for <tt>watchmedo</tt> script)</li>
+<li>
+<a href="http://pypi.python.org/pypi/argh">argh</a> (only for <tt>watchmedo</tt> script)</li>
+</ol><h2>
+<a name="user-content-licensing" class="anchor" href="#licensing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Licensing</h2>
+<p>Watchdog is licensed under the terms of the <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, version 2.0</a>.</p>
+<p>Copyright 2011 <a href="mailto:yesudeep%40gmail.com">Yesudeep Mangalapilly</a>.</p>
+<p>Copyright 2012 Google, Inc.</p>
+<p>Project <a href="http://github.com/gorakhargosh/watchdog">source code</a> is available at Github. Please report bugs and file
+enhancement requests at the <a href="http://github.com/gorakhargosh/watchdog/issues">issue tracker</a>.</p>
+<h2>
+<a name="user-content-why-watchdog" class="anchor" href="#why-watchdog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Watchdog?</h2>
+<p>Too many people tried to do the same thing and none did what I needed Python
+to do:</p>
+<ul>
+<li><a href="http://mark.heily.com/pnotify">pnotify</a></li>
+<li><a href="https://webdav.seas.upenn.edu/viewvc/unison/trunk/src/fsmonitor.py?view=markup&amp;pathrev=471">unison fsmonitor</a></li>
+<li><a href="http://github.com/shaurz/fsmonitor">fsmonitor</a></li>
+<li><a href="http://github.com/guard/guard">guard</a></li>
+<li><a href="http://github.com/seb-m/pyinotify">pyinotify</a></li>
+<li><a href="http://github.com/rvoicilas/inotify-tools">inotify-tools</a></li>
+<li><a href="http://jnotify.sourceforge.net/">jnotify</a></li>
+<li><a href="http://github.com/jbd/treewatcher">treewalker</a></li>
+<li><a href="http://github.com/pke/file.monitor">file.monitor</a></li>
+<li><a href="http://code.google.com/p/pyfilesystem">pyfilesystem</a></li>
+</ul></article></div>

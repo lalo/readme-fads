@@ -1,0 +1,456 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://camo.githubusercontent.com/58643391e4bcf2da966b45283a748d5092711fc2/687474703a2f2f692e696d6775722e636f6d2f694f6a637a2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/58643391e4bcf2da966b45283a748d5092711fc2/687474703a2f2f692e696d6775722e636f6d2f694f6a637a2e706e67" alt="wemux: Multi-User Tmux Sessions Made Easy" data-canonical-src="http://i.imgur.com/iOjcz.png" style="max-width:100%;"></a></p>
+
+<hr><p>wemux enhances tmux to make multi-user terminal multiplexing both easier and
+more powerful. It allows users to host a wemux server and have clients join
+in either:</p>
+
+<p><strong>Mirror Mode</strong> gives clients (another SSH user on your machine) read-only
+access to the session, allowing them to see you work, or</p>
+
+<p><strong>Pair Mode</strong> allows the client and yourself to work in the same terminal
+(shared cursor)</p>
+
+<p><strong>Rogue Mode</strong> allows the client to pair or work independently in another
+window (separate cursors) in the same tmux session.</p>
+
+<p>It features multi-server support as well as user listing
+and notifications when users attach/detach.</p>
+
+<h2>
+<a name="user-content-how-to-install" class="anchor" href="#how-to-install" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Install</h2>
+
+<p><strong>IMPORTANT</strong>: Wemux required tmux version &gt;= 1.6</p>
+
+<h3>
+<a name="user-content-homebrew-on-os-x" class="anchor" href="#homebrew-on-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Homebrew (on OS X)</h3>
+
+<p>If you have <a href="http://mxcl.github.com/homebrew/">Homebrew</a> installed you can
+  install wemux with a fairly simple:</p>
+
+<pre><code>brew install https://github.com/downloads/zolrath/wemux/wemux.rb
+</code></pre>
+
+<p>The user that installed wemux will automatically be added to the wemux host list.
+  To change the host or add more hosts, edit <code>/usr/local/etc/wemux.conf</code> and add the
+  username to the host_list array.</p>
+
+<p>Users in the host_list will be able to start new wemux servers, all other
+  users will be wemux clients and join these servers.</p>
+
+<pre><code>$ vim /usr/local/etc/wemux.conf
+     OR
+$ wemux conf
+
+host_list=(zolrath brocksamson)
+</code></pre>
+
+<h3>
+<a name="user-content-manual-installation" class="anchor" href="#manual-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual Installation</h3>
+
+<p>The rest of this readme will operate under the assumption you'll place wemux
+  in <code>wemux/</code> in your <code>/usr/local/share</code> directory. To make wemux available for
+  all users, perform the following steps, using sudo as required:</p>
+
+<p>Git clone this repo.</p>
+
+<pre><code>git clone git://github.com/zolrath/wemux.git /usr/local/share/wemux
+</code></pre>
+
+<p>Symlink the <code>wemux</code> file into your $PATH via <code>/usr/local/bin/</code>,
+  being sure to use the full path.</p>
+
+<pre><code>ln -s /usr/local/share/wemux/wemux /usr/local/bin/wemux
+</code></pre>
+
+<p><strong>IMPORTANT</strong>: Copy the <code>wemux.conf.example</code> file to <code>/usr/local/etc/wemux.conf</code></p>
+
+<pre><code>cp /usr/local/share/wemux/wemux.conf.example /usr/local/etc/wemux.conf
+</code></pre>
+
+<p>Then set a user to be a wemux host by adding their username to the host_list in
+  <code>/usr/local/etc/wemux.conf</code>. Users in the host_list will be able to start new wemux
+  servers, all other users will be wemux clients and join these servers.</p>
+
+<pre><code>vim /usr/local/etc/wemux.conf
+host_list=(zolrath brocksamson)
+</code></pre>
+
+<p>To upgrade to a new version of wemux return to the <code>/usr/local/share/wemux</code>
+  directory and perform a <code>git pull</code></p>
+
+<h2>
+<a name="user-content-host-commands" class="anchor" href="#host-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Host Commands</h2>
+
+<h4>
+<a name="user-content-wemux-start" class="anchor" href="#wemux-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux start</h4>
+
+<p>Use <code>wemux start</code> to start a wemux server, chmod /tmp/wemux-wemux to 1777 so
+  that other users may connect to it, and attach to it.  If a wemux server
+  already exists, it will attach to it instead.</p>
+
+<h4>
+<a name="user-content-wemux-attach" class="anchor" href="#wemux-attach" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux attach</h4>
+
+<p>Use <code>wemux attach</code> to attach to an existing wemux server.</p>
+
+<h4>
+<a name="user-content-wemux-stop" class="anchor" href="#wemux-stop" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux stop</h4>
+
+<p>Use <code>wemux stop</code> to kill the wemux server and remove the /tmp/wemux-wemux
+  socket.</p>
+
+<h4>
+<a name="user-content-wemux-kick-username" class="anchor" href="#wemux-kick-username" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux kick <em>username</em>
+</h4>
+
+<p>Use <code>wemux kick &lt;username&gt;</code> to kick an SSH user from the server and remove
+  their wemux rogue sessions.</p>
+
+<h4>
+<a name="user-content-wemux-config" class="anchor" href="#wemux-config" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux config</h4>
+
+<p>Use <code>wemux config</code> to open <code>/usr/local/etc/wemux.conf</code> in your $EDITOR.
+  Note this only works if you have the environment variable EDITOR configured.</p>
+
+<h4>
+<a name="user-content-wemux" class="anchor" href="#wemux" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux</h4>
+
+<p>When <code>wemux</code> is run without any arguments in host mode, it is just like
+  running wemux start.  It will reattach to an existing wemux server if it
+  exists, otherwise it will start a new server.</p>
+
+<h2>
+<a name="user-content-client-commands" class="anchor" href="#client-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Client Commands</h2>
+
+<h4>
+<a name="user-content-wemux-mirror" class="anchor" href="#wemux-mirror" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux mirror</h4>
+
+<p>Use <code>wemux mirror</code> to attach to server in read-only mode.</p>
+
+<h4>
+<a name="user-content-wemux-pair" class="anchor" href="#wemux-pair" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux pair</h4>
+
+<p>Use <code>wemux pair</code> to attach to server in pair mode, allowing the client to 
+  control the terminal as well.</p>
+
+<h4>
+<a name="user-content-wemux-rogue" class="anchor" href="#wemux-rogue" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux rogue</h4>
+
+<p>Use <code>wemux rogue</code> to attach to server in rogue mode, which allows both editing
+  with the host and switching to windows independently from the host.</p>
+
+<h4>
+<a name="user-content-wemux-logout" class="anchor" href="#wemux-logout" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux logout</h4>
+
+<p>Use <code>wemux logout</code> to remove your rogue mode session.</p>
+
+<h4>
+<a name="user-content-wemux-1" class="anchor" href="#wemux-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux</h4>
+
+<p>When <code>wemux</code> is run without any arguments in client mode, its behavior
+  attempts to intelligently select mirror, pair, or rogue:</p>
+
+<ul class="task-list">
+<li>If the client does not have an existing rogue session it will attach to the
+wemux server in pair mode.</li>
+<li>If the client has already started a wemux rogue session, it will
+reattach to the server in rogue mode.</li>
+<li>If both rogue and pair mode are disabled, it will attach in mirror mode.</li>
+<li>By setting <code>default_client_mode="rogue"</code> in <code>wemux.conf</code> this can be changed
+to always join in rogue mode, even if a rogue session doesn't already exist.</li>
+</ul><h4>
+<a name="user-content-other-commands" class="anchor" href="#other-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other Commands</h4>
+
+<p>wemux passes commands it doesn't understand through to tmux with the correct
+  socket setting.</p>
+
+<p><code>wemux list-sessions</code> is equivalent to entering <code>tmux -S /tmp/wemux-wemux
+  list-sessions</code></p>
+
+<h2>
+<a name="user-content-user-list" class="anchor" href="#user-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>User List</h2>
+
+<p>wemux can display a list of connected users, indicating users in mirror mode
+  with [m] at the end of their name.</p>
+
+<p>If you'd like to see a list of all users currently connected to the wemux
+  server, you have three options:</p>
+
+<h3>
+<a name="user-content-wemux-users" class="anchor" href="#wemux-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux users</h3>
+
+<p>Enter <code>wemux users</code> in the terminal to display a list of all currently
+  connected wemux users.</p>
+
+<pre><code>$ wemux users
+Users connected to 'wemux':
+  1. zolrath
+  2. csagan[m]
+</code></pre>
+
+<h3>
+<a name="user-content-status-bar" class="anchor" href="#status-bar" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status Bar</h3>
+
+<p>You can add the user list to your status bar by adding #(wemux status_users)
+  where you see fit by editing your <code>~/tmux.conf</code> file.</p>
+
+<pre><code>set -g status-right "#(wemux status_users)"
+</code></pre>
+
+<h3>
+<a name="user-content-display-message" class="anchor" href="#display-message" aria-hidden="true"><span class="octicon octicon-link"></span></a>Display Message</h3>
+
+<p>If you'd rather display users on command via a tmux message, similar to the
+  user attachment/detachment messages, you can do so by editing your
+  <code>~/tmux.conf</code> file.  Pick whatever key you'd like to bind the displaying the
+  message to. Using t as an example:</p>
+
+<pre><code>unbind t
+bind t run-shell 'wemux display_users'
+</code></pre>
+
+<p>Note that the tmux prefix should be pressed before t to activate the command.</p>
+
+<p>User listing can be disabled by setting <code>allow_user_list="false"</code> in
+  <code>wemux.conf</code></p>
+
+<h3>
+<a name="user-content-short-form-commands" class="anchor" href="#short-form-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Short-form Commands</h3>
+
+<p>All commands have a short form. s for start, a for attach, p for pair etc.
+  For a complete list, type <code>wemux help</code> (or <code>wemux h</code>)</p>
+
+<h1>
+<a name="user-content-multi-host-capabilities" class="anchor" href="#multi-host-capabilities" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multi-Host Capabilities</h1>
+
+<hr><p>wemux supports specifying the joining different wemux servers via <code>wemux join
+  &lt;server&gt;</code>. This allows multiple hosts on the same machine to host their own
+  independent wemux servers with their own clients. By default this option is
+  disabled.</p>
+
+<p>wemux will remember the last server specified to in order to make reconnecting
+  to the same server easy. <code>wemux help</code> will output the currently specified
+  server along with the wemux command list.</p>
+
+<p>Changing servers can be enabled by setting <code>allow_server_change="true"</code> in
+  <code>/usr/local/etc/wemux.conf</code></p>
+
+<h3>
+<a name="user-content-joining-different-wemux-servers" class="anchor" href="#joining-different-wemux-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Joining Different wemux Servers</h3>
+
+<p>To change the wemux server run <code>wemux join &lt;server&gt;</code>. The name will be sanitized to contain no spaces or uppercase letters.</p>
+
+<pre><code>$ wemux join Project X
+Changed wemux server from 'wemux' to 'project-x'
+$ wemux
+$ wemux stop
+$ wemux reset
+Changed wemux server from 'project-x' to 'wemux'
+</code></pre>
+
+<h4>
+<a name="user-content-wemux-join-servername" class="anchor" href="#wemux-join-servername" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux join <em>servername</em>
+</h4>
+
+<p>Join wemux server with specified name.</p>
+
+<pre><code>$ wemux join rails
+Changed wemux server from 'wemux' to 'rails'
+</code></pre>
+
+<h4>
+<a name="user-content-wemux-join-servernumber" class="anchor" href="#wemux-join-servernumber" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux join <em>servernumber</em>
+</h4>
+
+<p>Alternatively, enter the server number displayed next to the server name in <code>wemux list</code>.</p>
+
+<pre><code>$ wemux j 1
+Changed wemux server from 'rails' to 'project-x'
+</code></pre>
+
+<h4>
+<a name="user-content-wemux-join" class="anchor" href="#wemux-join" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux join</h4>
+
+<p>Join with no argument simply displays the current wemux server, if you're into that.</p>
+
+<pre><code>$ wemux join
+Current wemux server: wemux
+</code></pre>
+
+<h3>
+<a name="user-content-resetting-the-server-name" class="anchor" href="#resetting-the-server-name" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resetting the Server Name</h3>
+
+<p>In order to easily return to the default server you can run <code>wemux reset</code></p>
+
+<h4>
+<a name="user-content-wemux-reset" class="anchor" href="#wemux-reset" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux reset</h4>
+
+<p>Joins the default wemux server: wemux (or value of default_server_name in wemux.conf)</p>
+
+<pre><code>$ wemux reset
+Changed wemux server from 'project-x' to 'wemux'
+</code></pre>
+
+<h3>
+<a name="user-content-active-server-list" class="anchor" href="#active-server-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Active Server List</h3>
+
+<p>To list the name of all currently running wemux servers run <code>wemux list</code></p>
+
+<h4>
+<a name="user-content-wemux-list" class="anchor" href="#wemux-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>wemux list</h4>
+
+<p>List all currently active wemux servers.</p>
+
+<pre><code>$ wemux list
+Currently active wemux servers:
+  1. project-x
+  2. rails
+  3. wemux    &lt;- current server
+</code></pre>
+
+<p><code>wemux join</code> and <code>wemux stop</code> both accept either the name of a server or
+  the number indicated next to the name in <code>wemux list</code>.</p>
+
+<p>Listing servers can be disabled by setting <code>allow_server_list="false"</code> in
+  <code>/usr/local/etc/wemux.conf</code></p>
+
+<h1>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h1>
+
+<hr><p>There are a number of additional options that be configured in
+  <code>/usr/local/etc/wemux.conf</code>.  In most cases the only option that must be changed is the
+  <code>host_list</code> array. To open your wemux configuration file, you can either open
+  <code>/usr/local/etc/wemux.conf</code> manually or run <code>wemux config</code></p>
+
+<h3>
+<a name="user-content-host-mode" class="anchor" href="#host-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Host Mode</h3>
+
+<p>To have an account act as host, ensure that you have added their username to the
+  <code>/usr/local/etc/wemux.conf</code> file's <code>host_list</code> array.</p>
+
+<pre><code>host_list=(zolrath hostusername brocksamson)
+</code></pre>
+
+<h3>
+<a name="user-content-pair-mode" class="anchor" href="#pair-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pair Mode</h3>
+
+<p>Pair mode can be disabled, only allowing clients to attach to the server in
+  mirror mode by setting <code>allow_pair_mode="false"</code></p>
+
+<h3>
+<a name="user-content-rogue-mode" class="anchor" href="#rogue-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rogue Mode</h3>
+
+<p>Rogue mode can be disabled, only allowing clients to attach to the server in
+  mirror or pair mode by setting <code>allow_rogue_mode="false"</code></p>
+
+<h3>
+<a name="user-content-default-client-mode" class="anchor" href="#default-client-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Default Client Mode</h3>
+
+<p>When clients enter 'wemux' with no arguments by default it will first attempt to
+ join an existing rogue mode session. If there is no rogue session it will start
+ in pair mode.
+ By setting default_client_mode to "rogue", 'wemux' with no arguments will always
+ join a rogue mode session, even if it has to create it.</p>
+
+<p>This can be changed by setting <code>default_client_mode="rogue"</code></p>
+
+<h3>
+<a name="user-content-default-server-name" class="anchor" href="#default-server-name" aria-hidden="true"><span class="octicon octicon-link"></span></a>Default Server Name</h3>
+
+<p>The default wemux server name will be used with <code>wemux reset</code> and when
+  <code>allow_server_name</code> is not enabled in <code>wemux.conf</code>.</p>
+
+<p>This can be changed by setting <code>default_server_name="customname"</code></p>
+
+<h3>
+<a name="user-content-changing-servers" class="anchor" href="#changing-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changing Servers</h3>
+
+<p>The ability to change servers can be enabled by setting
+  <code>allow_server_change="true"</code></p>
+
+<h3>
+<a name="user-content-listing-servers" class="anchor" href="#listing-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Servers</h3>
+
+<p>Listing servers can be disabled by setting <code>allow_server_list="false"</code></p>
+
+<h3>
+<a name="user-content-listing-users" class="anchor" href="#listing-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listing Users</h3>
+
+<p>Listing users can be disabled by setting <code>allow_user_list="false"</code> in
+  <code>wemux.conf</code></p>
+
+<h3>
+<a name="user-content-kicking-ssh-users" class="anchor" href="#kicking-ssh-users" aria-hidden="true"><span class="octicon octicon-link"></span></a>Kicking SSH Users</h3>
+
+<p>Kicking SSH users from the server can be disabled by setting
+  <code>allow_kick_user="false"</code> in <code>wemux.conf</code></p>
+
+<h3>
+<a name="user-content-announcements" class="anchor" href="#announcements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Announcements</h3>
+
+<p>When a user joins a server in either mirror, pair, or rogue mode, a message is
+  displayed to all currently attached users:</p>
+
+<pre><code>csagan has attached in mirror mode.
+csagan has detached.
+</code></pre>
+
+<p>This can be disabled by setting <code>announce_attach="false"</code></p>
+
+<p>In addition, when a user switches from one server to another via the <code>wemux
+ join &lt;servername&gt;</code> command, their movement is displayed similarly to the
+ attach messages.</p>
+
+<p>If csagan enters <code>wemux join applepie</code> the users on the default server
+  <code>wemux</code> will see:</p>
+
+<pre><code>csagan has switched to server: applepie
+</code></pre>
+
+<p>If csagan returns to default server with: <code>wemux reset</code> users on <code>wemux</code>
+  will see:</p>
+
+<pre><code>csagan has joined this server.
+</code></pre>
+
+<p>This can be disabled by setting <code>announce_server_change="false"</code></p>
+
+<h3>
+<a name="user-content-automatic-ssh-client-modes" class="anchor" href="#automatic-ssh-client-modes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Automatic SSH Client Modes</h3>
+
+<p>To make an SSHed user start in a wemux mode automatically, add one of the
+  following lines to the users <code>.bash_profile</code> or <code>.zshrc</code></p>
+
+<p><strong>Option 1</strong>: Automatically log the client into mirror mode upon login,
+  disconnect them from the server when they detach.</p>
+
+<pre><code>wemux mirror; exit
+</code></pre>
+
+<p><strong>Option 2</strong>: Automatically start the client in mirror mode but allow them to
+  detach.</p>
+
+<pre><code>wemux mirror
+</code></pre>
+
+<p><strong>Option 3</strong>: Automatically start the client in pair mode but allow them to
+  detach.</p>
+
+<pre><code>wemux pair
+</code></pre>
+
+<p><strong>Option 4</strong>: Automatically start the client in rogue mode but allow them to
+  detach.</p>
+
+<pre><code>wemux rogue
+</code></pre>
+
+<p><strong>Option 5</strong>: Only display the connection commands, don't automatically start
+  any modes.</p>
+
+<pre><code>wemux help
+</code></pre>
+
+<p>Please note that this does not ensure a logged in user will not be able to exit
+  tmux and access their shell. If the user is not trusted, you must perform any
+  security measures one would normally perform for a remote user.</p></article></div>

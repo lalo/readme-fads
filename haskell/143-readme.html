@@ -1,0 +1,75 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-lemmachine" class="anchor" href="#lemmachine" aria-hidden="true"><span class="octicon octicon-link"></span></a>Lemmachine</h1>
+
+<h2>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p>A proof of concept of compositonal web app testing (described below) can be shown satisfactorily using this branch. Current work is towards a complete <a href="http://github.com/larrytheliquid/Lemmachine/tree/rfc1945">static validator for HTTP 0.9 + 1.0</a> (a requirement of HTTP 1.1, which will be the subsequent work effort).</p>
+
+<h2>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h2>
+
+<p>Lemmachine is a REST'ful web framework that makes it easy to get HTTP right by exposing users to overridable hooks with sane defaults. The main architecture is a copy of Erlang-based <a href="http://webmachine.basho.com">Webmachine</a>, which is currently the best documentation reference (for hooks &amp; general design).</p>
+
+<p>Lemmachine stands out from the dynamically typed Webmachine by being written in dependently typed
+<a href="http://wiki.portal.chalmers.se/agda/pmwiki.php">Agda</a>. The goal of the project is to show the advantages gained from compositional testing by taking advantage of proofs being inherently compositional. See <a href="http://github.com/larrytheliquid/Lemmachine/blob/master/src/Lemmachine/Default/Proofs.agda">proofs</a> for examples of universally quantified proofs (tests over all possible input values) written against the <a href="http://github.com/larrytheliquid/Lemmachine/blob/master/src/Lemmachine/Default.agda">default resource</a>, which does not override any hooks.</p>
+
+<p>When a user implements their own resource, they can write simple lemmas ("unit tests") against the resource's hooks, but then literally reuse those lemmas to write more complex proofs ("integration tests"). For examples see some reuse of <a href="http://github.com/larrytheliquid/Lemmachine/blob/master/src/Lemmachine/Default/Lemmas.agda">lemmas</a> in <a href="http://github.com/larrytheliquid/Lemmachine/blob/master/src/Lemmachine/Default/Proofs.agda">proofs</a>.</p>
+
+<p>The big goal is to show that in service oriented architectures, proofs of individual <a href="http://github.com/larrytheliquid/Lemmachine/blob/master/src/Lemmachine/Utils.agda">middlewares</a> can themselves be reused to write cross-service proofs (even higher level "integration tests") for a consumer application that mounts those middlewares. See <a href="http://vision-media.ca/resources/ruby/ruby-rack-middleware-tutorial">this post</a> for what is meant by middleware.</p>
+
+<p>Another goal is for Lemmachine to come with proofs against the default resource (as it already does). Any hooks the user does not override can be given to the user for free by the framework! Anything that is overridden can generate proofs parameterized only by the extra information the user would need to provide. This would be a major boost in productivity compared to traditional languages whose libraries cannot come with tests for the user that have language-level semantics for real proposition reuse!</p>
+
+<p>Lemmachine currently uses the Haskell <a href="http://github.com/nfjinjing/hack">Hack</a> abstraction so it can run on several Haskell webservers. Because Agda compiles to Haskell and has an FFI, existing Haskell code can be integrated quite easily.</p>
+
+<h2>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<p><a href="http://hackage.haskell.org/platform">Grab Haskell</a> if you don't already have it installed.</p>
+
+<pre><code>cabal update
+cabal install hack hack-handler-happstack Agda-executable
+</code></pre>
+
+<p>Add Cabal binaries to your <code>PATH</code> in <code>~/.profile</code>:
+    export PATH=~/.cabal/bin:$PATH </p>
+
+<p>Make sure you have Agda version <code>2.2.6</code>:
+    agda --version</p>
+
+<h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<p>Get <a href="http://wiki.portal.chalmers.se/agda/pmwiki.php?n=Main.README-2-2-6">Emacs to work with Agda</a>.</p>
+
+<p><a href="http://wiki.portal.chalmers.se/agda/pmwiki.php?n=Main.QuickGuideToEditingTypeCheckingAndCompilingAgdaCode">Examples</a> of how to use <code>agda-mode</code>.</p>
+
+<p>We use a vendored modified Agda stdlib, so in Emacs:
+    M-x customize-group
+    agda2</p>
+
+<p>Then add this to <code>Agda2 Include Dirs</code>:
+    ./vendor/stdlib/src</p>
+
+<h2>
+<a name="user-content-running" class="anchor" href="#running" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running</h2>
+
+<p>Run the following to see this in action for <a href="http://github.com/larrytheliquid/Lemmachine/blob/master/src/Lemmachine/Default.agda">Lemmachine.Default</a>:
+    agda -c --compile-dir=. --ghc-flag=-isrc -i src -i vendor/stdlib/src src/Lemmachine/Default.agda
+    ./Default</p>
+
+<p>In a separate terminal, see a <code>200</code> response:
+    curl -X GET -H "Accept: text/html" -i http://localhost:3000 &amp;&amp; echo</p>
+
+<p>... compared to a <code>406</code> due to requesting an unsupported <code>text/xml</code> media type:
+    curl -X GET -H "Accept: text/xml" -i http://localhost:3000 &amp;&amp; echo</p>
+
+<p>... compared to a <code>405</code> due to requesting an unsupported <code>POST</code> method:
+    curl -X POST -H "Accept: text/html" -i http://localhost:3000 &amp;&amp; echo</p>
+
+<p>All of this is just default behavior and can be overridden by defining appropriate hook methods.</p>
+
+<p>Even though we are working in a language with a lot of verification power, the amount of code required for a complete runnable application remains competitive with more mainstream languages:
+    module ItsSoEasy where
+    open import Lemmachine
+    main = runResolve (toApp [])</p></article></div>

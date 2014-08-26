@@ -1,0 +1,64 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-buildstep" class="anchor" href="#buildstep" aria-hidden="true"><span class="octicon octicon-link"></span></a>Buildstep</h1>
+
+<p>Heroku-style application builds using Docker and Buildpacks. Used by <a href="https://github.com/progrium/dokku">Dokku</a> to make a mini-Heroku.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>Docker</li>
+<li>Git</li>
+</ul><h2>
+<a name="user-content-supported-buildpacks" class="anchor" href="#supported-buildpacks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Buildpacks</h2>
+
+<p>Buildpacks should generally just work, but many of them make assumptions about their environment. So Buildstep has a <a href="https://github.com/progrium/buildstep/blob/master/stack/buildpacks.txt">list of officially supported buildpacks</a> that are built-in and ready to be used.</p>
+
+<h2>
+<a name="user-content-building-buildstep" class="anchor" href="#building-buildstep" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building Buildstep</h2>
+
+<p>The buildstep script uses a buildstep base container that needs to be built. It must be created before
+you can use the buildstep script. To create it, run:</p>
+
+<pre><code>$ make build
+</code></pre>
+
+<p>This will create a container called <code>progrium/buildstep</code> that contains all supported buildpacks and the
+builder script that will actually perform the build using the buildpacks.</p>
+
+<h2>
+<a name="user-content-building-an-app" class="anchor" href="#building-an-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building an App</h2>
+
+<p>Running the buildstep script will take an application tar via STDIN and an application container name as
+an argument. It will put the application in a new container based on <code>progrium/buildstep</code> with the specified name. 
+Then it runs the builder script inside the container. </p>
+
+<pre><code>$ cat myapp.tar | ./buildstep myapp
+</code></pre>
+
+<p>If you didn't already have an application tar, you can create one on the fly.</p>
+
+<pre><code>$ tar cC /path/to/your/app . | ./buildstep myapp
+</code></pre>
+
+<p>The resulting container has a built app ready to go. The builder script also parses the Procfile and produces
+a starter script that takes a process type. Run your app with:</p>
+
+<pre><code>$ docker run -d myapp /bin/bash -c "/start web"
+</code></pre>
+
+<h2>
+<a name="user-content-adding-buildpacks" class="anchor" href="#adding-buildpacks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding Buildpacks</h2>
+
+<p>Buildstep needs to support a buildpack by installing packages needed to run the build and to run the application
+it builds. For example, the Python buildpack would need Python to be installed.</p>
+
+<p>To add a new buildpack to buildstep, add commands to install the necessary packages that the buildpack and built
+application environment will need to stack/packages.txt and stack/prepare. Then add the buildpack Git URL to the file stack/buildpacks.txt</p>
+
+<p>You'll then have to re-build.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>MIT</p></article></div>

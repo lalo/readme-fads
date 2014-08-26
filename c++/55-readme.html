@@ -1,0 +1,245 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-therubyracer" class="anchor" href="#therubyracer" aria-hidden="true"><span class="octicon octicon-link"></span></a>therubyracer</h1>
+
+<p><a href="http://badge.fury.io/rb/therubyracer"><img src="https://camo.githubusercontent.com/dfd3feff587eeb56207785e213615e8ac7880ffc/68747470733a2f2f62616467652e667572792e696f2f72622f7468657275627972616365722e706e67" alt="Gem Version" data-canonical-src="https://badge.fury.io/rb/therubyracer.png" style="max-width:100%;"></a>
+<a href="https://travis-ci.org/cowboyd/therubyracer"><img src="https://camo.githubusercontent.com/02ecd2b7579a511ec4fdcc6e704eabd7695a217b/68747470733a2f2f7472617669732d63692e6f72672f636f77626f79642f7468657275627972616365722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/cowboyd/therubyracer.png?branch=master" style="max-width:100%;"></a>
+<a href="https://gemnasium.com/cowboyd/therubyracer"><img src="https://camo.githubusercontent.com/875c5df1d30f768d0c42b3880d87c8ec121c80e2/68747470733a2f2f67656d6e617369756d2e636f6d2f636f77626f79642f7468657275627972616365722e706e67" alt="Dependency Status" data-canonical-src="https://gemnasium.com/cowboyd/therubyracer.png" style="max-width:100%;"></a></p>
+
+<ul class="task-list">
+<li>GitHub Project: <a href="http://github.com/cowboyd/therubyracer">http://github.com/cowboyd/therubyracer</a>
+</li>
+<li>Mailing List: <a href="http://groups.google.com/group/therubyracer">http://groups.google.com/group/therubyracer</a>
+</li>
+<li>IRC / Chat: <a href="http://groups.google.com/group/therubyracer">irc://irc.freenode.net/therubyracer</a>
+</li>
+<li>Documentation: <a href="https://github.com/cowboyd/therubyracer/wiki">GitHub Wiki</a> and <a href="http://rubydoc.info/gems/therubyracer">RubyDoc</a>
+</li>
+</ul><h3>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>DESCRIPTION</h3>
+
+<p>Embed the V8 JavaScript interpreter into Ruby.</p>
+
+<h3>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>FEATURES</h3>
+
+<ul class="task-list">
+<li>Evaluate JavaScript from within Ruby</li>
+<li>Embed your Ruby objects into the JavaScript world</li>
+<li>Manipulate JavaScript objects and call JavaScript functions from Ruby</li>
+<li>API compatible with the The Ruby Rhino (for JRuby: <a href="http://github.com/cowboyd/therubyrhino">http://github.com/cowboyd/therubyrhino</a>)</li>
+</ul><h3>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a>SYNOPSIS</h3>
+
+<pre><code>gem install therubyracer
+</code></pre>
+
+<p>then in your Ruby code</p>
+
+<pre><code>require 'v8'
+</code></pre>
+
+<p>or if using bundler (as with Rails), add the following to your Gemfile</p>
+
+<pre><code>gem "therubyracer"
+</code></pre>
+
+<p>evaluate some simple JavaScript</p>
+
+<pre><code>cxt = V8::Context.new
+cxt.eval('7 * 6') #=&gt; 42
+</code></pre>
+
+<p>access values inside your JavaScript context from Ruby</p>
+
+<pre><code>cxt.eval 'var val = {num: 5, fun: function isTruthy(arg) { return !!arg }}'
+val = cxt[:val] #=&gt; V8::Object
+cxt[:val] == cxt.scope.val #=&gt; true
+val.num #=&gt; 5
+val.isTruthy(1) #=&gt; true
+</code></pre>
+
+<p>this includes references to JavaScript functions</p>
+
+<pre><code>truthy = val[:isTruthy] #=&gt; V8::Function
+truthy.call(' ') #=&gt; true
+truthy.call(0) #=&gt; false
+</code></pre>
+
+<p>embed values into the scope of your context</p>
+
+<pre><code>cxt['foo'] = "bar"
+cxt.eval('foo') # =&gt; "bar"
+</code></pre>
+
+<p>embed Ruby code into your scope and call it from JavaScript</p>
+
+<pre><code>cxt["say"] = lambda {|this, word, times| word * times}
+cxt.eval("say('Hello', 3)") #=&gt; HelloHelloHello
+</code></pre>
+
+<p>embed a Ruby object into your scope and access its properties/methods
+from JavaScript</p>
+
+<pre><code>class MyMath
+  def plus(lhs, rhs)
+    lhs + rhs
+  end
+end
+
+cxt['math'] = MyMath.new
+cxt.eval("math.plus(20,22)") #=&gt; 42
+</code></pre>
+
+<p>make a Ruby object <em>be</em> your global JavaScript scope.</p>
+
+<pre><code>math = MyMath.new
+V8::Context.new(:with =&gt; math) do |cxt|
+  cxt.eval("plus(20,22)") #=&gt; 42
+end
+</code></pre>
+
+<p>you can do the same thing with Object#eval_js</p>
+
+<pre><code>math.eval_js("plus(20,22)")
+</code></pre>
+
+<h3>
+<a name="user-content-different-ways-of-loading-javascript-source" class="anchor" href="#different-ways-of-loading-javascript-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Different ways of loading JavaScript source</h3>
+
+<p>In addition to just evaluating strings, you can also use streams, such
+as files.</p>
+
+<p>evaluate bytes read from any File/IO object:</p>
+
+<pre><code>File.open("mysource.js") do |file|
+  cxt.eval(file, "mysource.js")
+end
+</code></pre>
+
+<p>or load it by filename</p>
+
+<pre><code>cxt.load("mysource.js")
+</code></pre>
+
+<h3>
+<a name="user-content-safe-by-default-dangerous-by-demand" class="anchor" href="#safe-by-default-dangerous-by-demand" aria-hidden="true"><span class="octicon octicon-link"></span></a>Safe by default, dangerous by demand</h3>
+
+<p>The Ruby Racer is designed to let you evaluate JavaScript as safely as
+possible unless you tell it to do something more dangerous. The
+default context is a hermetically sealed JavaScript environment with
+only the standard JavaScript objects and functions. Nothing from the
+Ruby world is accessible at all.</p>
+
+<p>For Ruby objects that you explicitly embed into JavaScript, by default
+only the <em>public</em> methods <em>below</em> <code>Object</code> are exposed by default.
+E.g.</p>
+
+<pre><code>class A
+  def a
+    "a"
+  end
+
+  def to_s
+    super
+  end
+end
+
+class B &lt; A
+  def b
+    "b"
+  end
+end
+
+
+V8::Context.new do |cxt|
+  cxt['a'] = A.new
+  cxt['b'] = B.new
+  cxt.eval("a.a") # =&gt; 'a'
+  cxt.eval("b.b") # =&gt; 'b'
+  cxt.eval("b.a") # =&gt; 'a'
+  cxt.eval("b.to_s") # =&gt; #&lt;B:0x101776be8&gt; (because A explicitly defined it)
+  cxt.eval("b.object_id") #=&gt; undefined, object_id is on Object
+end
+</code></pre>
+
+<p>If needed, you can override the <a href="https://github.com/cowboyd/therubyracer/blob/master/lib/v8/access.rb">Ruby Access</a> to allow whatever
+behavior you'd like.</p>
+
+<p>More documentation can be found on the <a href="https://github.com/cowboyd/therubyracer/wiki">GitHub wiki</a></p>
+
+<h3>
+<a name="user-content-protecting-your-cpu-cycles" class="anchor" href="#protecting-your-cpu-cycles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Protecting Your CPU cycles</h3>
+
+<p>When running untrusted JavaScript code, you not only have to protect
+which functions it has access to, but also how much of your CPU it can
+consume. Take this simple, yet thoroughly malicious script:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{}</span>
+</pre></div>
+
+<p>It will loop forever and never return control to the calling Ruby
+thread. To protect against such JavaScript code that either
+deliberately or accidentally runs longer that it should, you can
+set an explicit timeout on your context. If the code runs longer that
+the allowed timeout, then it will throw an exception. Note that this
+exception could be raised at any point in the execution of the
+JavaScript.</p>
+
+<p>To specify the timeout (in milliseconds), pass in the <code>timeout</code> option
+to the constructor.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">cxt</span> <span class="o">=</span> <span class="no">V8</span><span class="o">::</span><span class="no">Context</span><span class="o">.</span><span class="n">new</span> <span class="ss">timeout</span><span class="p">:</span> <span class="mi">700</span>
+<span class="n">cxt</span><span class="o">.</span><span class="n">eval</span> <span class="s2">"while (true);"</span> <span class="c1">#= exception after 700ms!</span>
+</pre></div>
+
+<h3>
+<a name="user-content-prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>PREREQUISITES</h3>
+
+<p>The Ruby Racer requires the V8 Javascript engine, but it offloads the
+handling of this dependency to the
+<a href="https://github.com/cowboyd/libv8">libv8</a> gem. Because libv8 is now a
+gem dependency, you do not need a separate libv8 entry in your
+project's Gemfile.</p>
+
+<p>Please see <a href="https://github.com/cowboyd/libv8">libv8</a> for V8 runtime
+installation options.</p>
+
+<h3>
+<a name="user-content-develop" class="anchor" href="#develop" aria-hidden="true"><span class="octicon octicon-link"></span></a>DEVELOP</h3>
+
+<pre><code>git clone git://github.com/cowboyd/therubyracer.git
+cd therubyracer
+bundle install
+rake compile
+</code></pre>
+
+<h3>
+<a name="user-content-sponsored-by" class="anchor" href="#sponsored-by" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sponsored by</h3>
+
+<p><a href="http://thefrontside.net"><img src="http://github.com/cowboyd/therubyracer/raw/master/thefrontside.png" alt="The Frontside" style="max-width:100%;"></a></p>
+
+<h3>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE:</h3>
+
+<p>(The MIT License)</p>
+
+<p>Copyright (c) 2009,2010,2011,2012 Charles Lowell</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

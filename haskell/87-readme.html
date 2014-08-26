@@ -1,0 +1,200 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-hdevtools" class="anchor" href="#hdevtools" aria-hidden="true"><span class="octicon octicon-link"></span></a>hdevtools</h1>
+
+<p>Persistent GHC powered background server for FAST Haskell development tools</p>
+
+<h2>
+<a name="user-content-about" class="anchor" href="#about" aria-hidden="true"><span class="octicon octicon-link"></span></a>About</h2>
+
+<p><code>hdevtools</code> is a backend for text editor plugins, to allow for things such as
+syntax and type checking of Haskell code, and retrieving type information, all
+directly from within your text editor.</p>
+
+<p>The advantage that <code>hdevtools</code> has over competitors, is that it runs silently
+in a persistent background process, and therefore is able to keeps all of your
+Haskell modules and dependent libraries loaded in memory. This way, when you
+change only a single source file, only it needs to be reloaded and rechecked,
+instead of having to reload everything.</p>
+
+<p>This makes <code>hdevtools</code> very fast for checking syntax and type errors (runs just
+as fast as the <code>:reload</code> command in GHCi).</p>
+
+<p>In fact, syntax and type checking is so fast, that you can safely enable auto
+checking on every save. Even for huge projects, checking is nearly instant.</p>
+
+<p>Once you start using <code>hdevtools</code> and you get used to having your errors shown
+to you instantly (without having to switch back and forth between GHCi and your
+editor), and shown directly on your code, in your editor (without having to
+wait forever for GHC to run) you will wonder how you ever lived without it.</p>
+
+<p>In addition to checking Haskell source code for errors, <code>hdevtools</code> has tools
+for getting info about identifiers, and getting type information for snippets
+of code.</p>
+
+<h2>
+<a name="user-content-text-editor-integration" class="anchor" href="#text-editor-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Text Editor Integration</h2>
+
+<p><code>hdevtools</code> is designed to be integrated into text editors. The list of current
+editor plugins that supply this integration is below.</p>
+
+<p>But before you do anything, you must first install <code>hdevtools</code> itself. The
+easiest way is from <a href="http://hackage.haskell.org/package/hdevtools">Hackage</a> via cabal install:</p>
+
+<pre><code>$ cabal install hdevtools
+</code></pre>
+
+<p>Then you should install one or more of the following editor plugins:</p>
+
+<h3>
+<a name="user-content-vim---syntastic" class="anchor" href="#vim---syntastic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Vim - <a href="https://github.com/scrooloose/syntastic">Syntastic</a>
+</h3>
+
+<p><a href="https://github.com/scrooloose/syntastic">Syntastic</a> is a popular syntax checking plugin for Vim, and is the
+recommended Vim integration of <code>hdevtools</code> syntax and type checking. Recent
+versions of Syntastic(since Sep. 2012) have builtin support for <code>hdevtools</code>.</p>
+
+<p>Simply install <code>hdevtools</code> (as above) and <a href="https://github.com/scrooloose/syntastic">Syntastic</a>, and it will
+automatically check your Haskell files.</p>
+
+<p><a href="https://github.com/scrooloose/syntastic">Syntastic</a> will respect the <code>g:hdevtools_options</code> variable (the same one as
+used by <a href="https://github.com/bitc/vim-hdevtools">vim-hdevtools</a>, see below). See the section "Specifying GHC
+Options" below for details how to use it.</p>
+
+<h3>
+<a name="user-content-vim---vim-hdevtools" class="anchor" href="#vim---vim-hdevtools" aria-hidden="true"><span class="octicon octicon-link"></span></a>Vim - <a href="https://github.com/bitc/vim-hdevtools">vim-hdevtools</a>
+</h3>
+
+<p>In addition to Syntastic, it is recommended that you also use
+<a href="https://github.com/bitc/vim-hdevtools"><code>vim-hdevtools</code></a> for additional functionality.</p>
+
+<p><a href="https://github.com/bitc/vim-hdevtools"><code>vim-hdevtools</code></a> offers integration with the rest of the <code>hdevtools</code> tools,
+including retrieving info about the identifier under the cursor, and getting
+the type of the code under the cursor. Refer to its documentation for more
+details.</p>
+
+<h3>
+<a name="user-content-emacs---flycheck" class="anchor" href="#emacs---flycheck" aria-hidden="true"><span class="octicon octicon-link"></span></a>Emacs - <a href="https://github.com/flycheck/flycheck">flycheck</a>
+</h3>
+
+<p><a href="https://github.com/flycheck/flycheck">Flycheck</a> is a modern batteries-included
+syntax checker for Emacs, and there is a <a href="https://github.com/flycheck/flycheck-hdevtools">flycheck-hdevtools</a> checker available.</p>
+
+<h3>
+<a name="user-content-manual-editor-integration-for-any-editor" class="anchor" href="#manual-editor-integration-for-any-editor" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual Editor Integration for any Editor</h3>
+
+<p>Most editors allow you to run a <code>make</code> command, and will then parse the output
+for errors and show line numbers, allowing you to jump between errors.</p>
+
+<p>The <code>hdevtools check</code> command is suitable for such usage.</p>
+
+<p>For example, in Vim something like this will work:</p>
+
+<pre><code>:let &amp;makeprg='hdevtools check %'
+</code></pre>
+
+<p>(Vim will replace the <code>%</code> character with the name of the current file). Then
+you can run</p>
+
+<pre><code>:make
+</code></pre>
+
+<p>And Vim will invoke <code>hdevtools</code> to check the current file for errors, and then
+show a list of them and allow jumping to them.</p>
+
+<p>See the "Command Line Usage" section below for more information.</p>
+
+<h2>
+<a name="user-content-command-line-usage" class="anchor" href="#command-line-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Line Usage</h2>
+
+<p>Note: When using one of the above editor plugins, you don't really need to know
+this.</p>
+
+<h3>
+<a name="user-content-available-commands-and-help" class="anchor" href="#available-commands-and-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Available Commands and Help</h3>
+
+<p>For the list of commands available, run:</p>
+
+<pre><code>$ hdevtools --help
+</code></pre>
+
+<p>To get help for a specific command, run:</p>
+
+<pre><code>$ hdevtools [COMMAND] --help
+</code></pre>
+
+<p>For example:</p>
+
+<pre><code>$ hdevtools check --help
+</code></pre>
+
+<h3>
+<a name="user-content-the-hdevtools-background-process" class="anchor" href="#the-hdevtools-background-process" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>hdevtools</code> background process</h3>
+
+<p>The first time <code>hdevtools</code> runs a command, it will spawn a background process
+that will remain running forever. You can check the status of this background
+process by running:</p>
+
+<pre><code>$ hdevtools --status
+</code></pre>
+
+<p>You can shutdown the background process by running:</p>
+
+<pre><code>$ hdevtools --stop-server
+</code></pre>
+
+<p>Communication with the background process is done through a unix socket file.
+The default name is <code>.hdevtools.sock</code>, in the current directory. This allows
+you to use <code>hdevtools</code> with multiple projects simultaneously, without the
+background processes getting in the way of each other.</p>
+
+<p>You can use a different socket file name with the <code>--socket</code> option, which
+should be used for each invocation of <code>hdevtools</code>. Remember that when telling
+<code>hdevtools</code> to check a Haskell file, paths are relative to the path of the
+background process, not your current directory. This can cause problems, and
+therefore it is recommended that you leave the socket file as the default, and
+always run <code>hdevtools</code> from the same directory.</p>
+
+<h3>
+<a name="user-content-specifying-ghc-options" class="anchor" href="#specifying-ghc-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying GHC Options</h3>
+
+<p>For most non-trivial projects, you will need to tell <code>hdevtools</code> about
+additional GHC options that your project requires.</p>
+
+<p>All <code>hdevtools</code> commands accept a <code>-g</code> flag for this purpose.</p>
+
+<p>For example:</p>
+
+<ul class="task-list">
+<li>Your project source code is in the directory <code>src</code>
+</li>
+<li>You want to use the GHC option <code>-Wall</code>
+</li>
+<li>You want to hide the package <code>transformers</code> to prevent conflicts</li>
+</ul><p>Invoke <code>hdevtools</code> with something like this:</p>
+
+<pre><code>$ hdevtools check -g -isrc -g -Wall -g -hide-package -g transformers Foo.hs
+</code></pre>
+
+<p>Notice that a <code>-g</code> flag is inserted before each GHC option. Don't try to string
+multiple GHC options together after a single <code>-g</code> flag:</p>
+
+<p>This won't work:</p>
+
+<pre><code>$ hdevtools check -g '-hide-package transformers' Foo.hs
+</code></pre>
+
+<p>The Vim plugins allow setting GHC options in the <code>g:hdevtools_options</code>
+variable.  For example, for the above project, put the following in your
+<code>.vimrc</code>:</p>
+
+<pre><code>let g:hdevtools_options = '-g -isrc -g -Wall -g -hide-package -g transformers'
+</code></pre>
+
+<p>In general, you will need to pass to <code>hdevtools</code> the same GHC options that you
+would pass to GHCi.</p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<p><code>hdevtools</code> was inspired by <a href="http://www.mew.org/%7Ekazu/proj/ghc-mod/en/">ghcmod</a>, but has the advantage that due to its
+client-server architecture it is much faster.</p></article></div>

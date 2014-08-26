@@ -1,0 +1,355 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-wartremover" class="anchor" href="#wartremover" aria-hidden="true"><span class="octicon octicon-link"></span></a>WartRemover</h1>
+
+<p><a href="https://travis-ci.org/typelevel/wartremover"><img src="https://camo.githubusercontent.com/d4ec63fa313c9764556052ddcb15ba91f50a596e/68747470733a2f2f7472617669732d63692e6f72672f747970656c6576656c2f7761727472656d6f7665722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/typelevel/wartremover.png?branch=master" style="max-width:100%;"></a></p>
+
+<p>WartRemover is a flexible Scala code linting tool.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Add the following to your <code>project/plugins.sbt</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="nc">Resolver</span><span class="o">.</span><span class="n">sonatypeRepo</span><span class="o">(</span><span class="s">"releases"</span><span class="o">)</span>
+
+<span class="n">addSbtPlugin</span><span class="o">(</span><span class="s">"org.brianmckenna"</span> <span class="o">%</span> <span class="s">"sbt-wartremover"</span> <span class="o">%</span> <span class="s">"0.11"</span><span class="o">)</span>
+</pre></div>
+
+<p>If you're using <code>sbt</code> ≥ 0.13.5, you'll be able to make use of the new auto plugin feature. If not, you'll probably want to add the following to your <code>build.sbt</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">wartremover._</span>
+
+<span class="n">wartremoverSettings</span>
+</pre></div>
+
+<p>Now, you can proceed to configure the linter in your <code>build.sbt</code>. By default, all errors and warnings are turned off. To turn on all errors, use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">wartremoverErrors</span> <span class="o">++=</span> <span class="nc">Warts</span><span class="o">.</span><span class="n">all</span>
+</pre></div>
+
+<p>Similarly, to just issue warnings instead of errors for all built-in warts, you can use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">wartremoverWarnings</span> <span class="o">++=</span> <span class="nc">Warts</span><span class="o">.</span><span class="n">all</span>
+</pre></div>
+
+<p>You can also use scopes, e.g. to turn on all warts only for compilation (and not for the tests nor the <code>sbt console</code>), use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">wartremoverErrors</span> <span class="n">in</span> <span class="o">(</span><span class="nc">Compile</span><span class="o">,</span> <span class="n">compile</span><span class="o">)</span> <span class="o">++=</span> <span class="nc">Warts</span><span class="o">.</span><span class="n">all</span>
+</pre></div>
+
+<p>To choose warts more selectively, use any of the following:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">wartremoverErrors</span> <span class="o">++=</span> <span class="nc">Warts</span><span class="o">.</span><span class="n">allBut</span><span class="o">(</span><span class="nc">Wart</span><span class="o">.</span><span class="nc">Any</span><span class="o">,</span> <span class="nc">Wart</span><span class="o">.</span><span class="nc">Nothing</span><span class="o">,</span> <span class="nc">Wart</span><span class="o">.</span><span class="nc">Serializable</span><span class="o">)</span>
+
+<span class="n">wartremoverWarnings</span> <span class="o">+=</span> <span class="nc">Wart</span><span class="o">.</span><span class="nc">Nothing</span>
+
+<span class="n">wartremoverWarnings</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span><span class="nc">Wart</span><span class="o">.</span><span class="nc">Any</span><span class="o">,</span> <span class="nc">Wart</span><span class="o">.</span><span class="nc">Serializable</span><span class="o">)</span>
+</pre></div>
+
+<p>To exclude a package or a class from all checks:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">wartremoverExcluded</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span><span class="s">"org.some.package"</span><span class="o">,</span> <span class="s">"org.other.package.SomeClass"</span><span class="o">)</span>
+</pre></div>
+
+<p>Finally, if you want to add your custom <code>WartTraverser</code>, provide its classpath first:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">wartremoverClasspaths</span> <span class="o">+=</span> <span class="s">"some-url"</span>
+
+<span class="n">wartremoverErrors</span> <span class="o">+=</span> <span class="nc">Wart</span><span class="o">.</span><span class="n">custom</span><span class="o">(</span><span class="s">"org.your.custom.WartTraverser"</span><span class="o">)</span>
+</pre></div>
+
+<p>See also <a href="/OTHER-WAYS.md">other ways of using WartRemover</a> for information on how to use it as a command-line tool, a macro or a compiler plugin, while providing all the <code>scalac</code> options manually.</p>
+
+<h2>
+<a name="user-content-warts" class="anchor" href="#warts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Warts</h2>
+
+<p>Here is a list of built-in warts under the
+<code>org.brianmckenna.wartremover.warts</code> package.</p>
+
+<h3>
+<a name="user-content-any" class="anchor" href="#any" aria-hidden="true"><span class="octicon octicon-link"></span></a>Any</h3>
+
+<p>Any is the top type; it is the supertype of every other type. The
+Scala compiler loves to infer Any as a generic type but that is
+almost always incorrect. Explicit type arguments should be used
+instead.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Inferred type containing Any</span>
+<span class="k">val</span> <span class="n">any</span> <span class="k">=</span> <span class="nc">List</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="kc">true</span><span class="o">,</span> <span class="s">"three"</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-any2stringadd" class="anchor" href="#any2stringadd" aria-hidden="true"><span class="octicon octicon-link"></span></a>Any2StringAdd</h3>
+
+<p>Scala has an implicit which converts anything to a <code>String</code> if the
+right hand side of <code>+</code> is a <code>String</code>.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Scala inserted an any2stringadd call</span>
+<span class="n">println</span><span class="o">({}</span> <span class="o">+</span> <span class="s">"test"</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-asinstanceof" class="anchor" href="#asinstanceof" aria-hidden="true"><span class="octicon octicon-link"></span></a>AsInstanceOf</h3>
+
+<p><code>asInstanceOf</code> is unsafe in isolation and violates parametricity when guarded by <code>isInstanceOf</code>. Refactor so that the desired type is proven statically.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: asInstanceOf is disabled</span>
+<span class="n">x</span><span class="o">.</span><span class="n">asInstanceOf</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-defaultarguments" class="anchor" href="#defaultarguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>DefaultArguments</h3>
+
+<p>Scala allows methods to have default arguments, which make it hard to use methods as functions.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Function has default arguments</span>
+<span class="k">def</span> <span class="n">x</span><span class="o">(</span><span class="n">y</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">0</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-eitherprojectionpartial" class="anchor" href="#eitherprojectionpartial" aria-hidden="true"><span class="octicon octicon-link"></span></a>EitherProjectionPartial</h3>
+
+<p><code>scala.util.Either.LeftProjection</code> and <code>scala.util.Either.RightProjection</code>
+have a <code>get</code> method which will throw if the value doesn't match the
+projection.  The program should be refactored to use <code>scala.util.Either.LeftProjection#toOption</code>
+and <code>scala.util.Either.RightProjection#toOption</code> to explicitly handle both
+the <code>Some</code> and <code>None</code> cases.</p>
+
+<h3>
+<a name="user-content-isinstanceof" class="anchor" href="#isinstanceof" aria-hidden="true"><span class="octicon octicon-link"></span></a>IsInstanceOf</h3>
+
+<p><code>isInstanceOf</code> violates parametricity. Refactor so that the  type is established statically.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: isInstanceOf is disabled</span>
+<span class="n">x</span><span class="o">.</span><span class="n">isInstanceOf</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span>
+</pre></div>
+
+<h3>
+<a name="user-content-listops" class="anchor" href="#listops" aria-hidden="true"><span class="octicon octicon-link"></span></a>ListOps</h3>
+
+<p><code>scala.collection.immutable.List</code> has:</p>
+
+<ul class="task-list">
+<li>
+<code>head</code>,</li>
+<li>
+<code>last</code> and</li>
+<li>
+<code>tail</code> methods,</li>
+</ul><p>all of which will throw if the list is empty. The program should be refactored to use:</p>
+
+<ul class="task-list">
+<li>
+<code>List#headOption</code>,</li>
+<li>
+<code>List#lastOption</code> and</li>
+<li>
+<code>List#drop(1)</code> respectively,</li>
+</ul><p>to explicitly handle both the populated and empty <code>List</code>.</p>
+
+<h3>
+<a name="user-content-noneedformonad" class="anchor" href="#noneedformonad" aria-hidden="true"><span class="octicon octicon-link"></span></a>NoNeedForMonad</h3>
+
+<p>Sometimes an additional power of <code>Monad</code> is not needed, and
+<code>Applicative</code> is enough. This issues a warning in such cases
+(not an error, since using a <code>Monad</code> instance might still be a conscious decision)</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">scala</span><span class="o">&gt;</span> <span class="k">for</span> <span class="o">{</span>
+     <span class="o">|</span> <span class="n">x</span> <span class="k">&lt;-</span> <span class="nc">List</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span><span class="mi">2</span><span class="o">,</span><span class="mi">3</span><span class="o">)</span>
+     <span class="o">|</span> <span class="n">y</span> <span class="k">&lt;-</span> <span class="nc">List</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span><span class="mi">3</span><span class="o">,</span><span class="mi">4</span><span class="o">)</span>
+     <span class="o">|</span> <span class="o">}</span> <span class="k">yield</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span>
+<span class="o">&lt;</span><span class="n">console</span><span class="k">&gt;:</span><span class="mi">19</span><span class="k">:</span> <span class="kt">warning:</span> <span class="kt">No</span> <span class="kt">need</span> <span class="kt">for</span> <span class="kt">Monad</span> <span class="kt">here</span> <span class="o">(</span><span class="kt">Applicative</span> <span class="kt">should</span> <span class="kt">suffice</span><span class="o">)</span><span class="kt">.</span>
+ <span class="kt">&gt;</span> <span class="err">"</span><span class="kt">If</span> <span class="kt">the</span> <span class="kt">extra</span> <span class="kt">power</span> <span class="kt">provided</span> <span class="kt">by</span> <span class="kt">Monad</span> <span class="kt">isn</span><span class="err">’</span><span class="kt">t</span> <span class="kt">needed</span><span class="o">,</span> <span class="n">it</span><span class="err">’</span><span class="n">s</span> <span class="n">usually</span> <span class="n">a</span> <span class="n">good</span> <span class="n">idea</span> <span class="n">to</span> <span class="n">use</span> <span class="nc">Applicative</span> <span class="n">instead</span><span class="o">.</span><span class="err">"</span>
+ <span class="nc">Typeclassopedia</span> <span class="o">(</span><span class="n">http</span><span class="o">://</span><span class="n">www</span><span class="o">.</span><span class="n">haskell</span><span class="o">.</span><span class="n">org</span><span class="o">/</span><span class="n">haskellwiki</span><span class="o">/</span><span class="nc">Typeclassopedia</span><span class="o">)</span>
+ <span class="nc">Apart</span> <span class="n">from</span> <span class="n">a</span> <span class="n">cleaner</span> <span class="n">code</span><span class="o">,</span> <span class="n">using</span> <span class="nc">Applicatives</span> <span class="n">instead</span> <span class="n">of</span> <span class="nc">Monads</span> <span class="n">can</span> <span class="n">in</span> <span class="n">general</span> <span class="k">case</span> <span class="n">result</span> <span class="n">in</span> <span class="n">a</span> <span class="n">more</span> <span class="n">parallel</span> <span class="n">code</span><span class="o">.</span>
+ <span class="nc">For</span> <span class="n">more</span> <span class="n">context</span><span class="o">,</span> <span class="n">please</span> <span class="n">refer</span> <span class="n">to</span> <span class="n">the</span> <span class="n">aforementioned</span> <span class="nc">Typeclassopedia</span><span class="o">,</span> <span class="n">http</span><span class="o">://</span><span class="n">comonad</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">reader</span><span class="o">/</span><span class="mi">2012</span><span class="o">/</span><span class="n">abstracting</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">applicatives</span><span class="o">/,</span> <span class="n">or</span> <span class="n">http</span><span class="o">://</span><span class="n">www</span><span class="o">.</span><span class="n">serpentine</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">blog</span><span class="o">/</span><span class="mi">2008</span><span class="o">/</span><span class="mi">02</span><span class="o">/</span><span class="mi">06</span><span class="o">/</span><span class="n">the</span><span class="o">-</span><span class="n">basics</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">applicative</span><span class="o">-</span><span class="n">functors</span><span class="o">-</span><span class="n">put</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">practical</span><span class="o">-</span><span class="n">work</span><span class="o">/</span>
+              <span class="n">x</span> <span class="k">&lt;-</span> <span class="nc">List</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span><span class="mi">2</span><span class="o">,</span><span class="mi">3</span><span class="o">)</span>
+                <span class="o">^</span>
+<span class="n">res0</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">List</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">,</span> <span class="mi">4</span><span class="o">,</span> <span class="mi">4</span><span class="o">,</span> <span class="mi">6</span><span class="o">,</span> <span class="mi">8</span><span class="o">,</span> <span class="mi">6</span><span class="o">,</span> <span class="mi">9</span><span class="o">,</span> <span class="mi">12</span><span class="o">)</span>
+
+<span class="n">scala</span><span class="o">&gt;</span> <span class="k">for</span> <span class="o">{</span>
+     <span class="o">|</span> <span class="n">x</span> <span class="k">&lt;-</span> <span class="nc">List</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span><span class="mi">2</span><span class="o">,</span><span class="mi">3</span><span class="o">)</span>
+     <span class="o">|</span> <span class="n">y</span> <span class="k">&lt;-</span> <span class="n">x</span> <span class="n">to</span> <span class="mi">3</span>
+     <span class="o">|</span> <span class="o">}</span> <span class="k">yield</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span>
+<span class="n">res1</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="nc">List</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">,</span> <span class="mi">4</span><span class="o">,</span> <span class="mi">6</span><span class="o">,</span> <span class="mi">9</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-nonunitstatements" class="anchor" href="#nonunitstatements" aria-hidden="true"><span class="octicon octicon-link"></span></a>NonUnitStatements</h3>
+
+<p>Scala allows statements to return any type. Statements should only
+return <code>Unit</code> (this ensures that they're really intended to be
+statements).</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Statements must return Unit</span>
+<span class="mi">10</span>
+<span class="kc">false</span>
+</pre></div>
+
+<h3>
+<a name="user-content-nothing" class="anchor" href="#nothing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nothing</h3>
+
+<p>Nothing is a special bottom type; it is a subtype of every other
+type. The Scala compiler loves to infer Nothing as a generic type but
+that is almost always incorrect. Explicit type arguments should be
+used instead.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Inferred type containing Nothing</span>
+<span class="k">val</span> <span class="n">nothing</span> <span class="k">=</span> <span class="o">???</span>
+<span class="k">val</span> <span class="n">nothingList</span> <span class="k">=</span> <span class="nc">List</span><span class="o">.</span><span class="n">empty</span>
+</pre></div>
+
+<h3>
+<a name="user-content-null" class="anchor" href="#null" aria-hidden="true"><span class="octicon octicon-link"></span></a>Null</h3>
+
+<p><code>null</code> is a special value that inhabits all reference types. It breaks
+type safety.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: null is disabled</span>
+<span class="k">val</span> <span class="n">s</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="kc">null</span>
+</pre></div>
+
+<h3>
+<a name="user-content-optionpartial" class="anchor" href="#optionpartial" aria-hidden="true"><span class="octicon octicon-link"></span></a>OptionPartial</h3>
+
+<p><code>scala.Option</code> has a <code>get</code> method which will throw if the value is
+<code>None</code>. The program should be refactored to use <code>scala.Option#fold</code> to
+explicitly handle both the <code>Some</code> and <code>None</code> cases.</p>
+
+<h3>
+<a name="user-content-product" class="anchor" href="#product" aria-hidden="true"><span class="octicon octicon-link"></span></a>Product</h3>
+
+<p>Product is a type common to many structures; it is the supertype of
+case classes and tuples. The Scala compiler loves to infer Product as
+a generic type but that is almost always incorrect. Explicit type
+arguments should be used instead.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Inferred type containing Product</span>
+<span class="k">val</span> <span class="n">any</span> <span class="k">=</span> <span class="nc">List</span><span class="o">((</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">),</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">))</span>
+</pre></div>
+
+<h3>
+<a name="user-content-return" class="anchor" href="#return" aria-hidden="true"><span class="octicon octicon-link"></span></a>Return</h3>
+
+<p><code>return</code> breaks referential transparency. Refactor to terminate computations in a safe way.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: return is disabled</span>
+<span class="k">def</span> <span class="n">foo</span><span class="o">(</span><span class="n">n</span><span class="k">:</span><span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="k">def</span> <span class="n">foo</span><span class="o">(</span><span class="n">ns</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span><span class="k">:</span> <span class="kt">Any</span> <span class="o">=</span> <span class="n">ns</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">n</span> <span class="k">=&gt;</span> <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-serializable" class="anchor" href="#serializable" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializable</h3>
+
+<p>Serializable is a type common to many structures. The Scala compiler
+loves to infer Serializable as a generic type but that is almost
+always incorrect. Explicit type arguments should be used instead.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: Inferred type containing Serializable</span>
+<span class="k">val</span> <span class="n">any</span> <span class="k">=</span> <span class="nc">List</span><span class="o">((</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">,</span> <span class="mi">3</span><span class="o">),</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">2</span><span class="o">))</span>
+</pre></div>
+
+<h3>
+<a name="user-content-unsafe" class="anchor" href="#unsafe" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unsafe</h3>
+
+<p>Checks for the following warts:</p>
+
+<ul class="task-list">
+<li>Any</li>
+<li>Any2StringAdd</li>
+<li>AsInstanceOf</li>
+<li>EitherProjectionPartial</li>
+<li>IsInstanceOf</li>
+<li>NonUnitStatements</li>
+<li>Null</li>
+<li>OptionPartial</li>
+<li>Product</li>
+<li>Return</li>
+<li>Serializable</li>
+<li>Var</li>
+<li>ListOps</li>
+</ul><h3>
+<a name="user-content-var" class="anchor" href="#var" aria-hidden="true"><span class="octicon octicon-link"></span></a>Var</h3>
+
+<p>Mutation breaks equational reasoning.</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// Won't compile: var is disabled</span>
+<span class="k">var</span> <span class="n">x</span> <span class="k">=</span> <span class="mi">100</span>
+</pre></div>
+
+<h2>
+<a name="user-content-writing-wart-rules" class="anchor" href="#writing-wart-rules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing Wart Rules</h2>
+
+<p>A wart rule has to be an object which extends <code>WartTraverser</code>. The
+object only needs an <code>apply</code> method which takes a <code>WartUniverse</code> and
+returns a <code>WartUniverse#universe#Traverser</code>.</p>
+
+<p>The <code>WartUniverse</code> has <code>error</code> and <code>warning</code> methods which both take
+<code>(WartUniverse#universe#Position, String)</code>. They are side-effecting
+methods for adding errors and warnings.</p>
+
+<p>Most traversers will want a <code>super.traverse</code> call to be able to
+recursively continue.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">org.brianmckenna.wartremover.</span><span class="o">{</span><span class="nc">WartTraverser</span><span class="o">,</span> <span class="nc">WartUniverse</span><span class="o">}</span>
+
+<span class="k">object</span> <span class="nc">Unimplemented</span> <span class="k">extends</span> <span class="nc">WartTraverser</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">u</span><span class="k">:</span> <span class="kt">WartUniverse</span><span class="o">)</span><span class="k">:</span> <span class="kt">u.Traverser</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">import</span> <span class="nn">u.universe._</span>
+    <span class="k">import</span> <span class="nn">scala.reflect.NameTransformer</span>
+
+    <span class="k">val</span> <span class="n">notImplementedName</span><span class="k">:</span> <span class="kt">TermName</span> <span class="o">=</span> <span class="nc">NameTransformer</span><span class="o">.</span><span class="n">encode</span><span class="o">(</span><span class="s">"???"</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">notImplemented</span><span class="k">:</span> <span class="kt">Symbol</span> <span class="o">=</span> <span class="n">typeOf</span><span class="o">[</span><span class="kt">Predef.</span><span class="k">type</span><span class="o">].</span><span class="n">member</span><span class="o">(</span><span class="n">notImplementedName</span><span class="o">)</span>
+    <span class="n">require</span><span class="o">(</span><span class="n">notImplemented</span> <span class="o">!=</span> <span class="nc">NoSymbol</span><span class="o">)</span>
+    <span class="k">new</span> <span class="nc">Traverser</span> <span class="o">{</span>
+      <span class="k">override</span> <span class="k">def</span> <span class="n">traverse</span><span class="o">(</span><span class="n">tree</span><span class="k">:</span> <span class="kt">Tree</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">tree</span> <span class="k">match</span> <span class="o">{</span>
+          <span class="k">case</span> <span class="n">rt</span><span class="k">:</span> <span class="kt">RefTree</span> <span class="kt">if</span> <span class="kt">rt.symbol</span> <span class="o">=</span><span class="k">=</span> <span class="n">notImplemented</span> <span class="k">=&gt;</span>
+            <span class="n">u</span><span class="o">.</span><span class="n">error</span><span class="o">(</span><span class="n">tree</span><span class="o">.</span><span class="n">pos</span><span class="o">,</span> <span class="s">"There was something left unimplemented"</span><span class="o">)</span>
+          <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span>
+        <span class="o">}</span>
+        <span class="k">super</span><span class="o">.</span><span class="n">traverse</span><span class="o">(</span><span class="n">tree</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-reporting-issues" class="anchor" href="#reporting-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporting Issues</h2>
+
+<p>It's very useful to get the tree expanded by the Scala compiler,
+rather than the original source. Adding the <code>-Xprint:typer</code> flag to
+the Scala compiler will show code like the following:</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// println("Hello world")</span>
+<span class="k">package</span> <span class="nn">$line4</span> <span class="o">{</span>
+  <span class="k">object</span> <span class="nc">$read</span> <span class="k">extends</span> <span class="n">scala</span><span class="o">.</span><span class="nc">AnyRef</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="o">&lt;</span><span class="n">init</span><span class="o">&gt;()</span><span class="k">:</span> <span class="kt">$line4.$read.</span><span class="k">type</span> <span class="o">=</span> <span class="o">{</span>
+      <span class="nc">$read</span><span class="o">.</span><span class="k">super</span><span class="o">.&lt;</span><span class="n">init</span><span class="o">&gt;();</span>
+      <span class="o">()</span>
+    <span class="o">};</span>
+    <span class="k">object</span> <span class="nc">$iw</span> <span class="k">extends</span> <span class="n">scala</span><span class="o">.</span><span class="nc">AnyRef</span> <span class="o">{</span>
+      <span class="k">def</span> <span class="o">&lt;</span><span class="n">init</span><span class="o">&gt;()</span><span class="k">:</span> <span class="k">type</span> <span class="o">=</span> <span class="o">{</span>
+        <span class="nc">$iw</span><span class="o">.</span><span class="k">super</span><span class="o">.&lt;</span><span class="n">init</span><span class="o">&gt;();</span>
+        <span class="o">()</span>
+      <span class="o">};</span>
+      <span class="k">object</span> <span class="nc">$iw</span> <span class="k">extends</span> <span class="n">scala</span><span class="o">.</span><span class="nc">AnyRef</span> <span class="o">{</span>
+        <span class="k">def</span> <span class="o">&lt;</span><span class="n">init</span><span class="o">&gt;()</span><span class="k">:</span> <span class="k">type</span> <span class="o">=</span> <span class="o">{</span>
+          <span class="nc">$iw</span><span class="o">.</span><span class="k">super</span><span class="o">.&lt;</span><span class="n">init</span><span class="o">&gt;();</span>
+          <span class="o">()</span>
+        <span class="o">};</span>
+        <span class="k">private</span><span class="o">[</span><span class="kt">this</span><span class="o">]</span> <span class="k">val</span> <span class="n">res1</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="n">scala</span><span class="o">.</span><span class="k">this</span><span class="o">.</span><span class="nc">Predef</span><span class="o">.</span><span class="n">println</span><span class="o">(</span><span class="s">"Hello world"</span><span class="o">);</span>
+        <span class="o">&lt;</span><span class="n">stable</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">accessor</span><span class="o">&gt;</span> <span class="k">def</span> <span class="n">res1</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="nc">$iw</span><span class="o">.</span><span class="k">this</span><span class="o">.</span><span class="n">res1</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Adding the generated code to an issue is very useful for debugging.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><a href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache Software License, Version 2.0</a></p></article></div>

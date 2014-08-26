@@ -1,0 +1,272 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-cassie" class="anchor" href="#cassie" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cassie</h1>
+
+<p>Cassie is a small, lightweight Cassandra client built on
+<a href="http://github.com/twitter/finagle">Finagle</a> with with all that provides plus column name/value
+encoding and decoding.</p>
+
+<p>It is heavily used in production at Twitter so such be considered stable, yet it is incomplete in that it doesn't support the full feature set of Cassandra and will continue to evolve.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>Java SE 6</li>
+<li>Scala 2.8</li>
+<li>Cassandra 0.8 or later</li>
+<li>sbt 0.7</li>
+</ul><p>Note that Cassie <em>is</em> usable from Java. Its not super easy, but we're working
+to make it easier.</p>
+
+<h2>
+<a name="user-content-lets-get-this-party-started" class="anchor" href="#lets-get-this-party-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Let's Get This Party Started</h2>
+
+<p>In your <a href="http://code.google.com/p/simple-build-tool/">simple-build-tool</a> project
+file, add Cassie as a dependency:</p>
+
+<pre><code>val twttr = "Twitter's Repository" at "http://maven.twttr.com/"
+val cassie = "com.twitter" % "cassie" % "0.19.0"
+</code></pre>
+
+<h2>
+<a name="user-content-finagle" class="anchor" href="#finagle" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finagle</h2>
+
+<p>Before going further, you should probably learn about Finagle and its paradigm for asynchronous
+computing– <a href="https://github.com/twitter/finagle">https://github.com/twitter/finagle</a>.</p>
+
+<h2>
+<a name="user-content-connecting-to-your-cassandra-cluster" class="anchor" href="#connecting-to-your-cassandra-cluster" aria-hidden="true"><span class="octicon octicon-link"></span></a>Connecting To Your Cassandra Cluster</h2>
+
+<p>First create a cluster object, passing in a list of seed hosts. By default, when
+creating a connection to a Keyspace, the given hosts will be queried for a full
+list of nodes in the cluster. If you don't want to report stats use NullStatsReceiver.</p>
+
+<pre><code>val cluster = new Cluster("host1,host2", OstrichStatsReceiver)
+</code></pre>
+
+<p>Then create a <code>Keyspace</code> instance which will use Finagle to maintain per-node
+connection pools and do retries:</p>
+
+<pre><code>val keyspace = cluster.keyspace("MyCassieApp").connect()
+// see KeyspaceBuilder for more options here. Try the defaults first.
+</code></pre>
+
+<p>(If you have some nodes with dramatically different latency—e.g., in another
+data center–or if you have a huge cluster, you can disable keyspace mapping
+via "mapHostsEvery(0.minutes)" in which case clients will connect directly to
+the seed hosts passed to "new Cluster".)</p>
+
+<h2>
+<a name="user-content-a-quick-note-on-timestamps" class="anchor" href="#a-quick-note-on-timestamps" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Quick Note On Timestamps</h2>
+
+<p>Cassandra uses client-generated timestamps to determine the order in which
+writes and deletes should be processed. Cassie previously came with several
+different clock implementations. Now all Cassie users use the
+MicrosecondEpochClock and timestamps should be mostly hidden from users.</p>
+
+<h2>
+<a name="user-content-a-longer-note-this-time-on-column-names-and-values" class="anchor" href="#a-longer-note-this-time-on-column-names-and-values" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Longer Note, This Time On Column Names And Values</h2>
+
+<p>Cassandra stores the name and value of a column as an array of bytes. To
+convert these bytes to and from useful Scala types, Cassie uses <code>Codec</code>
+parameters for the given type.</p>
+
+<p>For example, take adding a column to a column family of UTF-8 strings:</p>
+
+<pre><code>val strings = keyspace.columnFamily[Utf8Codec, Utf8Codec, Utf8Codec]
+strings.insert("newstring", Column("colname", "colvalue"))
+</code></pre>
+
+<p>The <code>insert</code> method here requires a String and Column[String, String] because the type parameters of the columnFamily call were all <code>Codec[String]</code>.  The conversion between Strings and ByteArrays will be seamless. Cassie has codecs for a number of data types already:</p>
+
+<ul class="task-list">
+<li>
+<code>Utf8Codec</code>: character sequence encoded with <code>UTF-8</code>
+</li>
+<li>
+<code>IntCodec</code>: 32-bit integer stored as a 4-byte sequence</li>
+<li>
+<code>LongCodec</code>: 64-bit integer stored as an 8-byte sequence</li>
+<li>
+<code>LexicalUUIDCodec</code> a UUID stored as a 16-byte sequence</li>
+<li>
+<code>ThriftCodec</code> a Thrift struct stored as variable-length sequence of bytes</li>
+</ul><h2>
+<a name="user-content-accessing-column-families" class="anchor" href="#accessing-column-families" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accessing Column Families</h2>
+
+<p>Once you've got a <code>Keyspace</code> instance, you can load your column families:</p>
+
+<pre><code>val people  = keyspace.columnFamily[Utf8Codec, Utf8Codec, Utf8Codec]("People")
+val numbers = keyspace.columnFamily[Utf8Codec, Utf8Codec, IntCodec]("People",
+                defaultReadConsistency = ReadConsistency.One,
+                defaultWriteConsistency = WriteConsistency.Any)
+</code></pre>
+
+<p>By default, <code>ColumnFamily</code> instances have a default <code>ReadConsistency</code> and
+<code>WriteConsistency</code> of <code>Quorum</code>, meaning reads and writes will only be considered
+successful if a quorum of the replicas for that key respond successfully. You
+can change this default or simply pass a different consistency level to specific
+read and write operations.</p>
+
+<h2>
+<a name="user-content-reading-data-from-cassandra" class="anchor" href="#reading-data-from-cassandra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reading Data From Cassandra</h2>
+
+<p>Now that you've got your <code>ColumnFamily</code>, you can read some data from Cassandra:</p>
+
+<pre><code>people.getColumn("codahale", "name")
+</code></pre>
+
+<p><code>getColumn</code> returns an <code>Future[Option[Column[Name, Value]]]</code> where <code>Name</code> and <code>Value</code> are the type
+parameters of the <code>ColumnFamily</code>. If the row or column doesn't exist, <code>None</code> is returned. Explaining
+Futures is out of scope for this README, go the Finagle docs to learn more. But in essence you can 
+do this:</p>
+
+<p>people.getColumn("codahale", "name") map {
+    _ match {
+      case col: Some(Column[String, String]) =&gt; # we have data
+      case None =&gt; # there was no column
+    }
+  } handle {
+    case e =&gt; {
+      # there was an exception, do something about it
+    }
+  }</p>
+
+<p>This whole block returns a Future which will be satisfied when the thrift rpc is done and the
+callbacks have run.</p>
+
+<p>Anyway, continuing– you can also get a set of columns:</p>
+
+<pre><code>people.getColumns("codahale", Set("name", "motto"))
+</code></pre>
+
+<p>This returns a <code>Future[java.util.Map[Name, Column[Name, Value]]]</code>, where each column is mapped by
+its name.</p>
+
+<p>If you want to get all columns of a row, that's cool too:</p>
+
+<pre><code>people.getRow("codahale")
+</code></pre>
+
+<p>Cassie also supports multiget for columns and sets of columns:</p>
+
+<pre><code>people.multigetColumn(Set("codahale", "darlingnikles"), "name")
+people.multigetColumns(Set("codahale", "darlingnikles"), Set("name", "motto"))
+</code></pre>
+
+<p><code>multigetColumn</code> returns a <code>Future[Map[Key, Map[Name, Column[Name, Value]]]]</code> whichmaps row keys to
+column names to columns.</p>
+
+<h2>
+<a name="user-content-asynchronous-iteration-through-rows-and-columns" class="anchor" href="#asynchronous-iteration-through-rows-and-columns" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous Iteration Through Rows and Columns</h2>
+
+<p>NOTE: This is new/experimental and likely to change in the future.</p>
+
+<p>Cassie provides functionality for iterating through the rows of a column family and columns in a
+row. This works with both the random partitioner and the order-preserving partitioner, though
+iterating through rows in the random partitioner had undefined order.</p>
+
+<p>You can iterate over every column of every row:</p>
+
+<p>val finished = cf.rowsIteratee(100).foreach { case(key, columns) =&gt;
+   println(key) //this function is executed async for each row
+   println(cols)
+  }
+  finished() //this is a Future[Unit]. wait on it to know when the iteration is done</p>
+
+<p>This gets 100 rows at a time and calls the above partial function on each one.</p>
+
+<h2>
+<a name="user-content-writing-data-to-cassandra" class="anchor" href="#writing-data-to-cassandra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing Data To Cassandra</h2>
+
+<p>Inserting columns is pretty easy:</p>
+
+<pre><code>people.insert("codahale", Column("name", "Coda"))
+people.insert("codahale", Column("motto", "Moar lean."))
+</code></pre>
+
+<p>You can insert a value with a specific timestamp:</p>
+
+<pre><code>people.insert("darlingnikles", Column("name", "Niki").timestamp(200L))
+people.insert("darlingnikles", Column("motto", "Told ya.").timestamp(201L))
+</code></pre>
+
+<p>Batch operations are also possible:</p>
+
+<pre><code>people.batch() { cf =&gt;
+  cf.insert("puddle", Column("name", "Puddle"))
+  cf.insert("puddle", Column("motto", "Food!"))
+}.execute()
+</code></pre>
+
+<p>(See <code>BatchMutationBuilder</code> for a better idea of which operations are available.)</p>
+
+<h2>
+<a name="user-content-deleting-data-from-cassandra" class="anchor" href="#deleting-data-from-cassandra" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deleting Data From Cassandra</h2>
+
+<p>First, it's important to understand
+<a href="http://wiki.apache.org/cassandra/DistributedDeletes">exactly how deletes work</a>
+in a distributed system like Cassandra.</p>
+
+<p>Once you've read that, then feel free to remove a column:</p>
+
+<pre><code>people.removeColumn("puddle", "name")
+</code></pre>
+
+<p>Or a set of columns:</p>
+
+<pre><code>people.removeColumns("puddle", Set("name", "motto"))
+</code></pre>
+
+<p>Or even a row:</p>
+
+<pre><code>people.removeRow("puddle")
+</code></pre>
+
+<h2>
+<a name="user-content-generating-unique-ids" class="anchor" href="#generating-unique-ids" aria-hidden="true"><span class="octicon octicon-link"></span></a>Generating Unique IDs</h2>
+
+<p>If you're going to be storing data in Cassandra and don't have a naturally unique piece of data to
+use as a key, you've probably looked into UUIDs. The only problem with UUIDs is that they're mental,
+requiring access to MAC addresses or Gregorian calendars or POSIX ids. In general, people want UUIDs
+which are:</p>
+
+<ul class="task-list">
+<li>Unique across a large set of workers without requiring coordination.</li>
+<li>Partially ordered by time.</li>
+</ul><p>Cassie's <code>LexicalUUID</code>s meet these criteria. They're 128 bits long. The most significant 64 bits are
+a timestamp value (from Cassie's strictly-increasing <code>Clock</code> implementation). The least significant
+64 bits are a worker ID, with the default value being a hash of the machine's hostname.</p>
+
+<p>When sorted using Cassandra's <code>LexicalUUIDType</code>, <code>LexicalUUID</code>s will be partially ordered by time --
+that is, UUIDs generated in order on a single process will be totally ordered by time; UUIDs
+generated simultaneously (i.e., within the same clock tick, given clock skew) will not have a
+deterministic order; UUIDs generated in order between single processes (i.e., in different clock
+ticks, given clock skew) will be totally ordered by time.</p>
+
+<p>See <em>Lamport. Time, clocks, and the ordering of events in a distributed system. Communications of
+the ACM (1978) vol. 21 (7) pp. 565</em> and <em>Mattern. Virtual time and global states of distributed
+systems. Parallel and Distributed Algorithms (1989) pp. 215–226</em> for a more thorough discussion.</p>
+
+<h1>
+<a name="user-content-things-what-aint-done-yet" class="anchor" href="#things-what-aint-done-yet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Things What Ain't Done Yet</h1>
+
+<ul class="task-list">
+<li>Authentication</li>
+<li>Meta data (e.g., <code>describe_*</code>)</li>
+</ul><h1>
+<a name="user-content-thanks" class="anchor" href="#thanks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thanks</h1>
+
+<p>Many thanks to (pre twitter fork):</p>
+
+<ul class="task-list">
+<li>Cliff Moon</li>
+<li>James Golick</li>
+<li>Robert J. Macomber</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2010 Coda Hale
+Copyright (c) 2011-2012 Twitter, Inc.</p>
+
+<p>Published under The Apache 2.0 License, see LICENSE.</p></article></div>

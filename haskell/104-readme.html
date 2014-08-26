@@ -1,0 +1,335 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-applicative-option-parser" class="anchor" href="#applicative-option-parser" aria-hidden="true"><span class="octicon octicon-link"></span></a>Applicative option parser</h1>
+
+<p>This package contains utilities and combinators to define command line option
+parsers.</p>
+
+<p><a href="http://travis-ci.org/pcapriotti/optparse-applicative?branch=master"><img src="https://camo.githubusercontent.com/9051b4d303707a05c2fbb6c861df1514f657aac8/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f7063617072696f7474692f6f707470617273652d6170706c696361746976652e706e673f6272616e63683d6d6173746572" alt="Continuous Integration status" data-canonical-src="https://secure.travis-ci.org/pcapriotti/optparse-applicative.png?branch=master" style="max-width:100%;"></a></p>
+
+<p><a href="http://hackage.haskell.org/package/optparse-applicative-0.9.0">Hackage page (downloads and documentation)</a></p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>Here is a simple example of an applicative option parser:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">data</span> <span class="kt">Sample</span> <span class="ow">=</span> <span class="kt">Sample</span>
+  <span class="p">{</span> <span class="n">hello</span> <span class="ow">::</span> <span class="kt">String</span>
+  <span class="p">,</span> <span class="n">quiet</span> <span class="ow">::</span> <span class="kt">Bool</span> <span class="p">}</span>
+
+<span class="nf">sample</span> <span class="ow">::</span> <span class="kt">Parser</span> <span class="kt">Sample</span>
+<span class="nf">sample</span> <span class="ow">=</span> <span class="kt">Sample</span>
+     <span class="o">&lt;$&gt;</span> <span class="n">strOption</span>
+         <span class="p">(</span> <span class="n">long</span> <span class="s">"hello"</span>
+        <span class="o">&lt;&gt;</span> <span class="n">metavar</span> <span class="s">"TARGET"</span>
+        <span class="o">&lt;&gt;</span> <span class="n">help</span> <span class="s">"Target for the greeting"</span> <span class="p">)</span>
+     <span class="o">&lt;*&gt;</span> <span class="n">switch</span>
+         <span class="p">(</span> <span class="n">long</span> <span class="s">"quiet"</span>
+        <span class="o">&lt;&gt;</span> <span class="n">help</span> <span class="s">"Whether to be quiet"</span> <span class="p">)</span>
+</pre></div>
+
+<p>The parser is built using <a href="http://www.soi.city.ac.uk/%7Eross/papers/Applicative.html">applicative style</a> starting from a set
+of basic combinators. In this example, <code>hello</code> is defined as an option with a
+<code>String</code> argument, while <code>quiet</code> is a boolean flag (called <code>switch</code>).</p>
+
+<p>A parser can be used like this:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">greet</span> <span class="ow">::</span> <span class="kt">Sample</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">greet</span> <span class="p">(</span><span class="kt">Sample</span> <span class="n">h</span> <span class="kt">False</span><span class="p">)</span> <span class="ow">=</span> <span class="n">putStrLn</span> <span class="o">$</span> <span class="s">"Hello, "</span> <span class="o">++</span> <span class="n">h</span>
+<span class="nf">greet</span> <span class="kr">_</span> <span class="ow">=</span> <span class="n">return</span> <span class="nb">()</span>
+
+<span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">execParser</span> <span class="n">opts</span> <span class="o">&gt;&gt;=</span> <span class="n">greet</span>
+  <span class="kr">where</span>
+    <span class="n">opts</span> <span class="ow">=</span> <span class="n">info</span> <span class="p">(</span><span class="n">helper</span> <span class="o">&lt;*&gt;</span> <span class="n">sample</span><span class="p">)</span>
+      <span class="p">(</span> <span class="n">fullDesc</span>
+     <span class="o">&lt;&gt;</span> <span class="n">progDesc</span> <span class="s">"Print a greeting for TARGET"</span>
+     <span class="o">&lt;&gt;</span> <span class="n">header</span> <span class="s">"hello - a test for optparse-applicative"</span> <span class="p">)</span>
+</pre></div>
+
+<p>The <code>greet</code> function is the entry point of the program, while <code>opts</code> is a
+complete description of the program, used when generating a help text. The
+<code>helper</code> combinator takes any parser, and adds a <code>help</code> option to it.</p>
+
+<p>The <code>hello</code> option in this example is mandatory (since it doesn't have a
+default value), so running the program without any argument will display a
+short option summary:</p>
+
+<pre><code>Usage: hello --hello TARGET [--quiet]
+</code></pre>
+
+<p>Running the program with the <code>--help</code> option will display the full help text:</p>
+
+<pre><code>hello - a test for optparse-applicative
+
+Usage: hello --hello TARGET [--quiet]
+  Print a greeting for TARGET
+
+Available options:
+  -h,--help                Show this help text
+  --hello TARGET           Target for the greeting
+  --quiet                  Whether to be quiet
+</code></pre>
+
+<p>containing a detailed list of options with descriptions.</p>
+
+<p>The specified metavars are used as placeholders for the option arguments, and
+can be referred to in the program description.  This makes it possible to
+explicitly describe the connection between the options and the behaviour of the
+program.</p>
+
+<p>Parsers are instances of both <code>Applicative</code> and <code>Alternative</code>, and work with
+any generic combinator, like <code>many</code> and <code>some</code>. For example, to make a option
+return <code>Nothing</code> instead of failing when it's not supplied, you can use the
+<code>optional</code> combinator in <code>Control.Applicative</code>:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">optional</span> <span class="o">$</span> <span class="n">strOption</span>
+   <span class="p">(</span> <span class="n">long</span> <span class="s">"output"</span>
+  <span class="o">&lt;&gt;</span> <span class="n">metavar</span> <span class="s">"DIRECTORY"</span> <span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-supported-options" class="anchor" href="#supported-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported options</h2>
+
+<p><code>optparse-applicative</code> supports four kinds of options: regular options, flags,
+arguments and commands.</p>
+
+<h3>
+<a name="user-content-regular-options" class="anchor" href="#regular-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Regular options</h3>
+
+<p>A <strong>regular option</strong> is an option which takes a single argument, parses it, and
+returns a value.</p>
+
+<p>A regular option can have a default value, which is used as the result if the
+option is not found in the command line. An option without a default value is
+considered mandatory, and produces an error when not found.</p>
+
+<p>Regular options can have <strong>long</strong> names, or <strong>short</strong> (one-character) names,
+which determine when the option matches and how the argument is extracted.</p>
+
+<p>An option with a long name (say "output") is specified on the command line as</p>
+
+<pre><code>--output filename.txt
+</code></pre>
+
+<p>or</p>
+
+<pre><code>--output=filename.txt
+</code></pre>
+
+<p>while a short name option (say "o") can be specified with</p>
+
+<pre><code>-o filename.txt
+</code></pre>
+
+<p>or</p>
+
+<pre><code>-ofilename.txt
+</code></pre>
+
+<p>Options can have more than one name, usually one long and one short, although
+you are free to create options with an arbitrary combination of long and short
+names.</p>
+
+<p>Regular options returning strings are the most common, and they can be created
+using the <code>strOption</code> builder. For example,</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">strOption</span>
+   <span class="p">(</span> <span class="n">long</span> <span class="s">"output"</span>
+  <span class="o">&lt;&gt;</span> <span class="n">short</span> <span class="n">'o'</span>
+  <span class="o">&lt;&gt;</span> <span class="n">metavar</span> <span class="s">"FILE"</span>
+  <span class="o">&lt;&gt;</span> <span class="n">help</span> <span class="s">"Write output to FILE"</span> <span class="p">)</span>
+</pre></div>
+
+<p>creates a regular option with a string argument (which can be referred to as
+<code>FILE</code> in the help text and documentation), a long name "output" and a short
+name "o". See below for more information on the builder syntax and modifiers.</p>
+
+<p>A regular option can return an object of any type, provided you specify a
+<strong>reader</strong> for it. A common reader is <code>auto</code>, used by the <code>option</code> builder,
+which assumes a <code>Read</code> instance for the return type and uses it to parse its
+argument. For example:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">lineCount</span> <span class="ow">::</span> <span class="kt">Parser</span> <span class="kt">Int</span>
+<span class="nf">lineCount</span> <span class="ow">=</span> <span class="n">option</span>
+            <span class="p">(</span> <span class="n">long</span> <span class="s">"lines"</span>
+           <span class="o">&lt;&gt;</span> <span class="n">short</span> <span class="n">'n'</span>
+           <span class="o">&lt;&gt;</span> <span class="n">metavar</span> <span class="s">"K"</span>
+           <span class="o">&lt;&gt;</span> <span class="n">help</span> <span class="s">"Output the last K lines"</span> <span class="p">)</span>
+</pre></div>
+
+<p>specifies a regular option with an <code>Int</code> argument. We added an explicit type
+annotation here, since without it the parser would have been polymorphic in the
+output type. There's usually no need to add type annotations, however, because
+the type will be normally inferred from the context in which the parser is
+used.</p>
+
+<p>You can also create a custom reader without using the <code>Read</code> typeclass, and set
+it as the reader for an option using the <code>reader</code> modifier and the <code>nullOption</code>
+builder:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">data</span> <span class="kt">FluxCapacitor</span> <span class="ow">=</span> <span class="o">...</span>
+
+<span class="nf">parseFluxCapacitor</span> <span class="ow">::</span> <span class="kt">Monad</span> <span class="n">m</span> <span class="ow">=&gt;</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="kt">FluxCapacitor</span>
+
+<span class="nf">nullOption</span>
+  <span class="p">(</span> <span class="n">long</span> <span class="s">"flux-capacitor"</span>
+ <span class="o">&lt;&gt;</span> <span class="n">reader</span> <span class="n">parseFluxCapacitor</span> <span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-flags" class="anchor" href="#flags" aria-hidden="true"><span class="octicon octicon-link"></span></a>Flags</h3>
+
+<p>A <strong>flag</strong> is just like a regular option, but it doesn't take any arguments: it is
+either present in the command line or not.</p>
+
+<p>A flag has a default value and an <strong>active value</strong>. If the flag is found on the
+command line, the active value is returned, otherwise the default value is
+used. For example:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">data</span> <span class="kt">Verbosity</span> <span class="ow">=</span> <span class="kt">Normal</span> <span class="o">|</span> <span class="kt">Verbose</span>
+
+<span class="nf">flag</span> <span class="kt">Normal</span> <span class="kt">Verbose</span>
+  <span class="p">(</span> <span class="n">long</span> <span class="s">"verbose"</span>
+ <span class="o">&lt;&gt;</span> <span class="n">short</span> <span class="n">'v'</span>
+ <span class="o">&lt;&gt;</span> <span class="n">help</span> <span class="s">"Enable verbose mode"</span> <span class="p">)</span>
+</pre></div>
+
+<p>is a flag parser returning a <code>Verbosity</code> value.</p>
+
+<p>Simple boolean flags can be specified using the <code>switch</code> builder, like so:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">switch</span>
+  <span class="p">(</span> <span class="n">long</span> <span class="s">"keep-tmp-files"</span>
+ <span class="o">&lt;&gt;</span> <span class="n">help</span> <span class="s">"Retain all intermediate temporary files"</span> <span class="p">)</span>
+</pre></div>
+
+<p>There is also a <code>flag'</code> builder, which has no default value. For example, to
+add a <code>--version</code> switch to a program, you could write:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">flag'</span> <span class="kt">Nothing</span> <span class="p">(</span><span class="n">long</span> <span class="s">"version"</span> <span class="o">&lt;&gt;</span> <span class="n">hidden</span><span class="p">)</span> <span class="o">&lt;|&gt;</span> <span class="p">(</span><span class="kt">Just</span> <span class="o">&lt;$&gt;</span> <span class="n">normal_options</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-arguments" class="anchor" href="#arguments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Arguments</h3>
+
+<p>An <strong>argument</strong> parser specifies a positional command line argument.</p>
+
+<p>The <code>argument</code> builder takes a reader parameter, and creates a parser which
+will return the parsed value every time it is passed a command line argument
+for which the reader succeeds. For example</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">argument</span> <span class="n">str</span> <span class="p">(</span><span class="n">metavar</span> <span class="s">"FILE"</span><span class="p">)</span>
+</pre></div>
+
+<p>creates an argument accepting any string.  To accept an arbitrary number of
+arguments, combine the <code>argument</code> builder with either the <code>many</code> or <code>some</code>
+combinator:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">some</span> <span class="p">(</span><span class="n">argument</span> <span class="n">str</span> <span class="p">(</span><span class="n">metavar</span> <span class="s">"FILES..."</span><span class="p">))</span>
+</pre></div>
+
+<p>Arguments are only displayed in the brief help text, so there's no need to
+attach a description to them. They should be manually documented in the program
+description.</p>
+
+<p>Note that arguments starting with <code>-</code> are considered options by default, and
+will not be considered by an <code>argument</code> parser.</p>
+
+<p>However, parsers always accept a special argument: <code>--</code>. When a <code>--</code> is found on
+the command line, all the following words are considered by <code>argument</code> parsers,
+regardless of whether they start with <code>-</code> or not.</p>
+
+<h3>
+<a name="user-content-commands" class="anchor" href="#commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Commands</h3>
+
+<p>A <strong>command</strong> can be used to specify a sub-parser to be used when a certain
+string is encountered in the command line.</p>
+
+<p>Commands are useful to implement command line programs with multiple functions,
+each with its own set of options, and possibly some global options that apply
+to all of them. Typical examples are version control systems like <code>git</code>, or
+build tools like <code>cabal</code>.</p>
+
+<p>A command can be created using the <code>subparser</code> builder, and commands can be
+added with the <code>command</code> modifier. For example</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">subparser</span>
+  <span class="p">(</span> <span class="n">command</span> <span class="s">"add"</span> <span class="p">(</span><span class="n">info</span> <span class="n">addOptions</span>
+      <span class="p">(</span> <span class="n">progDesc</span> <span class="s">"Add a file to the repository"</span> <span class="p">))</span>
+ <span class="o">&lt;&gt;</span> <span class="n">command</span> <span class="s">"commit"</span> <span class="p">(</span><span class="n">info</span> <span class="n">commitOptions</span>
+      <span class="p">(</span> <span class="n">progDesc</span> <span class="s">"Record changes to the repository"</span> <span class="p">))</span>
+<span class="p">)</span>
+</pre></div>
+
+<p>Each command takes a full <code>ParserInfo</code> structure, which will be used to extract
+a description for this command when generating a help text.</p>
+
+<p>Note that all the parsers appearing in a command need to have the same type.
+For this reason, it is often best to use a sum type which has the same
+structure as the command itself. For example, for the parser above, you would
+define a type like:</p>
+
+<div class="highlight highlight-haskell"><pre><span class="kr">data</span> <span class="kt">Options</span> <span class="ow">=</span> <span class="kt">Options</span>
+  <span class="p">{</span> <span class="n">optGlobalOpt</span> <span class="ow">::</span> <span class="kt">String</span>
+  <span class="p">,</span> <span class="n">optGlobalFlag</span> <span class="ow">::</span> <span class="kt">Bool</span>
+  <span class="o">...</span>
+  <span class="p">,</span> <span class="n">optCommand</span> <span class="ow">::</span> <span class="kt">Command</span> <span class="p">}</span>
+
+<span class="kr">data</span> <span class="kt">Command</span>
+  <span class="ow">=</span> <span class="kt">Add</span> <span class="kt">AddOptions</span>
+  <span class="o">|</span> <span class="kt">Commit</span> <span class="kt">CommitOptions</span>
+  <span class="o">...</span>
+</pre></div>
+
+<p>Alternatively, you can directly return an <code>IO</code> action from a parser, and
+execute it using <code>join</code> from <code>Control.Monad</code>.</p>
+
+<div class="highlight highlight-haskell"><pre><span class="nf">start</span> <span class="ow">::</span> <span class="kt">String</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">stop</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+
+<span class="nf">opts</span> <span class="ow">::</span> <span class="kt">Parser</span> <span class="p">(</span><span class="kt">IO</span> <span class="nb">()</span><span class="p">)</span>
+<span class="nf">opts</span> <span class="ow">=</span> <span class="n">subparser</span>
+  <span class="p">(</span> <span class="n">command</span> <span class="s">"start"</span> <span class="p">(</span><span class="n">info</span> <span class="p">(</span><span class="n">start</span> <span class="o">&lt;$&gt;</span> <span class="n">argument</span> <span class="n">str</span> <span class="n">idm</span><span class="p">)</span> <span class="n">idm</span><span class="p">)</span>
+ <span class="o">&lt;&gt;</span> <span class="n">command</span> <span class="s">"stop"</span>  <span class="p">(</span><span class="n">info</span> <span class="p">(</span><span class="n">pure</span> <span class="n">stop</span><span class="p">)</span> <span class="n">idm</span><span class="p">)</span> <span class="p">)</span>
+
+<span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">main</span> <span class="ow">=</span> <span class="n">join</span> <span class="o">$</span> <span class="n">execParser</span> <span class="p">(</span><span class="n">info</span> <span class="n">opts</span> <span class="n">idm</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-option-builders" class="anchor" href="#option-builders" aria-hidden="true"><span class="octicon octicon-link"></span></a>Option builders</h2>
+
+<p>Builders allow you to define parsers using a convenient combinator-based
+syntax. Each builder takes a <strong>modifier</strong> as parameter, and returns a parser.</p>
+
+<p>A modifier is a composition of functions which act on the option, setting
+values for properties or adding features, and is used to build the option from
+scratch and finally lift it to a single-option parser, which can then be
+combined with other parsers using normal <code>Applicative</code> combinators.</p>
+
+<p>Modifiers are instances of the <code>Monoid</code> typeclass, so they can be combined
+using the composition function <code>mappend</code> (or simply <code>(&lt;&gt;)</code>).</p>
+
+<p>See the <a href="http://hackage.haskell.org/package/optparse-applicative/docs/Options-Applicative-Builder.html">haddock documentation</a> for <code>Options.Applicative.Builder</code>
+for a full list of builders and modifiers.</p>
+
+<h2>
+<a name="user-content-advanced-features" class="anchor" href="#advanced-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced features</h2>
+
+<ul class="task-list">
+<li><a href="https://github.com/pcapriotti/optparse-applicative/wiki/Bash-Completion">Bash completion</a></li>
+<li><a href="https://github.com/pcapriotti/optparse-applicative/wiki/Arrows">Arrow interface</a></li>
+<li><a href="https://github.com/pcapriotti/optparse-applicative/wiki/Disambiguation">Disambiguation</a></li>
+</ul><h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<p>A <code>Parser a</code> is essentially a heterogeneous list of <code>Option</code>s, implemented with
+existential types.</p>
+
+<p>All options are therefore known statically (i.e. before parsing, not
+necessarily before runtime), and can, for example, be traversed to generate a
+help text.</p>
+
+<p>See <a href="http://paolocapriotti.com/blog/2012/04/27/applicative-option-parser/">this blog post</a> for a more detailed explanation based on a
+simplified implementation.</p></article></div>

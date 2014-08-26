@@ -1,0 +1,1119 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-mt-aws-glacier" class="anchor" href="#mt-aws-glacier" aria-hidden="true"><span class="octicon octicon-link"></span></a>mt-aws-glacier</h1>
+
+<p>Perl Multithreaded multipart sync to Amazon Glacier service.</p>
+
+<h2>
+<a name="user-content-intro" class="anchor" href="#intro" aria-hidden="true"><span class="octicon octicon-link"></span></a>Intro</h2>
+
+<p>Amazon Glacier is an archive/backup service with very low storage price. However with some caveats in usage and archive retrieval prices.
+<a href="http://aws.amazon.com/glacier/">Read more about Amazon Glacier</a></p>
+
+<p><em>mt-aws-glacier</em> is a client application for Amazon Glacier, written in Perl programming language, for *nix.</p>
+
+<h2>
+<a name="user-content-version" class="anchor" href="#version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version</h2>
+
+<ul class="task-list">
+<li>Version 1.120 (See <a href="https://github.com/vsespb/mt-aws-glacier/blob/master/ChangeLog">ChangeLog</a> or follow <a href="https://twitter.com/mtglacier">@mtglacier</a> for updates)  <a href="https://travis-ci.org/vsespb/mt-aws-glacier"><img src="https://camo.githubusercontent.com/657406d8bc516dd2dd39590b496944dca01ff2e0/68747470733a2f2f7472617669732d63692e6f72672f7673657370622f6d742d6177732d676c61636965722e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/vsespb/mt-aws-glacier.png?branch=master" style="max-width:100%;"></a>
+</li>
+</ul><h2>
+<a name="user-content-contents" class="anchor" href="#contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contents</h2>
+
+<ul class="task-list">
+<li><p><a href="#features">Features</a></p></li>
+<li><p><a href="#important-bugsmissing-features">Important bugs/missing features</a></p></li>
+<li><p><a href="#production-readiness">Production readiness</a></p></li>
+<li>
+<p><a href="#installationsystem-requirements">Installation/System requirements</a></p>
+
+<ul class="task-list">
+<li><p><a href="#installation-via-os-package-manager">Installation via OS package manager</a></p></li>
+<li><p><a href="#manual-installation">Manual installation</a></p></li>
+<li><p><a href="#or-installation-via-cpan">Installation via CPAN</a></p></li>
+<li><p><a href="#installation-general-instructions-troubleshooting-edge-cases-and-misc-instructions">Installation general instructions, troubleshooting, edge cases and misc instructions</a></p></li>
+</ul>
+</li>
+<li><p><a href="#warnings--must-read-">Warnings ( MUST READ )</a></p></li>
+<li><p><a href="#helpcontribute-this-project">Help/contribute this project</a></p></li>
+<li><p><a href="#usage">Usage</a></p></li>
+<li><p><a href="#restoring-journal">Restoring journal</a></p></li>
+<li><p><a href="#journal-concept">Journal concept</a></p></li>
+<li>
+<p><a href="#specification-for-some-commands">Specification for some commands</a></p>
+
+<ul class="task-list">
+<li><p><a href="#sync">sync</a></p></li>
+<li><p><a href="#restore">restore</a></p></li>
+<li><p><a href="#restore-completed">restore-completed</a></p></li>
+<li><p><a href="#upload-file">upload-file</a></p></li>
+<li><p><a href="#retrieve-inventory">retrieve-inventory</a></p></li>
+<li><p><a href="#download-inventory">download-inventory</a></p></li>
+<li><p><a href="#list-vaults">list-vaults</a></p></li>
+<li><p><a href="#other-commands">other commands</a></p></li>
+</ul>
+</li>
+<li><p><a href="#file-selection-options">File selection options</a></p></li>
+<li><p><a href="#additional-command-line-options">Additional command line options</a></p></li>
+<li><p><a href="#configuring-character-encodings">Configuring Character Encodings</a></p></li>
+<li><p><a href="#limitations">Limitations</a></p></li>
+<li><p><a href="#see-also">See also</a></p></li>
+<li><p><a href="#minimum-amazon-glacier-permissions">Minimum Amazon Glacier permissions</a></p></li>
+</ul><h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Does not use any existing Amazon Glacier library, so can be flexible in implementing advanced features</li>
+<li>Amazon Glacier Multipart upload</li>
+<li>Multi-segment download (using HTTP Range header)</li>
+<li>Multithreaded upload/download</li>
+<li>Multipart+Multithreaded download/upload</li>
+<li>Multithreaded archive retrieval, deletion and download</li>
+<li>TreeHash validation while downloading</li>
+<li>Tracking of all uploaded files with a local journal file (opened for write in append mode only)</li>
+<li>Checking integrity of local files using journal</li>
+<li>Ability to limit number of archives to retrieve</li>
+<li>File selection options for all commands (using flexible rules with wildcard support)</li>
+<li>Full synchronization to Amazon Glacier - new file uploaded, modified files can be replaced, deletions can be propogated</li>
+<li>File name and modification times are stored as Glacier metadata (<a href="https://github.com/vsespb/mt-aws-glacier/blob/master/lib/App/MtAws/MetaData.pm">metadata format for developers</a>)</li>
+<li>Ability to re-create journal file from Amazon Glacier metadata</li>
+<li>Full UTF-8 support (and full single-byte encoding support for *BSD systems)</li>
+<li>Multipart/multithreaded upload from STDIN</li>
+<li>User selectable HTTPS support. Currently defaults to plaintext HTTP</li>
+<li>Vault creation and deletion</li>
+<li>STS/IAM security tokens support</li>
+</ul><h2>
+<a name="user-content-important-bugsmissing-features" class="anchor" href="#important-bugsmissing-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Important bugs/missing features</h2>
+
+<ul class="task-list">
+<li>Only multipart upload implemented, no plain upload</li>
+<li>Mac OS X filesystem treated as case-sensitive</li>
+</ul><h2>
+<a name="user-content-production-readiness" class="anchor" href="#production-readiness" aria-hidden="true"><span class="octicon octicon-link"></span></a>Production readiness</h2>
+
+<ul class="task-list">
+<li>After <strong>one year</strong> since first public version released, beta testing was finished and version 1.xxx released. Current project status is <strong>non-beta</strong>, <strong>stable</strong>.</li>
+</ul><h2>
+<a name="user-content-installationsystem-requirements" class="anchor" href="#installationsystem-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation/System requirements</h2>
+
+<p>Script is made for Unix OS. Tested under Linux. Should work under other POSIX OSes (*BSD, Solaris). Lightly tested under Mac OS X.
+Will NOT work under Windows/Cygwin. Minimum Perl version required is 5.8.8 (pretty old, AFAIK there are no supported distributions with older Perls)</p>
+
+<h3>
+<a name="user-content-installation-via-os-package-manager" class="anchor" href="#installation-via-os-package-manager" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation via OS package manager</h3>
+
+<p>NOTE: If you've used manual installation before, please remove previously installed <code>mtglacier</code> executable from your path.</p>
+
+<p>NOTE: If you've used CPAN installation before, please remove previously installed module, (<a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a> is capable to do that)</p>
+
+<h5>
+<a name="user-content-ubuntu-1204" class="anchor" href="#ubuntu-1204" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu 12.04+</h5>
+
+<p>Can be installed/updated via PPA  <a href="https://launchpad.net/%7Evsespb/+archive/mt-aws-glacier">vsespb/mt-aws-glacier</a>:</p>
+
+<ol class="task-list">
+<li> <code>sudo apt-get update</code>
+</li>
+<li> <code>sudo apt-get install software-properties-common python-software-properties</code>
+</li>
+<li>
+<p><code>sudo add-apt-repository ppa:vsespb/mt-aws-glacier</code></p>
+
+<p>(GPG key id/fingerprint would be <strong>D2BFA5E4</strong> and <strong>D7F1BC2238569FC447A8D8249E86E8B2D2BFA5E4</strong>)</p>
+</li>
+<li><p><code>sudo apt-get update</code></p></li>
+<li> <code>sudo apt-get install libapp-mtaws-perl</code>
+</li>
+</ol><h5>
+<a name="user-content-debian-6-squeeze" class="anchor" href="#debian-6-squeeze" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian 6 (Squeeze)</h5>
+
+<p>Can be installed/updated via custom repository</p>
+
+<ol class="task-list">
+<li>
+<p><code>wget -O - http://mt-aws.com/vsespb.gpg.key | sudo apt-key add -</code></p>
+
+<p>(this will add GPG key 2C00 B003 A56C 5F2A 75C4 4BF8 2A6E 0307 <strong>D0FF 5699</strong>)</p>
+</li>
+<li>
+<p>Add repository</p>
+
+<pre><code>echo "deb http://dl.mt-aws.com/debian/current squeeze main"|sudo tee /etc/apt/sources.list.d/mt-aws.list
+</code></pre>
+</li>
+<li><p><code>sudo apt-get update</code></p></li>
+<li>
+<p><code>sudo apt-get install libapp-mtaws-perl</code></p>
+
+<p>(To use HTTPS you also need:)</p>
+</li>
+<li><p><code>sudo apt-get install build-essential libssl-dev</code></p></li>
+<li><p>install/update <code>LWP::UserAgent</code> and <code>LWP::Protocol::https</code> using <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a></p></li>
+</ol><h5>
+<a name="user-content-debian-7-wheezy-including-rasbian-for-raspberry-pi" class="anchor" href="#debian-7-wheezy-including-rasbian-for-raspberry-pi" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian 7 (Wheezy), including rasbian for Raspberry Pi</h5>
+
+<p>Can be installed/updated via custom repository</p>
+
+<ol class="task-list">
+<li>
+<p><code>wget -O - https://mt-aws.com/vsespb.gpg.key | sudo apt-key add -</code></p>
+
+<p>(this will add GPG key 2C00 B003 A56C 5F2A 75C4 4BF8 2A6E 0307 <strong>D0FF 5699</strong>)</p>
+</li>
+<li>
+<p>Add repository</p>
+
+<pre><code>echo "deb http://dl.mt-aws.com/debian/current wheezy main"|sudo tee /etc/apt/sources.list.d/mt-aws.list
+</code></pre>
+</li>
+<li><p><code>sudo apt-get update</code></p></li>
+<li> <code>sudo apt-get install libapp-mtaws-perl</code>
+</li>
+</ol><h5>
+<a name="user-content-debian-8-jessie" class="anchor" href="#debian-8-jessie" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian 8 (Jessie)</h5>
+
+<p>Can be installed/updated via custom repository</p>
+
+<ol class="task-list">
+<li>
+<p><code>wget -O - https://mt-aws.com/vsespb.gpg.key | sudo apt-key add -</code></p>
+
+<p>(this will add GPG key 2C00 B003 A56C 5F2A 75C4 4BF8 2A6E 0307 <strong>D0FF 5699</strong>)</p>
+</li>
+<li>
+<p>Add repository</p>
+
+<pre><code>echo "deb http://dl.mt-aws.com/debian/current jessie main"|sudo tee /etc/apt/sources.list.d/mt-aws.list
+</code></pre>
+</li>
+<li><p><code>sudo apt-get update</code></p></li>
+<li> <code>sudo apt-get install libapp-mtaws-perl</code>
+</li>
+</ol><h3>
+<a name="user-content-manual-installation" class="anchor" href="#manual-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual installation</h3>
+
+<h4>
+<a name="user-content-install-prerequisites" class="anchor" href="#install-prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install prerequisites</h4>
+
+<h6>
+<a name="user-content-ubuntu-1204-debian-7" class="anchor" href="#ubuntu-1204-debian-7" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu 12.04+, Debian 7</h6>
+
+<p><code>sudo apt-get install libwww-perl libjson-xs-perl</code></p>
+
+<h6>
+<a name="user-content-rhelcentos-5" class="anchor" href="#rhelcentos-5" aria-hidden="true"><span class="octicon octicon-link"></span></a>RHEL/CentOS 5</h6>
+
+<ol class="task-list">
+<li><code>sudo yum install perl-Digest-SHA</code></li>
+<li><code>sudo yum groupinstall "Development Tools"</code></li>
+<li><code>sudo yum install openssl-devel</code></li>
+<li>Install <code>JSON::XS</code>, <code>LWP::UserAgent</code> and <code>LWP::Protocol::https</code> using <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a>
+</li>
+</ol><p>You also can install <code>mtglacier</code> prerequisites without CPAN if you have <a href="http://fedoraproject.org/wiki/EPEL">EPEL</a> repository enabled and if you don't need HTTPS:</p>
+
+<p><code>sudo yum install perl-Digest-SHA perl-JSON-XS perl-libwww-perl</code></p>
+
+<h6>
+<a name="user-content-rhelcentos-6" class="anchor" href="#rhelcentos-6" aria-hidden="true"><span class="octicon octicon-link"></span></a>RHEL/CentOS 6</h6>
+
+<ol class="task-list">
+<li><code>sudo yum install perl-core perl-CGI</code></li>
+<li><code>sudo yum groupinstall "Development Tools"</code></li>
+<li><code>sudo yum install openssl-devel</code></li>
+<li>Install <code>JSON::XS</code>, <code>LWP::UserAgent</code> and <code>LWP::Protocol::https</code> using <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a>
+</li>
+</ol><p>You also can install <code>mtglacier</code> prerequisites without CPAN if you have <a href="http://fedoraproject.org/wiki/EPEL">EPEL</a> repository enabled and if you don't need HTTPS:</p>
+
+<p><code>sudo yum install perl-core perl-CGI perl-JSON-XS perl-libwww-perl</code></p>
+
+<h6>
+<a name="user-content-debian-6" class="anchor" href="#debian-6" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian 6</h6>
+
+<p><code>sudo apt-get install libwww-perl libjson-xs-perl</code></p>
+
+<p>To use HTTPS you also need:</p>
+
+<ol class="task-list">
+<li><p><code>sudo apt-get install build-essential libssl-dev</code></p></li>
+<li><p>install/update <code>LWP::UserAgent</code> and <code>LWP::Protocol::https</code> using <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a></p></li>
+</ol><h6>
+<a name="user-content-fedora-18" class="anchor" href="#fedora-18" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fedora 18+</h6>
+
+<p><code>sudo yum install perl-core perl-CGI perl-JSON-XS perl-libwww-perl perl-LWP-Protocol-https</code></p>
+
+<h6>
+<a name="user-content-suse-linux-enterprise-server-11" class="anchor" href="#suse-linux-enterprise-server-11" aria-hidden="true"><span class="octicon octicon-link"></span></a>SUSE Linux Enterprise Server 11</h6>
+
+<ol class="task-list">
+<li><code>sudo zypper install perl-libwww-perl libopenssl-devel</code></li>
+<li><code>sudo zypper install --type pattern Basis-Devel</code></li>
+<li>Upgrade openssl to (at least) <code>0.9.8r</code> (to check version use <code>openssl version</code>), can be found <a href="http://download.opensuse.org/repositories/security:/fips/">here</a> (more info here <a href="https://rt.cpan.org/Public/Bug/Display.html?id=81575">RT#81575</a>)</li>
+<li>Update <code>ExtUtils::MakeMaker</code> via <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a>
+</li>
+<li>Install <code>LWP::UserAgent</code>, <code>LWP::Protocol::https</code>, <code>JSON::XS</code> using <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus">cpanm</a>
+</li>
+</ol><h6>
+<a name="user-content-amazon-linux-201303" class="anchor" href="#amazon-linux-201303" aria-hidden="true"><span class="octicon octicon-link"></span></a>Amazon Linux 2013.03</h6>
+
+<p><code>sudo yum install perl-core perl-JSON-XS perl-libwww-perl perl-LWP-Protocol-https</code></p>
+
+<h6>
+<a name="user-content-macos-x" class="anchor" href="#macos-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>MacOS X</h6>
+
+<p>Install the following packages:</p>
+
+<p>Install <code>LWP::UserAgent</code> (<code>p5-libwww-perl</code>), <code>JSON::XS</code> (<code>p5-json-XS</code>). For HTTPS support you need <code>LWP::Protocol::https</code>, however on MacOS X
+you probably need <code>Mozilla::CA</code> (it should go with <code>LWP::Protocol::https</code>, but it can be missing). Try to use HTTPS without <code>Mozilla::CA</code> - if it does not work, install
+<code>Mozilla::CA</code></p>
+
+<h4>
+<a name="user-content-install-mt-aws-glacier" class="anchor" href="#install-mt-aws-glacier" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install mt-aws-glacier</h4>
+
+<pre><code>git clone https://github.com/vsespb/mt-aws-glacier.git
+</code></pre>
+
+<p>(or just download and unzip <code>https://github.com/vsespb/mt-aws-glacier/archive/master.zip</code> )</p>
+
+<p>After that you can execute <code>mtglacier</code> script (found in root of repository) from any directory, or create a symlink to it - it will find other package files by itself
+(don't forget to remove it later, if you decide to switch to CPAN install)</p>
+
+<h3>
+<a name="user-content-or-installation-via-cpan" class="anchor" href="#or-installation-via-cpan" aria-hidden="true"><span class="octicon octicon-link"></span></a>
+<em>OR</em> Installation via CPAN</h3>
+
+<pre><code>    cpan -i App::MtAws
+</code></pre>
+
+<p>That's it.</p>
+
+<h3>
+<a name="user-content-installation-general-instructions-troubleshooting-edge-cases-and-misc-instructions" class="anchor" href="#installation-general-instructions-troubleshooting-edge-cases-and-misc-instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation general instructions, troubleshooting, edge cases and misc instructions</h3>
+
+<h5>
+<a name="user-content-in-general-you-need-the-following-perl-modules-to-run-mt-aws-glacier" class="anchor" href="#in-general-you-need-the-following-perl-modules-to-run-mt-aws-glacier" aria-hidden="true"><span class="octicon octicon-link"></span></a>In general you need the following perl modules to run <em>mt-aws-glacier</em>:</h5>
+
+<ul class="task-list">
+<li>
+<strong>LWP::UserAgent</strong> (or Debian package <strong>libwww-perl</strong> or RPM package <strong>perl-libwww-perl</strong> or MacPort <strong>p5-libwww-perl</strong>)</li>
+<li>
+<strong>JSON::XS</strong> (or Debian package <strong>libjson-xs-perl</strong> or RPM package <strong>perl-JSON-XS</strong> or MacPort <strong>p5-json-XS</strong>)</li>
+</ul><h5>
+<a name="user-content-other-notes" class="anchor" href="#other-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other notes</h5>
+
+<ol class="task-list">
+<li><p>for old Perl &lt; 5.9.3 (i.e. <em>CentOS 5.x</em>), install also <strong>Digest::SHA</strong> (or Debian package <strong>libdigest-sha-perl</strong> or RPM package <strong>perl-Digest-SHA</strong>)</p></li>
+<li><p>Some distributions with old Perl stuff (examples: <em>Ubuntu 10.04</em>, <em>CentOS 5/6</em>) to use HTTPS you need to upgrade <strong>LWP::Protocol::https</strong> to version 6+ via CPAN.</p></li>
+<li><p><em>Fedora</em>, <em>CentOS 6</em> etc <a href="http://www.nntp.perl.org/group/perl.perl5.porters/2009/08/msg149747.html">decoupled</a> Perl,
+so package named <code>perl</code>, which is a part of default installation, is not actually real, full Perl, which is misleading.
+<code>perl-core</code> is looks much more like a real Perl (I <a href="https://bugzilla.redhat.com/show_bug.cgi?id=985791">hope</a> so)</p></li>
+<li><p>On newer RHEL distributions (some <em>Fedora</em> versions) you need install <strong>perl-LWP-Protocol-https</strong> to use HTTPS.</p></li>
+<li><p>To inistall <code>perl-JSON-XS</code> RPM package on RHEL5/6 you need to enable <a href="http://fedoraproject.org/wiki/EPEL">EPEL</a> repository</p></li>
+<li><p>If you've used manual installation before "CPAN" installation, it's probably better to remove previously installed <code>mtglacier</code> executable from your path.</p></li>
+<li><p>CPAN distribution of <em>mt-aws-glacier</em> has a bit more dependencies than manual installation, as it requires additional modules for testsuite.</p></li>
+<li><p>New releases of <em>mt-aws-glacier</em> usually appear on CPAN within a ~week after official release.</p></li>
+<li><p>On <em>Fedora</em>, <em>CentOS 6 minimal</em> you need to install <code>perl-core</code>, <code>perl-CPAN</code>, <code>perl-CGI</code> before trying to install via CPAN</p></li>
+<li><p>For some distributions with old Perl stuff (examples: <em>CentOS 5/6</em>) you need to update CPAN and Module::Build first: <code>cpan -i CPAN</code>, <code>cpan -i Module::Build</code></p></li>
+<li>
+<p>CPAN tool asks too many questions during install (but ignores important errors). You can avoid it by running <code>cpan</code> command and configuring it like this:</p>
+
+<pre><code>o conf build_requires_install_policy yes
+o conf prerequisites_policy follow
+o conf halt_on_failure on
+o conf commit
+exit
+</code></pre>
+</li>
+<li><p>Instead system <code>cpan</code> tool you might want to try <a href="http://search.cpan.org/perldoc?App%3A%3Acpanminus"><code>cpanm</code></a> - it's a bit easier to install and configure.</p></li>
+<li><p>Installation of <strong>LWP::Protocol::https</strong> requires C header files ( <code>yum groupinstall "Development Tools"</code> for RHEL or <code>build-essential</code> for Debian ) and OpenSSL dev library (<code>openssl-devel</code> RPM or <code>libssl-dev</code> DEB).</p></li>
+</ol><h2>
+<a name="user-content-warnings--must-read-" class="anchor" href="#warnings--must-read-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Warnings ( <em>MUST READ</em> )</h2>
+
+<ul class="task-list">
+<li><p>When playing with Glacier make sure you will be able to delete all your archives, it's impossible to delete archive
+or non-empty vault in amazon console now. Also make sure you have read <em>all</em> Amazon Glacier pricing/faq.</p></li>
+<li><p>Read Amazon Glacier pricing <a href="http://aws.amazon.com/glacier/faqs/#How_will_I_be_charged_when_retrieving_large_amounts_of_data_from_Amazon_Glacier">FAQ</a> again, really. Beware of retrieval fee.</p></li>
+<li><p>Before using this program, you should read Amazon Glacier documentation and understand, in general, Amazon Glacier workflows and entities. This documentation
+does not define any new layer of abstraction over Amazon Glacier entities.</p></li>
+<li><p>In general, all Amazon Glacier clients store metadata (filenames, file metadata) in own formats, incompatible with each other. To restore backup made with <code>mt-aws-glacier</code> you'll
+need <code>mt-aws-glacier</code>, other software most likely will restore your data but loose filenames.</p></li>
+<li><p>With low "partsize" option you pay a bit more (Amazon charges for each upload request)</p></li>
+<li><p>For backup created with older versions (0.7x) of mt-aws-glacier, Journal file <strong>required to restore backup</strong>.</p></li>
+<li><p>Use a <strong>Journal file</strong> only with <strong>same vault</strong> ( more info <a href="#what-is-journal">here</a> and <a href="#how-to-maintain-a-relation-between-my-journal-files-and-my-vaults">here</a> and <a href="https://github.com/vsespb/mt-aws-glacier/issues/50">here</a>)</p></li>
+<li><p>When work with CD-ROM/CIFS/other non-Unix/non-POSIX filesystems, you might need set <code>leaf-optimization</code> to <code>0</code></p></li>
+<li><p>Please read <a href="https://github.com/vsespb/mt-aws-glacier/blob/master/ChangeLog">ChangeLog</a> when upgrading to new version, and especially when downgrading.
+(See "Compatibility" sections when downgrading)</p></li>
+<li><p>Zero length files and empty directories are ignored (as Amazon Glacier does not support it)</p></li>
+<li><p>See other <a href="#limitations">limitations</a></p></li>
+</ul><h2>
+<a name="user-content-helpcontribute-this-project" class="anchor" href="#helpcontribute-this-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Help/contribute this project</h2>
+
+<ul class="task-list">
+<li>If you like <em>mt-aws-glacier</em>, and registered on GitHub, please <strong>Star</strong> it on GitHUb, this way you'll help promote the project.</li>
+<li>Please report any bugs or issues (using GitHub issues). Well, any feedback is welcomed.</li>
+<li>If you want to contribute to the source code, please contact me first and describe what you want to do</li>
+</ul><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<ol class="task-list">
+<li>Create a directory containing files to backup. Example <code>/data/backup</code>
+</li>
+<li>
+<p>Create config file, say, glacier.cfg</p>
+
+<pre><code>key=YOURKEY
+secret=YOURSECRET
+# region: eu-west-1, us-east-1 etc
+region=us-east-1
+# protocol=http (default) or https
+protocol=http
+</code></pre>
+
+<p>(you can skip any config option and specify it directly in command line, command line options override same options in config)</p>
+</li>
+<li>
+<p>Create a vault in specified region, using Amazon Console (<code>myvault</code>) or using mtglacier</p>
+
+<pre><code>./mtglacier create-vault myvault --config glacier.cfg
+</code></pre>
+
+<p>(note that Amazon Glacier does not return error if vault already exists etc)</p>
+</li>
+<li><p>Choose a filename for the Journal, for example, <code>journal.log</code></p></li>
+<li>
+<p>Sync your files</p>
+
+<pre><code>./mtglacier sync --config glacier.cfg --dir /data/backup --vault myvault --journal journal.log --concurrency 3
+</code></pre>
+</li>
+<li><p>Add more files and sync again</p></li>
+<li>
+<p>Check that your local files not modified since last sync</p>
+
+<pre><code>./mtglacier check-local-hash --config glacier.cfg --dir /data/backup --journal journal.log
+</code></pre>
+</li>
+<li><p>Delete some files from your backup location</p></li>
+<li>
+<p>Initiate archive restore job on Amazon side</p>
+
+<pre><code>./mtglacier restore --config glacier.cfg --dir /data/backup --vault myvault --journal journal.log --max-number-of-files 10
+</code></pre>
+</li>
+<li><p>Wait 4+ hours for Amazon Glacier to complete archive retrieval</p></li>
+<li>
+<p>Download restored files back to backup location</p>
+
+<pre><code>./mtglacier restore-completed --config glacier.cfg --dir /data/backup --vault myvault --journal journal.log
+</code></pre>
+</li>
+<li>
+<p>Delete all your files from vault</p>
+
+<pre><code>./mtglacier purge-vault --config glacier.cfg --vault myvault --journal journal.log
+</code></pre>
+</li>
+<li>
+<p>Wait ~ 24-48 hours and you can try deleting your vault</p>
+
+<pre><code>./mtglacier delete-vault myvault --config glacier.cfg
+</code></pre>
+
+<p>(note: currently Amazon Glacier does not return error if vault is not exists)</p>
+</li>
+</ol><h2>
+<a name="user-content-restoring-journal" class="anchor" href="#restoring-journal" aria-hidden="true"><span class="octicon octicon-link"></span></a>Restoring journal</h2>
+
+<p>In case you lost your journal file, you can restore it from Amazon Glacier metadata</p>
+
+<ol class="task-list">
+<li>
+<p>Run retrieve-inventory command. This will request Amazon Glacier to prepare vault inventory.</p>
+
+<pre><code>./mtglacier retrieve-inventory --config glacier.cfg --vault myvault
+</code></pre>
+</li>
+<li><p>Wait 4+ hours for Amazon Glacier to complete inventory retrieval (also note that you will get only ~24h old inventory..)</p></li>
+<li>
+<p>Download inventory and export it to new journal (this sometimes can be pretty slow even if inventory is small, wait a few minutes):</p>
+
+<pre><code>./mtglacier download-inventory --config glacier.cfg --vault myvault --new-journal new-journal.log
+</code></pre>
+</li>
+</ol><p>For files created by mt-aws-glacier version 0.8x and higher original filenames will be restored. For other files archive_id will be used as filename. See Amazon Glacier metadata format for mt-aws-glacier here: <a href="https://github.com/vsespb/mt-aws-glacier/blob/master/lib/App/MtAws/MetaData.pm">Amazon Glacier metadata format used by mt-aws glacier</a></p>
+
+<h2>
+<a name="user-content-journal-concept" class="anchor" href="#journal-concept" aria-hidden="true"><span class="octicon octicon-link"></span></a>Journal concept</h2>
+
+<h4>
+<a name="user-content-what-is-journal" class="anchor" href="#what-is-journal" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is Journal</h4>
+
+<p>Journal is a file in local filesystem, which contains list of all files, uploaded to Amazon Glacier.
+Strictly saying, this file contains a list of operations (list of records), performed with Amazon Glacier vault. Main operations are:
+file creation, file deletion and file retrieval.</p>
+
+<p>Create operation records contains: <em>local filename</em> (relative to transfer root - <code>--dir</code>), file <em>size</em>, file last <em>modification time</em> (in 1 second resolution), file <em>TreeHash</em> (Amazon
+hashing algorithm, based on SHA256), file upload time, and Amazon Glacier <em>archive id</em></p>
+
+<p>Delete operation records contains <em>local filename</em> and corresponding Amazon Glacier <em>archive id</em></p>
+
+<p>Having such list of operation, we can, any time reconstruct list of files, that are currently stored in Amazon Glacier.</p>
+
+<p>As you see Journal records don't contain Amazon Glacier <em>region</em>, <em>vault</em>, file permissions, last access times and other filesystem metadata.</p>
+
+<p>Thus you should always use a separate Journal file for each Amazon Glacier <em>vault</em>. Also, file metadata (except filename and file <em>modification time</em>) will
+be lost, if you restore files from Amazon Glacier.</p>
+
+<h4>
+<a name="user-content-some-journal-features" class="anchor" href="#some-journal-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Some Journal features</h4>
+
+<ul class="task-list">
+<li>
+<p>It's a text file. You can parse it with <code>grep</code> <code>awk</code> <code>cut</code>, <code>tail</code> etc, to extract information in case you need perform some advanced stuff, that <code>mtglacier</code> can't do (NOTE: make sure you know what you're doing ).</p>
+
+<p>To view only some files:</p>
+
+<pre><code>grep Majorca Photos.journal
+</code></pre>
+
+<p>To view only creation records:</p>
+
+<pre><code>grep CREATED Photos.journal | wc -l
+</code></pre>
+
+<p>To compare only important fields of two journals</p>
+
+<pre><code>cut journal -f 4,5,6,7,8 |sort &gt; journal.cut
+cut new-journal -f 4,5,6,7,8 |sort &gt; new-journal.cut
+diff journal.cut new-journal.cut
+</code></pre>
+</li>
+<li><p>Each text line in a file represent one record</p></li>
+<li><p>It's an append-only file. File opened in append-only mode, and new records only added to the end. This guarantees that
+you can recover Journal file to previous state in case of bug in program/crash/some power/filesystem issues. You can even use <code>chattr +a</code> to set append-only protection to the Journal.</p></li>
+<li><p>As Journal file is append-only, it's easy to perform incremental backups of it</p></li>
+</ul><h4>
+<a name="user-content-why-journal-is-a-file-in-local-filesystem-file-but-not-in-online-cloud-storage-like-amazon-s3-or-amazon-dynamodb" class="anchor" href="#why-journal-is-a-file-in-local-filesystem-file-but-not-in-online-cloud-storage-like-amazon-s3-or-amazon-dynamodb" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Journal is a file in local filesystem file, but not in online Cloud storage (like Amazon S3 or Amazon DynamoDB)?</h4>
+
+<p>Journal is needed to restore backup, and we can expect that if you need to restore a backup, that means that you lost your filesystem, together with Journal.</p>
+
+<p>However Journal also needed to perform <em>new backups</em> (<code>sync</code> command), to determine which files are already in Glacier and which are not. And also to checking local file integrity (<code>check-local-hash</code> command).
+Actually, usually you perform new backups every day. And you restore backups (and loose your filesystem) very rare.</p>
+
+<p>So fast (local) journal is essential to perform new backups fast and cheap (important for users who backups thousands or millions of files).</p>
+
+<p>And if you lost your journal, you can restore it from Amazon Glacier (see <code>retrieve-inventory</code> command). Also it's recommended to backup your journal
+to another backup system (Amazon S3 ? Dropbox ?) with another tool, because retrieving inventory from Amazon Glacier is pretty slow.</p>
+
+<p>Also some users might want to backup <em>same</em> files from <em>multiple</em> different locations. They will need <em>synchronization</em> solution for journal files.</p>
+
+<p>Anyway I think problem of putting Journals into cloud can be automated and solved with 3 lines bash script..</p>
+
+<h4>
+<a name="user-content-how-to-maintain-a-relation-between-my-journal-files-and-my-vaults" class="anchor" href="#how-to-maintain-a-relation-between-my-journal-files-and-my-vaults" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to maintain a relation between my journal files and my vaults?</h4>
+
+<ol class="task-list">
+<li><p>You can name journal with same name as your vault. Example: Vault name is <code>Photos</code>. Journal file name is <code>Photos.journal</code>. Or <code>eu-west-1-Photos.journal</code></p></li>
+<li>
+<p>(Almost) Any command line option can be used in config file, so you can create <code>myphotos.cfg</code> with following content:</p>
+
+<pre><code>key=YOURKEY
+secret=YOURSECRET
+protocol=http
+region=us-east-1
+vault=Photos
+journal=/home/me/.glacier/photos.journal
+</code></pre>
+</li>
+</ol><h4>
+<a name="user-content-why-journal-does-not-contain-regionvault-information" class="anchor" href="#why-journal-does-not-contain-regionvault-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Journal does not contain region/vault information?</h4>
+
+<p>Keeping journal/vault in config does looks to me more like a Unix way. It can be a bit danger, but easier to maintain, because:</p>
+
+<ol class="task-list">
+<li>
+<p>Let's imaging I decided to put region/vault into Journal. There are two options:</p>
+
+<p>a. Put it into beginning of the file, before journal creation.</p>
+
+<p>b. Store same region/vault in each record of the file. It looks like a waste of disk space.</p>
+
+<p>Option (a) looks better. So this way journal will contain something like</p>
+
+<pre><code>region=us-east-1
+vault=Photos
+</code></pre>
+
+<p>in the beginning. But same can be achieved by putting same lines to the config file (see previous question)</p>
+</li>
+<li><p>Also, putting vault/region to journal will make command line options <code>--vault</code> and <code>--region</code> useless
+for general commands and will require to add another command (something like <code>create-journal-file</code>)</p></li>
+<li><p>There is a possibility to use different <em>account id</em> in Amazon Glacier (i.e. different person's account). It's not supported yet in <code>mtglacier</code>,
+but when it will, I'll have to store <em>account id</em> together with <em>region</em>/<em>vault</em>. Also default <em>account id</em> is '-' (means 'my account'). If one wish to use same
+vault from a different Amazon Glacier account, he'll have to change '-' to real account id. So need to have ability to edit <em>account id</em>.
+And <em>region/vault</em> information does not have sense without account.</p></li>
+<li><p>Some users can have different permissions for different vaults, so they needs to maintain <code>key</code>/<code>secret</code>/<code>account_id</code> <code>region/vault</code> <code>journal</code> relation in same place
+(this only can be config file, because involves <code>secret</code>)</p></li>
+<li><p>Amazon might allow renaming of vaults or moving it across regions, in the future.</p></li>
+<li><p>Currently journal consists of independent records, so can be split to separate records using <code>grep</code>, or several
+journals can be merged using <code>cat</code> (but be careful if doing that)</p></li>
+<li><p>In the future, there can be other features and options added, such as compression/encryption, which might require to decide again where to put new attributes for it.</p></li>
+<li><p>Usually there is different policy for backing up config files and journal files (modifiable). So if you loose your journal file, you won't be sure which config corresponds to which <em>vault</em> (and journal file
+can be restored from a <em>vault</em>)</p></li>
+<li><p>It's better to keep relation between <em>vault</em> and transfer root (<code>--dir</code> option) in one place, such as config file.</p></li>
+</ol><h4>
+<a name="user-content-why-journal-and-metadata-stored-in-amazon-glacier-does-not-contain-files-metadata-like-permissions" class="anchor" href="#why-journal-and-metadata-stored-in-amazon-glacier-does-not-contain-files-metadata-like-permissions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Journal (and metadata stored in Amazon Glacier) does not contain file's metadata (like permissions)?</h4>
+
+<p>If you want to store permissions, put your files to archives before backup to Amazon Glacier. There are lot's of different possible things to store as file metadata information,
+most of them are not portable. Take a look on archives file formats - different formats allows to store different metadata.</p>
+
+<p>It's possible that in the future <code>mtglacier</code> will support some other metadata things.</p>
+
+<h2>
+<a name="user-content-specification-for-some-commands" class="anchor" href="#specification-for-some-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specification for some commands</h2>
+
+<h3>
+<a name="user-content-sync" class="anchor" href="#sync" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>sync</code>
+</h3>
+
+<p>Propagates current local filesystem state to Amazon Glacier server.</p>
+
+<p><code>sync</code> accepts one or several of the following mode options: <code>--new</code>, <code>--replace-modified</code>, <code>--delete-removed</code></p>
+
+<p>If none of three above mode options provided, <code>--new</code> is implied (basically for backward compatibility).</p>
+
+<ol class="task-list">
+<li>
+<p><code>--new</code></p>
+
+<p>Uploads files, which exist in local filesystem (and have non-zero size), but not exist in Amazon Glacier (i.e. in Journal)</p>
+</li>
+<li>
+<p><code>--replace-modified</code></p>
+
+<p>Uploads modified files (i.e. which exist in local filesystem and in Amazon Glacier). After file gets successfully uploaded,
+previous version of file is deleted. Logic of detection of modified files controlled by <code>--detect</code> option.</p>
+</li>
+<li>
+<p><code>--delete-removed</code></p>
+
+<p>Deletes files, which exist in Amazon Glacier, but missing in local filesystem (or have zero size) , from Amazon Glacier.</p>
+</li>
+<li>
+<p><code>--detect</code></p>
+
+<p>Controls how <code>--replace-modified</code> detect modified files. Possible values are: <code>treehash</code>, <code>mtime</code>, <code>mtime-or-treehash</code>, <code>mtime-and-treehash</code>,
+<code>always-positive</code>, <code>size-only</code>.
+Default value is <code>mtime-and-treehash</code></p>
+
+<p>File is always considered modified if its <em>size changed</em> (but not zero)</p>
+
+<ol class="task-list">
+<li><p><code>treehash</code> - calculates TreeHash checksum for file and compares with one in Journal. If checksum does not match - file is modified.</p></li>
+<li><p><code>mtime</code> - compares file last modification time in local filesystem and in journal, if it differs - file is modified.</p></li>
+<li><p><code>mtime-or-treehash</code> - compares file last modification time, if it differs - file is modified. If it matches - compares TreeHash.</p></li>
+<li><p><code>mtime-and-treehash</code> - compares file last modification time, if it differs - compares TreeHash. If modification time is not changed, file
+treated as not-modified, treehash not checked.</p></li>
+<li><p><code>always-positive</code> - always treat files as modified, Modification time and TreeHash are ignored. Probably makes some sense only with <code>--filter</code> options.</p></li>
+<li><p><code>size-only</code> - treat files as modified only if size differs</p></li>
+</ol>
+<p>NOTE: default mode for detect is <code>mtime-and-treehash</code>, it's more performance wise (treehash checked only for files with modification time changed),
+but <code>mtime-or-treehash</code> and <code>treehash</code> are more safe in case you're not sure which programs change your files and how.</p>
+
+<p>NOTE: <code>mtime-or-treehash</code> is mnemonic for <em>File is modified if mtime differs OR treehash differs</em>
+<code>mtime-and-treehash</code>  is mnemonic for  <em>File is modified if mtime differs AND treehash differs</em>. Words
+<em>AND</em> and <em>OR</em> means here logical operators with <a href="http://en.wikipedia.org/wiki/Short-circuit_evaluation">short-circuit evaluation</a>
+i.e. with <code>mtime-and-treehash</code> treehash never checked if mtime not differs. And with <code>mtime-or-treehash</code> treehash never checked if mtime differs.</p>
+</li>
+</ol><p>NOTE: files with zero sizes are not supported by Amazon Glacier API, thus considered non-existing for consistency, for all <code>sync</code> modes.</p>
+
+<p>NOTE: <code>sync</code> does not upload empty directories, there is no such thing as directory in Amazon Glacier.</p>
+
+<p>NOTE: With <code>--dry-run</code> option TreeHash will not be calculated, instead <em>Will VERIFY treehash and upload...</em> message will be displayed.</p>
+
+<p>NOTE: TreeHash calculation performed in parallel, so some of workers (defined with <code>--concurrency</code>) might be busy calculating treehash instead
+of network IO.</p>
+
+<h3>
+<a name="user-content-restore" class="anchor" href="#restore" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>restore</code>
+</h3>
+
+<p>Initiate Amazon Glacier RETRIEVE oparation for files listed in Journal, which don't <em>exist</em> on local filesystem and for
+which RETRIEVE was not initiated during last 24 hours (that information obtained from <em>Journal</em> too - each retrieval logged
+into journal together with timestamp)</p>
+
+<h3>
+<a name="user-content-restore-completed" class="anchor" href="#restore-completed" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>restore-completed</code>
+</h3>
+
+<p>Donwloads files, listed in Journal, which don't <em>exist</em> on local filesystem, and which were previously
+RETRIEVED (using <code>restore</code> command) and now available for download (i.e. in a ~4hours after retrieve).
+Unlike <code>restore</code> command, list of retrieved files is requested from Amazon Glacier servers at runtime using API, not from
+journal.</p>
+
+<p>Data downloaded to unique temporary files (created in same directory as destination file). Temp files renamed to real files
+only when download successfully finished. In case program terminated with error or after Ctrl-C, temp files with unfinished
+downloads removed.</p>
+
+<p>If <code>segment-size</code> specified (greater than 0) and particular file size in megabytes is larger than <code>segment-size</code>,
+download for this file performed in multiple segments, i.e. using HTTP <code>Range:</code> header (each of size <code>segment-size</code> MiB, except last,
+which can be smaller). Segments are downloaded in parallel (and different segments from different files can
+be downloaded at same time).</p>
+
+<p>Only values that are power of two supported for <code>segment-size</code> now.</p>
+
+<p>Currenly if download breaks due to network problem, no resumption is performed, download of file or of current segment
+started from beginning.</p>
+
+<p>In case multi-segment downloads, TreeHash reported by Amazon Glacier for each segment is compared with actual TreeHash, calculated for segment at runtime.
+In case of mismatch error is thrown and process stopped. Final TreeHash for whole file not checked yet.</p>
+
+<p>In case full-file downloads, TreeHash reported by Amazon Glacier for whole file is compared with one calculated runtime and with one found in Journal file,
+in case of mismatch, error is thrown and process stopped.</p>
+
+<p>Unlike <code>partsize</code> option, <code>segment-size</code> does not allocate buffers in memory of the size specified, so you can use large <code>segment-size</code>.</p>
+
+<h3>
+<a name="user-content-upload-file" class="anchor" href="#upload-file" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>upload-file</code>
+</h3>
+
+<p>Uploads a single file into Amazon Glacier. File will be tracked with Journal (just like when using <code>sync</code> command).</p>
+
+<p>There are several possible combinations of options for <code>upload-file</code>:</p>
+
+<ol class="task-list">
+<li>
+<p><strong>--filename</strong> and <strong>--dir</strong></p>
+
+<p><em>Uploads what</em>: a file, pointed by <code>filename</code>.</p>
+
+<p><em>Filename in Journal and Amazon Glacier metadata</em>: A relative path from <code>dir</code> to <code>filename</code></p>
+
+<pre><code>./mtglacier upload-file --config glacier.cfg --vault myvault --journal journal.log --dir /data/backup --filename /data/backup/dir1/myfile
+</code></pre>
+
+<p>(this will upload content of <code>/data/backup/dir1/myfile</code> to Amazon Glacier and use <code>dir1/myfile</code> as filename for Journal )</p>
+
+<pre><code>./mtglacier upload-file --config glacier.cfg --vault myvault --journal journal.log --dir data/backup --filename data/backup/dir1/myfile
+</code></pre>
+
+<p>(Let's assume current directory is <code>/home</code>. Then this will upload content of <code>/home/data/backup/dir1/myfile</code> to Amazon Glacier and use <code>dir1/myfile</code> as filename for Journal)</p>
+
+<p>NOTE: file <code>filename</code> should be inside directory <code>dir</code></p>
+
+<p>NOTE: both <code>-filename</code> and <code>--dir</code> resolved to full paths, before determining relative path from <code>--dir</code> to <code>--filename</code>. Thus yo'll get an error
+if parent directories are unreadable. Also if you have <code>/dir/ds</code> symlink to <code>/dir/d3</code> directory, then <code>--dir /dir</code> <code>--filename /dir/ds/file</code> will result in relative
+filename <code>d3/file</code> not <code>ds/file</code></p>
+</li>
+<li>
+<p><strong>--filename</strong> and  <strong>--set-rel-filename</strong></p>
+
+<p><em>Uploads what</em>: a file, pointed by <code>filename</code>.</p>
+
+<p><em>Filename in Journal and Amazon Glacier metadata</em>: As specified in <code>set-rel-filename</code></p>
+
+<pre><code>./mtglacier upload-file --config glacier.cfg --vault myvault --journal journal.log --filename /tmp/myfile --set-rel-filename a/b/c
+</code></pre>
+
+<p>(this will upload content of <code>/tmp/myfile</code> to Amazon Glacier and use <code>a/b/c</code> as filename for Journal )</p>
+
+<p>(NOTE: <code>set-rel-filename</code> should be a <em>relative</em> filename i.e. must not start with <code>/</code>)</p>
+</li>
+<li>
+<p><strong>--stdin</strong>, <strong>--set-rel-filename</strong> and <strong>--check-max-file-size</strong></p>
+
+<p><em>Uploads what</em>: a file, read from STDIN</p>
+
+<p><em>Filename in Journal and Amazon Glacier metadata</em>: As specified in <code>set-rel-filename</code></p>
+
+<p>Also, as file size is not known until the very end of upload, need to be sure that file will not exceed 10 000 parts limit, and you must
+specify <code>check-max-file-size</code> -- maximum possible size of file (in Megabytes), that you can expect. What this option do is simply throw error
+if <code>check-max-file-size</code>/<code>partsize</code> &gt; 10 000 parts (in that case it's recommended to adjust <code>partsize</code>). That's all. I remind that you can put this (and
+any other option to config file)</p>
+
+<pre><code>./mtglacier upload-file --config glacier.cfg --vault myvault --journal journal.log --stdin --set-rel-filename path/to/file --check-max-file-size 131
+</code></pre>
+
+<p>(this will upload content of file read from STDIN to Amazon Glacier and use <code>path/to/file</code> as filename for Journal. )</p>
+
+<p>(NOTE: <code>set-rel-filename</code> should be a <em>relative</em> filename i.e. must not start with <code>/</code>)</p>
+</li>
+</ol><p>NOTES:</p>
+
+<ol class="task-list">
+<li><p>In the current version of mtglacier you are disallowed to store multiple versions of same file. I.e. upload multiple files with same relative filename
+to a single Amazon Glacier vault and single Journal. Simple file versioning will be implemented in the future versions.</p></li>
+<li><p>You can use other optional options with this command (<code>concurrency</code>, <code>partsize</code>)</p></li>
+</ol><h3>
+<a name="user-content-retrieve-inventory" class="anchor" href="#retrieve-inventory" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>retrieve-inventory</code>
+</h3>
+
+<p>Issues inventory retrieval request for <code>--vault</code>.</p>
+
+<p>You can specify inventory format with <code>--request-inventory-format</code>. Allowed values are <code>json</code> and <code>csv</code>. Defaults to <code>json</code>.
+Although it's not recommended to use <code>csv</code> unless you have to. Amazon CSV format is not documented, has bugs and <code>mt-aws-glacier</code> CSV parsing
+implementation (i.e. <code>download-inventory</code> command) is ~ 10 times slower than JSON.</p>
+
+<p>See also <a href="#restoring-journal">Restoring journal</a> for <code>retrieve-inventory</code>, <code>download-inventory</code> commands examples.</p>
+
+<h3>
+<a name="user-content-download-inventory" class="anchor" href="#download-inventory" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>download-inventory</code>
+</h3>
+
+<p>Parses Amazon glacier job list (for <code>--vault</code>) taken from Amazon servers at runtime, finds latest (by initiation date) inventory retrieval request,
+downloads it, converts to journal file and saves to <code>--new-journal</code>. Both <code>CSV</code> and <code>JSON</code> jobs are supported.</p>
+
+<p>See also <a href="#restoring-journal">Restoring journal</a> for <code>retrieve-inventory</code>, <code>download-inventory</code> commands examples.</p>
+
+<h3>
+<a name="user-content-list-vaults" class="anchor" href="#list-vaults" aria-hidden="true"><span class="octicon octicon-link"></span></a><code>list-vaults</code>
+</h3>
+
+<p>Lists all vaults in region specified by <code>--region</code> (with a respect to IAM permissions for listing vaults), prints it to the screen. Default format is human readable, not
+for parsing. Use <code>--format=mtmsg</code> for machine readable tab separated format (which is not yet documented here, however it's self-explanatory and backward compatability is guaranteed;
+one note - LastInventoryDate can be empty string as Amazon API can return it as null).</p>
+
+<h3>
+<a name="user-content-other-commands" class="anchor" href="#other-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other commands</h3>
+
+<p>See <a href="#usage">usage</a> for examples of use of the following commands: <code>purge-vault</code>, <code>check-local-hash</code>, <code>create-vault</code>, <code>delete-vault</code>.</p>
+
+<h2>
+<a name="user-content-file-selection-options" class="anchor" href="#file-selection-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>File selection options</h2>
+
+<p><code>filter</code>, <code>include</code>, <code>exclude</code> options allow you to construct a list of RULES to select only certain files for the operation.
+Can be used with commands: <code>sync</code>, <code>purge-vault</code>, <code>restore</code>, <code>restore-completed</code> and <code>check-local-hash</code></p>
+
+<ul class="task-list">
+<li>
+<p><strong>--filter</strong></p>
+
+<p>Adds one or several RULES to the list of rules. One filter value can contain multiple rules, it has same effect as multiple filter values with one
+RULE each.</p>
+
+<pre><code>--filter 'RULE1 RULE2' --filter 'RULE3'
+</code></pre>
+
+<p>is same as</p>
+
+<pre><code>--filter 'RULE1 RULE2 RULE3'
+</code></pre>
+
+<p>RULES should be a sequence of PATTERNS, followed by '+' or '-' and separated by a spaces. There can be a space between '+'/'-' and PATTERN.</p>
+
+<pre><code>RULES: [+-]PATTERN [+-]PATTERN ...
+</code></pre>
+
+<p>'+' means INCLUDE PATTERN, '-' means EXCLUDE PATTERN</p>
+
+<p>NOTES:</p>
+
+<pre><code>1. If RULES contain spaces or wildcards, you must quote it when running `mtglacier` from Shell (Example: `mtglacier ... --filter -tmp/` but `mtglacier --filter '-log/ -tmp/'`)
+
+2. Although, PATTERN can contain spaces, you cannot use if, because RULES separated by a space(s).
+
+3. PATTERN can be empty (Example: `--filter +data/ --filter -` - excludes everything except any directory with name `data`, last pattern is empty)
+
+4. Unlike other options, `filter`, `include` and `exclude` cannot be used in config file (in order to avoid mess with order of rules)
+</code></pre>
+</li>
+<li>
+<p><strong>--include</strong></p>
+
+<p>Adds an INCLUDE PATTERN to list of rules (Example: <code>--include /data/ --filter '+/photos/ -'</code> - include only photos and data directories)</p>
+</li>
+<li>
+<p><strong>--exclude</strong></p>
+
+<p>Adds an EXCLUDE PATTERN to list of rules (Example: <code>--exclude /data/</code> - include everything except /data and subdirectories)</p>
+
+<p>NOTES:</p>
+
+<pre><code>1. You can use spaces in PATTERNS here (Example: `--exclude '/my documents/'` - include everything except "/my documents" and subdirectories)
+</code></pre>
+</li>
+<li><p><strong>How PATTERNS work</strong></p></li>
+<li>
+<p>1)  If the pattern starts with a '/' then it is anchored to a particular spot in the hierarchy of files, otherwise it is matched against the final
+component of the filename.</p>
+
+<pre><code>`/tmp/myfile` - matches only `/tmp/myfile`. But `tmp/myfile` - matches `/tmp/myfile` and `/home/john/tmp/myfile`
+</code></pre>
+</li>
+<li>
+<p>2) If the pattern ends with a '/' then it will only match a directory and all files/subdirectories inside this directory. It won't match regular file.
+Note that if directory is empty, it won't be synchronized to Amazon Glacier, as it does not support directories</p>
+
+<pre><code>`log/` - matches only directory `log`, but not a file `log`
+</code></pre>
+</li>
+<li>
+<p>3) If pattern does not end with a '/', it won't match directory (directories are not supported by Amazon Glacier, so it makes no sense to match a directory
+without subdirectories). However if, in future versions, we find a way to store empty directories in Amazon Glacier, this behavior may change.</p>
+
+<pre><code>`log` - matches only file `log`, but not a directory `log` nor files inside it
+</code></pre>
+</li>
+<li>
+<p>4) if the pattern contains a '/' (not counting a trailing '/') then it is matched against the full pathname, including any leading directories.
+Otherwise it is matched only against the final component of the filename.</p>
+
+<pre><code>`myfile` - matches `myfile` in any directory (i.e. matches both `/home/ivan/myfile` and `/data/tmp/myfile`), but it does not match
+`/tmp/myfile/myfile1`. While `tmp/myfile` matches `/data/tmp/myfile` and `/tmp/myfile/myfile1`
+</code></pre>
+</li>
+<li>
+<p>5) Wildcard '*' matches zero or more characters, but it stops at slashes.</p>
+
+<pre><code>`/tmp*/file` matches `/tmp/file`, `/tmp1/file`, `/tmp2/file` but not `tmp1/x/file`
+</code></pre>
+</li>
+<li>
+<p>6) Wildcard '**' matches anything, including slashes.</p>
+
+<pre><code>`/tmp**/file` matches `/tmp/file`, `/tmp1/file`, `/tmp2/file`, `tmp1/x/file` and `tmp1/x/y/z/file`
+</code></pre>
+</li>
+<li>
+<p>7) When wildcard '**' meant to be a separated path component (i.e. surrounded with slashes/beginning of line/end of line), it matches 0 or more subdirectories.</p>
+
+<pre><code>`/foo/**/bar` matches `foo/bar` and `foo/x/bar`. Also `**/file` matches `/file` and `x/file`
+</code></pre>
+</li>
+<li>
+<p>8) Wildcard '?' matches any (exactly one) character except a slash ('/').</p>
+
+<pre><code>`??.txt` matches `11.txt`, `xy.txt` but not `abc.txt`
+</code></pre>
+</li>
+<li>
+<p>9) if PATTERN is empty, it matches anything.</p>
+
+<pre><code>`mtglacier ... --filter '+data/ -'` - Last pattern is empty string (followed by '-')
+</code></pre>
+</li>
+<li>
+<p>10) If PATTERN is started with '!' it only match when rest of pattern (i.e. without '!') does not match.</p>
+
+<pre><code>`mtglacier ... --filter '-!/data/ +*.gz' -` - include only `*.gz` files inside `data/` directory.
+</code></pre>
+</li>
+<li><p><strong>How rules are processed</strong></p></li>
+<li>
+<p>1) File's relative filename (relative to <code>--dir</code> root) is checked against rules in the list. Once filename match PATTERN, file is included or excluded depending on the kind of PATTERN matched.
+No other rules checked after first match.</p>
+
+<pre><code>`--filter '+*.txt -file.txt'` File `file.txt` is INCLUDED, it matches 1st pattern, so 2nd pattern is ignored
+</code></pre>
+</li>
+<li>
+<p>2) If no rules matched - file is included (default rule is INCLUDE rule).</p>
+
+<pre><code>`--filter '+*.jpeg'` File `file.txt` is INCLUDED, as it does not match any rules
+</code></pre>
+</li>
+<li><p>3) When we process both local files and Journal filelist (sync, restore commands), rule applied to BOTH sides.</p></li>
+<li>
+<p>4) When traverse directory tree, (in contrast to behavior of some tools, like <em>Rsync</em>), if a directory (and all subdirectories) match exclude pattern,
+directory tree is not pruned, traversal go into the directory. So this will work fine (it will include <code>/tmp/data/a/b/c</code>, but exclude all other files in <code>/tmp/data</code>):</p>
+
+<pre><code>--filter '+/tmp/data/a/b/c -/tmp/data/ +'
+</code></pre>
+</li>
+<li><p>5) In some cases, to reduce disk IO, directory traversal into excluded directory can be stopped.
+This only can happen when <code>mtglacier</code> absolutely sure that it won't break behavior (4) described above.
+Currently it's guaranteed that traversal stop only in case when:</p></li>
+<li><p>A directory match EXCLUDE rule without '!' prefix, ending with '/' or '**', or empty rule</p></li>
+<li>
+<p>AND there are no INCLUDE rules before this EXCLUDE RULE</p>
+
+<pre><code>`--filter '-*.tmp -/media/ -/proc/ +*.jpeg'` - system '/proc' and huge '/media' directory is not traversed.
+</code></pre>
+</li>
+<li><p>6) Non-ASCII characters in PATTERNS are supported.</p></li>
+</ul><h2>
+<a name="user-content-additional-command-line-options" class="anchor" href="#additional-command-line-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Additional command line options</h2>
+
+<p>NOTE: Any command line option can be used in config file as well, but options specified on command line override options specified in config.</p>
+
+<ol class="task-list">
+<li>
+<p><code>concurrency</code> (with <code>sync</code>, <code>upload-file</code>, <code>restore</code>, <code>restore-completed</code> commands) - number of parallel upload streams to run. (default 4)</p>
+
+<pre><code>--concurrency 4
+</code></pre>
+</li>
+<li>
+<p><code>partsize</code> (with <code>sync</code>, <code>upload-file</code> command) - size of file chunk to upload at once, in Megabytes. (default 16)</p>
+
+<pre><code>--partsize 16
+</code></pre>
+</li>
+<li>
+<p><code>segment-size</code> (with <code>restore-completed</code> command) - size of download segment, in MiB  (default: none)</p>
+
+<p>If <code>segment-size</code> specified (greater than zero), and file size in megabytes is larger than <code>segment-size</code>, download performed in
+multiple segments.</p>
+
+<p>If omited or zero, multi-segment download is disabled (i.e this is default)</p>
+
+<p><code>segment-size</code> should be power of two.</p>
+</li>
+<li>
+<p><code>max-number-of-files</code> (with <code>sync</code> or <code>restore</code> commands) - limit number of files to sync/restore. Program will finish when reach this limit.</p>
+
+<pre><code>--max-number-of-files 100
+</code></pre>
+</li>
+<li><p><code>key/secret/region/vault/protocol</code> - you can override any option from config</p></li>
+<li>
+<p><code>dry-run</code> (with <code>sync</code>, <code>purge-vault</code>, <code>restore</code>, <code>restore-completed</code> and even <code>check-local-hash</code> commands) - do not perform actual work, print what will happen instead.</p>
+
+<pre><code>--dry-run
+</code></pre>
+</li>
+<li><p><code>leaf-optimization</code> (only <code>sync</code> command). <code>0</code> - disable. <code>1</code> - enable (default).
+Similar to <a href="http://unixhelp.ed.ac.uk/CGI/man-cgi?find">find</a> (coreutils tools) <code>-noleaf</code> option and <a href="http://search.cpan.org/perldoc?File%3A%3AFind">File::Find</a> <code>$dont_use_nlink</code> option.
+When disabled number of hardlinks to directory is ignored during file tree traversal. This slow down file search, but more
+compatible with (some) CIFS/CD-ROM filesystems.
+For more information see <a href="http://unixhelp.ed.ac.uk/CGI/man-cgi?find">find</a> and <a href="http://search.cpan.org/perldoc?File%3A%3AFind">File::Find</a> manuals.</p></li>
+<li><p><code>token</code> (all commands which connect Amazon Glacier API) - a STS/IAM security token, described in <a href="http://docs.aws.amazon.com/STS/latest/UsingSTS/UsingTokens.html">Amazon STS/IAM Using Temporary Security Credentials to Access AWS</a></p></li>
+<li>
+<p><code>timeout</code> (all commands which connect Amazon Glacier API)</p>
+
+<p>Sets the timeout value in seconds, default value is 180 seconds. Request to Amazon Glacier is retried, if if no activity
+on the connection to the server is observed for <code>timeout</code> seconds. This means that the time it takes for the complete whole
+request might be longer.</p>
+</li>
+<li>
+<p><code>follow</code> (only <code>sync</code> command)</p>
+
+<p>Follow symbolic links during directory traversal. This option hits performance and increases memory usage. Similar to <code>find -L</code></p>
+</li>
+</ol><h2>
+<a name="user-content-configuring-character-encodings" class="anchor" href="#configuring-character-encodings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring Character Encodings</h2>
+
+<p>Autodetection of locale/encodings not implemented yet, but currently there is ability to tune encodings manually.</p>
+
+<p>Below 4 options, that can be used in config file and in command line.</p>
+
+<ol class="task-list">
+<li><p><code>terminal-encoding</code> - Encoding of your terminal (STDOUT/STDERR for system messages)</p></li>
+<li>
+<p><code>filenames-encoding</code> - Encoding of filenames in filesystem.</p>
+
+<p>Under most *nix filesystems filenames stored as byte sequences, not characters. So in theory application is responsible for managing encodings.</p>
+</li>
+<li><p><code>config-encoding</code> - Encoding of your config file (<code>glacier.cfg</code> in examples above)</p></li>
+<li><p><code>journal-encoding</code> - Encoding to be used for Journal file (when reading and writing journal specified with <code>--journal</code> and <code>--new-journal</code> options)</p></li>
+</ol><p>Default value for all options is 'UTF-8'. Under Linux and Mac OS X you usually don't need to change encodings.
+Under *BSD systems often single-byte encodings are used. Most likely yo'll need to change <code>terminal-encoding</code> and <code>filenames-encoding</code>. Optionaly you can also
+change <code>config-encoding</code> and <code>journal-encoding</code>.</p>
+
+<p>Notes:</p>
+
+<ul class="task-list">
+<li><p>Before switching <code>config-encoding</code> and <code>journal-encoding</code> you are responsible for transcoding file content of config and journal files manually.</p></li>
+<li><p>You are responsible for encoding compatibility. For example Don't try to work with UTF-8 journal with non-Cyrilic characters and KOI8-R (Cyrilic) filesystem.</p></li>
+<li><p>Don't try to use UTF-16 for *nix filesystem. It's not ASCII compatible and contains \x00 bytes, which can't be stored in filesystem.</p></li>
+<li><p>Don't use <code>UTF8</code> - it does not validate data, use <code>UTF-8</code> (one with a dash) instead.</p></li>
+<li>
+<p>To get list of encodings installed with your Perl run:</p>
+
+<pre><code>perl -MEncode -e 'print join qq{\n}, Encode-&gt;encodings(q{:all})'
+</code></pre>
+</li>
+<li><p>Config file name (specified with <code>--config</code>) can be in any encoding (it's used as is) Of course it will work only if your terminal encoding match your
+filesystem encoding or if your config file name consists of ASCII-7bit characters only.</p></li>
+<li><p>Additional information about encoding support in Perl programming language: <a href="http://search.cpan.org/perldoc?Encode%3A%3ASupported">CPAN module Encode::Supported</a></p></li>
+<li><p>Amazon Glacier metadata (on Amazon servers) is always stored in UTF-8. No way to override it. You can use Journal in any encoding with same
+metdata without problems and you can dump metadata to journals with different encodings (using <code>download-inventory</code> command)</p></li>
+<li><p>See also <a href="http://www.j3e.de/linux/convmv/man/">convmv tool</a></p></li>
+</ul><h2>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h2>
+
+<ul class="task-list">
+<li><p>Only support filenames, which consist of octets, that can be mapped to a valid character sequence in desired encoding (i.e. filename
+which are made of random bytes/garbage is not supported. usually it's not a problem).</p></li>
+<li><p>Filenames with CR (Carriage return, code 0x0D) LF (Line feed, code 0x0A) and TAB (0x09) are not supported (usually not a problem too).</p></li>
+<li><p>Length of relative filenames. Currently limit is about 700 ASCII characters or 350 2-byte UTF-8 character (.. or 230 3-byte characters).</p></li>
+<li><p>File modification time should be in range from year 1000 to year 9999.</p></li>
+</ul><p>(NOTE: if above requirements are not met, error will be thrown)</p>
+
+<ul class="task-list">
+<li><p>If you uploaded files with file modifications dates past Y2038 on system which supports it, and then restored on system
+which does not (like Linux 32bit), resulting file timestamp (of course) wrong and also
+unpredictible (undefined behaviour). The only thing is guaranteed that if you restore journal from Amazon servers on affected (i.e. 32bit)
+machine - journal will contain correct timestamp (same as on 64bit).</p></li>
+<li><p>Memory usage (for 'sync') formula is ~ min(NUMBER_OF_FILES_TO_SYNC, max-number-of-files) + partsize*concurrency</p></li>
+<li><p>With high partsize*concurrency there is a risk of getting network timeouts HTTP 408/500.</p></li>
+</ul><h2>
+<a name="user-content-testplay-with-it" class="anchor" href="#testplay-with-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Test/Play with it</h2>
+
+<ol class="task-list">
+<li>create empty dir MYDIR</li>
+<li>Set vault name inside <code>cycletest.sh</code>
+</li>
+<li>
+<p>Run</p>
+
+<pre><code>./cycletest.sh init MYDIR
+./cycletest.sh retrieve MYDIR
+./cycletest.sh restore MYDIR
+</code></pre>
+</li>
+</ol><ul class="task-list">
+<li>
+<p>OR</p>
+
+<pre><code>./cycletest.sh init MYDIR
+./cycletest.sh purge MYDIR
+</code></pre>
+</li>
+</ul><h2>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a>See also</h2>
+
+<ul class="task-list">
+<li>Amazon Glacier Perl library on CPAN - see <a href="https://metacpan.org/module/Net::Amazon::Glacier">Net::Amazon::Glacier</a> by <em>Tim Nordenfur</em>
+</li>
+<li>Amazon Glacier TreeHash CPAN module <a href="https://metacpan.org/module/Net::Amazon::TreeHash">Net::Amazon::TreeHash</a> (copied from <code>mtglacier</code> code)</li>
+<li><a href="https://forums.aws.amazon.com/forum.jspa?forumID=140">Amazon Glacier development forum</a></li>
+</ul><h2>
+<a name="user-content-minimum-amazon-glacier-permissions" class="anchor" href="#minimum-amazon-glacier-permissions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Minimum Amazon Glacier permissions:</h2>
+
+<p>Something like this (including permissions to create/delete vaults):</p>
+
+<pre><code>{
+"Statement": [
+    {
+    "Effect": "Allow",
+    "Resource":["arn:aws:glacier:eu-west-1:*:vaults/test1",
+        "arn:aws:glacier:us-east-1:*:vaults/test1",
+        "arn:aws:glacier:eu-west-1:*:vaults/test2",
+        "arn:aws:glacier:eu-west-1:*:vaults/test3"],
+        "Action":["glacier:UploadArchive",
+          "glacier:InitiateMultipartUpload",
+          "glacier:UploadMultipartPart",
+          "glacier:UploadPart",
+          "glacier:DeleteArchive",
+          "glacier:ListParts",
+          "glacier:InitiateJob",
+          "glacier:ListJobs",
+          "glacier:GetJobOutput",
+          "glacier:ListMultipartUploads",
+          "glacier:CompleteMultipartUpload"]
+    },
+    {
+        "Effect": "Allow",
+        "Resource":["arn:aws:glacier:eu-west-1:*",
+          "arn:aws:glacier:us-east-1:*"],
+        "Action":["glacier:CreateVault",
+          "glacier:DeleteVault", "glacier:ListVaults"]
+    }
+    ]
+}
+</code></pre>
+
+<h4>
+<a name="user-content-eof" class="anchor" href="#eof" aria-hidden="true"><span class="octicon octicon-link"></span></a>EOF</h4>
+
+<p><a href="http://mt-aws.com/"><img src="https://camo.githubusercontent.com/b281770bfc5da60566a4b34e8bdedb2a52a8f1f3/68747470733a2f2f6d742d6177732e636f6d2f6d742d6177732d676c61636965722d7472616e73702e676966" alt="mt-aws glacier tracking pixel" title="mt-aws glacier tracking pixel" data-canonical-src="https://mt-aws.com/mt-aws-glacier-transp.gif" style="max-width:100%;"></a></p></article></div>

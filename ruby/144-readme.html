@@ -1,0 +1,264 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-grit" class="anchor" href="#grit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Grit</h1>
+
+<p><strong>Grit is no longer maintained. Check out <a href="https://github.com/libgit2/rugged">rugged</a>.</strong></p>
+
+<p>Grit gives you object oriented read/write access to Git repositories via Ruby.
+The main goals are stability and performance. To this end, some of the
+interactions with Git repositories are done by shelling out to the system's
+<code>git</code> command, and other interactions are done with pure Ruby
+reimplementations of core Git functionality. This choice, however, is
+transparent to end users, and you need not know which method is being used.</p>
+
+<p>This software was developed to power GitHub, and should be considered
+production ready. An extensive test suite is provided to verify its
+correctness.</p>
+
+<p>Grit is maintained by Tom Preston-Werner, Scott Chacon, Chris Wanstrath, and
+PJ Hyett.</p>
+
+<p>This documentation is accurate as of Grit 2.3.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<ul class="task-list">
+<li>git (<a href="http://git-scm.com">http://git-scm.com</a>) tested with 1.7.2.1</li>
+</ul><h2>
+<a name="user-content-install" class="anchor" href="#install" aria-hidden="true"><span class="octicon octicon-link"></span></a>Install</h2>
+
+<p>Easiest install is via RubyGems:</p>
+
+<pre><code>$ gem install grit
+</code></pre>
+
+<h2>
+<a name="user-content-source" class="anchor" href="#source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source</h2>
+
+<p>Grit's Git repo is available on GitHub, which can be browsed at:</p>
+
+<pre><code>http://github.com/mojombo/grit
+</code></pre>
+
+<p>and cloned with:</p>
+
+<pre><code>git clone git://github.com/mojombo/grit.git
+</code></pre>
+
+<h3>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h3>
+
+<p>You will need these gems to get tests to pass:</p>
+
+<ul class="task-list">
+<li>mocha</li>
+</ul><h3>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h3>
+
+<p>If you'd like to hack on Grit, follow these instructions. To get all of the dependencies, install the gem first.</p>
+
+<ol class="task-list">
+<li>Fork the project to your own account</li>
+<li>Clone down your fork</li>
+<li>Create a thoughtfully named topic branch to contain your change</li>
+<li>Hack away</li>
+<li>Add tests and make sure everything still passes by running <code>rake</code>
+</li>
+<li>If you are adding new functionality, document it in README.md</li>
+<li>Do not change the version number, I will do that on my end</li>
+<li>If necessary, rebase your commits into logical chunks, without errors</li>
+<li>Push the branch up to GitHub</li>
+<li>Send a pull request for your branch</li>
+</ol><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Grit gives you object model access to your Git repositories. Once you have
+created a <code>Repo</code> object, you can traverse it to find parent commits,
+trees, blobs, etc.</p>
+
+<h3>
+<a name="user-content-initialize-a-repo-object" class="anchor" href="#initialize-a-repo-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initialize a Repo object</h3>
+
+<p>The first step is to create a <code>Grit::Repo</code> object to represent your repo. In
+this documentation I include the <code>Grit</code> module to reduce typing.</p>
+
+<pre><code>require 'grit'
+repo = Grit::Repo.new("/Users/tom/dev/grit")
+</code></pre>
+
+<p>In the above example, the directory <code>/Users/tom/dev/grit</code> is my working
+directory and contains the <code>.git</code> directory. You can also initialize Grit with
+a bare repo.</p>
+
+<pre><code>repo = Repo.new("/var/git/grit.git")
+</code></pre>
+
+<h3>
+<a name="user-content-getting-a-list-of-commits" class="anchor" href="#getting-a-list-of-commits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting a list of commits</h3>
+
+<p>From the <code>Repo</code> object, you can get a list of commits as an array of <code>Commit</code>
+objects.</p>
+
+<pre><code>repo.commits
+# =&gt; [#&lt;Grit::Commit "e80bbd2ce67651aa18e57fb0b43618ad4baf7750"&gt;,
+      #&lt;Grit::Commit "91169e1f5fa4de2eaea3f176461f5dc784796769"&gt;,
+      #&lt;Grit::Commit "038af8c329ef7c1bae4568b98bd5c58510465493"&gt;,
+      #&lt;Grit::Commit "40d3057d09a7a4d61059bca9dca5ae698de58cbe"&gt;,
+      #&lt;Grit::Commit "4ea50f4754937bf19461af58ce3b3d24c77311d9"&gt;]
+</code></pre>
+
+<p>Called without arguments, <code>Repo#commits</code> returns a list of up to ten commits
+reachable by the <strong>master</strong> branch (starting at the latest commit). You can
+ask for commits beginning at a different branch, commit, tag, etc.</p>
+
+<pre><code>repo.commits('mybranch')
+repo.commits('40d3057d09a7a4d61059bca9dca5ae698de58cbe')
+repo.commits('v0.1')
+</code></pre>
+
+<p>You can specify the maximum number of commits to return.</p>
+
+<pre><code>repo.commits('master', 100)
+</code></pre>
+
+<p>If you need paging, you can specify a number of commits to skip.</p>
+
+<pre><code>repo.commits('master', 10, 20)
+</code></pre>
+
+<p>The above will return commits 21-30 from the commit list.</p>
+
+<h3>
+<a name="user-content-the-commit-object" class="anchor" href="#the-commit-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Commit object</h3>
+
+<p><code>Commit</code> objects contain information about that commit.</p>
+
+<pre><code>head = repo.commits.first
+
+head.id
+# =&gt; "e80bbd2ce67651aa18e57fb0b43618ad4baf7750"
+
+head.parents
+# =&gt; [#&lt;Grit::Commit "91169e1f5fa4de2eaea3f176461f5dc784796769"&gt;]
+
+head.tree
+# =&gt; #&lt;Grit::Tree "3536eb9abac69c3e4db583ad38f3d30f8db4771f"&gt;
+
+head.author
+# =&gt; #&lt;Grit::Actor "Tom Preston-Werner &lt;tom@mojombo.com&gt;"&gt;
+
+head.authored_date
+# =&gt; Wed Oct 24 22:02:31 -0700 2007
+
+head.committer
+# =&gt; #&lt;Grit::Actor "Tom Preston-Werner &lt;tom@mojombo.com&gt;"&gt;
+
+head.committed_date
+# =&gt; Wed Oct 24 22:02:31 -0700 2007
+
+head.message
+# =&gt; "add Actor inspect"
+</code></pre>
+
+<p>You can traverse a commit's ancestry by chaining calls to <code>#parents</code>.</p>
+
+<pre><code>repo.commits.first.parents[0].parents[0].parents[0]
+</code></pre>
+
+<p>The above corresponds to <strong>master^^^</strong> or <strong>master~3</strong> in Git parlance.</p>
+
+<h3>
+<a name="user-content-the-tree-object" class="anchor" href="#the-tree-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Tree object</h3>
+
+<p>A tree records pointers to the contents of a directory. Let's say you want
+the root tree of the latest commit on the <strong>master</strong> branch.</p>
+
+<pre><code>tree = repo.commits.first.tree
+# =&gt; #&lt;Grit::Tree "3536eb9abac69c3e4db583ad38f3d30f8db4771f"&gt;
+
+tree.id
+# =&gt; "3536eb9abac69c3e4db583ad38f3d30f8db4771f"
+</code></pre>
+
+<p>Once you have a tree, you can get the contents.</p>
+
+<pre><code>contents = tree.contents
+# =&gt; [#&lt;Grit::Blob "4ebc8aea50e0a67e000ba29a30809d0a7b9b2666"&gt;,
+      #&lt;Grit::Blob "81d2c27608b352814cbe979a6acd678d30219678"&gt;,
+      #&lt;Grit::Tree "c3d07b0083f01a6e1ac969a0f32b8d06f20c62e5"&gt;,
+      #&lt;Grit::Tree "4d00fe177a8407dbbc64a24dbfc564762c0922d8"&gt;]
+</code></pre>
+
+<p>This tree contains two <code>Blob</code> objects and two <code>Tree</code> objects. The trees are
+subdirectories and the blobs are files. Trees below the root have additional
+attributes.</p>
+
+<pre><code>contents.last.name
+# =&gt; "lib"
+
+contents.last.mode
+# =&gt; "040000"
+</code></pre>
+
+<p>There is a convenience method that allows you to get a named sub-object
+from a tree.</p>
+
+<pre><code>tree / "lib"
+# =&gt; #&lt;Grit::Tree "e74893a3d8a25cbb1367cf241cc741bfd503c4b2"&gt;
+</code></pre>
+
+<p>You can also get a tree directly from the repo if you know its name.</p>
+
+<pre><code>repo.tree
+# =&gt; #&lt;Grit::Tree "master"&gt;
+
+repo.tree("91169e1f5fa4de2eaea3f176461f5dc784796769")
+# =&gt; #&lt;Grit::Tree "91169e1f5fa4de2eaea3f176461f5dc784796769"&gt;
+</code></pre>
+
+<h3>
+<a name="user-content-the-blob-object" class="anchor" href="#the-blob-object" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Blob object</h3>
+
+<p>A blob represents a file. Trees often contain blobs.</p>
+
+<pre><code>blob = tree.contents.first
+# =&gt; #&lt;Grit::Blob "4ebc8aea50e0a67e000ba29a30809d0a7b9b2666"&gt;
+</code></pre>
+
+<p>A blob has certain attributes.</p>
+
+<pre><code>blob.id
+# =&gt; "4ebc8aea50e0a67e000ba29a30809d0a7b9b2666"
+
+blob.name
+# =&gt; "README.txt"
+
+blob.mode
+# =&gt; "100644"
+
+blob.size
+# =&gt; 7726
+</code></pre>
+
+<p>You can get the data of a blob as a string.</p>
+
+<pre><code>blob.data
+# =&gt; "Grit is a library to ..."
+</code></pre>
+
+<p>You can also get a blob directly from the repo if you know its name.</p>
+
+<pre><code>repo.blob("4ebc8aea50e0a67e000ba29a30809d0a7b9b2666")
+# =&gt; #&lt;Grit::Blob "4ebc8aea50e0a67e000ba29a30809d0a7b9b2666"&gt;
+</code></pre>
+
+<h3>
+<a name="user-content-other" class="anchor" href="#other" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other</h3>
+
+<p>There are many more API methods available that are not documented here. Please
+reference the code for more functionality.</p>
+
+<h2>
+<a name="user-content-copyright" class="anchor" href="#copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright</h2>
+
+<p>Copyright (c) 2010 Tom Preston-Werner. See LICENSE for details.</p></article></div>

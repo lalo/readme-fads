@@ -1,0 +1,187 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
+
+<p>Git-deliver is a GPL licensed delivery system based on Git.</p>
+
+<p>It uses "git push" combined with SSH as a way of delivering a project (as of a specific Git commit) to various environments (Git remotes) simply and securely. It also helps keeping track of what is delivered on which server.</p>
+
+<p>Compared to a regular Git push/checkout, Git-deliver :</p>
+
+<ul class="task-list">
+<li>makes the delivery atomic</li>
+<li>structures the delivery process in stages and handles errors while maintaining availability</li>
+<li>archives delivered versions and automates rollback</li>
+<li>logs everything</li>
+<li>provides an easy way of knowing what is delivered where, checking integrity and knowing when and by whom a version was delivered.</li>
+<li>intends to provide pre-baked delivery recipes for common development environments</li>
+</ul><p>Each delivery remote is a bare Git repository, in the root of which Git-deliver creates a "delivered" folder. This folder will contain one non-bare clone of the base repository for each delivery.</p>
+
+<p>The git clones share their metadata with the main repository for the remote, to avoid excessive space usage / copy time.</p>
+
+<p>The current version's clone is used through a "current" symlink, which is switched once the new version is ready, to make the delivery "atomic".</p>
+
+<p>A delivery is done in stages. At each stage, Bash scripts can be run, that can be tailored to the project. Commonly used script sets can be shared in the form of "presets".</p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<h2>
+<a name="user-content-all-platforms" class="anchor" href="#all-platforms" aria-hidden="true"><span class="octicon octicon-link"></span></a>All platforms</h2>
+
+<p>Clone this repository in the directory of your choice.</p>
+
+<p>In your .gitconfig, add this line in the <code>[alias]</code> section:</p>
+
+<pre><code>deliver = "!bash &lt;path_to_clone&gt;/deliver.sh"
+</code></pre>
+
+<p>Where <code>&lt;path_to_clone&gt;</code> is the path to the root of the git clone you just made.</p>
+
+<p>If you receive an error such as:</p>
+
+<pre><code>fatal: cannot exec 'git-deliver': Permission denied
+</code></pre>
+
+<p>Then Git has found a file or directory in your PATH called 'git-deliver' that it cannot execute. <br>
+Note that cloning this repo into your PATH will result in the above error, so either move it to outside of your PATH or rename it.</p>
+
+<h2>
+<a name="user-content-windows" class="anchor" href="#windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows</h2>
+
+<p>To use Git-deliver on Windows, you'll most likely want to setup SSH public key authentication with your remotes to avoid typing your SSH password multiple times. See <a href="http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication">http://stackoverflow.com/questions/7260/how-do-i-setup-public-key-authentication</a> for instructions. This is because the SSH client bundled with msys does not support connection multiplexing (at least not with privilege separation enabled on the server). </p>
+
+<h1>
+<a name="user-content-a-simple-example-tldr" class="anchor" href="#a-simple-example-tldr" aria-hidden="true"><span class="octicon octicon-link"></span></a>A simple example (TL;DR)</h1>
+
+<p>Let's assume for this example that you have a simple project for which a delivery just means copying files.</p>
+
+<p>The example below assumes that the server is accessible with SSH.</p>
+
+<p>To setup your project for Git-deliver, in your project directory, run:</p>
+
+<pre><code>git deliver --init
+</code></pre>
+
+<p>Create a bare repository on the server where you want the project delivered, and add it as a remote in your local Git project, or ask Git-deliver to do it:</p>
+
+<pre><code>git deliver --init-remote test_server user@test_server.example.com:/project_files
+</code></pre>
+
+<p>You can then perform your first delivery (here, of your local "master"):</p>
+
+<pre><code>git deliver test_server master
+</code></pre>
+
+<p>Your project is now accessible on test_server.example.com at /project_files/delivered/current</p>
+
+<p>Let's deliver another version (tagged "v1.0"):</p>
+
+<pre><code>git deliver test_server v1.0
+</code></pre>
+
+<p>You can ask Git-deliver what the current version on test_server is, who delivered it and when:</p>
+
+<pre><code>git deliver --status test_server
+</code></pre>
+
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<pre><code>git deliver &lt;REMOTE&gt; &lt;REF&gt;
+</code></pre>
+
+<p>deliver <code>&lt;REF&gt;</code> (sha1, tag, branch) on <code>&lt;REMOTE&gt;</code>.</p>
+
+<pre><code>git deliver --status [REMOTE]
+</code></pre>
+
+<p>Returns the version delivered (if any) on <code>[REMOTE]</code>, or on all remotes if <code>[REMOTE]</code> is not specified.</p>
+
+<pre><code>git deliver --rollback &lt;REMOTE&gt; [PREVIOUSLY_DELIVERED_FOLDER]
+</code></pre>
+
+<p>Switches back to a previously delivered version on <code>&lt;REMOTE&gt;</code>. This is like a regular delivery, except we reuse an already delivered folder and use it to start the process at stage pre-symlink. You can give the name of a previous delivery folder; if you don't, the "previous" version is used.</p>
+
+<pre><code>git deliver --gc &lt;REMOTE&gt;
+</code></pre>
+
+<p>"garbage collection": remove all previously delivered versions on <code>&lt;REMOTE&gt;</code>, except the last three ("current", "previous", "preprevious")</p>
+
+<pre><code>git deliver --init [presets]
+</code></pre>
+
+<p>Initialise this repository for git-deliver, optionally including stage scripts for <code>[presets]</code></p>
+
+<pre><code>git deliver --init-remote [--shared=...] &lt;REMOTE_NAME&gt; [REMOTE_URL]
+</code></pre>
+
+<p>Initialize Git remote <code>&lt;REMOTE_NAME&gt;</code> for git-deliver. The remote needs to be bare. If it does not exist yet, it can be created at <code>[REMOTE_URL]</code>. If the remote exists but does not point to a bare repository, the repository will be created. The shared parameter, if supplied, is then passed as is to git init (see "man git-init").</p>
+
+<pre><code>git deliver --list-presets
+</code></pre>
+
+<p>List available presets for --init</p>
+
+<h1>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h1>
+
+<p>To get started, you'd run <code>git deliver --init</code> in your Git working folder. This would create an empty ".deliver" folder next to the ".git" one. You'd then be able to create scripts in this folder to customize the delivery process should you want to. You could keep the .deliver folder under version control and share it with your team that way.</p>
+
+<p>If you wanted to start with presets for a given environment, you'd give init a list of preset names: something like <code>git deliver --init rails</code> would copy the "rails" scripts, which might depend on others which will be automatically copied as well. The list of available presets can be viewed by running <code>git deliver --list-presets</code>.</p>
+
+<p>Note that although the mechanisms are there, presets themselves are pretty much inexistent right now; I very much welcome contributions in this area.</p>
+
+<p>Once our working copy is ready, if you have "init-remote" scripts, you'll need to run <code>git deliver --init-remote &lt;remote&gt;</code> to run those. They might be used to install external dependencies on the remote. If you don't have "init-remote" scripts, remote initialization is not needed (Git-deliver will warn you at the first delivery, if you forget to initialize a remote that requires it).</p>
+
+<p>A delivery is initiated by running <code>git deliver &lt;remote&gt; &lt;ref&gt;</code>. Here's the timeline of what happens:</p>
+
+<ul class="task-list">
+<li><p>We run preliminary checks. By default, we just check the available disk space on the remote, but you can create "pre-delivery" scripts to add checks.</p></li>
+<li><p>The commit to deliver is pushed to the remote, and the remote repository cloned in the delivered folder. "post-checkout" scripts are then run.</p></li>
+<li><p>Your scripts might change the delivered files. We therefore do a commit in the clone repository, to save the delivered state. If the repository you are delivering to is a shared one, the files are given group write permissions and made to belong to the same group as the "objetcs" folder in the repository. We then run the "pre-symlink" scripts.</p></li>
+<li><p>We change the "current", "previous" and "preprevious" symlinks atomically to point to the corresponding new folders, and run the "post-symlink" scripts. During the symlink update, the "current" symlink always exists and always points to a version of your software, unless you try to deliver to a system having neither GNU mv nor Python installed, in which case there will be a short time during which the "current" symlink will be missing (Git-deliver will warn you of this).</p></li>
+<li><p>If any of the run scripts fails (has a non zero exit status) or if an internal git-deliver step fails, we'll stop the delivery there and initiate a rollback. To do this, we'll run the "rollback-pre-symlink" scripts, switch the symlinks back if necessary (if we went as far in the process as to change them in the first place), then run the "rollback-post-symlink" scripts.</p></li>
+</ul><h1>
+<a name="user-content-stage-scripts" class="anchor" href="#stage-scripts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stage scripts</h1>
+
+<p>Stage scripts can read a few environment variables to gather information about the delivery process.</p>
+
+<p>All stages have access to:</p>
+
+<pre><code>$VERSION               the ref being delivered, as it was specified on the command line
+$VERSION_SHA           sha1 of the ref being delivered
+$PREVIOUS_VERSION_SHA  sha1 of the previously delivered ref
+$GIT_DELIVER_PATH      path to where git-deliver is stored
+$REPO_ROOT             root of the local git repo
+$DELIVERY_DATE         date and time the delivery was initiated (using date +'%F_%H-%M-%S')
+$REMOTE_SERVER         hostname or IP of the server we are delivering to, empty if doing a local delivery
+$REMOTE_PATH           path to the bare remote repository we are delivering to
+$REMOTE                name of the Git remote we are delivering to
+$DELIVERY_PATH         path where the version will be delivered on the remote ($REMOTE_PATH/delivered/$VERSION_$DELIVERY_DATE)
+$IS_ROLLBACK           boolean, true if this delivery is a rollback to a previously installed version
+</code></pre>
+
+<p>Scripts for stages rollback-pre-symlink and rollback-post-symlink have access to:</p>
+
+<pre><code>$LAST_STAGE_REACHED       The last stage the delivery reached before rollback had to be called. This allows the rollback stage scripts to know what needs to be undone to perform the rollback. Empty if delivery stopped before stage "pre-delivery".
+$FAILED_SCRIPT              Name of the stage script that failed, triggering the rollback. Empty if the rollback was caused by an error in the standard Git-deliver process.
+$FAILED_SCRIPT_EXIT_STATUS  Exit status of the stage script that failed, triggering the rollback. 0 if the rollback was caused by a SIGINT (CTRL+C).
+</code></pre>
+
+<p>Stage scripts can use the <code>run_remote</code> bash function to run commands on the remote through SSH (as the SSH user setup for the remote in Git). <code>run_remote</code> also works for "local" remotes, the command will then be run as the user running git-deliver.</p>
+
+<p>Scripts with a name ending in .remote.sh will be executed entirely on the remote.</p>
+
+<h1>
+<a name="user-content-status-roadmap" class="anchor" href="#status-roadmap" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status, Roadmap</h1>
+
+<p>Git-deliver is usable as-is, but is a work in progress. I consider it a working prototype. My main objective now is to turn it into a robust and reliable piece of software.</p>
+
+<p>See <a href="https://github.com/arnoo/git-deliver/issues?state=open">https://github.com/arnoo/git-deliver/issues?state=open</a> for known bugs and planned enhancements/features.</p>
+
+<p>Code contributions are welcome, particularly in the form of stage script presets.</p>
+
+<h1>
+<a name="user-content-help-fund-the-project" class="anchor" href="#help-fund-the-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Help fund the project</h1>
+
+<p>You can donate Bitcoins to fund future developments. Send them to 1MtSVmn4uZ98iEFjHLkHSbqxwmbyvEoqAJ</p></article></div>

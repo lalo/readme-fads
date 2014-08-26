@@ -1,0 +1,266 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-psdrb" class="anchor" href="#psdrb" aria-hidden="true"><span class="octicon octicon-link"></span></a>PSD.rb</h1>
+
+<p><a href="https://travis-ci.org/layervault/psd.rb"><img src="https://camo.githubusercontent.com/a3d3c5d964ec4f62ccbb184e1c839e78338e7a73/68747470733a2f2f7472617669732d63692e6f72672f6c617965727661756c742f7073642e72622e706e673f6272616e63683d6d6173746572" alt="Travis CI" data-canonical-src="https://travis-ci.org/layervault/psd.rb.png?branch=master" style="max-width:100%;"></a></p>
+
+<p>A general purpose Photoshop file parser written in Ruby. It allows you to work with a Photoshop document in a manageable tree structure and find out important data such as:</p>
+
+<ul class="task-list">
+<li>Document structure</li>
+<li>Document size</li>
+<li>Layer/folder size + positioning</li>
+<li>Layer/folder names</li>
+<li>Layer/folder visibility and opacity</li>
+<li>Font data (via <a href="https://github.com/layervault/psd-enginedata">psd-enginedata</a>)
+
+<ul class="task-list">
+<li>Text area contents</li>
+<li>Font names, sizes, and colors</li>
+</ul>
+</li>
+<li>Color mode and bit-depth</li>
+<li>Vector mask data</li>
+<li>Flattened image data</li>
+<li>Layer comps</li>
+</ul><p>PSD.rb is tested against:</p>
+
+<ul class="task-list">
+<li>MRI 1.9.3, 2.0.0, 2.1.0</li>
+<li>JRuby (1.9.3 mode)</li>
+</ul><p>If you use MRI Ruby and are interested in significantly speeding up PSD.rb with native code, check out <a href="https://github.com/layervault/psd_native">psd_native</a>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Add this line to your application's Gemfile:</p>
+
+<pre><code>gem 'psd'
+</code></pre>
+
+<p>And then execute:</p>
+
+<pre><code>$ bundle
+</code></pre>
+
+<p>Or install it yourself as:</p>
+
+<pre><code>$ gem install psd
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The <a href="http://rubydoc.info/gems/psd/frames">full source code documentation</a> is available, but here are some common ways to use and access the PSD data:</p>
+
+<h3>
+<a name="user-content-loading-a-psd" class="anchor" href="#loading-a-psd" aria-hidden="true"><span class="octicon octicon-link"></span></a>Loading a PSD</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'psd'</span>
+
+<span class="n">psd</span> <span class="o">=</span> <span class="no">PSD</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">'/path/to/file.psd'</span><span class="p">)</span>
+<span class="n">psd</span><span class="o">.</span><span class="n">parse!</span>
+</pre></div>
+
+<p>Or, if you prefer the File.open way of doing things, you can do that too.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'psd'</span>
+
+<span class="no">PSD</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">'path/to/file.psd'</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">psd</span><span class="o">|</span>
+  <span class="nb">p</span> <span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">to_hash</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>As you can see, <code>open</code> calls <code>parse!</code> for you, so that you can get down to business right away.</p>
+
+<p>If you happen to prefer things DSL-style, the <code>open</code> method will also let you operate on the PSD object directly. Again, the call to <code>parse!</code> is handled for you.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'psd'</span>
+
+<span class="no">PSD</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">'path/to/file.psd'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="nb">p</span> <span class="n">tree</span><span class="o">.</span><span class="n">to_hash</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-traversing-the-document" class="anchor" href="#traversing-the-document" aria-hidden="true"><span class="octicon octicon-link"></span></a>Traversing the Document</h3>
+
+<p>To access the document as a tree structure, use <code>psd.tree</code> to get the root node. From there, work with the tree using any of these methods:</p>
+
+<ul class="task-list">
+<li>
+<code>root</code>: get the root node from anywhere in the tree</li>
+<li>
+<code>root?</code>: is this the root node?</li>
+<li>
+<code>children</code>: get all immediate children of the node</li>
+<li>
+<code>has_children?</code>: does this node have any children?</li>
+<li>
+<code>childless?</code>: opposite of <code>has_children?</code>
+</li>
+<li>
+<code>ancestors</code>: get all ancestors in the path of this node (excluding the root)</li>
+<li>
+<code>siblings</code>: get all sibling tree nodes including the current one (e.g. all layers in a folder)</li>
+<li>
+<code>next_sibling</code>: gets the sibling immediately following the current node</li>
+<li>
+<code>prev_sibling</code>: gets the sibling immediately before the current node</li>
+<li>
+<code>has_siblings?</code>: does this node have any siblings?</li>
+<li>
+<code>only_child?</code>: opposite of <code>has_siblings?</code>
+</li>
+<li>
+<code>descendants</code>: get all descendant nodes not including the current one</li>
+<li>
+<code>subtree</code>: same as descendants but starts with the current node</li>
+<li>
+<code>depth</code>: calculate the depth of the current node (root node is 0)</li>
+<li>
+<code>path</code>: gets the path to the current node</li>
+</ul><p>For any of the traversal methods, you can also retrieve folder or layer nodes only by appending <code>_layers</code> or <code>_groups</code> to the method. For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">descendant_layers</span>
+</pre></div>
+
+<p>If you know the path to a group or layer within the tree, you can search by that path. Note that this always returns an Array because layer/group names do not have to be unique.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">children_at_path</span><span class="p">(</span><span class="s2">"Version A/Matte"</span><span class="p">)</span>
+<span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">children_at_path</span><span class="p">(</span><span class="o">[</span><span class="s2">"Version A"</span><span class="p">,</span> <span class="s2">"Matte"</span><span class="o">]</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-layer-comps" class="anchor" href="#layer-comps" aria-hidden="true"><span class="octicon octicon-link"></span></a>Layer Comps</h3>
+
+<p>You can also filter nodes based on a layer comp. To generate a new tree with layer visibility and position set according to the layer comp data:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Get information about all the available layer comps</span>
+<span class="nb">puts</span> <span class="n">psd</span><span class="o">.</span><span class="n">layer_comps</span>
+
+<span class="c1"># Can filter by name or by ID (obtained from above)</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">filter_by_comp</span><span class="p">(</span><span class="s1">'Version A'</span><span class="p">)</span>
+<span class="nb">puts</span> <span class="n">tree</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:name</span><span class="p">)</span>
+</pre></div>
+
+<p>This returns a new node tree and does not alter the original.</p>
+
+<h3>
+<a name="user-content-accessing-layer-data" class="anchor" href="#accessing-layer-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Accessing Layer Data</h3>
+
+<p>To get data such as the name or dimensions of a layer:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">descendant_layers</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">name</span>
+<span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">descendant_layers</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">width</span>
+</pre></div>
+
+<p>PSD files also store various pieces of information in "layer info" blocks. Which blocks a layer has varies from layer-to-layer, but to access them you can do:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">descendant_layers</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">text</span><span class="o">[</span><span class="ss">:font</span><span class="o">]</span>
+
+<span class="c1"># Returns</span>
+<span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"HelveticaNeue-Light"</span><span class="p">,</span>
+ <span class="ss">:sizes</span><span class="o">=&gt;[</span><span class="mi">33</span><span class="o">.</span><span class="mi">0</span><span class="o">]</span><span class="p">,</span>
+ <span class="ss">:colors</span><span class="o">=&gt;[[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">98</span><span class="o">]]</span><span class="p">,</span>
+ <span class="ss">:css</span><span class="o">=&gt;</span>
+  <span class="s2">"font-family: </span><span class="se">\"</span><span class="s2">HelveticaNeue-Light</span><span class="se">\"</span><span class="s2">, </span><span class="se">\"</span><span class="s2">AdobeInvisFont</span><span class="se">\"</span><span class="s2">, </span><span class="se">\"</span><span class="s2">MyriadPro-Regular</span><span class="se">\"</span><span class="s2">;</span><span class="se">\n</span><span class="s2">font-size: 33.0pt;</span><span class="se">\n</span><span class="s2">color: rgba(19, 120, 98, 255);"</span><span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-exporting-data" class="anchor" href="#exporting-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Exporting Data</h3>
+
+<p>When working with the tree structure, you can recursively export any node to a Hash.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">pp</span> <span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">to_hash</span>
+</pre></div>
+
+<p>Which produces something like:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="p">{</span><span class="ss">:children</span><span class="o">=&gt;</span>
+  <span class="o">[</span><span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="ss">:group</span><span class="p">,</span>
+    <span class="ss">:visible</span><span class="o">=&gt;</span><span class="kp">false</span><span class="p">,</span>
+    <span class="ss">:opacity</span><span class="o">=&gt;</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span>
+    <span class="ss">:blending_mode</span><span class="o">=&gt;</span><span class="s2">"normal"</span><span class="p">,</span>
+    <span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Version D"</span><span class="p">,</span>
+    <span class="ss">:left</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span>
+    <span class="ss">:right</span><span class="o">=&gt;</span><span class="mi">900</span><span class="p">,</span>
+    <span class="ss">:top</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span>
+    <span class="ss">:bottom</span><span class="o">=&gt;</span><span class="mi">600</span><span class="p">,</span>
+    <span class="ss">:height</span><span class="o">=&gt;</span><span class="mi">900</span><span class="p">,</span>
+    <span class="ss">:width</span><span class="o">=&gt;</span><span class="mi">600</span><span class="p">,</span>
+    <span class="ss">:children</span><span class="o">=&gt;</span>
+     <span class="o">[</span><span class="p">{</span><span class="ss">:type</span><span class="o">=&gt;</span><span class="ss">:layer</span><span class="p">,</span>
+       <span class="ss">:visible</span><span class="o">=&gt;</span><span class="kp">true</span><span class="p">,</span>
+       <span class="ss">:opacity</span><span class="o">=&gt;</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span>
+       <span class="ss">:blending_mode</span><span class="o">=&gt;</span><span class="s2">"normal"</span><span class="p">,</span>
+       <span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"Make a change and save."</span><span class="p">,</span>
+       <span class="ss">:left</span><span class="o">=&gt;</span><span class="mi">275</span><span class="p">,</span>
+       <span class="ss">:right</span><span class="o">=&gt;</span><span class="mi">636</span><span class="p">,</span>
+       <span class="ss">:top</span><span class="o">=&gt;</span><span class="mi">435</span><span class="p">,</span>
+       <span class="ss">:bottom</span><span class="o">=&gt;</span><span class="mi">466</span><span class="p">,</span>
+       <span class="ss">:height</span><span class="o">=&gt;</span><span class="mi">31</span><span class="p">,</span>
+       <span class="ss">:width</span><span class="o">=&gt;</span><span class="mi">361</span><span class="p">,</span>
+       <span class="ss">:text</span><span class="o">=&gt;</span>
+        <span class="p">{</span><span class="ss">:value</span><span class="o">=&gt;</span><span class="s2">"Make a change and save."</span><span class="p">,</span>
+         <span class="ss">:font</span><span class="o">=&gt;</span>
+          <span class="p">{</span><span class="ss">:name</span><span class="o">=&gt;</span><span class="s2">"HelveticaNeue-Light"</span><span class="p">,</span>
+           <span class="ss">:sizes</span><span class="o">=&gt;[</span><span class="mi">33</span><span class="o">.</span><span class="mi">0</span><span class="o">]</span><span class="p">,</span>
+           <span class="ss">:colors</span><span class="o">=&gt;[[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">98</span><span class="o">]]</span><span class="p">,</span>
+           <span class="ss">:css</span><span class="o">=&gt;</span>
+            <span class="s2">"font-family: </span><span class="se">\"</span><span class="s2">HelveticaNeue-Light</span><span class="se">\"</span><span class="s2">, </span><span class="se">\"</span><span class="s2">AdobeInvisFont</span><span class="se">\"</span><span class="s2">, </span><span class="se">\"</span><span class="s2">MyriadPro-Regular</span><span class="se">\"</span><span class="s2">;</span><span class="se">\n</span><span class="s2">font-size: 33.0pt;</span><span class="se">\n</span><span class="s2">color: rgba(19, 120, 98, 255);"</span><span class="p">},</span>
+         <span class="ss">:left</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span>
+         <span class="ss">:top</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span>
+         <span class="ss">:right</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span>
+         <span class="ss">:bottom</span><span class="o">=&gt;</span><span class="mi">0</span><span class="p">,</span>
+         <span class="ss">:transform</span><span class="o">=&gt;</span>
+          <span class="p">{</span><span class="ss">:xx</span><span class="o">=&gt;</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span> <span class="ss">:xy</span><span class="o">=&gt;</span><span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span> <span class="ss">:yx</span><span class="o">=&gt;</span><span class="mi">0</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span> <span class="ss">:yy</span><span class="o">=&gt;</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span> <span class="ss">:tx</span><span class="o">=&gt;</span><span class="mi">456</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span> <span class="ss">:ty</span><span class="o">=&gt;</span><span class="mi">459</span><span class="o">.</span><span class="mi">0</span><span class="p">}},</span>
+       <span class="ss">:ref_x</span><span class="o">=&gt;</span><span class="mi">264</span><span class="o">.</span><span class="mi">0</span><span class="p">,</span>
+       <span class="ss">:ref_y</span><span class="o">=&gt;-</span><span class="mi">3</span><span class="o">.</span><span class="mi">0</span><span class="p">}</span><span class="o">]</span>
+  <span class="p">}</span><span class="o">]</span><span class="p">,</span>
+<span class="ss">:document</span><span class="o">=&gt;</span><span class="p">{</span><span class="ss">:width</span><span class="o">=&gt;</span><span class="mi">900</span><span class="p">,</span> <span class="ss">:height</span><span class="o">=&gt;</span><span class="mi">600</span><span class="p">}}</span>
+</pre></div>
+
+<p>You can also export the PSD to a flattened image. Please note that, at this time, not all image modes + depths are supported.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">png</span> <span class="o">=</span> <span class="n">psd</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">to_png</span> <span class="c1"># reference to PNG data</span>
+<span class="n">psd</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">save_as_png</span> <span class="s1">'path/to/output.png'</span> <span class="c1"># writes PNG to disk</span>
+</pre></div>
+
+<p>This uses the full rasterized preview provided by Photoshop. It does not use the built-in rendering engine (described below). If the file was not saved with Compatibility Mode enabled, this will return an empty image.</p>
+
+<h3>
+<a name="user-content-preview-building" class="anchor" href="#preview-building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Preview Building</h3>
+
+<p>You can build previews of any subset or version of the PSD document using the built-in renderer. This is useful for generating previews of layer comps or exporting individual layer groups as images.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># Save a layer comp</span>
+<span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">filter_by_comp</span><span class="p">(</span><span class="s2">"Version A"</span><span class="p">)</span><span class="o">.</span><span class="n">save_as_png</span><span class="p">(</span><span class="s1">'./Version A.png'</span><span class="p">)</span>
+
+<span class="c1"># Generate PNG of individual layer group</span>
+<span class="n">psd</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">children_at_path</span><span class="p">(</span><span class="s2">"Group 1"</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">to_png</span>
+</pre></div>
+
+<h3>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h3>
+
+<p>If you run into any problems parsing a PSD, you can enable debug logging via the <code>PSD_DEBUG</code> environment variable. For example:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">PSD_DEBUG</span><span class="o">=</span><span class="nb">true </span>bundle <span class="nb">exec </span>examples/parse.rb
+</pre></div>
+
+<p>If you need to enable debugging programatically:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">PSD</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<h2>
+<a name="user-content-to-do" class="anchor" href="#to-do" aria-hidden="true"><span class="octicon octicon-link"></span></a>To-do</h2>
+
+<p>There are a few features that are currently missing from PSD.rb.</p>
+
+<ul class="task-list">
+<li>More image modes + depths for image exporting</li>
+<li>Support for rendering all layer styles</li>
+<li>Support for layer comp adjusted layer styles</li>
+<li>Render engine fixes for groups with lowered opacity</li>
+</ul></article></div>

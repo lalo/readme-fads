@@ -1,0 +1,221 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>IMPORTANT!!! Collectd 5.1+ comes with a C-based graphite plugin. I would recommend using that as it will be maintained 
+going forward as part of collectd. More info here: <a href="http://collectd.org/wiki/index.php/Plugin:Write_Graphite">http://collectd.org/wiki/index.php/Plugin:Write_Graphite</a></p>
+
+<h1>
+<a name="user-content-collectd-graphite-plugin" class="anchor" href="#collectd-graphite-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collectd-Graphite Plugin</h1>
+
+<p>This plugin acts as bridge between collectd's huge base
+of available plugins and graphite's excellent graphing
+capabilities. It sends collectd data directly
+to your graphite server.</p>
+
+<p>It is implemented using the <a href="http://collectd.org/documentation/manpages/collectd-perl.5.shtml">collectd-perl</a>
+interface.</p>
+
+<p>This plugin was inspired by the great <a href="https://github.com/loggly/collectd-to-graphite">collectd-to-graphite</a>
+tool written by the prolific engineer Jordan Sissel at Loggly.
+Jordan's implementation uses an external process to bridge
+collectd to graphite. I did not want another process to
+manage or worry about, so I wrote a plugin for collectd
+instead.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>REQUIREMENTS</h2>
+
+<p>Because the plugin requires the <a href="http://collectd.org/wiki/index.php/Plugin:Perl#Globals">Globals</a> 
+option to be set to true, you will need at least version 4.9 of collectd.
+If you are using an older version, you'll have to compile with global visibility of symbols.</p>
+
+<p>As of version 3, the plugin should work fine with collectd 5.0 as well.</p>
+
+<p>This is the command to compile collectd with global visibility symbols:</p>
+
+<pre><code>./configure CFLAGS="-DLT_LAZY_OR_NOW='RTLD_LAZY|RTLD_GLOBAL'"
+make all install
+</code></pre>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>INSTALLATION</h2>
+
+<p>Make sure collectd and the collectd-perl module are installed.</p>
+
+<p>This was tested on CentOS 5 using the "collectd-4.10" and 
+"perl-Collectd-4.10" rpm's from the EPEL yum repo.</p>
+
+<p>Feedback on installing on other platforms is welcome.</p>
+
+<p>To install this module, run the following commands:</p>
+
+<pre><code>perl Makefile.PL
+make
+make test
+make install
+</code></pre>
+
+<h2>
+<a name="user-content-collectd-4103-on-rhel5--centos-5-errors" class="anchor" href="#collectd-4103-on-rhel5--centos-5-errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collectd 4.10.3 on RHEL5 / CentOS 5 errors</h2>
+
+<p>( Thanks to <a href="https://github.com/indygreg/collectd-carbon">https://github.com/indygreg/collectd-carbon</a> for this info which also affects collectd perl plugins. )</p>
+
+<p>Using the plugin with collectd-4.10.3 from EPEL5 on RHEL or CentOS 5.x may produce the following error:</p>
+
+<pre><code># /etc/init.d/collectd start
+Starting collectd: plugin_load_file: The global flag is not supported, libtool 2 is required for this.
+perl: Initializing Perl interpreter...
+Can't load '/usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/auto/threads/threads.so' for module threads: /usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/auto/threads/threads.so: undefined symbol: PL_no_mem at /usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/DynaLoader.pm line 230.
+ at /usr/lib/perl5/vendor_perl/5.8.8/Collectd.pm line 27
+Compilation failed in require at /usr/lib/perl5/vendor_perl/5.8.8/Collectd.pm line 27.
+BEGIN failed--compilation aborted at /usr/lib/perl5/vendor_perl/5.8.8/Collectd.pm line 27.
+Compilation failed in require.
+BEGIN failed--compilation aborted.
+perl: init_pi: Unable to bootstrap Collectd: Can't load '/usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/auto/threads/threads.so' for module threads: /usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/auto/threads/threads.so: undefined symbol: PL_no_mem at /usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/DynaLoader.pm line 230.
+ at /usr/lib/perl5/vendor_perl/5.8.8/Collectd.pm line 27
+Compilation failed in require at /usr/lib/perl5/vendor_perl/5.8.8/Collectd.pm line 27.
+BEGIN failed--compilation aborted at /usr/lib/perl5/vendor_perl/5.8.8/Collectd.pm line 27.
+Compilation failed in require.
+BEGIN failed--compilation aborted
+perl: Configuration failed with a fatal error - plugin disabled!
+</code></pre>
+
+<p>This may also occur on other operating systems. It is caused by a libtool/libltdl quirk described in <a href="http://mailman.verplant.org/pipermail/collectd/2008-March/001616.html">this mailing list thread</a>. As per the workarounds detailed there, you may either:</p>
+
+<ol class="task-list">
+<li>
+<p>Modify the init script.</p>
+
+<pre><code>@@ -25,7 +25,7 @@
+        echo -n $"Starting $prog: "
+        if [ -r "$CONFIG" ]
+        then
+-               daemon /usr/sbin/collectd -C "$CONFIG"
++               LD_PRELOAD=/usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/CORE/libperl.so daemon /usr/sbin/collectd -C "$CONFIG"
+                RETVAL=$?
+                echo
+                [ $RETVAL -eq 0 ] &amp;&amp; touch /var/lock/subsys/$prog
+</code></pre>
+</li>
+<li>
+<p>Modify the RPM and rebuild.</p>
+
+<pre><code>@@ -182,7 +182,7 @@
+
+ %build
+-%configure \
++%configure CFLAGS=-"DLT_LAZY_OR_NOW='RTLD_LAZY|RTLD_GLOBAL'" \
+     --disable-static \
+     --disable-ascent \
+     --disable-apple_sensors \
+</code></pre>
+</li>
+</ol><h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>CONFIGURATION</h2>
+
+<p>Add the following to your collectd.conf:</p>
+
+<pre><code>&lt;LoadPlugin "perl"&gt;
+    Globals true
+&lt;/LoadPlugin&gt;
+
+&lt;Plugin "perl"&gt;
+  BaseName "Collectd::Plugins"
+  LoadPlugin "Graphite"
+
+    &lt;Plugin "Graphite"&gt;
+      Buffer "256000"
+      Prefix "servers"
+      Host   "graphite.example.com"
+      Port   "2003"
+    &lt;/Plugin&gt;
+&lt;/Plugin&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-network-traffic" class="anchor" href="#network-traffic" aria-hidden="true"><span class="octicon octicon-link"></span></a>NETWORK TRAFFIC</h2>
+
+<p>Metrics are stored in an 8KB buffer before being
+sent to graphite in order to take reduce network
+overhead. The buffer size is configurable in the
+config file.</p>
+
+<p>Data is sent to graphite on a "best effort" 
+basis. If the graphite server is down or the tcp 
+connection fails, you will lose that buffer's worth
+of data.</p>
+
+<h2>
+<a name="user-content-graphite-paths" class="anchor" href="#graphite-paths" aria-hidden="true"><span class="octicon octicon-link"></span></a>GRAPHITE PATHS</h2>
+
+<p>Graphite paths are constructed according to Collectd's standard
+serialized form, eg:</p>
+
+<pre><code>prefix.host_name.plugin[-plugin_instance].type[-type_instance].metric_name
+</code></pre>
+
+<p>Examples of valid paths:</p>
+
+<pre><code>collectd.host1_example_com.cpu-0.cpu-idle.value
+collectd.host2_example_com.disk-sda.disk_octets.read
+collectd.host3_example_com.load.load.shortterm
+collectd.host3_example_com.interface.if_octets-eth0.rx
+</code></pre>
+
+<p>The default prefix is 'collectd'.  This can be changed in the 
+collectd config file.</p>
+
+<p>See here for more information on collectd plugin naming:</p>
+
+<pre><code>http://collectd.org/wiki/index.php/Naming_schema#Plugin_instance_and_type_instance
+</code></pre>
+
+<h2>
+<a name="user-content-support-and-documentation" class="anchor" href="#support-and-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>SUPPORT AND DOCUMENTATION</h2>
+
+<p>After installing, you can find documentation for this module with the
+perldoc command.</p>
+
+<pre><code>perldoc Collectd::Plugins::Graphite
+</code></pre>
+
+<p>You can also look for information on the github page:</p>
+
+<pre><code>https://github.com/joemiller/collectd-graphite
+</code></pre>
+
+<p>Please use the github issues page for bugs and feedback. Pull
+requests are also welcome!</p>
+
+<pre><code>https://github.com/joemiller/collectd-graphite/issues
+</code></pre>
+
+<p>You can also check the syslog (/var/log/syslog) where the plugin 
+will log any unsuccessful attempts to connect to your Graphite server.</p>
+
+<h2>
+<a name="user-content-changelog" class="anchor" href="#changelog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changelog</h2>
+
+<p>See the Changes file.</p>
+
+<h2>
+<a name="user-content-future" class="anchor" href="#future" aria-hidden="true"><span class="octicon octicon-link"></span></a>FUTURE?</h2>
+
+<ul class="task-list">
+<li>write tests!!</li>
+<li>Support sending data to graphite via AMQP</li>
+<li>Re-write in C if collectd-perl interface proves problematic</li>
+</ul><h2>
+<a name="user-content-license-and-copyright" class="anchor" href="#license-and-copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE AND COPYRIGHT</h2>
+
+<p>Copyright 2011 Joe Miller.</p>
+
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at</p>
+
+<pre><code>   http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+
+<p>Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.</p></article></div>

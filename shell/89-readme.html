@@ -1,0 +1,86 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-ui-screen-shooter" class="anchor" href="#ui-screen-shooter" aria-hidden="true"><span class="octicon octicon-link"></span></a>UI Screen Shooter</h1>
+
+<p>This is a set of scripts to demonstrate how to take screen shots for your iOS app for the App Store automatically using UI Automation. It shows how to take screen shots, extract them from the automation results and change the language in the simulator with shell scripts. This saves quite a bit of time since we need to generate screens for the 3.5" display, the 4" display, and both iPhone and iPad if your app is universal--not to mention that you have to do this for <em>every</em> localization you support in the store.</p>
+
+<p>You can see the script run against one of <a href="http://readmoreapp.com">my apps</a> in <a href="http://nl1551.s3.amazonaws.com/cocoamanifest.net/2012/readmore-screenshots.mov">this video</a>.</p>
+
+<h2>
+<a name="user-content-prerequesites" class="anchor" href="#prerequesites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prerequesites</h2>
+
+<p>First, you need to get Xcode from the App Store. It's free and comes with (almost) everything you need. Once you have Xcode installed, you need to install the command line tools. </p>
+
+<h5>
+<a name="user-content-pre-xcode-5" class="anchor" href="#pre-xcode-5" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pre Xcode 5</h5>
+
+<p>Choose "Preferences" from the "Xcode" menu. Choose the "Downloads" and choose the "Components" sub tab. You'll see "Command Line Tools" in the list. Click the install button next to it and wait until it finishes setting up.</p>
+
+<h5>
+<a name="user-content-xcode-5-and-later" class="anchor" href="#xcode-5-and-later" aria-hidden="true"><span class="octicon octicon-link"></span></a>Xcode 5 and later</h5>
+
+<p>You cannot install command line tools through Xcode. Instead, run 'xcode-select --install' in your Terminal, and install command line tools once prompted.</p>
+
+<p>Pull down this repository and change to the directory in the terminal.</p>
+
+<h2>
+<a name="user-content-demonstration" class="anchor" href="#demonstration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Demonstration</h2>
+
+<p>To run the demonstration, type <code>./ui-screen-shooter.sh ~/Desktop/screenshots</code> to tell it where to put the final set of screen shots. After a few minutes, you can open the destination directory and see all the languages, devices types and screen sizes as PNGs.</p>
+
+<p>By default each screenshot is named like so:</p>
+
+<pre><code>en_US/iphone5-portrait-screen1.png
+...
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>To use UI Screen Shooter, copy the files (except the Hello World sample app) next to your project files. You may need to change the "Release" build configuration to add i386 to the <code>VALID_ARCHITECTURES</code> for this to work. Then play with the script <code>automation/shoot_the_screens.js</code> to simulate the user interaction you want. ((CONTRIBUTORS, PLEASE HELP EXPAND THIS SECTION WITH YOUR INTEGRATION ADVICE.)) After your screen shots are saved, see <a href="https://github.com/rhaining/itc-localized-screenshot-uploader">https://github.com/rhaining/itc-localized-screenshot-uploader</a> about uploading them in batch to iTunes connect.</p>
+
+<p>The directory is the locale identifier, the first part of the filename is the device (iOS-3.5-in, iOS-4-in, iOS-iPad), the second is the device orientation, and the third is an identifier that you choose for each screen shot when you call <code>captureLocalizedScreenshot()</code>.</p>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How It Works</h2>
+
+<p><code>ui-screen-shooter.sh</code> triggers a build of the application for the iOS simulator and puts the resulting bundle in <code>/tmp</code> with a custom name so it can find it.  Then, the <code>instruments</code> command line tool is invoked which installs the app bundle and then executes <code>automation/shoot_the_screens.js</code> which drives the simulator. <code>shoot_the_screens.js</code> drives the app and calls <code>captureLocalizedScreenshot()</code> to shoot each image after navigating to the right screen.</p>
+
+<p><code>captureLocalizedScreenshot()</code> is a custom method that checks for the device and whether it's a 4" display or not, deduces the orientation, and generates the screenshot file name along with the user supplied identifier. Once the name is calculated, it calls <code>captureScreenWithName()</code> on the <code>UIATarget</code> which saves the image along with the Instruments trace results in <code>/tmp</code>.</p>
+
+<p>After each time the automation script ends, <code>ui-screen-shooter.sh</code> copies all the screenshots taken for that Instruments trace run and copies them to locale subdirectories in the destination directory. Then it continues on to execute the same automation script again with a new language or an a new device type. Check out the <code>main</code> function in <code>ui-screen-shooter.sh</code> for how this is all set up.</p>
+
+<p>The app build process may be the most difficult part for you if you're trying to integrate this with your project. <code>xcodebuild</code> needs extra details if you're using an explicit workspace or using a beta version of the dev tools. If the app isn't building, see if you can try to get <code>xcodebuild</code> to work yourself and then alter the <code>xcode</code> function in <code>ui-screen-shooter.sh</code> to match your setup.</p>
+
+<h2>
+<a name="user-content-for-more-info" class="anchor" href="#for-more-info" aria-hidden="true"><span class="octicon octicon-link"></span></a>For More Info</h2>
+
+<p>To learn more about UI Automation, check out my <a href="http://cocoamanifest.net/features/#ui_automation">collection of resources</a> on <a href="http://cocoamanifest.net">cocoamanifest.net</a>.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Feel free to fork the project and submit a pull request. If you have any good ideas to make this easier to set up for new users, that would be great!</p>
+
+<h2>
+<a name="user-content-thanks" class="anchor" href="#thanks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Thanks</h2>
+
+<p>Thanks to all who have submitted pull requests and offered improvements. Special thanks to Ole Begemann for <a href="http://oleb.net/blog/2014/02/nsuserdefaults-handling-default-values/">his marvelous post on NSUserDefaults</a> that inspired me to pass the locale information in on the command line rather than what I was doing before by manipulating the simulate preference plist files.</p>
+
+<h2>
+<a name="user-content-contact" class="anchor" href="#contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contact</h2>
+
+<p>Questions? Ask!</p>
+
+<p>Jonathan Penn</p>
+
+<ul class="task-list">
+<li><a href="http://cocoamanifest.net">http://cocoamanifest.net</a></li>
+<li><a href="http://rubbercitywizards.com">http://rubbercitywizards.com</a></li>
+<li><a href="http://github.com/jonathanpenn">http://github.com/jonathanpenn</a></li>
+<li><a href="http://twitter.com/jonathanpenn">http://twitter.com/jonathanpenn</a></li>
+<li><a href="http://alpha.app.net/jonathanpenn">http://alpha.app.net/jonathanpenn</a></li>
+<li><a href="mailto:jonathan@cocoamanifest.net">jonathan@cocoamanifest.net</a></li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>UI Screen Shooter is available under the MIT license. See the LICENSE file for more info.</p></article></div>

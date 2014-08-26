@@ -1,0 +1,222 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-querulous" class="anchor" href="#querulous" aria-hidden="true"><span class="octicon octicon-link"></span></a>Querulous</h1>
+
+<p>An agreeable way to talk to your database.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright 2010 Twitter, Inc. See included LICENSE file.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>Handles all the JDBC bullshit so you don't have to: type casting for primitives and collections, exception handling and transactions, and so forth;</li>
+<li>Fault tolerant: configurable strategies such as timeouts, mark-dead thresholds, and retries;</li>
+<li>Designed for operability: rich statistics about your database usage and extensive debug logging;</li>
+<li>Minimalist: minimal code, minimal assumptions, minimal dependencies. You write highly-tuned SQL and we get out of the way;</li>
+<li>Highly modular, highly configurable.</li>
+</ul><p>The Github source repository is {here}[<a href="http://github.com/nkallen/querulous/">http://github.com/nkallen/querulous/</a>]. Patches and contributions are<br>
+welcome.</p>
+
+<h2>
+<a name="user-content-understanding-the-implementation" class="anchor" href="#understanding-the-implementation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Understanding the Implementation</h2>
+
+<p><code>Querulous</code> is made out of three components: QueryEvaluators, Queries, and Databases.</p>
+
+<ul class="task-list">
+<li>QueryEvaluators are a convenient procedural interface for executing queries.</li>
+<li>Queries are objects representing a SELECT/UPDATE/INSERT/DELETE SQL Query. They are responsible for most type-casting, timeouts, and so forth. You will rarely interact with Queries directly.</li>
+<li>Databases reserve and release connections an actual database.</li>
+</ul><p>Each of these three kinds of objects implement an interface. Enhanced functionality is meant to be "layered-on" by wrapping decorators around these objects that implement the enhanced functionality and delegate the primitive functionality.</p>
+
+<p>Each of the three components are meant to be instantiated with their corresponding factories (e.g., QueryEvaluatorFactory, DatabaseFactory, etc.). The system is made configurable by constructing factories that manufacture the Decorators you're interested in. For example,</p>
+
+<pre><code>val queryFactory = new DebuggingQueryFactory(new TimingOutQueryFactory(new SqlQueryFactory))
+val query = queryFactory(...) // this query will have debugging information and timeouts!
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Usage</h3>
+
+<p>Create a QueryEvaluator by connecting to a database host with a username and password:</p>
+
+<pre><code>import com.twitter.querulous.evaluator.QueryEvaluator
+val queryEvaluator = QueryEvaluator("host", "username", "password")
+</code></pre>
+
+<p>Run a query or two:</p>
+
+<pre><code>val users = queryEvaluator.select("SELECT * FROM users WHERE id IN (?) OR name = ?", List(1,2,3), "Jacques") { row =&gt;
+  new User(row.getInt("id"), row.getString("name"))
+}
+queryEvaluator.execute("INSERT INTO users VALUES (?, ?)", 1, "Jacques")
+</code></pre>
+
+<p>Note that sequences are handled automatically (i.e., you only need one question-mark (?)).</p>
+
+<p>Run a query in a transaction for enhanced pleasure:</p>
+
+<pre><code>queryEvaluator.transaction { transaction =&gt;
+  transaction.select("SELECT ... FOR UPDATE", ...)
+  transaction.execute("INSERT INTO users VALUES (?, ?)", 1, "Jacques")
+  transaction.execute("INSERT INTO users VALUES (?, ?)", 2, "Luc")
+}
+</code></pre>
+
+<p>The yielded transaction object implements the same interface as QueryEvaluator. Note that the transaction will be rolled back if you raise an exception.</p>
+
+<h3>
+<a name="user-content-advanced-usage" class="anchor" href="#advanced-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Usage</h3>
+
+<p>For production-quality use of <code>Querulous</code> you'll want to set configuration options and layer-on more functionality. Here is the maximally configurable, if somewhat elaborate, way to instantiate a QueryEvaluator</p>
+
+<pre><code>import com.twitter.querulous.evaluator._
+import com.twitter.querulous.query._
+import com.twitter.querulous.database._
+
+val queryFactory = new SqlQueryFactory
+val apachePoolingDatabaseFactory = new apachePoolingDatabaseFactory(
+  minOpenConnections:                 Int,      // minimum number of open/active connections at all times
+  maxOpenConnections:                 Int,      // minimum number of open/active connections at all times
+  checkConnectionHealthWhenIdleFor:   Duration, // asynchronously check the health of open connections every `checkConnectionHealthWhenIdleFor` amount of time
+  maxWaitForConnectionReservation:    Duration, // maximum amount of time you're willing to wait to reserve a connection from the pool; throw an exception otherwise
+  checkConnectionHealthOnReservation: Boolean,  // check connection health when reserving the connection from the pool
+  evictConnectionIfIdleFor:           Duration  // destroy connections if they are idle for longer than `evictConnectionIfIdleFor` amount of time
+)
+val queryEvaluatorFactory = new StandardQueryEvaluatorFactory(apachePoolingDatabaseFactory, queryFactory)
+val queryEvaluator = queryEvaluatorFactory(List("primaryhost", "fallbackhost1", "fallbackhost2", ...), "username", "password")
+</code></pre>
+
+<p>Now comes the fun part.</p>
+
+<h4>
+<a name="user-content-query-decorators" class="anchor" href="#query-decorators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Query Decorators</h4>
+
+<p>Suppose you want timeouts around queries:</p>
+
+<pre><code>val queryFactory = new TimingOutQueryFactory(new SqlQueryFactory, 3.seconds)
+</code></pre>
+
+<p>Suppose you ALSO want to retry queries up to 5 times:</p>
+
+<pre><code>val queryFactory = new RetryingQueryFactory(new TimingOutQueryFactory(new SqlQueryFactory, 3000.millis), 5)
+</code></pre>
+
+<p>Suppose you have no idea what's going on and need some debug info:</p>
+
+<pre><code>val queryFactory = new DebuggingQueryFactory(new RetryingQueryFactory(new TimingOutQueryFactory(new SqlQueryFactory, 3.seconds), 5), println)
+</code></pre>
+
+<p>You'll notice, at this point, that all of these advanced features can be layered-on by composing QueryFactories. In what follows, I'll omit some layering to keep the examples terse.</p>
+
+<p>Suppose you want to measure average and standard deviation of latency, and query counts:</p>
+
+<pre><code>val stats = new StatsCollector
+val queryFactory = new StatsCollectingQueryFactory(new SqlQueryFactory, stats)
+</code></pre>
+
+<p>See the section [Statistics Collection] for more information.</p>
+
+<h4>
+<a name="user-content-database-decorators" class="anchor" href="#database-decorators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Database Decorators</h4>
+
+<p>Suppose you want to measure latency around the reserve/release operations of the Database:</p>
+
+<pre><code>val stats = new StatsCollector
+val databaseFactory = new StatsCollectingDatabase(new ApachePoolingDatabaseFactory(...), stats)
+</code></pre>
+
+<p>Suppose you are actually dynamically connecting to dozens of hosts (because of a sharding strategy or something similar) and you want to maintain proper connection limits. You can memoize your database connections like this:</p>
+
+<pre><code>val databaseFactory = new MemoizingDatabaseFactory(new ApachePoolingDatabaseFactory(...))
+</code></pre>
+
+<h4>
+<a name="user-content-queryevaluator-decorators" class="anchor" href="#queryevaluator-decorators" aria-hidden="true"><span class="octicon octicon-link"></span></a>QueryEvaluator Decorators</h4>
+
+<p>Suppose you want to automatically disable all connections to a particular host after a certain number of SQL Exceptions (timeouts, etc.):</p>
+
+<pre><code>val queryEvaluatorFactory = new AutoDisablingQueryEvaluatorFactory(new StandardQueryEvaluatorFactory(databaseFactory, queryFactory))
+</code></pre>
+
+<h3>
+<a name="user-content-recommended-configuration-options" class="anchor" href="#recommended-configuration-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Recommended Configuration Options</h3>
+
+<ul class="task-list">
+<li>Set minActive equal to maxActive. This ensures that the system is fully utilizing the connection resource even when the system is idle. This is good because you will not be surprised by connection usage (and e.g., unexpectedly hit server-side connection limits) during peak load.</li>
+<li>Set minActive equal to maxActive equal to the MySql connection limit divided by the number of instances of your client process</li>
+<li>Set testIdle to 1.second or so. It should be substantially less than the server-side connection timeout.</li>
+<li>Set maxWait to 10.millis--to start. In general, it should be set to the average experienced latency plus twice the standard deviation. Gather statistics!</li>
+<li>Set minEvictableIdle to 5.minutes or more. It has no effect when minActive equals maxActive, but in case these differ you don't want excessive connection churning. It should certainly be less than or equal to the server-side connection timeout.</li>
+</ul><h2>
+<a name="user-content-statistics-collection" class="anchor" href="#statistics-collection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Statistics Collection</h2>
+
+<p>StatsCollector is actually just a trait that you'll need to implement using your favorite statistics collecting library. My favorite is <a href="http://github.com/robey/ostrich">Ostrich</a> and you can write an adapter in a few lines of code. Here is one such adapter:</p>
+
+<pre><code>val stats = new StatsCollector {
+  def incr(name: String, count: Int) = Stats.incr(name, count)
+  def time[A](name: String)(f: =&gt; A): A = Stats.time(name)(f)
+}
+val databaseFactory = new StatsCollectingDatabaseFactory(new ApachePoolingDatabaseFactory(...), stats)
+</code></pre>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-maven" class="anchor" href="#maven" aria-hidden="true"><span class="octicon octicon-link"></span></a>Maven</h3>
+
+<p>Add the following dependency and repository stanzas to your project's configuration</p>
+
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.twitter&lt;/groupId&gt;
+    &lt;artifactId&gt;querulous&lt;/artifactId&gt;
+    &lt;version&gt;1.1.0&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;repository&gt;
+  &lt;id&gt;twitter.com&lt;/id&gt;
+  &lt;url&gt;http://www.lag.net/nest&lt;/url&gt;
+&lt;/repository&gt;
+</code></pre>
+
+<h3>
+<a name="user-content-ivy" class="anchor" href="#ivy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ivy</h3>
+
+<p>Add the following dependency to ivy.xml</p>
+
+<pre><code>&lt;dependency org="com.twitter" name="querulous" rev="1.1.0"/&gt;
+</code></pre>
+
+<p>and the following repository to ivysettings.xml</p>
+
+<pre><code>&lt;ibiblio name="twitter.com" m2compatible="true" root="http://www.lag.net/nest/" /&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-running-tests" class="anchor" href="#running-tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running Tests</h2>
+
+<p>Most of the tests are unit tests and are heavily mocked. However, some tests run database queries. You should change the <code>username</code> and <code>password</code> in <code>config/test.conf</code> to something that actually works for your system. Then, from the command line, simply run:</p>
+
+<pre><code>% ant test
+</code></pre>
+
+<h2>
+<a name="user-content-reporting-problems" class="anchor" href="#reporting-problems" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporting problems</h2>
+
+<p>The Github issue tracker is {here}[<a href="http://github.com/nkallen/querulous/issues">http://github.com/nkallen/querulous/issues</a>].</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<ul class="task-list">
+<li>Nick Kallen</li>
+<li>Robey Pointer</li>
+<li>Ed Ceaser</li>
+<li>Utkarsh Srivastava</li>
+</ul></article></div>

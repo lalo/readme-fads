@@ -1,0 +1,378 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>spark-jobserver provides a RESTful interface for submitting and managing <a href="http://spark-project.org">Apache Spark</a> jobs, jars, and job contexts.
+This repo contains the complete Spark job server project, including unit tests and deploy scripts.</p>
+
+<p>We deploy our job server off of this repo at Ooyala and it is tested against CDH5 / Hadoop 2.2,  Spark 0.9.0 final, Scala 2.10.</p>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul class="task-list">
+<li>
+<em>"Spark as a Service"</em>: Simple REST interface for all aspects of job, context management</li>
+<li>Supports sub-second low-latency jobs via long-running job contexts</li>
+<li>Start and stop job contexts for RDD sharing and low-latency jobs; change resources on restart</li>
+<li>Kill running jobs via stop context</li>
+<li>Separate jar uploading step for faster job startup</li>
+<li>Asynchronous and synchronous job API.  Synchronous API is great for low latency jobs!</li>
+<li>Works with Standalone Spark as well as Mesos</li>
+<li>Job and jar info is persisted via a pluggable DAO interface</li>
+<li>Named RDDs to cache and retrieve RDDs by name, improving RDD sharing and reuse among jobs. </li>
+</ul><h2>
+<a name="user-content-quick-start--development-mode" class="anchor" href="#quick-start--development-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick start / development mode</h2>
+
+<p>You need to have <a href="http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html">SBT</a> installed.</p>
+
+<p>From SBT shell, simply type "re-start".  This uses a default configuration file.  An optional argument is a
+path to an alternative config file.  You can also specify JVM parameters after "---".  Including all the
+options looks like this:</p>
+
+<pre><code>re-start /path/to/my.conf --- -Xmx8g
+</code></pre>
+
+<p>Note that re-start (SBT Revolver) forks the job server in a separate process.  If you make a code change, simply
+type re-start again at the SBT shell prompt, it will compile your changes and restart the jobserver.  It enables
+very fast turnaround cycles.</p>
+
+<p>For example jobs see the job-server-tests/ project / folder.</p>
+
+<p>When you use <code>re-start</code>, the log file goes to <code>job-server/job-server-local.log</code>.  There is also an environment variable
+EXTRA_JAR for adding a jar to the classpath.</p>
+
+<h3>
+<a name="user-content-wordcountexample-walk-through" class="anchor" href="#wordcountexample-walk-through" aria-hidden="true"><span class="octicon octicon-link"></span></a>WordCountExample walk-through</h3>
+
+<p>First, to package the test jar containing the WordCountExample: <code>sbt job-server-tests/package</code>.
+Then go ahead and start the job server using the instructions above.</p>
+
+<p>Let's upload the jar:</p>
+
+<pre><code>curl --data-binary @job-server-tests/target/job-server-tests-0.3.1.jar localhost:8090/jars/test
+OK⏎
+</code></pre>
+
+<p>The above jar is uploaded as app <code>test</code>.  Next, let's start an ad-hoc word count job, meaning that the job
+server will create its own SparkContext, and return a job ID for subsequent querying:</p>
+
+<pre><code>curl -d "input.string = a b c a b see" 'localhost:8090/jobs?appName=test&amp;classPath=spark.jobserver.WordCountExample'
+{
+  "status": "STARTED",
+  "result": {
+    "jobId": "5453779a-f004-45fc-a11d-a39dae0f9bf4",
+    "context": "b7ea0eb5-spark.jobserver.WordCountExample"
+  }
+}⏎
+</code></pre>
+
+<p>NOTE: If you want to feed in a text file config and POST using curl, you want the <code>--data-binary</code> option, otherwise
+curl will munge your line separator chars.  Like:</p>
+
+<pre><code>curl --data-binary @my-job-config.json 'localhost:8090/jobs?appNam=...'
+</code></pre>
+
+<p>From this point, you could asynchronously query the status and results:</p>
+
+<pre><code>curl localhost:8090/jobs/5453779a-f004-45fc-a11d-a39dae0f9bf4
+{
+  "status": "OK",
+  "result": {
+    "a": 2,
+    "b": 2,
+    "c": 1,
+    "see": 1
+  }
+}⏎
+</code></pre>
+
+<p>Note that you could append <code>&amp;sync=true</code> when you POST to /jobs to get the results back in one request, but for
+real clusters and most jobs this may be too slow.</p>
+
+<p>Another way of running this job is in a pre-created context.  Start a new context:</p>
+
+<pre><code>curl -d "" 'localhost:8090/contexts/test-context?num-cpu-cores=4&amp;mem-per-node=512m'
+OK⏎
+</code></pre>
+
+<p>You can verify that the context has been created:</p>
+
+<pre><code>curl localhost:8090/contexts
+["test-context"]⏎
+</code></pre>
+
+<p>Now let's run the job in the context and get the results back right away:</p>
+
+<pre><code>curl -d "input.string = a b c a b see" 'localhost:8090/jobs?appName=test&amp;classPath=spark.jobserver.WordCountExample&amp;context=test-context&amp;sync=true'
+{
+  "status": "OK",
+  "result": {
+    "a": 2,
+    "b": 2,
+    "c": 1,
+    "see": 1
+  }
+}⏎
+</code></pre>
+
+<p>Note the addition of <code>context=</code> and <code>sync=true</code>.</p>
+
+<h2>
+<a name="user-content-create-a-job-server-project" class="anchor" href="#create-a-job-server-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Create a Job Server Project</h2>
+
+<p>In your <code>build.sbt</code>, add this to use the job server jar:</p>
+
+<pre><code>resolvers += "Ooyala Bintray" at "http://dl.bintray.com/ooyala/maven"
+
+libraryDependencies += "ooyala.cnd" % "job-server" % "0.3.1" % "provided"
+</code></pre>
+
+<p>For most use cases it's better to have the dependencies be "provided" because you don't want SBT assembly to include the whole job server jar.</p>
+
+<p>To create a job that can be submitted through the job server, the job must implement the <code>SparkJob</code> trait. 
+Your job will look like:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">SampleJob</span>  <span class="k">extends</span> <span class="nc">SparkJob</span> <span class="o">{</span>
+    <span class="k">override</span> <span class="k">def</span> <span class="n">runJob</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span><span class="kt">SparkContext</span><span class="o">,</span> <span class="n">jobConfig</span><span class="k">:</span> <span class="kt">Config</span><span class="o">)</span><span class="k">:</span> <span class="kt">Any</span> <span class="o">=</span> <span class="o">???</span>
+    <span class="k">override</span> <span class="k">def</span> <span class="n">validate</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span><span class="kt">SparkContext</span><span class="o">,</span> <span class="n">config</span><span class="k">:</span> <span class="kt">Config</span><span class="o">)</span><span class="k">:</span> <span class="kt">SparkJobValidation</span> <span class="o">=</span> <span class="o">???</span>
+<span class="o">}</span>
+</pre></div>
+
+<ul class="task-list">
+<li>
+<code>runJob</code> contains the implementation of the Job. The SparkContext is managed by the JobServer and will be provided to the job through this method.
+This releaves the developer from the boiler-plate configuration management that comes with the creation of a Spark job and allows the Job Server to
+manage and re-use contexts.</li>
+<li>
+<code>validate</code> allows for an initial validation of the context and any provided configuration. If the context and configuration are OK to run the job, returning <code>spark.jobserver.SparkJobValid</code> will let the job execute, otherwise returning <code>spark.jobserver.SparkJobInvalid(reason)</code> prevents the job from running and provides means to convey the reason of failure. In this case, the call immediatly returns an <code>HTTP/1.1 400 Bad Request</code> status code.<br><code>validate</code> helps you preventing running jobs that will eventually fail due to missing or wrong configuration and save both time and resources.<br>
+</li>
+</ul><p>Let's try running our sample job with an invalid configuration:</p>
+
+<pre><code>curl -i -d "bad.input=abc" 'localhost:8090/jobs?appName=test&amp;classPath=spark.jobserver.WordCountExample'
+
+HTTP/1.1 400 Bad Request
+Server: spray-can/1.2.0
+Date: Tue, 10 Jun 2014 22:07:18 GMT
+Content-Type: application/json; charset=UTF-8
+Content-Length: 929
+
+{
+  "status": "VALIDATION FAILED",
+  "result": {
+    "message": "No input.string config param",
+    "errorClass": "java.lang.Throwable",
+    "stack": ["spark.jobserver.JobManagerActor$$anonfun$spark$jobserver$JobManagerActor$$getJobFuture$4.apply(JobManagerActor.scala:212)", 
+    "scala.concurrent.impl.Future$PromiseCompletingRunnable.liftedTree1$1(Future.scala:24)", 
+    "scala.concurrent.impl.Future$PromiseCompletingRunnable.run(Future.scala:24)", 
+    "akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:42)",
+    "akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinTask.exec(AbstractDispatcher.scala:386)", 
+    "scala.concurrent.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)", 
+    "scala.concurrent.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)", 
+    "scala.concurrent.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)", 
+    "scala.concurrent.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)"]
+  }
+}
+</code></pre>
+
+<h3>
+<a name="user-content-using-named-rdds" class="anchor" href="#using-named-rdds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Named RDDs</h3>
+
+<p>Named RDDs are a way to easily share RDDs among job. Using this facility, computed RDDs can be cached with a given name and later on retrieved.
+To use this feature, the SparkJob needs to mixin <code>NamedRddSupport</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">SampleNamedRDDJob</span>  <span class="k">extends</span> <span class="nc">SparkJob</span> <span class="k">with</span> <span class="nc">NamedRddSupport</span> <span class="o">{</span>
+    <span class="k">override</span> <span class="k">def</span> <span class="n">runJob</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span><span class="kt">SparkContext</span><span class="o">,</span> <span class="n">jobConfig</span><span class="k">:</span> <span class="kt">Config</span><span class="o">)</span><span class="k">:</span> <span class="kt">Any</span> <span class="o">=</span> <span class="o">???</span>
+    <span class="k">override</span> <span class="k">def</span> <span class="n">validate</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span><span class="kt">SparkContext</span><span class="o">,</span> <span class="n">config</span><span class="k">:</span> <span class="kt">Contig</span><span class="o">)</span><span class="k">:</span> <span class="kt">SparkJobValidation</span> <span class="o">=</span> <span class="o">???</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Then in the implementation of the job, RDDs can be stored with a given name:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">this</span><span class="o">.</span><span class="n">namedRdds</span><span class="o">.</span><span class="n">update</span><span class="o">(</span><span class="s">"french_dictionary"</span><span class="o">,</span> <span class="n">frenchDictionaryRDD</span><span class="o">)</span>
+</pre></div>
+
+<p>Other job running in the same context can retrieve and use this RDD later on:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">rdd</span> <span class="k">=</span> <span class="k">this</span><span class="o">.</span><span class="n">namedRdds</span><span class="o">.</span><span class="n">get</span><span class="o">[(</span><span class="kt">String</span>, <span class="kt">String</span><span class="o">)](</span><span class="s">"french_dictionary"</span><span class="o">).</span><span class="n">get</span> 
+</pre></div>
+
+<p>(note the explicit type provided to get. This will allow to cast the retrieved RDD that otherwise is of type RDD[_])</p>
+
+<p>For jobs that depends on a named RDDs it's a good practice to check for the existence of the NamedRDD in the <code>validate</code> method as explained earlier:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">validate</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span><span class="kt">SparkContext</span><span class="o">,</span> <span class="n">config</span><span class="k">:</span> <span class="kt">Contig</span><span class="o">)</span><span class="k">:</span> <span class="kt">SparkJobValidation</span> <span class="o">=</span> <span class="o">{</span>
+  <span class="o">...</span>
+  <span class="k">val</span> <span class="n">rdd</span> <span class="k">=</span> <span class="k">this</span><span class="o">.</span><span class="n">namedRdds</span><span class="o">.</span><span class="n">get</span><span class="o">[(</span><span class="kt">Long</span>, <span class="kt">scala.Seq</span><span class="o">[</span><span class="kt">String</span><span class="o">])](</span><span class="s">"dictionary"</span><span class="o">)</span>
+  <span class="k">if</span> <span class="o">(</span><span class="n">rdd</span><span class="o">.</span><span class="n">isDefined</span><span class="o">)</span> <span class="nc">SparkJobValid</span> <span class="k">else</span> <span class="nc">SparkJobInvalid</span><span class="o">(</span><span class="n">s</span><span class="s">"Missing named RDD [dictionary]"</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-deployment" class="anchor" href="#deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deployment</h2>
+
+<ol class="task-list">
+<li>Copy <code>config/local.sh.template</code> to <code>&lt;environment&gt;.sh</code> and edit as appropriate.</li>
+<li>
+<code>bin/server_deploy.sh &lt;environment&gt;</code> -- this packages the job server along with config files and pushes
+it to the remotes you have configured in <code>&lt;environment&gt;.sh</code>
+</li>
+<li>On the remote server, start it in the deployed directory with <code>server_start.sh</code>.</li>
+</ol><p>Note: to test out the deploy to a local staging dir, or package the job server for Mesos,
+use <code>bin/server_package.sh &lt;environment&gt;</code>.</p>
+
+<h2>
+<a name="user-content-architecture" class="anchor" href="#architecture" aria-hidden="true"><span class="octicon octicon-link"></span></a>Architecture</h2>
+
+<p>The job server is intended to be run as one or more independent processes, separate from the Spark cluster
+(though it very well may be colocated with say the Master).</p>
+
+<p>At first glance, it seems many of these functions (eg job management) could be integrated into the Spark standalone master.  While this is true, we believe there are many significant reasons to keep it separate:</p>
+
+<ul class="task-list">
+<li>We want the job server to work for Mesos and YARN as well</li>
+<li>Spark and Mesos masters are organized around "applications" or contexts, but the job server supports running many discrete "jobs" inside a single context</li>
+<li>We want it to support Shark functionality in the future</li>
+<li>Loose coupling allows for flexible HA arrangements (multiple job servers targeting same standalone master, or possibly multiple Spark clusters per job server)</li>
+</ul><p>Flow diagrams are checked in in the doc/ subdirectory.  .diagram files are for websequencediagrams.com... check them out, they really will help you understand the flow of messages between actors.</p>
+
+<h2>
+<a name="user-content-api" class="anchor" href="#api" aria-hidden="true"><span class="octicon octicon-link"></span></a>API</h2>
+
+<h3>
+<a name="user-content-jars" class="anchor" href="#jars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jars</h3>
+
+<pre><code>GET /jars            - lists all the jars and the last upload timestamp
+POST /jars/&lt;appName&gt; - uploads a new jar under &lt;appName&gt;
+</code></pre>
+
+<h3>
+<a name="user-content-contexts" class="anchor" href="#contexts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contexts</h3>
+
+<pre><code>GET /contexts         - lists all current contexts
+POST /contexts/&lt;name&gt; - creates a new context
+DELETE /contexts/&lt;name&gt; - stops a context and all jobs running in it
+</code></pre>
+
+<h3>
+<a name="user-content-jobs" class="anchor" href="#jobs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jobs</h3>
+
+<p>Jobs submitted to the job server must implement a <code>SparkJob</code> trait.  It has a main <code>runJob</code> method which is
+passed a SparkContext and a typesafe Config object.  Results returned by the method are made available through
+the REST API.</p>
+
+<pre><code>GET /jobs                - Lists the last N jobs
+POST /jobs               - Starts a new job, use ?sync=true to wait for results
+GET /jobs/&lt;jobId&gt;        - Gets the result or status of a specific job
+GET /jobs/&lt;jobId&gt;/config - Gets the job configuration
+</code></pre>
+
+<h3>
+<a name="user-content-context-configuration" class="anchor" href="#context-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Context configuration</h3>
+
+<p>A number of context-specific settings can be controlled when creating a context (POST /contexts) or running an
+ad-hoc job (which creates a context on the spot).</p>
+
+<p>When creating a context via POST /contexts, the query params are used to override the default configuration in
+spark.context-settings.  For example,</p>
+
+<pre><code>POST /contexts/my-new-context?num-cpu-cores=10
+</code></pre>
+
+<p>would override the default spark.context-settings.num-cpu-cores setting.</p>
+
+<p>When starting a job, and the context= query param is not specified, then an ad-hoc context is created.  Any
+settings specified in spark.context-settings will override the defaults in the job server config when it is
+started up.</p>
+
+<p>Any spark configuration param can be overridden either in POST /contexts query params, or through <code>spark
+.context-settings</code> job configuration.  In addition, <code>num-cpu-cores</code> maps to <code>spark.cores.max</code>, and <code>mem-per-
+node</code> maps to <code>spark.executor.memory</code>.  Therefore the following are all equivalent:</p>
+
+<pre><code>POST /contexts/my-new-context?num-cpu-cores=10
+
+POST /contexts/my-new-context?spark.cores.max=10
+</code></pre>
+
+<p>or in the job config when using POST /jobs,</p>
+
+<pre><code>spark.context-settings {
+    spark.cores.max = 10
+}
+</code></pre>
+
+<p>For the exact context configuration parameters, see JobManagerActor docs as well as application.conf.</p>
+
+<h3>
+<a name="user-content-job-result-serialization" class="anchor" href="#job-result-serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Job Result Serialization</h3>
+
+<p>The result returned by the <code>SparkJob</code> <code>runJob</code> method is serialized by the job server into JSON for routes
+that return the result (GET /jobs with sync=true, GET /jobs/).  Currently the following types can be
+serialized properly:</p>
+
+<ul class="task-list">
+<li>String, Int, Long, Double, Float, Boolean</li>
+<li>Scala Map's with string key values (non-string keys may be converted to strings)</li>
+<li>Scala Seq's</li>
+<li>Array's</li>
+<li>Anything that implements Product (Option, case classes) -- they will be serialized as lists</li>
+<li>Maps and Seqs may contain nested values of any of the above</li>
+</ul><p>If we encounter a data type that is not supported, then the entire result will be serialized to a string.</p>
+
+<h2>
+<a name="user-content-contribution-and-development" class="anchor" href="#contribution-and-development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribution and Development</h2>
+
+<p>Contributions via Github Pull Request are welcome.  See the TODO for some ideas.</p>
+
+<ul class="task-list">
+<li>From the "master" project, please run "test" to ensure nothing is broken.
+
+<ul class="task-list">
+<li>You may need to set <code>SPARK_LOCAL_IP</code> to <code>localhost</code> to ensure Akka port can bind successfully</li>
+</ul>
+</li>
+<li>Logging for tests goes to "job-server-test.log"</li>
+<li>Run <code>scoverage:test</code> to check the code coverage and improve it</li>
+<li>Please run scalastyle to ensure your code changes don't break the style guide</li>
+<li>Do "re-start" from SBT for quick restarts of the job server process</li>
+<li>Please update the g8 template if you change the SparkJob API</li>
+</ul><h3>
+<a name="user-content-publishing-packages" class="anchor" href="#publishing-packages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Publishing packages</h3>
+
+<ul class="task-list">
+<li>Be sure you are in the master project</li>
+<li>Run <code>test</code> to ensure all tests pass</li>
+<li>Now just run <code>publish</code> and package will be published to bintray</li>
+</ul><h2>
+<a name="user-content-contact" class="anchor" href="#contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contact</h2>
+
+<p>For user/dev questions, we are using google group for discussions:
+<a href="https://groups.google.com/forum/#!forum/spark-jobserver">https://groups.google.com/forum/#!forum/spark-jobserver</a></p>
+
+<p>Please report bugs/problems to:
+<a href="https://github.com/ooyala/spark-jobserver/issues">https://github.com/ooyala/spark-jobserver/issues</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Apache 2.0, see LICENSE.md</p>
+
+<p>Copyright(c) 2014, Ooyala, Inc.</p>
+
+<h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul class="task-list">
+<li>Add Swagger support.  See the spray-swagger project.</li>
+<li>
+<p>Implement a main index.html.  It should display:</p>
+
+<ul class="task-list">
+<li>All the running contexts</li>
+<li>All the current jobs in each running context</li>
+</ul>
+</li>
+<li><p>Implement an interactive SQL window.  See: <a href="https://github.com/adatao/spark-admin">spark-admin</a></p></li>
+<li><p>Use <code>SparkContext.setJobGroup</code> with the job ID</p></li>
+<li>Support job cancellation via <code>cancelJobGroup</code>
+</li>
+<li>Stream the current job progress via a Listener</li>
+<li>Add routes to return stage info for a job.  Persist it via DAO so that we can always retrieve stage / performance info
+even for historical jobs.  This would be pretty kickass.</li>
+</ul></article></div>

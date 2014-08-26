@@ -1,0 +1,88 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-scalikejdbc" class="anchor" href="#scalikejdbc" aria-hidden="true"><span class="octicon octicon-link"></span></a>ScalikeJDBC</h1>
+
+<h2>
+<a name="user-content-just-write-sql-and-get-things-done" class="anchor" href="#just-write-sql-and-get-things-done" aria-hidden="true"><span class="octicon octicon-link"></span></a>Just write SQL and get things done!</h2>
+
+<p>ScalikeJDBC is a tidy SQL-based DB access library for Scala developers. This library naturally wraps JDBC APIs and provides you easy-to-use APIs.</p>
+
+<p>ScalikeJDBC is a practical and production-ready one. Use this library for your real projects.</p>
+
+<p><a href="http://scalikejdbc.org/">http://scalikejdbc.org/</a></p>
+
+<p><a href="https://travis-ci.org/scalikejdbc/scalikejdbc"><img src="https://camo.githubusercontent.com/6ad526aa2f2f02410dc27d6d8e44138beac158cd/68747470733a2f2f7472617669732d63692e6f72672f7363616c696b656a6462632f7363616c696b656a6462632e7376673f6272616e63683d646576656c6f70" alt="Build Status" data-canonical-src="https://travis-ci.org/scalikejdbc/scalikejdbc.svg?branch=develop" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>All you need to do is just adding ScalikeJDBC, JDBC driver &amp; slf4j implementation.</p>
+
+<pre><code>libraryDependencies ++= Seq(
+  "org.scalikejdbc" %% "scalikejdbc"        % "2.1.+",
+  "com.h2database"  %  "h2"                 % "1.4.+",
+  "ch.qos.logback"  %  "logback-classic"    % "1.1.+"
+)
+</code></pre>
+
+<p>If you're a Play2 user, take a look at play-support project, too.</p>
+
+<p><a href="https://github.com/scalikejdbc/scalikejdbc-play-support">https://github.com/scalikejdbc/scalikejdbc-play-support</a></p>
+
+<h4>
+<a name="user-content-first-example" class="anchor" href="#first-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>First example</h4>
+
+<p>Put above dependencies into your <code>build.sbt</code> and run <code>sbt console</code> now.</p>
+
+<div class="highlight highlight-java"><pre><span class="c1">//import scalikejdbc._, SQLInterpolation._</span>
+<span class="kn">import</span> <span class="nn">scalikejdbc._</span>
+
+<span class="c1">// initialize JDBC driver &amp; connection pool</span>
+<span class="n">Class</span><span class="o">.</span><span class="na">forName</span><span class="o">(</span><span class="s">"org.h2.Driver"</span><span class="o">)</span>
+<span class="n">ConnectionPool</span><span class="o">.</span><span class="na">singleton</span><span class="o">(</span><span class="s">"jdbc:h2:mem:hello"</span><span class="o">,</span> <span class="s">"user"</span><span class="o">,</span> <span class="s">"pass"</span><span class="o">)</span>
+
+<span class="c1">// ad-hoc session provider on the REPL</span>
+<span class="n">implicit</span> <span class="n">val</span> <span class="n">session</span> <span class="o">=</span> <span class="n">AutoSession</span>
+
+<span class="c1">// table creation, you can run DDL by using #execute as same as JDBC</span>
+<span class="n">sql</span><span class="s">"""</span>
+<span class="s">create table members (</span>
+<span class="s">  id serial not null primary key,</span>
+<span class="s">  name varchar(64),</span>
+<span class="s">  created_at timestamp not null</span>
+<span class="s">)</span>
+<span class="s">"""</span><span class="o">.</span><span class="na">execute</span><span class="o">.</span><span class="na">apply</span><span class="o">()</span>
+
+<span class="c1">// insert initial data</span>
+<span class="n">Seq</span><span class="o">(</span><span class="s">"Alice"</span><span class="o">,</span> <span class="s">"Bob"</span><span class="o">,</span> <span class="s">"Chris"</span><span class="o">)</span> <span class="n">foreach</span> <span class="o">{</span> <span class="n">name</span> <span class="o">=&gt;</span>
+  <span class="n">sql</span><span class="s">"insert into members (name, created_at) values (${name}, current_timestamp)"</span><span class="o">.</span><span class="na">update</span><span class="o">.</span><span class="na">apply</span><span class="o">()</span>
+<span class="o">}</span>
+
+<span class="c1">// for now, retrieves all data as Map value</span>
+<span class="n">val</span> <span class="nl">entities:</span> <span class="n">List</span><span class="o">[</span><span class="n">Map</span><span class="o">[</span><span class="n">String</span><span class="o">,</span> <span class="n">Any</span><span class="o">]]</span> <span class="o">=</span> <span class="n">sql</span><span class="s">"select * from members"</span><span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="n">_</span><span class="o">.</span><span class="na">toMap</span><span class="o">).</span><span class="na">list</span><span class="o">.</span><span class="na">apply</span><span class="o">()</span>
+
+<span class="c1">// defines entity object and extractor</span>
+<span class="kn">import</span> <span class="nn">org.joda.time._</span>
+<span class="k">case</span> <span class="kd">class</span> <span class="nf">Member</span><span class="o">(</span><span class="nl">id:</span> <span class="n">Long</span><span class="o">,</span> <span class="nl">name:</span> <span class="n">Option</span><span class="o">[</span><span class="n">String</span><span class="o">],</span> <span class="nl">createdAt:</span> <span class="n">DateTime</span><span class="o">)</span>
+<span class="n">object</span> <span class="n">Member</span> <span class="kd">extends</span> <span class="n">SQLSyntaxSupport</span><span class="o">[</span><span class="n">Member</span><span class="o">]</span> <span class="o">{</span>
+  <span class="n">override</span> <span class="n">val</span> <span class="n">tableName</span> <span class="o">=</span> <span class="s">"members"</span>
+  <span class="n">def</span> <span class="nf">apply</span><span class="o">(</span><span class="nl">rs:</span> <span class="n">WrappedResultSet</span><span class="o">):</span> <span class="n">Member</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Member</span><span class="o">(</span>
+    <span class="n">rs</span><span class="o">.</span><span class="na">long</span><span class="o">(</span><span class="s">"id"</span><span class="o">),</span> <span class="n">rs</span><span class="o">.</span><span class="na">stringOpt</span><span class="o">(</span><span class="s">"name"</span><span class="o">),</span> <span class="n">rs</span><span class="o">.</span><span class="na">jodaDateTime</span><span class="o">(</span><span class="s">"created_at"</span><span class="o">))</span>
+<span class="o">}</span>
+
+<span class="c1">// find all members</span>
+<span class="n">val</span> <span class="nl">members:</span> <span class="n">List</span><span class="o">[</span><span class="n">Member</span><span class="o">]</span> <span class="o">=</span> <span class="n">sql</span><span class="s">"select * from members"</span><span class="o">.</span><span class="na">map</span><span class="o">(</span><span class="n">rs</span> <span class="o">=&gt;</span> <span class="n">Member</span><span class="o">(</span><span class="n">rs</span><span class="o">)).</span><span class="na">list</span><span class="o">.</span><span class="na">apply</span><span class="o">()</span>
+</pre></div>
+
+<p>How did it go? If you'd like to know more details or practical examples, see documentation.</p>
+
+<p><a href="http://scalikejdbc.org/">http://scalikejdbc.org/</a></p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Published binary files have the following copyright:</p>
+
+<pre><code>Copyright 2011 - 2014 scalikejdbc.org
+Apache License, Version 2.0
+http://www.apache.org/licenses/LICENSE-2.0.html
+</code></pre></article></div>

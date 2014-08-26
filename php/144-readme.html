@@ -1,0 +1,160 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-laravel-4-debugbar" class="anchor" href="#laravel-4-debugbar" aria-hidden="true"><span class="octicon octicon-link"></span></a>Laravel 4 Debugbar</h2>
+
+<p><a href="https://packagist.org/packages/barryvdh/laravel-debugbar"><img src="https://camo.githubusercontent.com/b425248c4010dfe1cf068f1c31f4f2a9078e04c8/68747470733a2f2f706f7365722e707567782e6f72672f62617272797664682f6c61726176656c2d64656275676261722f76657273696f6e2e706e67" alt="Latest Stable Version" data-canonical-src="https://poser.pugx.org/barryvdh/laravel-debugbar/version.png" style="max-width:100%;"></a> <a href="https://packagist.org/packages/barryvdh/laravel-debugbar"><img src="https://camo.githubusercontent.com/dfe2405b9e15da98587e39f4e8053ea5516b3d85/68747470733a2f2f706f7365722e707567782e6f72672f62617272797664682f6c61726176656c2d64656275676261722f642f746f74616c2e706e67" alt="Total Downloads" data-canonical-src="https://poser.pugx.org/barryvdh/laravel-debugbar/d/total.png" style="max-width:100%;"></a></p>
+
+<p>This is a package to integrate <a href="http://phpdebugbar.com/">PHP Debug Bar</a> with Laravel.
+It includes a ServiceProvider to register the debugbar and attach it to the output. You can publish assets and configure it through Laravel.
+It bootstraps some Collectors to work with Laravel and implements a couple custom DataCollectors, specific for Laravel.
+It is configured to display Redirects and (jQuery) Ajax Requests. (Shown in a dropdown)
+Read <a href="http://phpdebugbar.com/docs/">the documentation</a> for more configuration options.</p>
+
+<p><a href="https://camo.githubusercontent.com/345c15c168a85add12f5e74e9dedbad7216cbd8e/687474703a2f2f692e696d6775722e636f6d2f566d754e4134772e706e67" target="_blank"><img src="https://camo.githubusercontent.com/345c15c168a85add12f5e74e9dedbad7216cbd8e/687474703a2f2f692e696d6775722e636f6d2f566d754e4134772e706e67" alt="Screenshot" data-canonical-src="http://i.imgur.com/VmuNA4w.png" style="max-width:100%;"></a></p>
+
+<p>Note: Use the DebugBar only in development. It can slow the application down (because it has to gather data). So when experiencing slowness, try disabling some of the collectors.</p>
+
+<p>This package includes some custom collectors:</p>
+
+<ul class="task-list">
+<li>QueryCollector: Show all queries, including binding + timing</li>
+<li>RouteCollector: Show information about the current Route.</li>
+<li>ViewCollector: Show the currently loaded views. (Optionally: display the shared data)</li>
+<li>EventsCollector: Show all events</li>
+<li>LaravelCollector: Show the Laravel version and Environment. (disabled by default)</li>
+<li>SymfonyRequestCollector: replaces the RequestCollector with more information about the request/response</li>
+<li>LogsCollector: Show the latest log entries from the storage logs. (disabled by default)</li>
+<li>FilesCollector: Show the files that are included/required by PHP. (disabled by default)</li>
+<li>ConfigCollector: Display the values from the config files. (disabled by default)</li>
+</ul><p>Bootstraps the following collectors for Laravel:</p>
+
+<ul class="task-list">
+<li>LogCollector: Show all Log messages</li>
+<li>SwiftMailCollector and SwiftLogCollector for Mail</li>
+</ul><p>And the default collectors:</p>
+
+<ul class="task-list">
+<li>PhpInfoCollector</li>
+<li>MessagesCollector</li>
+<li>TimeDataCollector (With Booting and Application timing)</li>
+<li>MemoryCollector</li>
+<li>ExceptionsCollector</li>
+</ul><p>It also provides a Facade interface for easy logging Messages, Exceptions and Time</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Require this package in your composer.json and run composer update (or run <code>composer require barryvdh/laravel-debugbar:1.x</code> directly):</p>
+
+<pre><code>"barryvdh/laravel-debugbar": "1.*"
+</code></pre>
+
+<p>After updating composer, add the ServiceProvider to the providers array in app/config/app.php</p>
+
+<pre><code>'Barryvdh\Debugbar\ServiceProvider',
+</code></pre>
+
+<p>You need to publish the assets from this package.</p>
+
+<pre><code>$ php artisan debugbar:publish
+</code></pre>
+
+<p>Note: The public assets can change overtime (because of upstream changes), it is recommended to re-publish them after update. You can also add the republish command in composer.json.</p>
+
+<pre><code>"post-update-cmd": [
+    "php artisan debugbar:publish"
+],
+</code></pre>
+
+<p>The profiler is enabled by default, if you have app.debug=true. You can override that in the config files.
+You can also set in your config if you want to include/exclude the vendor files also (FontAwesome, Highlight.js and jQuery). If you already use them in your site, set it to false.
+You can also only display the js of css vendors, by setting it to 'js' or 'css'. (Highlight.js requires both css + js, so set to <code>true</code> for syntax highlighting)</p>
+
+<pre><code>$ php artisan config:publish barryvdh/laravel-debugbar
+</code></pre>
+
+<p>You can also disable/enable the loggers you want. You can also use the IoC container to add extra loggers. (<code>$app['debugbar']-&gt;addCollector(new MyDataCollector)</code>)</p>
+
+<p>If you want to use the facade to log messages, add this to your facades in app.php:</p>
+
+<pre><code> 'Debugbar' =&gt; 'Barryvdh\Debugbar\Facade',
+</code></pre>
+
+<p>You can now add messages using the Facade, using the PSR-3 levels (debug, info, notice, warning, error, critical, alert, emergency):</p>
+
+<pre><code>Debugbar::info($object);
+Debugbar::error("Error!");
+Debugbar::warning('Watch out..');
+Debugbar::addMessage('Another message', 'mylabel');
+</code></pre>
+
+<p>And start/stop timing:</p>
+
+<pre><code>Debugbar::startMeasure('render','Time for rendering');
+Debugbar::stopMeasure('render');
+Debugbar::addMeasure('now', LARAVEL_START, microtime(true));
+Debugbar::measure('My long operation', function() {
+    //Do something..
+});
+</code></pre>
+
+<p>Or log exceptions:</p>
+
+<pre><code>try {
+    throw new Exception('foobar');
+} catch (Exception $e) {
+    Debugbar::addException($e);
+}
+</code></pre>
+
+<p>If you want you can add your own DataCollectors, through the Container or the Facade:</p>
+
+<pre><code>Debugbar::addCollector(new DebugBar\DataCollector\MessagesCollector('my_messages'));
+//Or via the App container:
+$debugbar = App::make('debugbar');
+$debugbar-&gt;addCollector(new DebugBar\DataCollector\MessagesCollector('my_messages'));
+</code></pre>
+
+<p>By default, the Debugbar is injected just before <code>&lt;/body&gt;</code>. If you want to inject the Debugbar yourself,
+set the config option 'inject' to false and use the renderer yourself and follow <a href="http://phpdebugbar.com/docs/rendering.html">http://phpdebugbar.com/docs/rendering.html</a></p>
+
+<pre><code>$renderer = Debugbar::getJavascriptRenderer();
+</code></pre>
+
+<p>Note: Not using the auto-inject, will disable the Request information, because that is added After the response.
+You can add the default_request datacollector in the config as alternative.</p>
+
+<h2>
+<a name="user-content-enablingdisabling-on-run-time" class="anchor" href="#enablingdisabling-on-run-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Enabling/Disabling on run time</h2>
+
+<p>You can enable or disable the debugbar during run time.</p>
+
+<pre><code>\Debugbar::enable();
+\Debugbar::disable();
+</code></pre>
+
+<p>NB. Once enabled, the collectors are added (and could produce extra overhead), so if you want to use the debugbar in production, disable in the config and only enable when needed.</p>
+
+<h2>
+<a name="user-content-twig-integration" class="anchor" href="#twig-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Twig Integration</h2>
+
+<p>Laravel Debugbar comes with two Twig Extensions. These are tested with <a href="https://github.com/rcrowe/TwigBridge">rcrowe/TwigBridge</a> 0.6.x</p>
+
+<p>Add the following extensions to you TwigBridge config/extensions.php (or register the extensions manually)</p>
+
+<pre><code>'Barryvdh\Debugbar\Twig\Extension\Debug',
+'Barryvdh\Debugbar\Twig\Extension\Stopwatch',
+</code></pre>
+
+<p>The Debug extension will replace the <a href="http://twig.sensiolabs.org/doc/functions/dump.html">dump function</a> to output variables to the Messages,
+instead of showing it directly in the template. It dumps the arguments, or when empty; all context variables.</p>
+
+<pre><code>{{ dump() }}
+{{ dump(user, categories) }}
+</code></pre>
+
+<p>The Stopwatch extension adds a <a href="http://symfony.com/blog/new-in-symfony-2-4-a-stopwatch-tag-for-twig">stopwatch tag</a>  similar to the one in Symfony/Silex Twigbridge.</p>
+
+<pre><code>{% stopwatch "foo" %}
+    ... some things that gets timed
+{% endstopwatch %}
+</code></pre></article></div>

@@ -1,0 +1,575 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-bup-it-backs-things-up" class="anchor" href="#bup-it-backs-things-up" aria-hidden="true"><span class="octicon octicon-link"></span></a>bup: It backs things up</h1>
+
+<p>bup is a program that backs things up.  It's short for "backup." Can you
+believe that nobody else has named an open source program "bup" after all
+this time?  Me neither.</p>
+
+<p>Despite its unassuming name, bup is pretty cool.  To give you an idea of
+just how cool it is, I wrote you this poem:</p>
+
+<pre><code>                         Bup is teh awesome
+                      What rhymes with awesome?
+                        I guess maybe possum
+                       But that's irrelevant.
+</code></pre>
+
+<p>Hmm.  Did that help?  Maybe prose is more useful after all.</p>
+
+<h2>
+<a name="user-content-reasons-bup-is-awesome" class="anchor" href="#reasons-bup-is-awesome" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reasons bup is awesome</h2>
+
+<p>bup has a few advantages over other backup software:</p>
+
+<ul class="task-list">
+<li><p>It uses a rolling checksum algorithm (similar to rsync) to split large
+files into chunks.  The most useful result of this is you can backup huge
+virtual machine (VM) disk images, databases, and XML files incrementally,
+even though they're typically all in one huge file, and not use tons of
+disk space for multiple versions.</p></li>
+<li><p>It uses the packfile format from git (the open source version control
+system), so you can access the stored data even if you don't like bup's
+user interface.</p></li>
+<li><p>Unlike git, it writes packfiles <em>directly</em> (instead of having a separate
+garbage collection / repacking stage) so it's fast even with gratuitously
+huge amounts of data.  bup's improved index formats also allow you to
+track far more filenames than git (millions) and keep track of far more
+objects (hundreds or thousands of gigabytes).</p></li>
+<li><p>Data is "automagically" shared between incremental backups without having
+to know which backup is based on which other one - even if the backups
+are made from two different computers that don't even know about each
+other.  You just tell bup to back stuff up, and it saves only the minimum
+amount of data needed.</p></li>
+<li><p>You can back up directly to a remote bup server, without needing tons of
+temporary disk space on the computer being backed up.  And if your backup
+is interrupted halfway through, the next run will pick up where you left
+off.  And it's easy to set up a bup server: just install bup on any
+machine where you have ssh access.</p></li>
+<li><p>Bup can use "par2" redundancy to recover corrupted backups even if your
+disk has undetected bad sectors.</p></li>
+<li><p>Even when a backup is incremental, you don't have to worry about
+restoring the full backup, then each of the incrementals in turn; an
+incremental backup <em>acts</em> as if it's a full backup, it just takes less
+disk space.</p></li>
+<li><p>You can mount your bup repository as a FUSE filesystem and access the
+content that way, and even export it over Samba.</p></li>
+<li><p>It's written in python (with some C parts to make it faster) so it's easy
+for you to extend and maintain.</p></li>
+</ul><h2>
+<a name="user-content-reasons-you-might-want-to-avoid-bup" class="anchor" href="#reasons-you-might-want-to-avoid-bup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reasons you might want to avoid bup</h2>
+
+<ul class="task-list">
+<li><p>This is a very early version. Therefore it will most probably not work
+for you, but we don't know why.  It is also missing some
+probably-critical features.</p></li>
+<li><p>It requires python &gt;= 2.5, a C compiler, and an installed git
+version &gt;= 1.5.3.1.  It also requires par2 if you want fsck to be
+able to generate the information needed to recover from some types
+of corruption.</p></li>
+<li><p>It currently only works on Linux, MacOS X &gt;= 10.4,
+NetBSD, Solaris, or Windows (with Cygwin).  Patches to support
+other platforms are welcome.</p></li>
+<li><p>Any items in "Things that are stupid" below.</p></li>
+</ul><h1>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h1>
+
+<h2>
+<a name="user-content-from-source" class="anchor" href="#from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>From source</h2>
+
+<ul class="task-list">
+<li>
+<p>Check out the bup source code using git:</p>
+
+<pre><code>git clone git://github.com/bup/bup
+</code></pre>
+</li>
+<li>
+<p>Install the required python libraries (including the development
+libraries).</p>
+
+<p>On very recent Debian/Ubuntu versions, this may be sufficient (run
+as root):</p>
+
+<pre><code>    apt-get build-dep bup
+</code></pre>
+
+<p>Otherwise try this (substitute python2.5-dev or python2.6-dev if
+you have an older system):</p>
+
+<pre><code>    apt-get install python2.7-dev python-fuse
+    apt-get install python-pyxattr python-pylibacl
+    apt-get install linux-libc-dev
+    apt-get install acl attr
+    apt-get install python-tornado # optional
+</code></pre>
+
+<p>On CentOS (for CentOS 6, at least), this should be sufficient (run
+as root):</p>
+
+<pre><code>    yum groupinstall "Development Tools"
+    yum install python python-devel
+    yum install fuse-python pyxattr pylibacl
+    yum install perl-Time-HiRes
+</code></pre>
+
+<p>In addition to the default CentOS repositories, you may need to add
+RPMForge (for fuse-python) and EPEL (for pyxattr and pylibacl).</p>
+
+<p>On Cygwin, install python, make, rsync, and gcc4.</p>
+
+<p>If you would like to use the optional bup web server on systems
+without a tornado package, you may want to try this:</p>
+
+<pre><code>    pip install tornado
+</code></pre>
+</li>
+<li>
+<p>Build the python module and symlinks:</p>
+
+<pre><code>make
+</code></pre>
+</li>
+<li>
+<p>Run the tests:</p>
+
+<pre><code>make test
+</code></pre>
+
+<p>(The tests should pass.  If they don't pass for you, stop here and send
+ an email to <a href="mailto:bup-list@googlegroups.com">bup-list@googlegroups.com</a>.)</p>
+</li>
+<li>
+<p>You can install bup via "make install", and override the default
+destination with DESTDIR and PREFIX.</p>
+
+<p>Files are normally installed to "$DESTDIR/$PREFIX" where DESTDIR is
+empty by default, and PREFIX is set to /usr.  So if you wanted to
+install bup to /opt/bup, you might do something like this:</p>
+
+<pre><code>make install DESTDIR=/opt/bup PREFIX=''
+</code></pre>
+</li>
+</ul><h2>
+<a name="user-content-from-binary-packages" class="anchor" href="#from-binary-packages" aria-hidden="true"><span class="octicon octicon-link"></span></a>From binary packages</h2>
+
+<p>Binary packages of bup are known to be built for the following OSes:</p>
+
+<ul class="task-list">
+<li>Debian:
+<a href="http://packages.debian.org/search?searchon=names&amp;keywords=bup">http://packages.debian.org/search?searchon=names&amp;keywords=bup</a>
+</li>
+<li>Ubuntu:
+<a href="http://packages.ubuntu.com/search?searchon=names&amp;keywords=bup">http://packages.ubuntu.com/search?searchon=names&amp;keywords=bup</a>
+</li>
+<li>pkgsrc (NetBSD, Dragonfly, and others)
+<a href="http://pkgsrc.se/sysutils/bup">http://pkgsrc.se/sysutils/bup</a>
+<a href="http://cvsweb.netbsd.org/bsdweb.cgi/pkgsrc/sysutils/bup/">http://cvsweb.netbsd.org/bsdweb.cgi/pkgsrc/sysutils/bup/</a>
+</li>
+</ul><h2>
+<a name="user-content-using-bup" class="anchor" href="#using-bup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using bup</h2>
+
+<ul class="task-list">
+<li>
+<p>Get help for any bup command:</p>
+
+<pre><code>bup help
+bup help init
+bup help index
+bup help save
+bup help restore
+...
+</code></pre>
+</li>
+<li>
+<p>Initialize the default BUP_DIR (~/.bup):</p>
+
+<pre><code>bup init
+</code></pre>
+</li>
+<li>
+<p>Make a local backup (-v or -vv will increase the verbosity):</p>
+
+<pre><code>bup index /etc
+bup save -n local-etc /etc
+</code></pre>
+</li>
+<li>
+<p>Restore a local backup to ./dest:</p>
+
+<pre><code>bup restore -C ./dest local-etc/latest/etc
+ls -l dest/etc
+</code></pre>
+</li>
+<li>
+<p>Look at how much disk space your backup took:</p>
+
+<pre><code>du -s ~/.bup
+</code></pre>
+</li>
+<li>
+<p>Make another backup (which should be mostly identical to the last one;
+notice that you don't have to <em>specify</em> that this backup is incremental,
+it just saves space automatically):</p>
+
+<pre><code>bup index /etc
+bup save -n local-etc /etc
+</code></pre>
+</li>
+<li>
+<p>Look how little extra space your second backup used (on top of the first):</p>
+
+<pre><code>du -s ~/.bup
+</code></pre>
+</li>
+<li>
+<p>Get a list of your previous backups:</p>
+
+<pre><code>bup ls local-etc
+</code></pre>
+</li>
+<li>
+<p>Restore your first backup again:</p>
+
+<pre><code>bup restore -C ./dest-2 local-etc/2013-11-23-11195/etc
+</code></pre>
+</li>
+<li>
+<p>Make a backup on a remote server (which must already have the 'bup' command
+somewhere in the server's PATH (see /etc/profile, etc/environment,
+~/.profile, or ~/.bashrc), and be accessible via ssh.
+Make sure to replace SERVERNAME with the actual hostname of your server):</p>
+
+<pre><code>ssh SERVERNAME bup init
+bup index /etc
+bup save -r SERVERNAME: -n local-etc /etc
+</code></pre>
+</li>
+<li><p>Restore a backup from a remote server.  (FAIL: unfortunately,
+unlike "bup join", "bup restore" does not yet support remote
+restores.  See both "bup join" and "Things that are stupid" below.)</p></li>
+<li>
+<p>Defend your backups from death rays (OK fine, more likely from the
+occasional bad disk block).  This writes parity information
+(currently via par2) for all of the existing data so that bup may
+be able to recover from some amount of repository corruption:</p>
+
+<pre><code>bup fsck -g
+</code></pre>
+</li>
+<li>
+<p>Use split/join instead of index/save/restore.  Try making a local
+backup using tar:</p>
+
+<pre><code>tar -cvf - /etc | bup split -n local-etc -vv
+</code></pre>
+</li>
+<li>
+<p>Try restoring the tarball:</p>
+
+<pre><code>bup join local-etc | tar -tf -
+</code></pre>
+</li>
+<li>
+<p>Look at how much disk space your backup took:</p>
+
+<pre><code>du -s ~/.bup
+</code></pre>
+</li>
+<li>
+<p>Make another tar backup:</p>
+
+<pre><code>tar -cvf - /etc | bup split -n local-etc -vv
+</code></pre>
+</li>
+<li>
+<p>Look at how little extra space your second backup used on top of
+the first:</p>
+
+<p>du -s ~/.bup</p>
+</li>
+<li>
+<p>Restore the first tar backup again (the ~1 is git notation for "one
+older than the most recent"):</p>
+
+<pre><code>bup join local-etc~1 | tar -tf -
+</code></pre>
+</li>
+<li>
+<p>Get a list of your previous split-based backups:</p>
+
+<pre><code>GIT_DIR=~/.bup git log local-etc
+</code></pre>
+</li>
+<li>
+<p>Make a backup on a remote server:</p>
+
+<pre><code>tar -cvf - /etc | bup split -r SERVERNAME: -n local-etc -vv
+</code></pre>
+</li>
+<li>
+<p>Try restoring the remote backup tarball:</p>
+
+<pre><code>bup join -r SERVERNAME: local-etc | tar -tf -
+</code></pre>
+</li>
+</ul><p>That's all there is to it!</p>
+
+<h2>
+<a name="user-content-notes-on-freebsd" class="anchor" href="#notes-on-freebsd" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes on FreeBSD</h2>
+
+<ul class="task-list">
+<li><p>FreeBSD's default 'make' command doesn't like bup's Makefile. In order to
+compile the code, run tests and install bup, you need to install GNU Make
+from the port named 'gmake' and use its executable instead in the commands
+seen above. (i.e. 'gmake test' runs bup's test suite)</p></li>
+<li><p>Python's development headers are automatically installed with the 'python'
+port so there's no need to install them separately.</p></li>
+<li><p>To use the 'bup fuse' command, you need to install the fuse kernel module
+from the 'fusefs-kmod' port in the 'sysutils' section and the libraries from
+the port named 'py-fusefs' in the 'devel' section.</p></li>
+<li><p>The 'par2' command can be found in the port named 'par2cmdline'.</p></li>
+<li><p>In order to compile the documentation, you need pandoc which can be found in
+the port named 'hs-pandoc' in the 'textproc' section.</p></li>
+</ul><h2>
+<a name="user-content-notes-on-netbsdpkgsrc" class="anchor" href="#notes-on-netbsdpkgsrc" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes on NetBSD/pkgsrc</h2>
+
+<ul class="task-list">
+<li><p>See pkgsrc/sysutils/bup, which should be the most recent stable
+release and includes man pages.  It also has a reasonable set of
+dependencies (git, par2, py-fuse-bindings).</p></li>
+<li><p>The "fuse-python" package referred to is hard to locate, and is a
+separate tarball for the python language binding distributed by the
+fuse project on sourceforge.  It is available as
+pkgsrc/filesystems/py-fuse-bindings and on NetBSD 5, "bup fuse"
+works with it.</p></li>
+<li><p>"bup fuse" presents every directory/file as inode 0.  The directory
+traversal code ("fts") in NetBSD's libc will interpret this as a
+cycle and error out, so "ls -R" and "find" will not work.</p></li>
+<li><p>There is no support for ACLs.  If/when some entrprising person
+fixes this, adjust t/compare-trees.</p></li>
+</ul><h2>
+<a name="user-content-notes-on-cygwin" class="anchor" href="#notes-on-cygwin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes on Cygwin</h2>
+
+<ul class="task-list">
+<li><p>There is no support for ACLs.  If/when some enterprising person
+fixes this, adjust t/compare-trees.</p></li>
+<li><p>In t/test.sh, two tests have been disabled.  These tests check to
+see that repeated saves produce identical trees and that an
+intervening index doesn't change the SHA1.  Apparently Cygwin has
+some unusual behaviors with respect to access times (that probably
+warrant further investigation).  Possibly related:
+<a href="http://cygwin.com/ml/cygwin/2007-06/msg00436.html">http://cygwin.com/ml/cygwin/2007-06/msg00436.html</a></p></li>
+</ul><h2>
+<a name="user-content-notes-on-os-x" class="anchor" href="#notes-on-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes on OS X</h2>
+
+<ul class="task-list">
+<li>There is no support for ACLs.  If/when some enterprising person
+fixes this, adjust t/compare-trees.</li>
+</ul><h1>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h1>
+
+<h2>
+<a name="user-content-basic-storage" class="anchor" href="#basic-storage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic storage:</h2>
+
+<p>bup stores its data in a git-formatted repository.  Unfortunately, git
+itself doesn't actually behave very well for bup's use case (huge numbers of
+files, files with huge sizes, retaining file permissions/ownership are
+important), so we mostly don't use git's <em>code</em> except for a few helper
+programs.  For example, bup has its own git packfile writer written in
+python.</p>
+
+<p>Basically, 'bup split' reads the data on stdin (or from files specified on
+the command line), breaks it into chunks using a rolling checksum (similar to
+rsync), and saves those chunks into a new git packfile.  There is one git
+packfile per backup.</p>
+
+<p>When deciding whether to write a particular chunk into the new packfile, bup
+first checks all the other packfiles that exist to see if they already have that
+chunk.  If they do, the chunk is skipped.</p>
+
+<p>git packs come in two parts: the pack itself (<em>.pack) and the index (</em>.idx).
+The index is pretty small, and contains a list of all the objects in the
+pack.  Thus, when generating a remote backup, we don't have to have a copy
+of the packfiles from the remote server: the local end just downloads a copy
+of the server's <em>index</em> files, and compares objects against those when
+generating the new pack, which it sends directly to the server.</p>
+
+<p>The "-n" option to 'bup split' and 'bup save' is the name of the backup you
+want to create, but it's actually implemented as a git branch.  So you can
+do cute things like checkout a particular branch using git, and receive a
+bunch of chunk files corresponding to the file you split.</p>
+
+<p>If you use '-b' or '-t' or '-c' instead of '-n', bup split will output a
+list of blobs, a tree containing that list of blobs, or a commit containing
+that tree, respectively, to stdout.  You can use this to construct your own
+scripts that do something with those values.</p>
+
+<h2>
+<a name="user-content-the-bup-index" class="anchor" href="#the-bup-index" aria-hidden="true"><span class="octicon octicon-link"></span></a>The bup index:</h2>
+
+<p>'bup index' walks through your filesystem and updates a file (whose name is,
+by default, ~/.bup/bupindex) to contain the name, attributes, and an
+optional git SHA1 (blob id) of each file and directory.</p>
+
+<p>'bup save' basically just runs the equivalent of 'bup split' a whole bunch
+of times, once per file in the index, and assembles a git tree
+that contains all the resulting objects.  Among other things, that makes
+'git diff' much more useful (compared to splitting a tarball, which is
+essentially a big binary blob).  However, since bup splits large files into
+smaller chunks, the resulting tree structure doesn't <em>exactly</em> correspond to
+what git itself would have stored.  Also, the tree format used by 'bup save'
+will probably change in the future to support storing file ownership, more
+complex file permissions, and so on.</p>
+
+<p>If a file has previously been written by 'bup save', then its git blob/tree
+id is stored in the index.  This lets 'bup save' avoid reading that file to
+produce future incremental backups, which means it can go <em>very</em> fast unless
+a lot of files have changed.</p>
+
+<h1>
+<a name="user-content-things-that-are-stupid-for-now-but-which-well-fix-later" class="anchor" href="#things-that-are-stupid-for-now-but-which-well-fix-later" aria-hidden="true"><span class="octicon octicon-link"></span></a>Things that are stupid for now but which we'll fix later</h1>
+
+<p>Help with any of these problems, or others, is very welcome.  Join the
+mailing list (see below) if you'd like to help.</p>
+
+<ul class="task-list">
+<li>
+<p>'bup restore' can't pull directly from a remote server.</p>
+
+<p>So in one sense "save -r" is a dead-end right now.  Obviously you
+can use "ssh SERVER bup restore -C ./dest..." to create a tree you
+can transfer elsewhere via rsync/tar/whatever, but that's <em>lame</em>.</p>
+
+<p>Until we fix it, you may be able to mount the remote BUP_DIR via
+sshfs and then restore "normally", though that hasn't been
+officially tested.</p>
+</li>
+<li>
+<p>'bup save' and 'bup restore' have immature metadata support.</p>
+
+<p>On the plus side, they actually do have support now, but it's new,
+and not remotely as well tested as tar/rsync/whatever's.  However,
+you have to start somewhere, and as of 0.25, we think it's ready
+for more general use.  Please let us know if you have any trouble.</p>
+
+<p>Also, if any strip or graft-style options are specified to 'bup
+save', then no metadata will be written for the root directory.
+That's obviously less than ideal.</p>
+</li>
+<li>
+<p>bup is overly optimistic about mmap.  Right now bup just assumes
+that it can mmap as large a block as it likes, and that mmap will
+never fail.  Yeah, right... If nothing else, this has failed on
+32-bit architectures (and 31-bit is even worse -- looking at you,
+s390).</p>
+
+<p>To fix this, we might just implement a FakeMmap[1] class that uses
+normal file IO and handles all of the mmap methods[2] that bup
+actually calls.  Then we'd swap in one of those whenever mmap
+fails.</p>
+
+<p>This would also require implementing some of the methods needed to
+support "[]" array access, probably at a minimum <strong>getitem</strong>,
+<strong>setitem</strong>, and <strong>setslice</strong> [3].</p>
+
+<p>[1] <a href="http://comments.gmane.org/gmane.comp.sysutils.backup.bup/613">http://comments.gmane.org/gmane.comp.sysutils.backup.bup/613</a>
+ [2] <a href="http://docs.python.org/2/library/mmap.html">http://docs.python.org/2/library/mmap.html</a>
+ [3] <a href="http://docs.python.org/2/reference/datamodel.html#emulating-container-types">http://docs.python.org/2/reference/datamodel.html#emulating-container-types</a></p>
+</li>
+<li>
+<p>'bup index' is slower than it should be.</p>
+
+<p>It's still rather fast: it can iterate through all the filenames on my
+600,000 file filesystem in a few seconds.  But it still needs to rewrite
+the entire index file just to add a single filename, which is pretty
+nasty; it should just leave the new files in a second "extra index" file
+or something.</p>
+</li>
+<li>
+<p>bup could use inotify for <em>really</em> efficient incremental backups.</p>
+
+<p>You could even have your system doing "continuous" backups: whenever a
+file changes, we immediately send an image of it to the server.  We could
+give the continuous-backup process a really low CPU and I/O priority so
+you wouldn't even know it was running.</p>
+</li>
+<li>
+<p>bup currently has no way to prune <em>old</em> backups.</p>
+
+<p>Because of the way the packfile system works, backups become "entangled"
+in weird ways and it's not actually possible to delete one pack
+(corresponding approximately to one backup) without risking screwing up
+other backups.</p>
+
+<p>git itself has lots of ways of optimizing this sort of thing, but its
+methods aren't really applicable here; bup packfiles are just too huge.
+We'll have to do it in a totally different way.  There are lots of
+options.  For now: make sure you've got lots of disk space :)</p>
+
+<p>Until we fix this, one possible workaround is to just start a new
+BUP_DIR occasionally, i.e. bup-2013-10, bup-2013-11...</p>
+</li>
+<li>
+<p>bup has never been tested on anything but Linux, MacOS, and Windows+Cygwin.</p>
+
+<p>There's nothing that makes it <em>inherently</em> non-portable, though, so
+that's mostly a matter of someone putting in some effort.  (For a
+"native" Windows port, the most annoying thing is the absence of ssh in
+a default Windows installation.)</p>
+</li>
+<li>
+<p>bup needs better documentation.</p>
+
+<p>According to a recent article about bup in Linux Weekly News
+(<a href="https://lwn.net/Articles/380983/">https://lwn.net/Articles/380983/</a>), "it's a bit short on examples and
+a user guide would be nice."  Documentation is the sort of thing that
+will never be great unless someone from outside contributes it (since
+the developers can never remember which parts are hard to understand).</p>
+</li>
+<li>
+<p>bup is "relatively speedy" and has "pretty good" compression.</p>
+
+<p>...according to the same LWN article.  Clearly neither of those is good
+enough.  We should have awe-inspiring speed and crazy-good compression. 
+Must work on that.  Writing more parts in C might help with the speed.</p>
+</li>
+<li>
+<p>bup has no GUI.</p>
+
+<p>Actually, that's not stupid, but you might consider it a limitation. 
+There are a bunch of Linux GUI backup programs; someday I expect someone
+will adapt one of them to use bup.</p>
+</li>
+</ul><h1>
+<a name="user-content-more-documentation" class="anchor" href="#more-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>More Documentation</h1>
+
+<p>bup has an extensive set of man pages.  Try using 'bup help' to get
+started, or use 'bup help SUBCOMMAND' for any bup subcommand (like split,
+join, index, save, etc.) to get details on that command.</p>
+
+<p>For further technical details, please see ./DESIGN.</p>
+
+<h1>
+<a name="user-content-how-you-can-help" class="anchor" href="#how-you-can-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>How you can help</h1>
+
+<p>bup is a work in progress and there are many ways it can still be improved.
+If you'd like to contribute patches, ideas, or bug reports, please join the
+bup mailing list.</p>
+
+<p>You can find the mailing list archives here:</p>
+
+<pre><code>http://groups.google.com/group/bup-list
+</code></pre>
+
+<p>and you can subscribe by sending a message to:</p>
+
+<pre><code>bup-list+subscribe@googlegroups.com
+</code></pre>
+
+<p>Please see <a href="HACKING">./HACKING</a> for
+additional information, i.e. how to submit patches (hint - no pull
+requests), how we handle branches, etc.</p>
+
+<p>Have fun,</p>
+
+<p>Avery</p></article></div>

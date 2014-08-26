@@ -1,0 +1,403 @@
+<div class="announce instapaper_body rdoc" data-path="README.rdoc" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage">
+<h1>
+<a name="user-content-rest-client--simple-dsl-for-accessing-http-and-rest-resources" class="anchor" href="#rest-client--simple-dsl-for-accessing-http-and-rest-resources" aria-hidden="true"><span class="octicon octicon-link"></span></a>REST Client – simple DSL for accessing HTTP and REST resources</h1>
+
+<p>Build status: <a href="https://travis-ci.org/rest-client/rest-client"><img src="https://camo.githubusercontent.com/a3c9765f2c576465db871a13cc71f5b653d0dd3b/68747470733a2f2f7472617669732d63692e6f72672f726573742d636c69656e742f726573742d636c69656e742e7376673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/rest-client/rest-client.svg?branch=master" style="max-width:100%;"></a></p>
+
+<p>A simple HTTP and REST client for Ruby, inspired by the Sinatra's
+microframework style of specifying actions: get, put, post, delete.</p>
+<ul>
+<li>
+<p>Main page: <a href="https://github.com/rest-client/rest-client">github.com/rest-client/rest-client</a></p>
+</li>
+<li>
+<p>Mailing list: rest.client@librelist.com (send a mail to subscribe).</p>
+</li>
+</ul><h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>MRI Ruby 1.9.2 and newer are supported. Alternative interpreters compatible
+with 1.9.1+ should work as well.</p>
+
+<p>Ruby 1.8.7 is no longer supported.  That's because the Ruby 1.8.7
+interpreter itself no longer has official support, <em>not</em>
+<em>even</em> <em>security</em> <em>patches!</em> If you have been putting
+off upgrading your servers, now is the time. (<a href="http://www.ruby-lang.org/en/news/2013/06/30/we-retire-1-8-7/">More
+info is on the Ruby developers’ blog.</a>)</p>
+
+<p>The rest-client gem depends on these other gems for installation and usage:</p>
+<ul>
+<li>
+<p><a href="http://rubygems.org/gems/mime-types">mime-types</a></p>
+</li>
+<li>
+<p><a href="http://rubygems.org/gems/netrc">netrc</a></p>
+</li>
+<li>
+<p><a href="http://rubygems.org/gems/rdoc">rdoc</a></p>
+</li>
+</ul><p>If you want to hack on the code, you should also have <a href="http://bundler.io/">the Bundler gem</a> installed so it can manage
+all necessary development dependencies for you.</p>
+
+<h2>
+<a name="user-content-usage-raw-url" class="anchor" href="#usage-raw-url" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage: Raw URL</h2>
+
+<pre>require 'rest_client'
+
+RestClient.get 'http://example.com/resource'
+
+RestClient.get 'http://example.com/resource', {:params =&gt; {:id =&gt; 50, 'foo' =&gt; 'bar'}}
+
+RestClient.get 'https://user:password@example.com/private/resource', {:accept =&gt; :json}
+
+RestClient.post 'http://example.com/resource', :param1 =&gt; 'one', :nested =&gt; { :param2 =&gt; 'two' }
+
+RestClient.post "http://example.com/resource", { 'x' =&gt; 1 }.to_json, :content_type =&gt; :json, :accept =&gt; :json
+
+RestClient.delete 'http://example.com/resource'
+
+response = RestClient.get 'http://example.com/resource'
+response.code
+➔ 200
+response.cookies
+➔ {"Foo"=&gt;"BAR", "QUUX"=&gt;"QUUUUX"}
+response.headers
+➔ {:content_type=&gt;"text/html; charset=utf-8", :cache_control=&gt;"private" ...
+response.to_str
+➔ \n&lt;!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\"\n   \"http://www.w3.org/TR/html4/strict.dtd\"&gt;\n\n&lt;html ....
+
+RestClient.post( url,
+  {
+    :transfer =&gt; {
+      :path =&gt; '/foo/bar',
+      :owner =&gt; 'that_guy',
+      :group =&gt; 'those_guys'
+    },
+     :upload =&gt; {
+      :file =&gt; File.new(path, 'rb')
+    }
+  })</pre>
+
+<h2>
+<a name="user-content-multipart" class="anchor" href="#multipart" aria-hidden="true"><span class="octicon octicon-link"></span></a>Multipart</h2>
+
+<p>Yeah, that's right!  This does multipart sends for you!</p>
+
+<pre>RestClient.post '/data', :myfile =&gt; File.new("/path/to/image.jpg", 'rb')</pre>
+
+<p>This does two things for you:</p>
+<ul>
+<li>
+<p>Auto-detects that you have a File value sends it as multipart</p>
+</li>
+<li>
+<p>Auto-detects the mime of the file and sets it in the HEAD of the payload
+for each entry</p>
+</li>
+</ul><p>If you are sending params that do not contain a File object but the payload
+needs to be multipart then:</p>
+
+<pre>RestClient.post '/data', {:foo =&gt; 'bar', :multipart =&gt; true}</pre>
+
+<h2>
+<a name="user-content-usage-activeresource-style" class="anchor" href="#usage-activeresource-style" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage: ActiveResource-Style</h2>
+
+<pre>resource = RestClient::Resource.new 'http://example.com/resource'
+resource.get
+
+private_resource = RestClient::Resource.new 'https://example.com/private/resource', 'user', 'pass'
+private_resource.put File.read('pic.jpg'), :content_type =&gt; 'image/jpg'</pre>
+
+<p>See RestClient::Resource module docs for details.</p>
+
+<h2>
+<a name="user-content-usage-resource-nesting" class="anchor" href="#usage-resource-nesting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage: Resource Nesting</h2>
+
+<pre>site = RestClient::Resource.new('http://example.com')
+site['posts/1/comments'].post 'Good article.', :content_type =&gt; 'text/plain'</pre>
+
+<p>See RestClient::Resource docs for details.</p>
+
+<h2>
+<a name="user-content-exceptions-see-wwww3orgprotocolsrfc2616rfc2616-sec10html" class="anchor" href="#exceptions-see-wwww3orgprotocolsrfc2616rfc2616-sec10html" aria-hidden="true"><span class="octicon octicon-link"></span></a>Exceptions (see <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">www.w3.org/Protocols/rfc2616/rfc2616-sec10.html</a>)</h2>
+<ul>
+<li>
+<p>for result codes between 200 and 207, a RestClient::Response will be
+returned</p>
+</li>
+<li>
+<p>for result codes 301, 302 or 307, the redirection will be followed if the
+request is a GET or a HEAD</p>
+</li>
+<li>
+<p>for result code 303, the redirection will be followed and the request
+transformed into a GET</p>
+</li>
+<li>
+<p>for other cases, a RestClient::Exception holding the Response will be
+raised; a specific exception class will be thrown for known error codes</p>
+
+<pre>RestClient.get 'http://example.com/resource'
+➔ RestClient::ResourceNotFound: RestClient::ResourceNotFound
+
+begin
+  RestClient.get 'http://example.com/resource'
+rescue =&gt; e
+  e.response
+end
+➔ 404 Resource Not Found | text/html 282 bytes</pre>
+</li>
+</ul><h2>
+<a name="user-content-result-handling" class="anchor" href="#result-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Result handling</h2>
+
+<p>A block can be passed to the RestClient method. This block will then be
+called with the Response. Response.return! can be called to invoke the
+default response's behavior.</p>
+
+<pre># Don't raise exceptions but return the response
+RestClient.get('http://example.com/resource'){|response, request, result| response }
+➔ 404 Resource Not Found | text/html 282 bytes
+
+# Manage a specific error code
+RestClient.get('http://my-rest-service.com/resource'){ |response, request, result, &amp;block|
+  case response.code
+  when 200
+    p "It worked !"
+    response
+  when 423
+    raise SomeCustomExceptionIfYouWant
+  else
+    response.return!(request, result, &amp;block)
+  end
+}
+
+# Follow redirections for all request types and not only for get and head
+# RFC : "If the 301, 302 or 307 status code is received in response to a request other than GET or HEAD,
+#        the user agent MUST NOT automatically redirect the request unless it can be confirmed by the user,
+#        since this might change the conditions under which the request was issued."
+RestClient.get('http://my-rest-service.com/resource'){ |response, request, result, &amp;block|
+  if [301, 302, 307].include? response.code
+    response.follow_redirection(request, result, &amp;block)
+  else
+    response.return!(request, result, &amp;block)
+  end
+}</pre>
+
+<h2>
+<a name="user-content-non-normalized-uris" class="anchor" href="#non-normalized-uris" aria-hidden="true"><span class="octicon octicon-link"></span></a>Non-normalized URIs</h2>
+
+<p>If you need to normalize URIs, e.g. to work with International Resource
+Identifiers (IRIs), use the addressable gem (<a href="http://addressable.rubyforge.org/api">addressable.rubyforge.org/api</a>/)
+in your code:</p>
+
+<pre>require 'addressable/uri'
+RestClient.get(Addressable::URI.parse("http://www.詹姆斯.com/").normalize.to_str)</pre>
+
+<h2>
+<a name="user-content-lower-level-access" class="anchor" href="#lower-level-access" aria-hidden="true"><span class="octicon octicon-link"></span></a>Lower-level access</h2>
+
+<p>For cases not covered by the general API, you can use the
+RestClient::Request class, which provides a lower-level API.</p>
+
+<p>You can:</p>
+<ul>
+<li>
+<p>specify ssl parameters</p>
+</li>
+<li>
+<p>override cookies</p>
+</li>
+<li>
+<p>manually handle the response (e.g. to operate on it as a stream rather than
+reading it all into memory)</p>
+</li>
+</ul><p>See RestClient::Request's documentation for more information.</p>
+
+<h2>
+<a name="user-content-shell" class="anchor" href="#shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Shell</h2>
+
+<p>The restclient shell command gives an IRB session with RestClient already
+loaded:</p>
+
+<pre>$ restclient
+&gt;&gt; RestClient.get 'http://example.com'</pre>
+
+<p>Specify a URL argument for get/post/put/delete on that resource:</p>
+
+<pre>$ restclient http://example.com
+&gt;&gt; put '/resource', 'data'</pre>
+
+<p>Add a user and password for authenticated resources:</p>
+
+<pre>$ restclient https://example.com user pass
+&gt;&gt; delete '/private/resource'</pre>
+
+<p>Create ~/.restclient for named sessions:</p>
+
+<pre>sinatra:
+  url: http://localhost:4567
+rack:
+  url: http://localhost:9292
+private_site:
+  url: http://example.com
+  username: user
+  password: pass</pre>
+
+<p>Then invoke:</p>
+
+<pre>$ restclient private_site</pre>
+
+<p>Use as a one-off, curl-style:</p>
+
+<pre>$ restclient get http://example.com/resource &gt; output_body
+
+$ restclient put http://example.com/resource &lt; input_body</pre>
+
+<h2>
+<a name="user-content-logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h2>
+
+<p>To enable logging you can:</p>
+<ul>
+<li>
+<p>set RestClient.log with a Ruby Logger, or</p>
+</li>
+<li>
+<p>set an environment variable to avoid modifying the code (in this case you
+can use a file name, “stdout” or “stderr”):</p>
+
+<pre>$ RESTCLIENT_LOG=stdout path/to/my/program</pre>
+</li>
+</ul><p>Either produces logs like this:</p>
+
+<pre>RestClient.get "http://some/resource"
+# =&gt; 200 OK | text/html 250 bytes
+RestClient.put "http://some/resource", "payload"
+# =&gt; 401 Unauthorized | application/xml 340 bytes</pre>
+
+<p>Note that these logs are valid Ruby, so you can paste them into the
+restclient shell or a script to replay your sequence of rest calls.</p>
+
+<h2>
+<a name="user-content-proxy" class="anchor" href="#proxy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Proxy</h2>
+
+<p>All calls to RestClient, including Resources, will use the proxy specified
+by RestClient.proxy:</p>
+
+<pre>RestClient.proxy = "http://proxy.example.com/"
+RestClient.get "http://some/resource"
+# =&gt; response from some/resource as proxied through proxy.example.com</pre>
+
+<p>Often the proxy URL is set in an environment variable, so you can do this
+to use whatever proxy the system is configured to use:</p>
+
+<pre>RestClient.proxy = ENV['http_proxy']</pre>
+
+<h2>
+<a name="user-content-query-parameters" class="anchor" href="#query-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Query parameters</h2>
+
+<p>Request objects know about query parameters and will automatically add them
+to the URL for GET, HEAD and DELETE requests, escaping the keys and values
+as needed:</p>
+
+<pre>RestClient.get 'http://example.com/resource', :params =&gt; {:foo =&gt; 'bar', :baz =&gt; 'qux'}
+# will GET http://example.com/resource?foo=bar&amp;baz=qux</pre>
+
+<h2>
+<a name="user-content-cookies" class="anchor" href="#cookies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cookies</h2>
+
+<p>Request and Response objects know about HTTP cookies, and will
+automatically extract and set headers for them as needed:</p>
+
+<pre>response = RestClient.get 'http://example.com/action_which_sets_session_id'
+response.cookies
+# =&gt; {"_applicatioN_session_id" =&gt; "1234"}
+
+response2 = RestClient.post(
+  'http://localhost:3000/',
+  {:param1 =&gt; "foo"},
+  {:cookies =&gt; {:session_id =&gt; "1234"}}
+)
+# ...response body</pre>
+
+<h2>
+<a name="user-content-ssl-client-certificates" class="anchor" href="#ssl-client-certificates" aria-hidden="true"><span class="octicon octicon-link"></span></a>SSL Client Certificates</h2>
+
+<pre>RestClient::Resource.new(
+  'https://example.com',
+  :ssl_client_cert  =&gt;  OpenSSL::X509::Certificate.new(File.read("cert.pem")),
+  :ssl_client_key   =&gt;  OpenSSL::PKey::RSA.new(File.read("key.pem"), "passphrase, if any"),
+  :ssl_ca_file      =&gt;  "ca_certificate.pem",
+  :verify_ssl       =&gt;  OpenSSL::SSL::VERIFY_PEER
+).get</pre>
+
+<p>Self-signed certificates can be generated with the openssl command-line
+tool.</p>
+
+<h2>
+<a name="user-content-hook" class="anchor" href="#hook" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hook</h2>
+
+<p>RestClient.add_before_execution_proc add a Proc to be called before each
+execution. It's handy if you need direct access to the HTTP request.</p>
+
+<p>Example:</p>
+
+<pre># Add oauth support using the oauth gem
+require 'oauth'
+access_token = ...
+
+RestClient.add_before_execution_proc do |req, params|
+  access_token.sign! req
+end
+
+RestClient.get 'http://example.com'</pre>
+
+<h2>
+<a name="user-content-more" class="anchor" href="#more" aria-hidden="true"><span class="octicon octicon-link"></span></a>More</h2>
+
+<p>Need caching, more advanced logging or any ability provided by Rack
+middleware?</p>
+
+<p>Have a look at rest-client-components: <a href="http://github.com/crohr/rest-client-components">github.com/crohr/rest-client-components</a></p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+<table>
+<tr>
+<td><p>REST Client Team</p></td>
+<td>
+<p>Matthew Manning, Lawrence Leonard Gilbert, Andy Brody</p>
+</td>
+</tr>
+<tr>
+<td><p>Creator</p></td>
+<td>
+<p>Adam Wiggins</p>
+</td>
+</tr>
+<tr>
+<td><p>Maintainer Emeritus</p></td>
+<td>
+<p>Julien Kirch</p>
+</td>
+</tr>
+<tr>
+<td><p>Major contributions</p></td>
+<td>
+<p>Blake Mizerany, Julien Kirch</p>
+</td>
+</tr>
+</table><p>Patches contributed by many, including Chris Anderson, Greg Borenstein,
+Ardekantur, Pedro Belo, Rafael Souza, Rick Olson, Aman Gupta, François
+Beausoleil and Nick Plante.</p>
+
+<h2>
+<a name="user-content-legal" class="anchor" href="#legal" aria-hidden="true"><span class="octicon octicon-link"></span></a>Legal</h2>
+
+<p>Released under the MIT License: <a href="http://www.opensource.org/licenses/mit-license.php">www.opensource.org/licenses/mit-license.php</a></p>
+
+<p>“Master Shake” photo (<a href="http://www.flickr.com/photos/solgrundy/924205581">www.flickr.com/photos/solgrundy/924205581</a>/)
+by “SolGrundy”; used under terms of the Creative Commons
+Attribution-ShareAlike 2.0 Generic license (<a href="http://creativecommons.org/licenses/by-sa/2.0">creativecommons.org/licenses/by-sa/2.0</a>/)</p>
+
+<p>Code for reading Windows root certificate store derived from work by
+Puppet; used under terms of the Apache License, Version 2.0.</p></article></div>

@@ -1,0 +1,211 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-faraday" class="anchor" href="#faraday" aria-hidden="true"><span class="octicon octicon-link"></span></a>Faraday</h1>
+
+<p>Faraday is an HTTP client lib that provides a common interface over many
+adapters (such as Net::HTTP) and embraces the concept of Rack middleware when
+processing the request/response cycle.</p>
+
+<p>Faraday supports these adapters:</p>
+
+<ul class="task-list">
+<li>Net::HTTP</li>
+<li><a href="https://github.com/geemus/excon#readme">Excon</a></li>
+<li><a href="https://github.com/typhoeus/typhoeus#readme">Typhoeus</a></li>
+<li><a href="http://toland.github.com/patron/">Patron</a></li>
+<li><a href="https://github.com/igrigorik/em-http-request#readme">EventMachine</a></li>
+<li><a href="https://github.com/nahi/httpclient">HTTPClient</a></li>
+</ul><p>It also includes a Rack adapter for hitting loaded Rack applications through
+Rack::Test, and a Test adapter for stubbing requests by hand.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="n">conn</span> <span class="o">=</span> <span class="no">Faraday</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:url</span> <span class="o">=&gt;</span> <span class="s1">'http://sushi.com'</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">faraday</span><span class="o">|</span>
+  <span class="n">faraday</span><span class="o">.</span><span class="n">request</span>  <span class="ss">:url_encoded</span>             <span class="c1"># form-encode POST params</span>
+  <span class="n">faraday</span><span class="o">.</span><span class="n">response</span> <span class="ss">:logger</span>                  <span class="c1"># log requests to STDOUT</span>
+  <span class="n">faraday</span><span class="o">.</span><span class="n">adapter</span>  <span class="no">Faraday</span><span class="o">.</span><span class="n">default_adapter</span>  <span class="c1"># make requests with Net::HTTP</span>
+<span class="k">end</span>
+
+<span class="c1">## GET ##</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">get</span> <span class="s1">'/nigiri/sake.json'</span>     <span class="c1"># GET http://sushi.com/nigiri/sake.json</span>
+<span class="n">response</span><span class="o">.</span><span class="n">body</span>
+
+<span class="n">conn</span><span class="o">.</span><span class="n">get</span> <span class="s1">'/nigiri'</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Maguro'</span> <span class="p">}</span>   <span class="c1"># GET http://sushi.com/nigiri?name=Maguro</span>
+
+<span class="n">conn</span><span class="o">.</span><span class="n">get</span> <span class="k">do</span> <span class="o">|</span><span class="n">req</span><span class="o">|</span>                           <span class="c1"># GET http://sushi.com/search?page=2&amp;limit=100</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">url</span> <span class="s1">'/search'</span><span class="p">,</span> <span class="ss">:page</span> <span class="o">=&gt;</span> <span class="mi">2</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">params</span><span class="o">[</span><span class="s1">'limit'</span><span class="o">]</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="k">end</span>
+
+<span class="c1">## POST ##</span>
+
+<span class="n">conn</span><span class="o">.</span><span class="n">post</span> <span class="s1">'/nigiri'</span><span class="p">,</span> <span class="p">{</span> <span class="ss">:name</span> <span class="o">=&gt;</span> <span class="s1">'Maguro'</span> <span class="p">}</span>  <span class="c1"># POST "name=maguro" to http://sushi.com/nigiri</span>
+
+<span class="c1"># post payload as JSON instead of "www-form-urlencoded" encoding:</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">post</span> <span class="k">do</span> <span class="o">|</span><span class="n">req</span><span class="o">|</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">url</span> <span class="s1">'/nigiri'</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">headers</span><span class="o">[</span><span class="s1">'Content-Type'</span><span class="o">]</span> <span class="o">=</span> <span class="s1">'application/json'</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="s1">'{ "name": "Unagi" }'</span>
+<span class="k">end</span>
+
+<span class="c1">## Per-request options ##</span>
+
+<span class="n">conn</span><span class="o">.</span><span class="n">get</span> <span class="k">do</span> <span class="o">|</span><span class="n">req</span><span class="o">|</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">url</span> <span class="s1">'/search'</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="mi">5</span>           <span class="c1"># open/read timeout in seconds</span>
+  <span class="n">req</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">open_timeout</span> <span class="o">=</span> <span class="mi">2</span>      <span class="c1"># connection open timeout in seconds</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>If you don't need to set up anything, you can roll with just the bare minimum:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># using the default stack:</span>
+<span class="n">response</span> <span class="o">=</span> <span class="no">Faraday</span><span class="o">.</span><span class="n">get</span> <span class="s1">'http://sushi.com/nigiri/sake.json'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-advanced-middleware-usage" class="anchor" href="#advanced-middleware-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced middleware usage</h2>
+
+<p>The order in which middleware is stacked is important. Like with Rack, the
+first middleware on the list wraps all others, while the last middleware is the
+innermost one, so that must be the adapter.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Faraday</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">conn</span><span class="o">|</span>
+  <span class="c1"># POST/PUT params encoders:</span>
+  <span class="n">conn</span><span class="o">.</span><span class="n">request</span> <span class="ss">:multipart</span>
+  <span class="n">conn</span><span class="o">.</span><span class="n">request</span> <span class="ss">:url_encoded</span>
+
+  <span class="n">conn</span><span class="o">.</span><span class="n">adapter</span> <span class="ss">:net_http</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This request middleware setup affects POST/PUT requests in the following way:</p>
+
+<ol class="task-list">
+<li>
+<code>Request::Multipart</code> checks for files in the payload, otherwise leaves
+everything untouched;</li>
+<li>
+<code>Request::UrlEncoded</code> encodes as "application/x-www-form-urlencoded" if not
+already encoded or of another type</li>
+</ol><p>Swapping middleware means giving the other priority. Specifying the
+"Content-Type" for the request is explicitly stating which middleware should
+process it.</p>
+
+<p>Examples:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># uploading a file:</span>
+<span class="n">payload</span><span class="o">[</span><span class="ss">:profile_pic</span><span class="o">]</span> <span class="o">=</span> <span class="no">Faraday</span><span class="o">::</span><span class="no">UploadIO</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">'/path/to/avatar.jpg'</span><span class="p">,</span> <span class="s1">'image/jpeg'</span><span class="p">)</span>
+
+<span class="c1"># "Multipart" middleware detects files and encodes with "multipart/form-data":</span>
+<span class="n">conn</span><span class="o">.</span><span class="n">put</span> <span class="s1">'/profile'</span><span class="p">,</span> <span class="n">payload</span>
+</pre></div>
+
+<h2>
+<a name="user-content-writing-middleware" class="anchor" href="#writing-middleware" aria-hidden="true"><span class="octicon octicon-link"></span></a>Writing middleware</h2>
+
+<p>Middleware are classes that implement a <code>call</code> instance method. They hook into
+the request/response cycle.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+  <span class="c1"># do something with the request</span>
+
+  <span class="vi">@app</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">env</span><span class="p">)</span><span class="o">.</span><span class="n">on_complete</span> <span class="k">do</span>
+    <span class="c1"># do something with the response</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>It's important to do all processing of the response only in the <code>on_complete</code>
+block. This enables middleware to work in parallel mode where requests are
+asynchronous.</p>
+
+<p>The <code>env</code> is a hash with symbol keys that contains info about the request and,
+later, response. Some keys are:</p>
+
+<pre><code># request phase
+:method - :get, :post, ...
+:url    - URI for the current request; also contains GET parameters
+:body   - POST parameters for :post/:put requests
+:request_headers
+
+# response phase
+:status - HTTP response status code, such as 200
+:body   - the response body
+:response_headers
+</code></pre>
+
+<h2>
+<a name="user-content-using-faraday-for-testing" class="anchor" href="#using-faraday-for-testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Faraday for testing</h2>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># It's possible to define stubbed request outside a test adapter block.</span>
+<span class="n">stubs</span> <span class="o">=</span> <span class="no">Faraday</span><span class="o">::</span><span class="no">Adapter</span><span class="o">::</span><span class="no">Test</span><span class="o">::</span><span class="no">Stubs</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">stub</span><span class="o">|</span>
+  <span class="n">stub</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'/tamago'</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">env</span><span class="o">|</span> <span class="o">[</span><span class="mi">200</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">'egg'</span><span class="o">]</span> <span class="p">}</span>
+<span class="k">end</span>
+
+<span class="c1"># You can pass stubbed request to the test adapter or define them in a block</span>
+<span class="c1"># or a combination of the two.</span>
+<span class="nb">test</span> <span class="o">=</span> <span class="no">Faraday</span><span class="o">.</span><span class="n">new</span> <span class="k">do</span> <span class="o">|</span><span class="n">builder</span><span class="o">|</span>
+  <span class="n">builder</span><span class="o">.</span><span class="n">adapter</span> <span class="ss">:test</span><span class="p">,</span> <span class="n">stubs</span> <span class="k">do</span> <span class="o">|</span><span class="n">stub</span><span class="o">|</span>
+    <span class="n">stub</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'/ebi'</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">env</span><span class="o">|</span> <span class="o">[</span> <span class="mi">200</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">'shrimp'</span> <span class="o">]</span><span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="c1"># It's also possible to stub additional requests after the connection has</span>
+<span class="c1"># been initialized. This is useful for testing.</span>
+<span class="n">stubs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'/uni'</span><span class="p">)</span> <span class="p">{</span> <span class="o">|</span><span class="n">env</span><span class="o">|</span> <span class="o">[</span> <span class="mi">200</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">'urchin'</span> <span class="o">]</span><span class="p">}</span>
+
+<span class="n">resp</span> <span class="o">=</span> <span class="nb">test</span><span class="o">.</span><span class="n">get</span> <span class="s1">'/tamago'</span>
+<span class="n">resp</span><span class="o">.</span><span class="n">body</span> <span class="c1"># =&gt; 'egg'</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="nb">test</span><span class="o">.</span><span class="n">get</span> <span class="s1">'/ebi'</span>
+<span class="n">resp</span><span class="o">.</span><span class="n">body</span> <span class="c1"># =&gt; 'shrimp'</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="nb">test</span><span class="o">.</span><span class="n">get</span> <span class="s1">'/uni'</span>
+<span class="n">resp</span><span class="o">.</span><span class="n">body</span> <span class="c1"># =&gt; 'urchin'</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="nb">test</span><span class="o">.</span><span class="n">get</span> <span class="s1">'/else'</span> <span class="c1">#=&gt; raises "no such stub" error</span>
+
+<span class="c1"># If you like, you can treat your stubs as mocks by verifying that all of</span>
+<span class="c1"># the stubbed calls were made. NOTE that this feature is still fairly</span>
+<span class="c1"># experimental: It will not verify the order or count of any stub, only that</span>
+<span class="c1"># it was called once during the course of the test.</span>
+<span class="n">stubs</span><span class="o">.</span><span class="n">verify_stubbed_calls</span>
+</pre></div>
+
+<h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<ul class="task-list">
+<li>support streaming requests/responses</li>
+<li>better stubbing API</li>
+</ul><h2>
+<a name="user-content-supported-ruby-versions" class="anchor" href="#supported-ruby-versions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Ruby versions</h2>
+
+<p>This library aims to support and is <a href="http://travis-ci.org/lostisland/faraday">tested against</a> the following Ruby
+implementations:</p>
+
+<ul class="task-list">
+<li>MRI 1.8.7</li>
+<li>MRI 1.9.2</li>
+<li>MRI 1.9.3</li>
+<li>MRI 2.0.0</li>
+<li>MRI 2.1.0</li>
+<li><a href="http://jruby.org/">JRuby</a></li>
+<li><a href="http://rubini.us/">Rubinius</a></li>
+</ul><p>If something doesn't work on one of these Ruby versions, it's a bug.</p>
+
+<p>This library may inadvertently work (or seem to work) on other Ruby
+implementations, however support will only be provided for the versions listed
+above.</p>
+
+<p>If you would like this library to support another Ruby version, you may
+volunteer to be a maintainer. Being a maintainer entails making sure all tests
+run and pass on that implementation. When something breaks on your
+implementation, you will be responsible for providing patches in a timely
+fashion. If critical issues for a particular implementation exist at the time
+of a major release, support for that Ruby version may be dropped.</p>
+
+<h2>
+<a name="user-content-copyright" class="anchor" href="#copyright" aria-hidden="true"><span class="octicon octicon-link"></span></a>Copyright</h2>
+
+<p>Copyright (c) 2009-2013 <a href="mailto:technoweenie@gmail.com">Rick Olson</a>, Zack Hobson.
+See <a href="LICENSE.md">LICENSE</a> for details.</p></article></div>

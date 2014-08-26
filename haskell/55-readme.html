@@ -1,0 +1,175 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-typo" class="anchor" href="#typo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Typo</h1>
+
+<p>Typo is a programming language that runs in Haskell's type system. A Typo
+program is compiled to a Haskell module that's then typechecked to compute the
+result. All computation happens in Haskell's type system. </p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Clone the Typo repository and run the following commands to build and install
+it from source:</p>
+
+<pre><code>runhaskell Setup.lhs configure
+runhaskell Setup.lhs build
+runhaskell Setup.lhs install
+</code></pre>
+
+<p>This will install the compiler—<code>typoc</code>—on your system where the
+rest of your Cabal executables live. There is another
+executable—<code>typo</code>—that should be installed, but Cabal does not
+support installing non-Haskell executables. It's up to you to get the <code>typo</code>
+executable in your <code>PATH</code>. Or, just run it from the repository root every
+time you want to use it.</p>
+
+<p>If you prefer not to install the <code>typoc</code> binary, you can skip the install step
+and run <code>typo</code> like so from the repository root:</p>
+
+<pre><code>PATH=./dist/build/typoc:$PATH typo
+</code></pre>
+
+<h2>
+<a name="user-content-language-features" class="anchor" href="#language-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Language Features</h2>
+
+<p>Typo is a Scheme-like language. A program consists of zero or more function
+definitions and an expression, which is required. The result of a Typo program
+is the result of the final expression when evaluated in the context of the
+preceding definitions and the built-in integer and boolean operators.</p>
+
+<h3>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h3>
+
+<pre><code>$ typo &lt;&lt;EOF
+(define (fac n)
+  (if (== n 0)
+      1
+      (* n (fac (- n 1)))))
+
+(fac 5)
+EOF
+</code></pre>
+
+<p>This program evaluates to <code>120</code>. Note that you have to provide <code>typo</code> with its
+input program via <code>/dev/stdin</code>. You can use a <a href="http://en.wikipedia.org/wiki/Here_document">here document</a> like above
+to write one-off programs right on the command line. You can use the <code>echo</code>
+command for even shorter one-liners:</p>
+
+<pre><code>$ echo "(* 5 (* 4 (* 3 (* 2 1))))" | typo
+120
+</code></pre>
+
+<p>You can use <code>cat</code> for larger programs you've been developing in a file:</p>
+
+<pre><code>$ cat examples/fac.typo | typo
+120
+</code></pre>
+
+<p>And finally, you can mix and match them with <a href="http://www.gnu.org/software/bash/manual/html_node/Command-Grouping.html">command grouping</a>. This is
+really useful if you want to organize your definitions in separate files and
+then combine them to produce a program:</p>
+
+<pre><code>$ { cat examples/fac-defines.typo; echo "(fac 5)" } | typo
+120
+</code></pre>
+
+<h3>
+<a name="user-content-literals" class="anchor" href="#literals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Literals</h3>
+
+<p>Typo supports two data types: integers and booleans. You can specify any
+non-negative integer using its numeral in decimal form, e.g., <code>0</code>, <code>1</code>, <code>2</code>,
+<code>3</code>, <code>5</code>, <code>7</code>, <code>11</code>, <code>13</code>, <code>17</code>, etc. You can specify true using <code>#t</code> and false
+using <code>#f</code>.</p>
+
+<h3>
+<a name="user-content-syntactic-forms" class="anchor" href="#syntactic-forms" aria-hidden="true"><span class="octicon octicon-link"></span></a>Syntactic Forms</h3>
+
+<p>There are four syntactic forms for expressions, and a separate form for
+definitions.</p>
+
+<h4>
+<a name="user-content-expressions" class="anchor" href="#expressions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Expressions</h4>
+
+<ul class="task-list">
+<li>
+<code>(op e1 e2)</code>: binary operator application, where <code>op</code> must be one of the
+integer operators or binary operators, and <code>e1</code> and <code>e2</code> are expressions.</li>
+<li>
+<code>(fn e ...)</code>: function application, where <code>fn</code> is a function name followed
+by zero or more expressions.</li>
+<li>
+<code>(let (id b) e)</code>: let-binding, where <code>id</code> is an identifier and <code>b</code> is an
+expression whose result will be bound to <code>id</code> in the expression <code>e</code>.</li>
+<li>
+<code>(if c t f)</code>: conditional branching, where <code>c</code>, <code>t</code>, and <code>f</code> are
+expressions. If the expression <code>c</code> evaluates to <code>#t</code>, then the entire
+conditional evaluates to the result of the expression <code>t</code>. If <code>c</code> evaluates
+to <code>#f</code>, then the entire conditional evaluates to the result of the
+expresison <code>f</code>.</li>
+</ul><h4>
+<a name="user-content-definitions" class="anchor" href="#definitions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Definitions</h4>
+
+<p><code>(define (fn id...) e)</code> defines a function whose name is <code>fn</code>, whose body is
+the expression <code>e</code>, and which takes zero or more arguments. A function
+application binds the formal arguments to the actual argument names and then
+evaluates the body <code>e</code>.</p>
+
+<h3>
+<a name="user-content-integer-operators" class="anchor" href="#integer-operators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Integer Operators</h3>
+
+<p>Typo supports the following integer operations:</p>
+
+<ul class="task-list">
+<li>
+<code>+</code>: addition</li>
+<li>
+<code>-</code>: subtraction</li>
+<li>
+<code>*</code>: multiplication</li>
+<li>
+<code>\</code>: integer division or quotient</li>
+<li>
+<code>%</code>: integer remainder or modulus</li>
+<li>
+<code>&lt;</code>: less than</li>
+<li>
+<code>==</code>: equality</li>
+</ul><p>All integer operators are binary operators, so there is no negation operator.
+To mimic negation, use <code>(- 0 n)</code>, where <code>n</code> is the number you wish to negate.
+Alternatively you can define your own integer negation function to use instead:</p>
+
+<pre><code>(define (negate n)
+  (- 0 n))
+</code></pre>
+
+<h3>
+<a name="user-content-boolean-operators" class="anchor" href="#boolean-operators" aria-hidden="true"><span class="octicon octicon-link"></span></a>Boolean Operators</h3>
+
+<p>Typo supports the following boolean operations:</p>
+
+<ul class="task-list">
+<li>
+<code>&amp;&amp;</code>: and</li>
+<li>
+<code>||</code>: or</li>
+<li>
+<code>-&gt;</code>: implication</li>
+</ul><p>All boolean operators are binary operators, so there is no negation operator.
+To mimic negation, use <code>(-&gt; b #f)</code>, where <code>f</code> is the boolean you wish to
+negate. Alternatively you can define your own boolean negation function use
+instead:</p>
+
+<pre><code>(define (not b)
+  (-&gt; b #f))
+</code></pre>
+
+<h1>
+<a name="user-content-historical-note" class="anchor" href="#historical-note" aria-hidden="true"><span class="octicon octicon-link"></span></a>Historical Note</h1>
+
+<p>This is the first programming language to be publicly released from a plane
+flying over the Atlantic Ocean. I'm almost certain of that.</p>
+
+<h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>BSD3, see LICENSE file for its text.</p></article></div>

@@ -1,0 +1,546 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a href="https://camo.githubusercontent.com/96d8f3d2b1cc1d25201d666c306bc4bc0cc8dbdc/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f666173742d696d6167652d63616368652f726561646d652d7265736f75726365732f6c6f676f2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/96d8f3d2b1cc1d25201d666c306bc4bc0cc8dbdc/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f666173742d696d6167652d63616368652f726561646d652d7265736f75726365732f6c6f676f2e706e67" alt="Fast Image Cache Logo" data-canonical-src="https://s3.amazonaws.com/fast-image-cache/readme-resources/logo.png" style="max-width:100%;"></a></p>
+
+<hr><p>Fast Image Cache is an efficient, persistent, and—above all—fast way to store and retrieve images in your iOS application. Part of any good iOS application's user experience is fast, smooth scrolling, and Fast Image Cache helps make this easier.</p>
+
+<p>A significant burden on performance for graphics-rich applications like <a href="http://www.path.com">Path</a> is image loading. The traditional method of loading individual images from disk is just too slow, especially while scrolling. Fast Image Cache was created specifically to solve this problem.</p>
+
+<h2>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h2>
+
+<ul class="task-list">
+<li><a href="#version-history">Version History</a></li>
+<li><a href="#what-fast-image-cache-does">What Fast Image Cache Does</a></li>
+<li><a href="#how-fast-image-cache-works">How Fast Image Cache Works</a></li>
+<li><a href="#considerations">Considerations</a></li>
+<li><a href="#requirements">Requirements</a></li>
+<li>
+<a href="#getting-started">Getting Started</a>
+
+<ul class="task-list">
+<li><a href="#integrating-fast-image-cache">Integrating Fast Image Cache</a></li>
+<li><a href="#initial-configuration">Initial Configuration</a></li>
+<li><a href="#requesting-images-from-the-image-cache">Requesting Images from the Image Cache</a></li>
+<li><a href="#providing-source-images-to-the-image-cache">Providing Source Images to the Image Cache</a></li>
+<li><a href="#canceling-source-image-requests">Canceling Source Image Requests</a></li>
+<li><a href="#working-with-image-format-families">Working with Image Format Families</a></li>
+</ul>
+</li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#demo-application">Demo Application</a></li>
+<li><a href="#contributors">Contributors</a></li>
+<li><a href="#credits">Credits</a></li>
+<li><a href="#license">License</a></li>
+</ul><h2>
+<a name="user-content-version-history" class="anchor" href="#version-history" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version History</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/path/FastImageCache/releases/tag/1.0"><strong>1.0</strong></a>   (10/18/2013): Initial release</li>
+<li>
+<a href="https://github.com/path/FastImageCache/releases/tag/1.1"><strong>1.1</strong></a>   (10/22/2013): Added ARC support and more robust Core Animation byte alignment</li>
+<li>
+<a href="https://github.com/path/FastImageCache/releases/tag/1.2"><strong>1.2</strong></a>   (10/30/2013): Added support for image format styles and canceling image requests</li>
+<li>
+<a href="https://github.com/path/FastImageCache/releases/tag/1.3"><strong>1.3</strong></a>   (03/30/2014): Significant bug fixes and performance improvements</li>
+</ul><h2>
+<a name="user-content-what-fast-image-cache-does" class="anchor" href="#what-fast-image-cache-does" aria-hidden="true"><span class="octicon octicon-link"></span></a>What Fast Image Cache Does</h2>
+
+<ul class="task-list">
+<li>Stores images of similar sizes and styles together</li>
+<li>Persists image data to disk</li>
+<li>Returns images to the user significantly faster than traditional methods</li>
+<li>Automatically manages cache expiry based on recency of usage</li>
+<li>Utilizes a model-based approach for storing and retrieving images</li>
+<li>Allows images to be processed on a per-model basis before being stored into the cache</li>
+</ul><h2>
+<a name="user-content-how-fast-image-cache-works" class="anchor" href="#how-fast-image-cache-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How Fast Image Cache Works</h2>
+
+<p>In order to understand how Fast Image Cache works, it's helpful to understand a typical scenario encountered by many applications that work with images.</p>
+
+<h3>
+<a name="user-content-the-scenario" class="anchor" href="#the-scenario" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Scenario</h3>
+
+<p>iOS applications, especially those in the social networking space, often have many images to display at once, such as user photos. The intuitive, traditional approach is to request image data from an API, process the original images to create the desired sizes and styles, and store these processed images on the device.</p>
+
+<p>Later, when an application needs to display these images, they are loaded from disk into memory and displayed in an image view or are otherwise rendered to the screen.</p>
+
+<h3>
+<a name="user-content-the-problem" class="anchor" href="#the-problem" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Problem</h3>
+
+<p>It turns out that the process of going from compressed, on-disk image data to a rendered Core Animation layer that the user can actually see is very expensive. As the number of images to be displayed increases, this cost easily adds up to a noticeable degradation in frame rate. And scrollable views further exacerbate the situation because content can change rapidly, requiring fast processing time to maintain a smooth 60FPS.<sup>1</sup></p>
+
+<p>Consider the workflow that occurs when loading an image from disk and displaying it on screen:</p>
+
+<ol class="task-list">
+<li>
+<a href="https://developer.apple.com/library/ios/documentation/uikit/reference/UIImage_Class/Reference/Reference.html#//apple_ref/doc/uid/TP40006890-CH3-SW12"><code>+[UIImage imageWithContentsOfFile:]</code></a> uses <a href="https://developer.apple.com/library/ios/documentation/graphicsimaging/conceptual/ImageIOGuide/imageio_intro/ikpg_intro.html#//apple_ref/doc/uid/TP40005462-CH201-TPXREF101">Image I/O</a> to create a <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fgraphicsimaging%2FReference%2FCGImage%2FReference%2Freference.html&amp;ei=fG9XUpX_BqWqigLymIG4BQ&amp;usg=AFQjCNHTelntXU5Gw0BQkQqj9HC5iZibyA&amp;sig2=tLY7PDhyockUVlVFbrzyOQ"><code>CGImageRef</code></a> from memory-mapped data. At this point, the image has not yet been decoded.</li>
+<li>The returned image is assigned to a <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fuikit%2Freference%2FUIImageView_Class%2F&amp;ei=VX9YUpGUKcG1iwLN3oHwDg&amp;usg=AFQjCNGJCra_NhnVaXH2_pqIKjIHiNX9zQ&amp;sig2=Lk2CMoN4kO5OzLJYhGh6Uw"><code>UIImageView</code></a>.</li>
+<li>An implicit <a href="https://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=https%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2FGraphicsImaging%2FReference%2FCATransaction_class%2F&amp;ei=AINYUsSqIqPfiAKsk4CoBA&amp;usg=AFQjCNG5CarCxgkwdV_br80YDI7UwMTrmA&amp;sig2=aPE_IoQSPUltdCYqARjt9Q"><code>CATransaction</code></a> captures these layer tree modifications.</li>
+<li>On the next iteration of the main run loop, Core Animation commits the implicit transaction, which may involve creating a copy of any images which have been set as layer contents. Depending on the image, copying it involves some or all of these steps: <sup>2</sup><ol class="task-list">
+<li>Buffers are allocated to manage file IO and decompression operations.</li>
+<li>The file data is read from disk into memory.</li>
+<li>The compressed image data is decoded into its uncompressed bitmap form, which is typically a very CPU-intensive operation.<sup>3</sup>
+</li>
+<li>The uncompressed bitmap data is then used by Core Animation to render the layer.</li>
+</ol>
+</li>
+</ol><p><strong>These costs can easily accumulate and kill perceived application performance.</strong> Especially while scrolling, users are presented with an unsatisfying user experience that is not in line with the the overall iOS experience.</p>
+
+<hr><p><sup>1</sup><code>60FPS</code> ≈ <code>0.01666s per frame</code> = <code>16.7ms per frame</code>. This means that any main-thread work that takes longer than 16ms will cause your application to drop animation frames.</p>
+
+<p><sup>2</sup> The documentation for <a href="https://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=https%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fgraphicsimaging%2Freference%2FCALayer_class%2FIntroduction%2FIntroduction.html&amp;ei=P29XUpj2LeahiALptICgCQ&amp;usg=AFQjCNGwJuHcQV4593kuookUcvNZYTvx5w&amp;sig2=zi1audY4ZsNE_xLeESVD_Q"><code>CALayer</code></a>'s <a href="https://developer.apple.com/library/ios/documentation/graphicsimaging/reference/CALayer_class/Introduction/Introduction.html#//apple_ref/doc/uid/TP40004500-CH1-SW24"><code>contents</code></a> property states that "assigning a value to this property causes the layer to use your image rather than [creating] a separate backing store." However, the meaning of "use your image" is still vague. Profiling an application using <a href="https://developer.apple.com/library/ios/documentation/DeveloperTools/Conceptual/InstrumentsUserGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40004652-CH1-SW1">Instruments</a> often reveals calls to <code>CA::Render::copy_image</code>, even when the Core Animation Instrument has indicated that none of the images have been copied. One reason that Core Animation will require a copy of an image is improper <a href="#byte-alignment">byte alignment</a>. </p>
+
+<p><sup>3</sup> As of iOS 7, Apple does not make their hardware JPEG decoder available for third-party applications to use. As a result, only a slower, software decoder is used for this step.</p>
+
+<h3>
+<a name="user-content-the-solution" class="anchor" href="#the-solution" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Solution</h3>
+
+<p>Fast Image Cache minimizes (or avoids entirely) much of the work described above using a variety of techniques:</p>
+
+<h4>
+<a name="user-content-mapped-memory" class="anchor" href="#mapped-memory" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mapped Memory</h4>
+
+<p>At the heart of how Fast Image Cache works are image tables. Image tables are similar to <a href="http://en.wikipedia.org/wiki/Sprite_sheet#Sprites_by_CSS">sprite sheets</a>, often used in 2D gaming. An image table packs together images of the same dimensions into a single file. This file is opened once and is left open for reading and writing for as long as an application remains in memory.</p>
+
+<p>Image tables use the <a href="https://developer.apple.com/library/ios/documentation/system/conceptual/manpages_iphoneos/man2/mmap.2.html"><code>mmap</code></a> system call to directly map file data into memory. No <a href="https://developer.apple.com/library/ios/documentation/system/conceptual/manpages_iphoneos/man3/memcpy.3.html"><code>memcpy</code></a> occurs. This system call merely creates a mapping between data on disk and a region of memory.</p>
+
+<p>When a request is made to the image cache to return a specific image, the image table finds (in constant time) the location of the desired image data in the file it maintains. That region of file data is mapped into memory, and a new <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fgraphicsimaging%2FReference%2FCGImage%2FReference%2Freference.html&amp;ei=fG9XUpX_BqWqigLymIG4BQ&amp;usg=AFQjCNHTelntXU5Gw0BQkQqj9HC5iZibyA&amp;sig2=tLY7PDhyockUVlVFbrzyOQ"><code>CGImageRef</code></a> whose backing store <strong>is</strong> the mapped file data is created.</p>
+
+<p>When the returned <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fgraphicsimaging%2FReference%2FCGImage%2FReference%2Freference.html&amp;ei=fG9XUpX_BqWqigLymIG4BQ&amp;usg=AFQjCNHTelntXU5Gw0BQkQqj9HC5iZibyA&amp;sig2=tLY7PDhyockUVlVFbrzyOQ"><code>CGImageRef</code></a> (wrapped into a <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CC0QFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fuikit%2Freference%2FUIImage_Class%2F&amp;ei=lG9XUtTdJIm9iwKDq4CACA&amp;usg=AFQjCNEa2LN2puQYOfBRVPaEsvsSawOVMg&amp;sig2=0TzbC6wzT5EdynHsDMIEUw"><code>UIImage</code></a>) is ready to be drawn to the screen, iOS's virtual memory system pages in the actual file data. This is another benefit of using mapped memory; the VM system will automatically handle the memory management for us. In addition, mapped memory "doesn't count" toward an application's real memory usage.</p>
+
+<p>In like manner, when image data is being stored in an image table, a memory-mapped bitmap context is created. Along with the original image, this context is passed to an image table's corresponding entity object. This object is responsible for drawing the image into the current context, optionally further configuring the context (e.g., clipping the context to a rounded rect) or doing any additional drawing (e.g., drawing an overlay image atop the original image). <a href="https://developer.apple.com/library/ios/documentation/system/conceptual/manpages_iphoneos/man2/mmap.2.html"><code>mmap</code></a> marshals the drawn image data to disk, so no image buffer is allocated in memory.</p>
+
+<h4>
+<a name="user-content-uncompressed-image-data" class="anchor" href="#uncompressed-image-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Uncompressed Image Data</h4>
+
+<p>In order to avoid expensive image decompression operations, image tables store uncompressed image data in their files. If a source image is compressed, it must first be decompressed for the image table to work with it. <strong>This is a one-time cost.</strong> Furthermore, it is possible to <a href="#working-with-image-format-families">utilize image format families</a> to perform this decompression exactly once for a collection of similar image formats.</p>
+
+<p>There are obvious consequences to this approach, however. Uncompressed image data requires more disk space, and the difference between compressed and uncompressed file sizes can be significant, especially for image formats like JPEG. For this reason, <strong>Fast Image Cache works best with smaller images</strong>, although there is no API restriction that enforces this.</p>
+
+<h4>
+<a name="user-content-byte-alignment" class="anchor" href="#byte-alignment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Byte Alignment</h4>
+
+<p>For high-performance scrolling, it is critical that Core Animation is able to use an image without first having to create a copy. One of the reasons Core Animation would create a copy of an image is improper byte-alignment of the image's underlying <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CCwQFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fgraphicsimaging%2FReference%2FCGImage%2FReference%2Freference.html&amp;ei=fG9XUpX_BqWqigLymIG4BQ&amp;usg=AFQjCNHTelntXU5Gw0BQkQqj9HC5iZibyA&amp;sig2=tLY7PDhyockUVlVFbrzyOQ"><code>CGImageRef</code></a>. A properly aligned bytes-per-row value must be a multiple of <code>8 pixels × bytes per pixel</code>. For a typical ARGB image, the aligned bytes-per-row value is a multiple of 64. Every image table is configured such that each image is always properly byte-aligned for Core Animation from the start. As a result, when images are retrieved from an image table, they are already in a form that Core Animation can work with directly without having to create a copy.</p>
+
+<h2>
+<a name="user-content-considerations" class="anchor" href="#considerations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Considerations</h2>
+
+<h3>
+<a name="user-content-image-table-size" class="anchor" href="#image-table-size" aria-hidden="true"><span class="octicon octicon-link"></span></a>Image Table Size</h3>
+
+<p>Image tables are configured by image formats, which specify (among other things) the maximum number of entries (i.e., individual images) an image table can have. This is to prevent the size of an image table file from growing arbitrarily.</p>
+
+<p>Image tables allocate 4 bytes per pixel, so the maximum space occupied by an image table file can be determined as follows:</p>
+
+<p><code>4 bytes per pixel × image width in pixels × image height in pixels × maximum number of entries</code></p>
+
+<p>Applications using Fast Image Cache should carefully consider how many images each image table should contain. When a new image is stored in an image table that is already full, it will replace the least-recently-accessed image.</p>
+
+<h3>
+<a name="user-content-image-table-transience" class="anchor" href="#image-table-transience" aria-hidden="true"><span class="octicon octicon-link"></span></a>Image Table Transience</h3>
+
+<p>Image table files are stored in the user's caches directory in a subdirectory called <code>ImageTables</code>. iOS can remove cached files at any time to free up disk space, so applications using Fast Image Cache must be able to recreate any stored images and should not rely on image table files persisting forever.</p>
+
+<blockquote>
+<p><strong>Note</strong>: As a reminder, data stored in a user's caches directory is not backed up to iTunes or iCloud.</p>
+</blockquote>
+
+<h3>
+<a name="user-content-source-image-persistence" class="anchor" href="#source-image-persistence" aria-hidden="true"><span class="octicon octicon-link"></span></a>Source Image Persistence</h3>
+
+<p>Fast Image Cache does not persist the original source images processed by entities to create the image data stored in its image tables.</p>
+
+<p>For example, if an original image is resized by an entity to create a thumbnail to be stored in an image table, it is the application's responsibility to either persist the original image or be able to retrieve or recreate it again.</p>
+
+<p>Image format families can be specified to efficiently make use of a single source image. See <a href="#working-with-image-format-families">Working with Image Format Families</a> for more information.</p>
+
+<h3>
+<a name="user-content-data-protection" class="anchor" href="#data-protection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Protection</h3>
+
+<p>In iOS 4, Apple introduced data protection. When a user's device is locked or turned off, the disk is encrypted. Files written to disk are protected by default, although applications can manually specify the data protection mode for each file it manages. With the advent of new background modes in iOS 7, applications can now execute in the background briefly even while the device is locked. As a result, data protection can cause issues if applications attempt to access files that are encrypted.</p>
+
+<p>Fast Image Cache allows each image format to specify the data protection mode used when creating its backing image table file. Be aware that enabling data protection for image table files means that Fast Image Cache might not be able to read or write image data from or to these files when the disk is encrypted.</p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>Fast Image Cache requires iOS 6.0 or greater and relies on the following frameworks:</p>
+
+<ul class="task-list">
+<li>Foundation</li>
+<li>Core Graphics</li>
+<li>UIKit</li>
+</ul><blockquote>
+<p><strong>Note</strong>: As of version 1.1, Fast Image Cache <strong>does</strong> use ARC.</p>
+</blockquote>
+
+<hr><p>The <code>FastImageCacheDemo</code> Xcode project requires Xcode 5.0 or greater and is configured to deploy against iOS 6.0.</p>
+
+<h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<h3>
+<a name="user-content-integrating-fast-image-cache" class="anchor" href="#integrating-fast-image-cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Integrating Fast Image Cache</h3>
+
+<h4>
+<a name="user-content-cocoapods" class="anchor" href="#cocoapods" aria-hidden="true"><span class="octicon octicon-link"></span></a>CocoaPods</h4>
+
+<p>For easy project integration, Fast Image Cache is available as a <a href="http://cocoapods.org">CocoaPod</a>.</p>
+
+<h4>
+<a name="user-content-manually" class="anchor" href="#manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually</h4>
+
+<ul class="task-list">
+<li>Clone this repository, or <a href="https://github.com/path/FastImageCache/archive/master.zip">download the latest archive of <code>master</code></a>.</li>
+<li>From the <code>FastImageCache</code> root directory, copy the source files from the inner <a href="./FastImageCache"><code>FastImageCache</code></a> subdirectory to your Xcode project.</li>
+<li>Import <a href="./FastImageCache/FICImageCache.h"><code>FICImageCache.h</code></a> wherever you use the image cache.</li>
+<li>Import <a href="./FastImageCache/FICEntity.h"><code>FICEntity.h</code></a> for each class that conforms to <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html"><code>FICEntity</code></a>.</li>
+</ul><h3>
+<a name="user-content-initial-configuration" class="anchor" href="#initial-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initial Configuration</h3>
+
+<p>Before the image cache can be used, it needs to be configured. This must occur each launch, so the application delegate might be a good place to do this.</p>
+
+<h4>
+<a name="user-content-creating-image-formats" class="anchor" href="#creating-image-formats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating Image Formats</h4>
+
+<p>Each image format corresponds to an image table that the image cache will use. Image formats that can use the same source image to render the images they store in their image tables should belong to the same <a href="#working-with-image-format-families">image format family</a>. See <a href="#image-table-size">Image Table Size</a> for more information about how to determine an appropriate maximum count.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="k">static</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">XXImageFormatNameUserThumbnailSmall</span> <span class="o">=</span> <span class="s">@"com.mycompany.myapp.XXImageFormatNameUserThumbnailSmall"</span><span class="p">;</span>
+<span class="k">static</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">XXImageFormatNameUserThumbnailMedium</span> <span class="o">=</span> <span class="s">@"com.mycompany.myapp.XXImageFormatNameUserThumbnailMedium"</span><span class="p">;</span>
+<span class="k">static</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">XXImageFormatFamilyUserThumbnails</span> <span class="o">=</span> <span class="s">@"com.mycompany.myapp.XXImageFormatFamilyUserThumbnails"</span><span class="p">;</span>
+
+<span class="n">FICImageFormat</span> <span class="o">*</span><span class="n">smallUserThumbnailImageFormat</span> <span class="o">=</span> <span class="p">[[</span><span class="n">FICImageFormat</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">XXImageFormatNameUserThumbnailSmall</span><span class="p">;</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">XXImageFormatFamilyUserThumbnails</span><span class="p">;</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">FICImageFormatStyle16BitBGR</span><span class="p">;</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">imageSize</span> <span class="o">=</span> <span class="n">CGSizeMake</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">);</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">maximumCount</span> <span class="o">=</span> <span class="mi">250</span><span class="p">;</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">devices</span> <span class="o">=</span> <span class="n">FICImageFormatDevicePhone</span><span class="p">;</span>
+<span class="n">smallUserThumbnailImageFormat</span><span class="p">.</span><span class="n">protectionMode</span> <span class="o">=</span> <span class="n">FICImageFormatProtectionModeNone</span><span class="p">;</span>
+
+<span class="n">FICImageFormat</span> <span class="o">*</span><span class="n">mediumUserThumbnailImageFormat</span> <span class="o">=</span> <span class="p">[[</span><span class="n">FICImageFormat</span> <span class="n">alloc</span><span class="p">]</span> <span class="n">init</span><span class="p">];</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">XXImageFormatNameUserThumbnailMedium</span><span class="p">;</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">XXImageFormatFamilyUserThumbnails</span><span class="p">;</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">style</span> <span class="o">=</span> <span class="n">FICImageFormatStyle32BitBGRA</span><span class="p">;</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">imageSize</span> <span class="o">=</span> <span class="n">CGSizeMake</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">);</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">maximumCount</span> <span class="o">=</span> <span class="mi">250</span><span class="p">;</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">devices</span> <span class="o">=</span> <span class="n">FICImageFormatDevicePhone</span><span class="p">;</span>
+<span class="n">mediumUserThumbnailImageFormat</span><span class="p">.</span><span class="n">protectionMode</span> <span class="o">=</span> <span class="n">FICImageFormatProtectionModeNone</span><span class="p">;</span>
+
+<span class="bp">NSArray</span> <span class="o">*</span><span class="n">imageFormats</span> <span class="o">=</span> <span class="l">@[</span><span class="n">smallUserThumbnailImageFormat</span><span class="p">,</span> <span class="n">mediumUserThumbnailImageFormat</span><span class="l">]</span><span class="p">;</span>
+</pre></div>
+
+<p>An image format's style effectively determines the bit depth of the images stored in an image table. The following styles are currently available:</p>
+
+<ul class="task-list">
+<li>32-bit color plus an alpha component (default)</li>
+<li>32-bit color, no alpha component</li>
+<li>16-bit color, no alpha component</li>
+<li>8-bit grayscale, no alpha component</li>
+</ul><p>If the source images lack transparency (e.g., JPEG images), then better Core Animation performance can be achieved by using 32-bit color with no alpha component. If the source images have little color detail, or if the image format's image size is relatively small, it may be sufficient to use 16-bit color with little or no perceptible loss of quality. This results in smaller image table files stored on disk.</p>
+
+<h4>
+<a name="user-content-configuring-the-image-cache" class="anchor" href="#configuring-the-image-cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring the Image Cache</h4>
+
+<p>Once one or more image formats have been defined, they need to be assigned to the image cache. Aside from assigning the image cache's delegate, there is nothing further that can be configured on the image cache itself.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">FICImageCache</span> <span class="o">*</span><span class="n">sharedImageCache</span> <span class="o">=</span> <span class="p">[</span><span class="n">FICImageCache</span> <span class="n">sharedImageCache</span><span class="p">];</span>
+<span class="n">sharedImageCache</span><span class="p">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="nb">self</span><span class="p">;</span>
+<span class="n">sharedImageCache</span><span class="p">.</span><span class="n">formats</span> <span class="o">=</span> <span class="n">imageFormats</span><span class="p">;</span>
+</pre></div>
+
+<h4>
+<a name="user-content-creating-entities" class="anchor" href="#creating-entities" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating Entities</h4>
+
+<p>Entities are objects that conform to the <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html"><code>FICEntity</code></a> protocol. Entities uniquely identify entries in an image table, and they are also responsible for drawing the images they wish to store in the image cache. Applications that already have model objects defined (perhaps managed by Core Data) are usually appropriate entity candidates.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="k">@interface</span> <span class="nc">XXUser</span> : <span class="bp">NSObject</span> <span class="o">&lt;</span><span class="n">FICEntity</span><span class="o">&gt;</span>
+
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">assign</span><span class="p">,</span> <span class="k">getter</span> <span class="o">=</span> <span class="n">isActive</span><span class="p">)</span> <span class="kt">BOOL</span> <span class="n">active</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">userID</span><span class="p">;</span>
+<span class="k">@property</span> <span class="p">(</span><span class="k">nonatomic</span><span class="p">,</span> <span class="k">copy</span><span class="p">)</span> <span class="bp">NSURL</span> <span class="o">*</span><span class="n">userPhotoURL</span><span class="p">;</span>
+
+<span class="k">@end</span>
+</pre></div>
+
+<p>Here is an example implementation of the <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html"><code>FICEntity</code></a> protocol.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">UUID</span> <span class="p">{</span>
+    <span class="n">CFUUIDBytes</span> <span class="n">UUIDBytes</span> <span class="o">=</span> <span class="n">FICUUIDBytesFromMD5HashOfString</span><span class="p">(</span><span class="n">_userID</span><span class="p">);</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">UUID</span> <span class="o">=</span> <span class="n">FICStringWithUUIDBytes</span><span class="p">(</span><span class="n">UUIDBytes</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">UUID</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nf">sourceImageUUID</span> <span class="p">{</span>
+    <span class="n">CFUUIDBytes</span> <span class="n">sourceImageUUIDBytes</span> <span class="o">=</span> <span class="n">FICUUIDBytesFromMD5HashOfString</span><span class="p">([</span><span class="n">_userPhotoURL</span> <span class="n">absoluteString</span><span class="p">]);</span>
+    <span class="bp">NSString</span> <span class="o">*</span><span class="n">sourceImageUUID</span> <span class="o">=</span> <span class="n">FICStringWithUUIDBytes</span><span class="p">(</span><span class="n">sourceImageUUIDBytes</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">sourceImageUUID</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="bp">NSURL</span> <span class="o">*</span><span class="p">)</span><span class="nf">sourceImageURLWithFormatName:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">formatName</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">_sourceImageURL</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="p">-</span> <span class="p">(</span><span class="n">FICEntityImageDrawingBlock</span><span class="p">)</span><span class="nf">drawingBlockForImage:</span><span class="p">(</span><span class="bp">UIImage</span> <span class="o">*</span><span class="p">)</span><span class="nv">image</span> <span class="nf">withFormatName:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">formatName</span> <span class="p">{</span>
+    <span class="n">FICEntityImageDrawingBlock</span> <span class="n">drawingBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">(</span><span class="n">CGContextRef</span> <span class="n">context</span><span class="p">,</span> <span class="bp">CGSize</span> <span class="n">contextSize</span><span class="p">)</span> <span class="p">{</span>
+        <span class="bp">CGRect</span> <span class="n">contextBounds</span> <span class="o">=</span> <span class="n">CGRectZero</span><span class="p">;</span>
+        <span class="n">contextBounds</span><span class="p">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">contextSize</span><span class="p">;</span>
+        <span class="n">CGContextClearRect</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">contextBounds</span><span class="p">);</span>
+
+        <span class="c1">// Clip medium thumbnails so they have rounded corners</span>
+        <span class="k">if</span> <span class="p">([</span><span class="n">formatName</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="n">XXImageFormatNameUserThumbnailMedium</span><span class="p">])</span> <span class="p">{</span>
+            <span class="bp">UIBezierPath</span> <span class="n">clippingPath</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">_clippingPath</span><span class="p">];</span>
+            <span class="p">[</span><span class="n">clippingPath</span> <span class="n">addClip</span><span class="p">];</span>
+        <span class="p">}</span>
+
+        <span class="n">UIGraphicsPushContext</span><span class="p">(</span><span class="n">context</span><span class="p">);</span>
+        <span class="p">[</span><span class="n">image</span> <span class="nl">drawInRect</span><span class="p">:</span><span class="n">contextBounds</span><span class="p">];</span>
+        <span class="n">UIGraphicsPopContext</span><span class="p">();</span>
+    <span class="p">};</span>
+
+    <span class="k">return</span> <span class="n">drawingBlock</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Ideally, an entity's <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html#//api/name/UUID"><code>UUID</code></a> should never change. This is why it corresponds nicely with a model object's server-generated ID in the case where an application is working with resources retrieved from an API.</p>
+
+<p>An entity's <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html#//api/name/sourceImageUUID"><code>sourceImageUUID</code></a> <em>can</em> change. For example, if a user updates their profile photo, the URL to that photo should change as well. The <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html#//api/name/UUID"><code>UUID</code></a> remains the same and identifies the same user, but the changed profile photo URL will indicate that there is a new source image.</p>
+
+<blockquote>
+<p><strong>Note</strong>: Often, it is best to hash whatever identifiers are being used to define <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html#//api/name/UUID"><code>UUID</code></a> and <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Protocols/FICEntity.html#//api/name/sourceImageUUID"><code>sourceImageUUID</code></a>. Fast Image Cache provides utility functions to do this. Because hashing can be expensive, it is recommended that the hash be computed only once (or only when the identifier changes) and stored in an instance variable.</p>
+</blockquote>
+
+<p>When the image cache is asked to provide an image for a particular entity and format name, the entity is responsible for providing a URL. The URL need not even point to an actual resource—e.g., the URL might be constructed of a custom URL-scheme—, but it must be a valid URL.</p>
+
+<p>The image cache uses these URLs merely to keep track of which image requests are already in flight; multiple requests to the image cache for the same image are handled correctly without any wasted effort. The choice to use URLs as a basis for keying image cache requests actually complements many real-world application designs whereby URLs to image resources (rather than the images themselves) are included with server-provided model data.</p>
+
+<blockquote>
+<p><strong>Note</strong>: Fast Image Cache does not provide any mechanism for making network requests. This is the responsibility of the image cache's delegate.</p>
+</blockquote>
+
+<p>Finally, once the source image is available, the entity is asked to provide a drawing block. The image table that will store the final image sets up a file-mapped bitmap context and invokes the entity's drawing block. This makes it convenient for each entity to decide how to process the source image for particular image formats.</p>
+
+<h3>
+<a name="user-content-requesting-images-from-the-image-cache" class="anchor" href="#requesting-images-from-the-image-cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requesting Images from the Image Cache</h3>
+
+<p>Fast Image Cache works under the on-demand, lazy-loading design pattern common to Cocoa.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="n">XXUser</span> <span class="o">*</span><span class="n">user</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">_currentUser</span><span class="p">];</span>
+<span class="bp">NSString</span> <span class="o">*</span><span class="n">formatName</span> <span class="o">=</span> <span class="n">XXImageFormatNameUserThumbnailSmall</span><span class="p">;</span>
+<span class="n">FICImageCacheCompletionBlock</span> <span class="n">completionBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">(</span><span class="kt">id</span> <span class="o">&lt;</span><span class="n">FICEntity</span><span class="o">&gt;</span> <span class="n">entity</span><span class="p">,</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">formatName</span><span class="p">,</span> <span class="bp">UIImage</span> <span class="o">*</span><span class="n">image</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">_imageView</span><span class="p">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="p">;</span>
+    <span class="p">[</span><span class="n">_imageView</span><span class="p">.</span><span class="n">layer</span> <span class="nl">addAnimation</span><span class="p">:[</span><span class="bp">CATransition</span> <span class="n">animation</span><span class="p">]</span> <span class="nl">forKey</span><span class="p">:</span><span class="n">kCATransition</span><span class="p">];</span>
+<span class="p">};</span>
+
+<span class="kt">BOOL</span> <span class="n">imageExists</span> <span class="o">=</span> <span class="p">[</span><span class="n">sharedImageCache</span> <span class="nl">retrieveImageForEntity</span><span class="p">:</span><span class="n">user</span> <span class="nl">withFormatName</span><span class="p">:</span><span class="n">formatName</span> <span class="nl">completionBlock</span><span class="p">:</span><span class="n">completionBlock</span><span class="p">];</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">imageExists</span> <span class="o">==</span> <span class="nb">NO</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">_imageView</span><span class="p">.</span><span class="n">image</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">_userPlaceholderImage</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>There are a few things to note here.</p>
+
+<ol class="task-list">
+<li>Note that it is an entity and an image format name that uniquely identifies the desired image in the image cache. As a format name uniquely identifies an image table, the entity alone uniquely identifies the desired image data in an image table.</li>
+<li>The image cache never returns a <a href="http://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;cad=rja&amp;ved=0CC0QFjAA&amp;url=http%3A%2F%2Fdeveloper.apple.com%2Flibrary%2Fios%2Fdocumentation%2Fuikit%2Freference%2FUIImage_Class%2F&amp;ei=lG9XUtTdJIm9iwKDq4CACA&amp;usg=AFQjCNEa2LN2puQYOfBRVPaEsvsSawOVMg&amp;sig2=0TzbC6wzT5EdynHsDMIEUw"><code>UIImage</code></a> directly. The requested image is included in the completion block. The return value will indicate whether or not the image already exists in the image cache.</li>
+<li>
+<a href="https://s3.amazonaws.com/fast-image-cache/documentation/Classes/FICImageCache.html#//api/name/retrieveImageForEntity:withFormatName:completionBlock:"><code>-retrieveImageForEntity:withFormatName:completionBlock:</code></a> is a synchronous method. If the requested image already exists in the image cache, the completion block will be called immediately. There is an asynchronous counterpart to this method called <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Classes/FICImageCache.html#//api/name/asynchronouslyRetrieveImageForEntity:withFormatName:completionBlock:"><code>-asynchronouslyRetrieveImageForEntity:withFormatName:completionBlock:</code></a>.</li>
+<li>If a requested image does <strong>not</strong> already exist in the image cache, then the image cache invokes the necessary actions to request the source image for its delegate. Afterwards, perhaps some time later, the completion block will be called.</li>
+</ol><blockquote>
+<p><strong>Note</strong>: The distinction of synchronous and asynchronous only applies to the process of retrieving an image that already exists in the image cache. In the case where a synchronous image request is made for an image that does not already exist in the image case, the image cache does <strong>not</strong> block the calling thread until it has an image. The retrieval method will immediately return <code>NO</code>, and the completion block will be called later.</p>
+
+<p>See the <a href="https://s3.amazonaws.com/fast-image-cache/documentation/Classes/FICImageCache.html"><code>FICImageCache</code></a> class header for a thorough explanation of how the execution lifecycle works for image retrieval, especially as it relates to the handling of the completion blocks.</p>
+</blockquote>
+
+<h3>
+<a name="user-content-providing-source-images-to-the-image-cache" class="anchor" href="#providing-source-images-to-the-image-cache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Providing Source Images to the Image Cache</h3>
+
+<p>There are two ways to provide source images to the image cache.</p>
+
+<ol class="task-list">
+<li>
+<p><strong>On Demand</strong>: This is the preferred method. The image cache's delegate is responsible for supplying the image cache with source images.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">imageCache:</span><span class="p">(</span><span class="n">FICImageCache</span> <span class="o">*</span><span class="p">)</span><span class="nv">imageCache</span> <span class="nf">wantsSourceImageForEntity:</span><span class="p">(</span><span class="kt">id</span><span class="o">&lt;</span><span class="n">FICEntity</span><span class="o">&gt;</span><span class="p">)</span><span class="nv">entity</span> <span class="nf">withFormatName:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">formatName</span> <span class="nf">completionBlock:</span><span class="p">(</span><span class="n">FICImageRequestCompletionBlock</span><span class="p">)</span><span class="nv">completionBlock</span> <span class="p">{</span>
+    <span class="n">dispatch_async</span><span class="p">(</span><span class="n">dispatch_get_global_queue</span><span class="p">(</span><span class="n">DISPATCH_QUEUE_PRIORITY_DEFAULT</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">^</span><span class="p">{</span>
+        <span class="c1">// Fetch the desired source image by making a network request</span>
+        <span class="bp">NSURL</span> <span class="o">*</span><span class="n">requestURL</span> <span class="o">=</span> <span class="p">[</span><span class="n">entity</span> <span class="nl">sourceImageURLWithFormatName</span><span class="p">:</span><span class="n">formatName</span><span class="p">];</span>
+        <span class="bp">UIImage</span> <span class="o">*</span><span class="n">sourceImage</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="nl">_sourceImageForURL</span><span class="p">:</span><span class="n">requestURL</span><span class="p">];</span>
+
+        <span class="n">dispatch_async</span><span class="p">(</span><span class="n">dispatch_get_main_queue</span><span class="p">(),</span> <span class="o">^</span><span class="p">{</span>
+            <span class="n">completionBlock</span><span class="p">(</span><span class="n">sourceImage</span><span class="p">);</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>    
+</pre></div>
+
+<p>This is where the URL-based nature of how the image cache manages image requests is convenient. First, an image retrieval request to the image cache for an image that is already being handled by the image cache's delegate—e.g., waiting on a large image to be downloaded—is simply added to the first request's array of completion blocks. Second, if source images are downloaded from the Internet (as is often the case), the URL for such a network request is readily available.</p>
+
+<blockquote>
+<p><strong>Note</strong>: The completion block must be called on the main thread. Fast Image Cache is architected such that this call will not block the main thread, as processing sources image is handled in the image cache's own serial dispatch queue.</p>
+</blockquote>
+</li>
+<li>
+<p><strong>Manually</strong>: It is possible to manually insert image data into the image cache.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// Just finished downloading new user photo</span>
+
+<span class="n">XXUser</span> <span class="o">*</span><span class="n">user</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">_currentUser</span><span class="p">];</span>
+<span class="bp">NSString</span> <span class="o">*</span><span class="n">formatName</span> <span class="o">=</span> <span class="n">XXImageFormatNameUserThumbnailSmall</span><span class="p">;</span>
+<span class="n">FICImageCacheCompletionBlock</span> <span class="n">completionBlock</span> <span class="o">=</span> <span class="o">^</span><span class="p">(</span><span class="kt">id</span> <span class="o">&lt;</span><span class="n">FICEntity</span><span class="o">&gt;</span> <span class="n">entity</span><span class="p">,</span> <span class="bp">NSString</span> <span class="o">*</span><span class="n">formatName</span><span class="p">,</span> <span class="bp">UIImage</span> <span class="o">*</span><span class="n">image</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">NSLog</span><span class="p">(</span><span class="s">@"Processed and stored image for entity: %@"</span><span class="p">,</span> <span class="n">entity</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="p">[</span><span class="n">sharedImageCache</span> <span class="nl">setImage</span><span class="p">:</span><span class="n">newUserPhoto</span> <span class="nl">forEntity</span><span class="p">:</span><span class="n">user</span> <span class="nl">withFormatName</span><span class="p">:</span><span class="n">formatName</span> <span class="nl">completionBlock</span><span class="p">:</span><span class="n">completionBlock</span><span class="p">];</span>
+</pre></div>
+</li>
+</ol><blockquote>
+<p><strong>Note</strong>: Fast Image Cache does <strong>not</strong> persist source images. See <a href="#source-image-persistence">Source Image Persistence</a> for more information.</p>
+</blockquote>
+
+<h3>
+<a name="user-content-canceling-source-image-requests" class="anchor" href="#canceling-source-image-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Canceling Source Image Requests</h3>
+
+<p>If an image request is already in progress, it can be cancelled:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="c1">// We scrolled up far enough that the image we requested in no longer visible; cancel the request</span>
+<span class="n">XXUser</span> <span class="o">*</span><span class="n">user</span> <span class="o">=</span> <span class="p">[</span><span class="nb">self</span> <span class="n">_currentUser</span><span class="p">];</span>
+<span class="bp">NSString</span> <span class="o">*</span><span class="n">formatName</span> <span class="o">=</span> <span class="n">XXImageFormatNameUserThumbnailSmall</span><span class="p">;</span>
+<span class="p">[</span><span class="n">sharedImageCache</span> <span class="nl">cancelImageRetrievalForEntity</span><span class="p">:</span><span class="n">user</span> <span class="nl">withFormatName</span><span class="p">:</span><span class="n">formatName</span><span class="p">];</span>
+</pre></div>
+
+<p>When this happens, Fast Image Cache cleans up its internal bookkeeping, and any completion blocks from the corresponding image request will do nothing at this point. However, the image cache's delegate is still responsible for ensuring that any outstanding source image requests (e.g., network requests) are cancelled:</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">void</span><span class="p">)</span><span class="nf">imageCache:</span><span class="p">(</span><span class="n">FICImageCache</span> <span class="o">*</span><span class="p">)</span><span class="nv">imageCache</span> <span class="nf">cancelImageLoadingForEntity:</span><span class="p">(</span><span class="kt">id</span> <span class="o">&lt;</span><span class="n">FICEntity</span><span class="o">&gt;</span><span class="p">)</span><span class="nv">entity</span> <span class="nf">withFormatName:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">formatName</span> <span class="p">{</span>
+    <span class="p">[</span><span class="nb">self</span> <span class="nl">_cancelNetworkRequestForSourceImageForEntity</span><span class="p">:</span><span class="n">entity</span> <span class="nl">withFormatName</span><span class="p">:</span><span class="n">formatName</span><span class="p">];</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-working-with-image-format-families" class="anchor" href="#working-with-image-format-families" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working with Image Format Families</h3>
+
+<p>The advantage of classifying image formats into families is that the image cache's delegate can tell the image cache to process entity source images for <strong>all</strong> image formats in a family when <strong>any</strong> image format in that family is processed.</p>
+
+<div class="highlight highlight-objective-c"><pre><span class="p">-</span> <span class="p">(</span><span class="kt">BOOL</span><span class="p">)</span><span class="nf">imageCache:</span><span class="p">(</span><span class="n">FICImageCache</span> <span class="o">*</span><span class="p">)</span><span class="nv">imageCache</span> <span class="nf">shouldProcessAllFormatsInFamily:</span><span class="p">(</span><span class="bp">NSString</span> <span class="o">*</span><span class="p">)</span><span class="nv">formatFamily</span> <span class="nf">forEntity:</span><span class="p">(</span><span class="kt">id</span><span class="o">&lt;</span><span class="n">FICEntity</span><span class="o">&gt;</span><span class="p">)</span><span class="nv">entity</span> <span class="p">{</span>
+    <span class="kt">BOOL</span> <span class="n">shouldProcessAllFormats</span> <span class="o">=</span> <span class="nb">NO</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">([</span><span class="n">formatFamily</span> <span class="nl">isEqualToString</span><span class="p">:</span><span class="n">XXImageFormatFamilyUserThumbnails</span><span class="p">])</span> <span class="p">{</span>
+        <span class="n">XXUser</span> <span class="o">*</span><span class="n">user</span> <span class="o">=</span> <span class="p">(</span><span class="n">XXUser</span> <span class="o">*</span><span class="p">)</span><span class="n">entity</span><span class="p">;</span>
+        <span class="n">shouldProcessAllFormats</span> <span class="o">=</span> <span class="n">user</span><span class="p">.</span><span class="n">active</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">shouldProcessAllFormats</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>The advantage of processing all image formats in a family at once is that the source image does not need to be repeatedly downloaded (or loaded into memory if cached on disk).</p>
+
+<p>For example, if a user changes their profile photo, it probably makes sense to process the new source image for every variant at the same time that the first image format is processed. That is, if the image cache is processing a new user profile photo for the image format named <code>XXImageFormatNameUserThumbnailSmall</code>, then it makes sense to also process and store new image data for that same user for the image format named <code>XXImageFormatNameUserThumbnailMedium</code>.</p>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>Fast Image Cache's header files are fully documented, and <a href="http://gentlebytes.com/appledoc/">appledoc</a> can be used to generate documentation in various forms, including HTML and Xcode DocSet.</p>
+
+<p>HTML documentation can be <a href="https://s3.amazonaws.com/fast-image-cache/documentation/index.html">found here</a>.</p>
+
+<h2>
+<a name="user-content-demo-application" class="anchor" href="#demo-application" aria-hidden="true"><span class="octicon octicon-link"></span></a>Demo Application</h2>
+
+<p>Included with this repository is a demo app Xcode project. It demonstrates the difference between the conventional approach for loading and displaying images and the Fast Image Cache approach. See the <a href="#requirements">requirements for running the demo app Xcode project</a>.</p>
+
+<blockquote>
+<p><strong>Note</strong>: The demo application must either be supplied with JPEG images, or the included <a href="./FastImageCacheDemo/fetch_demo_images.sh"><code>fetch_demo_images.sh</code></a> script in the <a href="./FastImageCacheDemo"><code>FastImageCacheDemo</code></a> directory must be run.</p>
+</blockquote>
+
+<h3>
+<a name="user-content-video" class="anchor" href="#video" aria-hidden="true"><span class="octicon octicon-link"></span></a>Video</h3>
+
+<p align="center">
+    <a href="https://s3.amazonaws.com/fast-image-cache/readme-resources/demo-app-video.html"><img src="https://camo.githubusercontent.com/0fb787e41eb8c402460389f5fea7f04e9e526b03/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f666173742d696d6167652d63616368652f726561646d652d7265736f75726365732f64656d6f2d6170702d766964656f2d706c616365686f6c6465722e706e67" alt="Fast Image Cache Demo App Video" data-canonical-src="https://s3.amazonaws.com/fast-image-cache/readme-resources/demo-app-video-placeholder.png" style="max-width:100%;"></a>
+</p>
+
+<blockquote>
+<p><strong>Note</strong>: In this demo video, the first demonstrated method is the conventional approach. The second method is using image tables.</p>
+</blockquote>
+
+<h3>
+<a name="user-content-statistics" class="anchor" href="#statistics" aria-hidden="true"><span class="octicon octicon-link"></span></a>Statistics</h3>
+
+<p>The following statistics were measured from a run of the demo application:</p>
+
+<table>
+<thead><tr>
+<th>Method</th>
+<th align="center">Scrolling Performance</th>
+<th align="center">Disk Usage</th>
+<th align="center">
+<a href="http://www.mikeash.com/pyblog/friday-qa-2009-06-19-mac-os-x-process-memory-statistics.html">RPRVT</a><sup>1</sup>
+</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Conventional</td>
+<td align="center"><code>~35FPS</code></td>
+<td align="center"><code>568KB</code></td>
+<td align="center">
+<code>2.40MB</code>: <code>1.06MB</code> + <code>1.34MB</code>
+</td>
+</tr>
+<tr>
+<td>Fast Image Cache</td>
+<td align="center"><code>~59FPS</code></td>
+<td align="center"><code>2.2MB</code></td>
+<td align="center">
+<code>1.15MB</code>: <code>1.06MB</code> + <code>0.09MB</code>
+</td>
+</tr>
+</tbody>
+</table><p>The takeaway is that Fast Image Cache sacrifices disk usage to achieve a faster framerate and overall less memory usage.</p>
+
+<hr><p><sup>1</sup> The first value is the the total RPRVT used by a method to display a screen's worth of JPEG thumbnails. The second value is the baseline RPRVT where all the table view cells and image views are on screen, but none of the image views have images set. The third value is how much additional RPRVT each method used beyond the baseline.</p>
+
+<h2>
+<a name="user-content-contributors" class="anchor" href="#contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributors</h2>
+
+<p><a href="https://twitter.com/mallorypaine" target="_blank"><img src="https://camo.githubusercontent.com/46c07cac903932ca0614768c8a1369862cdc78ff/687474703a2f2f7777772e67726176617461722e636f6d2f6176617461722f37366462356436626463623634616339653836653661353231616235376630332e6a70673f733d3835" alt="Mallory Paine" data-canonical-src="http://www.gravatar.com/avatar/76db5d6bdcb64ac9e86e6a521ab57f03.jpg?s=85" style="max-width:100%;"></a><br><strong>Mallory Paine</strong> — Author and Original API Design<br><a href="https://twitter.com/mallorypaine" target="_blank">@mallorypaine</a></p>
+
+<hr><p><a href="https://twitter.com/LucasTizma" target="_blank"><img src="https://camo.githubusercontent.com/9ca8243fc8c43d7ae78984b6eca78d191eef3f53/687474703a2f2f7777772e67726176617461722e636f6d2f6176617461722f32303035623265643336383931333835303037366262353263656537393731332e6a70673f733d3835" alt="Michael Potter" data-canonical-src="http://www.gravatar.com/avatar/2005b2ed368913850076bb52cee79713.jpg?s=85" style="max-width:100%;"></a><br><strong>Michael Potter</strong> — Documentation and API Refactoring<br><a href="https://twitter.com/LucasTizma" target="_blank">@LucasTizma</a></p>
+
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<ul class="task-list">
+<li>All <a href="#demo-application">demo application</a> photos were taken from <a href="http://www.morguefile.com">morgueFile</a> and are used according to the <a href="http://www.morguefile.com/license/full">morgueFile license</a>.</li>
+<li>Fast Image Cache logo illustration by the amazing <a href="https://twitter.com/jakemix">Jake Mix</a>.</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Fast Image Cache is made available under the <a href="http://opensource.org/licenses/MIT">MIT license</a>:</p>
+
+<pre>
+The MIT License (MIT)
+
+Copyright (c) 2013 Path, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+</pre></article></div>

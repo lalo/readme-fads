@@ -1,0 +1,350 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-reactivemongo-support-to-play-framework-23" class="anchor" href="#reactivemongo-support-to-play-framework-23" aria-hidden="true"><span class="octicon octicon-link"></span></a>ReactiveMongo Support to Play! Framework 2.3</h1>
+
+<p>This is a plugin for Play 2.3, enabling support for <a href="http://reactivemongo.org">ReactiveMongo</a> - reactive, asynchronous and non-blocking Scala driver for MongoDB.</p>
+
+<h2>
+<a name="user-content-main-features" class="anchor" href="#main-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Main features</h2>
+
+<h3>
+<a name="user-content-json---bson-conversion" class="anchor" href="#json---bson-conversion" aria-hidden="true"><span class="octicon octicon-link"></span></a>JSON &lt;-&gt; BSON conversion</h3>
+
+<p>With Play2-ReactiveMongo, you can use directly the embedded JSON library in Play &gt;= 2.1. There is a specialized collection called <code>JSONCollection</code> that deals naturally with <code>JSValue</code> and <code>JSObject</code> instead of ReactiveMongo's <code>BSONDocument</code>.</p>
+
+<p>The JSON lib has been completely refactored and is now the most powerful one in the Scala world. Thanks to it, you can now fetch documents from MongoDB in the JSON format, transform them by removing and/or adding some properties, and send them to the client. Even better, when a client sends a JSON document, you can validate it and transform it before saving it into a MongoDB collection.</p>
+
+<p>Another advantage to use this plugin is to be capable of using JSON documents for querying MongoDB.</p>
+
+<h3>
+<a name="user-content-add-reactivemongo-to-your-dependencies" class="anchor" href="#add-reactivemongo-to-your-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Add ReactiveMongo to your dependencies</h3>
+
+<p>In your project/Build.scala:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="s">"org.reactivemongo"</span> <span class="o">%%</span> <span class="s">"play2-reactivemongo"</span> <span class="o">%</span> <span class="s">"0.10.2"</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>There is also a snapshot of the stable branch that compiles against Play 2.3/Akka 2.3 (and both Scala 2.10/2.11):</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"Sonatype Snapshots"</span> <span class="n">at</span> <span class="s">"https://oss.sonatype.org/content/repositories/snapshots/"</span>
+
+<span class="n">libraryDependencies</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="s">"org.reactivemongo"</span> <span class="o">%%</span> <span class="s">"play2-reactivemongo"</span> <span class="o">%</span> <span class="s">"0.10.5.akka23-SNAPSHOT"</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>If you want to use the latest snapshot, add the following instead:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">resolvers</span> <span class="o">+=</span> <span class="s">"Sonatype Snapshots"</span> <span class="n">at</span> <span class="s">"https://oss.sonatype.org/content/repositories/snapshots/"</span>
+
+<span class="n">libraryDependencies</span> <span class="o">++=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="s">"org.reactivemongo"</span> <span class="o">%%</span> <span class="s">"play2-reactivemongo"</span> <span class="o">%</span> <span class="s">"0.11.0-SNAPSHOT"</span>
+<span class="o">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-configure-your-application-to-use-reactivemongo-plugin" class="anchor" href="#configure-your-application-to-use-reactivemongo-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure your application to use ReactiveMongo plugin</h3>
+
+<h4>
+<a name="user-content-add-to-your-confplayplugins" class="anchor" href="#add-to-your-confplayplugins" aria-hidden="true"><span class="octicon octicon-link"></span></a>add to your conf/play.plugins</h4>
+
+<pre><code>1100:play.modules.reactivemongo.ReactiveMongoPlugin
+</code></pre>
+
+<h3>
+<a name="user-content-configure-your-database-access-within-applicationconf" class="anchor" href="#configure-your-database-access-within-applicationconf" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure your database access within <code>application.conf</code>
+</h3>
+
+<p>This plugin reads connection properties from the <code>application.conf</code> and gives you an easy access to the connected database.</p>
+
+<h4>
+<a name="user-content-add-this-to-your-confapplicationconf" class="anchor" href="#add-this-to-your-confapplicationconf" aria-hidden="true"><span class="octicon octicon-link"></span></a>add this to your conf/application.conf</h4>
+
+<p>You can use the URI syntax to point to your MongoDB:</p>
+
+<pre><code>mongodb.uri ="mongodb://username:password@localhost:27017/your_db_name"
+</code></pre>
+
+<p>or, alternatively:</p>
+
+<pre><code>mongodb.servers = ["localhost:27017"]
+mongodb.db = "your_db_name"
+</code></pre>
+
+<p>This is especially helpful on platforms like Heroku, where add-ons publish the connection URI in a single environment variable. The URI syntax supports the following format: <code>mongodb://[username:password@]host1[:port1][,hostN[:portN]]/dbName</code></p>
+
+<h3>
+<a name="user-content-configure-underlying-akka-system" class="anchor" href="#configure-underlying-akka-system" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configure underlying akka system</h3>
+
+<p>ReactiveMongo loads it's configuration from the key <code>mongo-async-driver</code></p>
+
+<p>To change the log level (prevent dead-letter logging for example)</p>
+
+<pre><code>mongo-async-driver {
+  akka {
+    loglevel = WARNING
+  }
+}
+</code></pre>
+
+<h3>
+<a name="user-content-play2-controller-sample" class="anchor" href="#play2-controller-sample" aria-hidden="true"><span class="octicon octicon-link"></span></a>Play2 controller sample</h3>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">controllers</span>
+
+<span class="k">import</span> <span class="nn">play.api._</span>
+<span class="k">import</span> <span class="nn">play.api.mvc._</span>
+<span class="k">import</span> <span class="nn">play.api.libs.concurrent.Execution.Implicits.defaultContext</span>
+<span class="k">import</span> <span class="nn">play.api.libs.functional.syntax._</span>
+<span class="k">import</span> <span class="nn">play.api.libs.json._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.Future</span>
+
+<span class="c1">// Reactive Mongo imports</span>
+<span class="k">import</span> <span class="nn">reactivemongo.api._</span>
+
+<span class="c1">// Reactive Mongo plugin, including the JSON-specialized collection</span>
+<span class="k">import</span> <span class="nn">play.modules.reactivemongo.MongoController</span>
+<span class="k">import</span> <span class="nn">play.modules.reactivemongo.json.collection.JSONCollection</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * Example using ReactiveMongo + Play JSON library.</span>
+<span class="cm"> *</span>
+<span class="cm"> * There are two approaches demonstrated in this controller:</span>
+<span class="cm"> * - using JsObjects directly</span>
+<span class="cm"> * - using case classes that can be turned into Json using Reads and Writes.</span>
+<span class="cm"> *</span>
+<span class="cm"> * This controller uses JsObjects directly.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Instead of using the default Collection implementation (which interacts with</span>
+<span class="cm"> * BSON structures + BSONReader/BSONWriter), we use a specialized</span>
+<span class="cm"> * implementation that works with JsObject + Reads/Writes.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Of course, you can still use the default Collection implementation</span>
+<span class="cm"> * (BSONCollection.) See ReactiveMongo examples to learn how to use it.</span>
+<span class="cm"> */</span>
+<span class="k">object</span> <span class="nc">Application</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">MongoController</span> <span class="o">{</span>
+  <span class="cm">/*</span>
+<span class="cm">   * Get a JSONCollection (a Collection implementation that is designed to work</span>
+<span class="cm">   * with JsObject, Reads and Writes.)</span>
+<span class="cm">   * Note that the `collection` is not a `val`, but a `def`. We do _not_ store</span>
+<span class="cm">   * the collection reference to avoid potential problems in development with</span>
+<span class="cm">   * Play hot-reloading.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">collection</span><span class="k">:</span> <span class="kt">JSONCollection</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">collection</span><span class="o">[</span><span class="kt">JSONCollection</span><span class="o">](</span><span class="s">"persons"</span><span class="o">)</span>
+
+  <span class="k">def</span> <span class="n">index</span> <span class="k">=</span> <span class="nc">Action</span> <span class="o">{</span> <span class="nc">Ok</span><span class="o">(</span><span class="s">"works"</span><span class="o">)</span> <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">create</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">age</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">json</span> <span class="k">=</span> <span class="nc">Json</span><span class="o">.</span><span class="n">obj</span><span class="o">(</span>
+      <span class="s">"name"</span> <span class="o">-&gt;</span> <span class="n">name</span><span class="o">,</span>
+      <span class="s">"age"</span> <span class="o">-&gt;</span> <span class="n">age</span><span class="o">,</span>
+      <span class="s">"created"</span> <span class="o">-&gt;</span> <span class="k">new</span> <span class="n">java</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="nc">Date</span><span class="o">().</span><span class="n">getTime</span><span class="o">())</span>
+
+    <span class="n">collection</span><span class="o">.</span><span class="n">insert</span><span class="o">(</span><span class="n">json</span><span class="o">).</span><span class="n">map</span><span class="o">(</span><span class="n">lastError</span> <span class="k">=&gt;</span>
+      <span class="nc">Ok</span><span class="o">(</span><span class="s">"Mongo LastError: %s"</span><span class="o">.</span><span class="n">format</span><span class="o">(</span><span class="n">lastError</span><span class="o">)))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">createFromJson</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span><span class="o">(</span><span class="n">parse</span><span class="o">.</span><span class="n">json</span><span class="o">)</span> <span class="o">{</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="k">import</span> <span class="nn">play.api.libs.json.Reads._</span>
+    <span class="cm">/*</span>
+<span class="cm">     * request.body is a JsValue.</span>
+<span class="cm">     * There is an implicit Writes that turns this JsValue as a JsObject,</span>
+<span class="cm">     * so you can call insert() with this JsValue.</span>
+<span class="cm">     * (insert() takes a JsObject as parameter, or anything that can be</span>
+<span class="cm">     * turned into a JsObject using a Writes.)</span>
+<span class="cm">     */</span>
+    <span class="k">val</span> <span class="n">transformer</span><span class="k">:</span> <span class="kt">Reads</span><span class="o">[</span><span class="kt">JsObject</span><span class="o">]</span> <span class="k">=</span>
+      <span class="nc">Reads</span><span class="o">.</span><span class="n">jsPickBranch</span><span class="o">[</span><span class="kt">JsString</span><span class="o">](</span><span class="nc">__</span> <span class="o">\</span> <span class="s">"firstName"</span><span class="o">)</span> <span class="n">and</span>
+        <span class="nc">Reads</span><span class="o">.</span><span class="n">jsPickBranch</span><span class="o">[</span><span class="kt">JsString</span><span class="o">](</span><span class="nc">__</span> <span class="o">\</span> <span class="s">"lastName"</span><span class="o">)</span> <span class="n">and</span>
+        <span class="nc">Reads</span><span class="o">.</span><span class="n">jsPickBranch</span><span class="o">[</span><span class="kt">JsNumber</span><span class="o">](</span><span class="nc">__</span> <span class="o">\</span> <span class="s">"age"</span><span class="o">)</span> <span class="n">reduce</span>
+
+    <span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">transform</span><span class="o">(</span><span class="n">transformer</span><span class="o">).</span><span class="n">map</span> <span class="o">{</span> <span class="n">result</span> <span class="k">=&gt;</span>
+      <span class="n">collection</span><span class="o">.</span><span class="n">insert</span><span class="o">(</span><span class="n">result</span><span class="o">).</span><span class="n">map</span> <span class="o">{</span> <span class="n">lastError</span> <span class="k">=&gt;</span>
+        <span class="nc">Logger</span><span class="o">.</span><span class="n">debug</span><span class="o">(</span><span class="n">s</span><span class="s">"Successfully inserted with LastError: $lastError"</span><span class="o">)</span>
+        <span class="nc">Created</span>
+      <span class="o">}</span>
+    <span class="o">}.</span><span class="n">getOrElse</span><span class="o">(</span><span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">BadRequest</span><span class="o">(</span><span class="s">"invalid json"</span><span class="o">)))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">findByName</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span> <span class="o">{</span>
+    <span class="c1">// let's do our query</span>
+    <span class="k">val</span> <span class="n">cursor</span><span class="k">:</span> <span class="kt">Cursor</span><span class="o">[</span><span class="kt">JsObject</span><span class="o">]</span> <span class="k">=</span> <span class="n">collection</span><span class="o">.</span>
+      <span class="c1">// find all people with name `name`</span>
+      <span class="n">find</span><span class="o">(</span><span class="nc">Json</span><span class="o">.</span><span class="n">obj</span><span class="o">(</span><span class="s">"name"</span> <span class="o">-&gt;</span> <span class="n">name</span><span class="o">)).</span>
+      <span class="c1">// sort them by creation date</span>
+      <span class="n">sort</span><span class="o">(</span><span class="nc">Json</span><span class="o">.</span><span class="n">obj</span><span class="o">(</span><span class="s">"created"</span> <span class="o">-&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="o">)).</span>
+      <span class="c1">// perform the query and get a cursor of JsObject</span>
+      <span class="n">cursor</span><span class="o">[</span><span class="kt">JsObject</span><span class="o">]</span>
+
+    <span class="c1">// gather all the JsObjects in a list</span>
+    <span class="k">val</span> <span class="n">futurePersonsList</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">JsObject</span><span class="o">]]</span> <span class="k">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">collect</span><span class="o">[</span><span class="kt">List</span><span class="o">]()</span>
+
+    <span class="c1">// transform the list into a JsArray</span>
+    <span class="k">val</span> <span class="n">futurePersonsJsonArray</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">JsArray</span><span class="o">]</span> <span class="k">=</span> <span class="n">futurePersonsList</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">persons</span> <span class="k">=&gt;</span>
+      <span class="nc">Json</span><span class="o">.</span><span class="n">arr</span><span class="o">(</span><span class="n">persons</span><span class="o">)</span>
+    <span class="o">}</span>
+
+    <span class="c1">// everything's ok! Let's reply with the array</span>
+    <span class="n">futurePersonsJsonArray</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">persons</span> <span class="k">=&gt;</span>
+      <span class="nc">Ok</span><span class="o">(</span><span class="n">persons</span><span class="o">)</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<blockquote>
+<p>Please Notice:</p>
+
+<ul class="task-list">
+<li>your controller may extend <code>MongoController</code> which provides a few helpers</li>
+<li>all actions are asynchronous because ReactiveMongo returns <code>Future[Result]</code>
+</li>
+<li>we use a specialized collection called <code>JSONCollection</code> that deals naturally with <code>JSValue</code> and <code>JSObject</code>
+</li>
+</ul>
+</blockquote>
+
+<h3>
+<a name="user-content-play2-controller-sample-using-json-writes-and-reads" class="anchor" href="#play2-controller-sample-using-json-writes-and-reads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Play2 controller sample using Json Writes and Reads</h3>
+
+<p>First, the models:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">models</span>
+
+<span class="k">case</span> <span class="k">class</span> <span class="nc">User</span><span class="o">(</span>
+  <span class="n">age</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span>
+  <span class="n">firstName</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+  <span class="n">lastName</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+  <span class="n">feeds</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Feed</span><span class="o">])</span>
+
+<span class="k">case</span> <span class="k">class</span> <span class="nc">Feed</span><span class="o">(</span>
+  <span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span>
+  <span class="n">url</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
+
+<span class="k">object</span> <span class="nc">JsonFormats</span> <span class="o">{</span>
+  <span class="k">import</span> <span class="nn">play.api.libs.json.Json</span>
+  <span class="k">import</span> <span class="nn">play.api.data._</span>
+  <span class="k">import</span> <span class="nn">play.api.data.Forms._</span>
+
+  <span class="c1">// Generates Writes and Reads for Feed and User thanks to Json Macros</span>
+  <span class="k">implicit</span> <span class="k">val</span> <span class="n">feedFormat</span> <span class="k">=</span> <span class="nc">Json</span><span class="o">.</span><span class="n">format</span><span class="o">[</span><span class="kt">Feed</span><span class="o">]</span>
+  <span class="k">implicit</span> <span class="k">val</span> <span class="n">userFormat</span> <span class="k">=</span> <span class="nc">Json</span><span class="o">.</span><span class="n">format</span><span class="o">[</span><span class="kt">User</span><span class="o">]</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Then, the controller which uses the ability of the <code>JSONCollection</code> to handle Json's <code>Reads</code> and <code>Writes</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">controllers</span>
+
+<span class="k">import</span> <span class="nn">play.api._</span>
+<span class="k">import</span> <span class="nn">play.api.mvc._</span>
+<span class="k">import</span> <span class="nn">play.api.libs.concurrent.Execution.Implicits.defaultContext</span>
+<span class="k">import</span> <span class="nn">play.api.libs.json._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.Future</span>
+
+<span class="c1">// Reactive Mongo imports</span>
+<span class="k">import</span> <span class="nn">reactivemongo.api._</span>
+
+<span class="c1">// Reactive Mongo plugin, including the JSON-specialized collection</span>
+<span class="k">import</span> <span class="nn">play.modules.reactivemongo.MongoController</span>
+<span class="k">import</span> <span class="nn">play.modules.reactivemongo.json.collection.JSONCollection</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * Example using ReactiveMongo + Play JSON library.</span>
+<span class="cm"> *</span>
+<span class="cm"> * There are two approaches demonstrated in this controller:</span>
+<span class="cm"> * - using JsObjects directly</span>
+<span class="cm"> * - using case classes that can be turned into Json using Reads and Writes.</span>
+<span class="cm"> *</span>
+<span class="cm"> * This controller uses case classes and their associated Reads/Writes</span>
+<span class="cm"> * to read or write JSON structures.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Instead of using the default Collection implementation (which interacts with</span>
+<span class="cm"> * BSON structures + BSONReader/BSONWriter), we use a specialized</span>
+<span class="cm"> * implementation that works with JsObject + Reads/Writes.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Of course, you can still use the default Collection implementation</span>
+<span class="cm"> * (BSONCollection.) See ReactiveMongo examples to learn how to use it.</span>
+<span class="cm"> */</span>
+<span class="k">object</span> <span class="nc">ApplicationUsingJsonReadersWriters</span> <span class="k">extends</span> <span class="nc">Controller</span> <span class="k">with</span> <span class="nc">MongoController</span> <span class="o">{</span>
+  <span class="cm">/*</span>
+<span class="cm">   * Get a JSONCollection (a Collection implementation that is designed to work</span>
+<span class="cm">   * with JsObject, Reads and Writes.)</span>
+<span class="cm">   * Note that the `collection` is not a `val`, but a `def`. We do _not_ store</span>
+<span class="cm">   * the collection reference to avoid potential problems in development with</span>
+<span class="cm">   * Play hot-reloading.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">collection</span><span class="k">:</span> <span class="kt">JSONCollection</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">collection</span><span class="o">[</span><span class="kt">JSONCollection</span><span class="o">](</span><span class="s">"persons"</span><span class="o">)</span>
+
+  <span class="c1">// ------------------------------------------ //</span>
+  <span class="c1">// Using case classes + Json Writes and Reads //</span>
+  <span class="c1">// ------------------------------------------ //</span>
+  <span class="k">import</span> <span class="nn">play.api.data.Form</span>
+  <span class="k">import</span> <span class="nn">models._</span>
+  <span class="k">import</span> <span class="nn">models.JsonFormats._</span>
+
+  <span class="k">def</span> <span class="n">create</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">user</span> <span class="k">=</span> <span class="nc">User</span><span class="o">(</span><span class="mi">29</span><span class="o">,</span> <span class="s">"John"</span><span class="o">,</span> <span class="s">"Smith"</span><span class="o">,</span> <span class="nc">List</span><span class="o">(</span>
+      <span class="nc">Feed</span><span class="o">(</span><span class="s">"Slashdot news"</span><span class="o">,</span> <span class="s">"http://slashdot.org/slashdot.rdf"</span><span class="o">)))</span>
+    <span class="c1">// insert the user</span>
+    <span class="k">val</span> <span class="n">futureResult</span> <span class="k">=</span> <span class="n">collection</span><span class="o">.</span><span class="n">insert</span><span class="o">(</span><span class="n">user</span><span class="o">)</span>
+    <span class="c1">// when the insert is performed, send a OK 200 result</span>
+    <span class="n">futureResult</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span> <span class="k">=&gt;</span> <span class="nc">Ok</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">createFromJson</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span><span class="o">(</span><span class="n">parse</span><span class="o">.</span><span class="n">json</span><span class="o">)</span> <span class="o">{</span> <span class="n">request</span> <span class="k">=&gt;</span>
+    <span class="cm">/*</span>
+<span class="cm">     * request.body is a JsValue.</span>
+<span class="cm">     * There is an implicit Writes that turns this JsValue as a JsObject,</span>
+<span class="cm">     * so you can call insert() with this JsValue.</span>
+<span class="cm">     * (insert() takes a JsObject as parameter, or anything that can be</span>
+<span class="cm">     * turned into a JsObject using a Writes.)</span>
+<span class="cm">     */</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">validate</span><span class="o">[</span><span class="kt">User</span><span class="o">].</span><span class="n">map</span> <span class="o">{</span> <span class="n">user</span> <span class="k">=&gt;</span>
+      <span class="c1">// `user` is an instance of the case class `models.User`</span>
+      <span class="n">collection</span><span class="o">.</span><span class="n">insert</span><span class="o">(</span><span class="n">user</span><span class="o">).</span><span class="n">map</span> <span class="o">{</span> <span class="n">lastError</span> <span class="k">=&gt;</span>
+        <span class="nc">Logger</span><span class="o">.</span><span class="n">debug</span><span class="o">(</span><span class="n">s</span><span class="s">"Successfully inserted with LastError: $lastError"</span><span class="o">)</span>
+        <span class="nc">Created</span>
+      <span class="o">}</span>
+    <span class="o">}.</span><span class="n">getOrElse</span><span class="o">(</span><span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="nc">BadRequest</span><span class="o">(</span><span class="s">"invalid json"</span><span class="o">)))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">findByName</span><span class="o">(</span><span class="n">lastName</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">.</span><span class="n">async</span> <span class="o">{</span>
+    <span class="c1">// let's do our query</span>
+    <span class="k">val</span> <span class="n">cursor</span><span class="k">:</span> <span class="kt">Cursor</span><span class="o">[</span><span class="kt">User</span><span class="o">]</span> <span class="k">=</span> <span class="n">collection</span><span class="o">.</span>
+      <span class="c1">// find all people with name `name`</span>
+      <span class="n">find</span><span class="o">(</span><span class="nc">Json</span><span class="o">.</span><span class="n">obj</span><span class="o">(</span><span class="s">"lastName"</span> <span class="o">-&gt;</span> <span class="n">lastName</span><span class="o">)).</span>
+      <span class="c1">// sort them by creation date</span>
+      <span class="n">sort</span><span class="o">(</span><span class="nc">Json</span><span class="o">.</span><span class="n">obj</span><span class="o">(</span><span class="s">"created"</span> <span class="o">-&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="o">)).</span>
+      <span class="c1">// perform the query and get a cursor of JsObject</span>
+      <span class="n">cursor</span><span class="o">[</span><span class="kt">User</span><span class="o">]</span>
+
+    <span class="c1">// gather all the JsObjects in a list</span>
+    <span class="k">val</span> <span class="n">futureUsersList</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">User</span><span class="o">]]</span> <span class="k">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">collect</span><span class="o">[</span><span class="kt">List</span><span class="o">]()</span>
+
+    <span class="c1">// everything's ok! Let's reply with the array</span>
+    <span class="n">futureUsersList</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">persons</span> <span class="k">=&gt;</span>
+      <span class="nc">Ok</span><span class="o">(</span><span class="n">persons</span><span class="o">.</span><span class="n">toString</span><span class="o">)</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-helpers-for-gridfs" class="anchor" href="#helpers-for-gridfs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Helpers for GridFS</h3>
+
+<p>Play2-ReactiveMongo makes it easy to serve and store files in a complete non-blocking manner. 
+It provides a body parser for handling file uploads, and a method to serve files from a GridFS store.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">upload</span> <span class="k">=</span> <span class="nc">Action</span><span class="o">(</span><span class="n">gridFSBodyParser</span><span class="o">(</span><span class="n">gridFS</span><span class="o">))</span> <span class="o">{</span> <span class="n">request</span> <span class="k">=&gt;</span>
+  <span class="c1">// here is the future file!</span>
+  <span class="k">val</span> <span class="n">futureFile</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">ReadFile</span><span class="o">[</span><span class="kt">BSONValue</span><span class="o">]]</span> <span class="k">=</span> <span class="n">request</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">ref</span>
+  <span class="n">futureFile</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">file</span> <span class="k">=&gt;</span>
+    <span class="c1">// do something</span>
+    <span class="nc">Ok</span>
+  <span class="o">}.</span><span class="n">recover</span> <span class="o">{</span>
+    <span class="k">case</span> <span class="n">e</span><span class="k">:</span> <span class="kt">Throwable</span> <span class="o">=&gt;</span> <span class="nc">InternalServerError</span><span class="o">(</span><span class="n">e</span><span class="o">.</span><span class="n">getMessage</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div></article></div>

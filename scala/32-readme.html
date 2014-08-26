@@ -1,0 +1,1101 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><a name="user-content-Top" aria-hidden="true"></a></p>
+
+<h1>
+<a name="user-content-iago-a-load-generator" class="anchor" href="#iago-a-load-generator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Iago, A Load Generator</h1>
+
+<p><a href="http://travis-ci.org/twitter/iago"><img src="https://camo.githubusercontent.com/2b127db3c7d575390929c9027718b1c9e964cfac/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f747769747465722f6961676f2e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/twitter/iago.png" style="max-width:100%;"></a></p>
+
+<ul class="task-list">
+<li>
+<a href="#Iago%20Quick%20Start">Iago Quick Start</a>
+
+<ul class="task-list">
+<li><a href="#Iago%20Prerequisites">Iago Prerequisites</a></li>
+<li><a href="#Preparing%20Your%20Test">Preparing Your Test</a></li>
+<li><a href="#Executing%20Your%20Test">Executing Your Test</a></li>
+</ul>
+</li>
+<li>
+<a href="#Iago%20Overview">Iago Overview</a>
+
+<ul class="task-list">
+<li><a href="#Supported%20Services">Supported Services</a></li>
+<li><a href="#Transaction%20Requirements">Transaction Requirements</a></li>
+<li><a href="#Sources%20of%20Transactions">Sources of Transactions</a></li>
+</ul>
+</li>
+<li><a href="#Iago%20Architecture%20Overview">Iago Architecture Overview</a></li>
+<li>
+<a href="#Implementing%20Your%20Test">Implementing Your Test</a>
+
+<ul class="task-list">
+<li><a href="#Scala%20Example">Scala Example</a></li>
+<li><a href="#Scala%20Thrift%20Example">Scala Thrift Example</a></li>
+<li><a href="#Java%20Example">Java Example</a></li>
+<li><a href="#Java%20Thrift%20Example">Java Thrift Example</a></li>
+<li><a href="#Code%20Annotations%20for%20the%20Examples">Code Annotations for the Examples</a></li>
+</ul>
+</li>
+<li>
+<a href="#Configuring%20Your%20Test">Configuring Your Test</a>
+
+<ul class="task-list">
+<li><a href="#Specifying_Victims">Specifying Victims</a></li>
+<li><a href="#extension_point_parameters">Extension Point Parameters</a></li>
+<li><a href="#sending_large_messages">Sending Large Messages</a></li>
+</ul>
+</li>
+<li><a href="#weighted_requests">Weighted Requests</a></li>
+<li><a href="#metrics">Metrics</a></li>
+<li><a href="#tracing">Tracing</a></li>
+<li><a href="#artifacts">What Files Are Created?</a></li>
+<li><a href="#ChangeLog">ChangeLog</a></li>
+<li><a href="#Contributing">Contributing to Iago</a></li>
+</ul><p><a name="user-content-Iago%20Quick%20Start" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-iago-quick-start" class="anchor" href="#iago-quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Iago Quick Start</h2>
+
+<p>Please join <a href="https://groups.google.com/d/forum/iago-users">iago-users@googlegroups.com</a> for updates and to ask questions.</p>
+
+<p>If you are already familiar with the Iago Load Generation tool, follow these steps to get started; otherwise, start with the <a href="http://twitter.github.com/iago/">Iago Overview</a> and perhaps <a href="http://twitter.github.com/iago/philosophy.html">Iago Philosophy</a>, also known as "Why Iago?". For questions, please contact <a href="https://groups.google.com/d/forum/iago-users">iago-users@googlegroups.com</a>.</p>
+
+<p><a name="user-content-Iago%20Prerequisites" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-iago-prerequisites" class="anchor" href="#iago-prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Iago Prerequisites</h3>
+
+<ol class="task-list">
+<li><p>Download and unpack the Iago distribution.
+We support Scala 2.9 and recommend you clone the latest master: <a href="https://github.com/twitter/iago/zipball/master">master</a>.</p></li>
+<li><p>Read the documentation.</p></li>
+</ol><p><a name="user-content-Preparing%20Your%20Test" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-preparing-your-test" class="anchor" href="#preparing-your-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Preparing Your Test</h3>
+
+<ol class="task-list">
+<li>Identify your transaction source; see <a href="#Transaction%20Requirements">Transaction Requirements</a> and <a href="#Sources%20of%20Transactions">Sources of Transactions</a> for more information.</li>
+<li>In Scala, extend the Iago server's <code>RecordProcessor</code> or <code>ThriftRecordProcessor</code> class, or in Java, extend <code>LoadTest</code> or <code>ThriftLoadTest</code>; see <a href="#Implementing%20Your%20Test">Implementing Your Test</a> for more information.</li>
+<li>Create a <code>launcher.scala</code> file in your Iago <code>config</code> directory with the appropriate settings; see <a href="#Configuring%20Your%20Test">Configuring Your Test</a> for more information.</li>
+</ol><p><a name="user-content-Executing%20Your%20Test" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-executing-your-test" class="anchor" href="#executing-your-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Executing Your Test</h3>
+
+<p>Launch Iago from the distribution with <code>java</code> <code>-jar</code> <em>iago_jar</em> <code>-f</code> <em>your_config</em>. This will create the Iago processes for you and configure it to use your transactions. To kill a running job, add <code>-k</code> to your launch parameters: <code>java</code> <code>-jar</code> <em>iago_jar</em> <code>-f</code> <em>your_config</em> <code>-k</code>.</p>
+
+<p>If you launch your Iago job on your local machine and an old Iago job is still running, it probably won't get far: it will attempt to re-use a port and fail. You want to kill the running job, as described above.</p>
+
+<p><em>If you build via Maven,</em> then you might wonder "How do I launch Iago 'from the distribution'?" The steps are:</p>
+
+<pre>
+% <kbd>mvn package -DskipTests</kbd>
+% <kbd>mkdir tmp; cd tmp</kbd>
+% <kbd>unzip ../target/iago-<var>version</var>-package-dist.zip</kbd>
+% <kbd>java -jar iago-<var>version</var>.jar -f config/<var>my_config</var>.scala</kbd>
+</pre>
+
+<p>Don't assume that you can skip the package/unzip steps if you're just changing a config file. You need to re-package and unzip again.</p>
+
+<p>If you are using Iago as a library, for example, in the case of testing over the Thrift protocol or building more complex tests with HTTP or Memcached/Kestrel, you should instead add a task to your project's configuration. See <a href="#Configuring%20Your%20Test">Configuring Your Test</a> for more information.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Iago%20Overview" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-iago-overview" class="anchor" href="#iago-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Iago Overview</h2>
+
+<p>Iago is a load generation tool that replays production or synthetic traffic against a given target. Among other things, it differs from other load generation tools in that it attempts to hold constant the transaction rate. For example, if you want to test your service at 100K requests per minute, Iago attempts to achieve that rate.</p>
+
+<p>Because Iago replays traffic, you must specify the source of the traffic. You use a transaction log as the source of traffic, in which each transaction generates a <em>request</em> to your service that your service processes.</p>
+
+<p>Replaying transactions at a fixed rate enables you to study the behavior of your service under an anticipated load. Iago also allows you to identify bottlenecks or other issues that may not be easily observable in a production environment in which your maximum anticipated load occurs only rarely.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Supported%20Services" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-supported-services" class="anchor" href="#supported-services" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Services</h3>
+
+<p>Iago can generate service requests that travel the net in different ways and are in different formats. The code that does this is in a Transport, a class that extends <code>ParrotTransport</code>. Iago comes with several Transports already defined. When you configure your test, you will need to set some parameters; to understand which of those parameters are used and how they are used, you probably want to look at the source code for your test's Transport class.</p>
+
+<ul class="task-list">
+<li>HTTP: Use <a href="https://github.com/twitter/iago/blob/master/src/main/scala/com/twitter/parrot/server/FinagleTransport.scala">FinagleTransport</a>
+</li>
+<li>Thrift: Use <a href="https://github.com/twitter/iago/blob/master/src/main/scala/com/twitter/parrot/server/ThriftTransport.scala">ThriftTransport</a>
+</li>
+<li>Memcached: Use <a href="https://github.com/twitter/iago/blob/master/src/main/scala/com/twitter/parrot/server/MemcacheTransport.scala">MemcacheTransport</a>
+</li>
+<li>Kestrel: Use <a href="https://github.com/twitter/iago/blob/master/src/main/scala/com/twitter/parrot/server/KestrelTransport.scala">KestrelTransport</a>
+</li>
+<li>UDP: Use <a href="https://github.com/twitter/iago/blob/master/src/main/scala/com/twitter/parrot/server/ParrotUdpTransport.scala">ParrotUdpTransport</a>
+</li>
+</ul><p>Your service is typically an HTTP or Thrift service written in either Scala or Java.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Transaction%20Requirements" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-transaction-requirements" class="anchor" href="#transaction-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transaction Requirements</h3>
+
+<p>For replay, Iago recommends you scrub your logs to only include requests which meet the following requirements:</p>
+
+<ul class="task-list">
+<li>
+<strong>Idempotent</strong>, meaning that re-execution of a transaction any number of times yields the same result as the initial execution.</li>
+<li>
+<strong>Commutative</strong>, meaning that transaction order is not important. Although transactions are initiated in replay order, Iago's internal behavior may change the actual execution order to guarantee the transaction rate. Also, transactions that implement <code>Future</code> responses are executed asynchronously. You can achieve ordering, if required, by using Iago as a library and initiating new requests in response to previous ones. Examples of this are available.</li>
+</ul><p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Sources%20of%20Transactions" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-sources-of-transactions" class="anchor" href="#sources-of-transactions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sources of Transactions</h3>
+
+<p>Transactions typically come from logs, such as the following:</p>
+
+<ul class="task-list">
+<li>Web server logs capture HTTP transactions.</li>
+<li>Proxy server logs can capture transactions coming through a server. You can place a proxy server in your stack to capture either HTTP or Thrift transactions.</li>
+<li>Network sniffers can capture transactions as they come across a physical wire. You can program the sniffer to create a log of transactions you identify for capture.</li>
+</ul><p>In some cases, transactions do not exist. For example, transactions for your service may not yet exist because they are part of a new service, or you are obligated not to use transactions that contain sensitive information. In such cases, you can provide <em>synthetic</em> transactions, which are transactions that you create to model the operating environment for your service. When you create synthetic transactions, you must statistically distribute your transactions to match the distribution you expect when your service goes live.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Iago%20Architecture%20Overview" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-iago-architecture-overview" class="anchor" href="#iago-architecture-overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Iago Architecture Overview</h2>
+
+<p>Iago consists of <em>feeders</em> and <em>servers</em>. A <em>feeder</em> reads your transaction source. A <em>server</em> formats and delivers requests to the service you want to test. The feeder contains a <code>Poller</code> object, which is responsible for guaranteeing <em>cachedSeconds</em> worth of transactions in the pipeline to the Iago servers.</p>
+
+<p>Metrics are available in logs and in  graphs as described in <a href="#metrics">Metrics</a>.</p>
+
+<p>The Iago servers generate requests to your service. Together, all Iago servers generate the specified number of requests per minute. A Iago server's <code>RecordProcessor</code> object executes your service and maps the transaction to the format required by your service.</p>
+
+<p>The feeder polls its servers to see how much data they need to maintain <em>cachedSeconds</em> worth of data. That is how we can have many feeders that need not coordinate with each other.</p>
+
+<p>Ensuring that we go through every last message is important when we are writing traffic summaries in the record processor, especially when the data set is small. The parrot feeder shuts down due to running out of time, running out of data, or both. When the feeder runs out of data we</p>
+
+<ul class="task-list">
+<li>make sure that all the data in parrot feeder's internal queues are sent to the parrot server</li>
+<li>make sure all the data held in the parrot servers cache is sent</li>
+<li>wait until we get a response for all pending messages or until the reads time out</li>
+</ul><p>When the parrot feeder runs out of time (the duration configuration) the data in the feeder's internal queues are ignored, otherwise the same process as above occurs.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Implementing%20Your%20Test" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-implementing-your-test" class="anchor" href="#implementing-your-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Implementing Your Test</h2>
+
+<p>The following sections show examples of implementing your test in both Scala and Java. See <a href="#Code%20Annotations%20for%20the%20Examples">Code Annotations for the Examples</a> for information about either example.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Scala%20Example" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-scala-example" class="anchor" href="#scala-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scala Example</h3>
+
+<p>To implement a load test in Scala, you must extend the Iago server's <code>RecordProcessor</code> class to specify how to map transactions into the requests that the Iago server delivers to your service. The following example shows a <code>RecordProcessor</code> subclass that implements a load test on an <code>EchoService</code> HTTP service:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">com.twitter.example</span>
+
+<span class="k">import</span> <span class="nn">org.apache.thrift.protocol.TBinaryProtocol</span>
+
+<span class="k">import</span> <span class="nn">com.twitter.parrot.processor.RecordProcessor</span>                                     <span class="c1">// 1</span>
+<span class="k">import</span> <span class="nn">com.twitter.parrot.thrift.ParrotJob</span>                                              <span class="c1">// 2</span>
+<span class="k">import</span> <span class="nn">com.twitter.parrot.server.</span><span class="o">{</span><span class="nc">ParrotRequest</span><span class="o">,</span><span class="nc">ParrotService</span><span class="o">}</span>                          <span class="c1">// 3</span>
+<span class="k">import</span> <span class="nn">com.twitter.logging.Logger</span>
+<span class="k">import</span> <span class="nn">org.jboss.netty.handler.codec.http.HttpResponse</span>
+
+<span class="k">import</span> <span class="nn">thrift.EchoService</span>
+
+<span class="k">class</span> <span class="nc">EchoLoadTest</span><span class="o">(</span><span class="n">parrotService</span><span class="k">:</span> <span class="kt">ParrotService</span><span class="o">[</span><span class="kt">ParrotRequest</span>, <span class="kt">HttpResponse</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">RecordProcessor</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">client</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">EchoService</span><span class="o">.</span><span class="nc">ServiceToClient</span><span class="o">(</span><span class="n">service</span><span class="o">,</span> <span class="k">new</span> <span class="nc">TBinaryProtocol</span><span class="o">.</span><span class="nc">Factory</span><span class="o">())</span>  <span class="c1">// 4</span>
+  <span class="k">val</span> <span class="n">log</span> <span class="k">=</span> <span class="nc">Logger</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">getClass</span><span class="o">)</span>
+
+  <span class="k">def</span> <span class="n">processLines</span><span class="o">(</span><span class="n">job</span><span class="k">:</span> <span class="kt">ParrotJob</span><span class="o">,</span> <span class="n">lines</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">{</span>                                <span class="c1">// 5</span>
+    <span class="n">lines</span> <span class="n">map</span> <span class="o">{</span> <span class="n">line</span> <span class="k">=&gt;</span>
+      <span class="n">client</span><span class="o">.</span><span class="n">echo</span><span class="o">(</span><span class="n">line</span><span class="o">)</span> <span class="n">respond</span> <span class="o">{</span> <span class="n">rep</span> <span class="k">=&gt;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">rep</span> <span class="o">==</span> <span class="s">"hello"</span><span class="o">)</span> <span class="o">{</span>
+          <span class="n">client</span><span class="o">.</span><span class="n">echo</span><span class="o">(</span><span class="s">"IT'S TALKING TO US"</span><span class="o">)</span>                                             <span class="c1">// 6</span>
+        <span class="o">}</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="o">(</span><span class="s">"response: "</span> <span class="o">+</span> <span class="n">rep</span><span class="o">)</span>                                                    <span class="c1">// 7</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Scala%20Thrift%20Example" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-scala-thrift-example" class="anchor" href="#scala-thrift-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scala Thrift Example</h3>
+
+<p>To implement a Thrift load test in Scala, you must extend the Iago server's <code>Thrift RecordProcessor</code> class to specify how to map transactions into the requests that the Iago server delivers to your service. The following example shows a <code>ThriftRecordProcessor</code> subclass that implements a load test on an <code>EchoService</code> Thrift service:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">package</span> <span class="nn">com.twitter.example</span>
+
+<span class="k">import</span> <span class="nn">org.apache.thrift.protocol.TBinaryProtocol</span>
+
+<span class="k">import</span> <span class="nn">com.twitter.parrot.processor.ThriftRecordProcessor</span>                               <span class="c1">// 1</span>
+<span class="k">import</span> <span class="nn">com.twitter.parrot.thrift.ParrotJob</span>                                              <span class="c1">// 2</span>
+<span class="k">import</span> <span class="nn">com.twitter.parrot.server.</span><span class="o">{</span><span class="nc">ParrotRequest</span><span class="o">,</span><span class="nc">ParrotService</span><span class="o">}</span>                          <span class="c1">// 3</span>
+<span class="k">import</span> <span class="nn">com.twitter.logging.Logger</span>
+
+<span class="k">import</span> <span class="nn">thrift.EchoService</span>
+
+<span class="k">class</span> <span class="nc">EchoLoadTest</span><span class="o">(</span><span class="n">parrotService</span><span class="k">:</span> <span class="kt">ParrotService</span><span class="o">[</span><span class="kt">ParrotRequest</span>, <span class="kt">Array</span><span class="o">[</span><span class="kt">Byte</span><span class="o">]])</span> <span class="k">extends</span> <span class="nc">ThriftRecordProcessor</span><span class="o">(</span><span class="n">parrotService</span><span class="o">)</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">client</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">EchoService</span><span class="o">.</span><span class="nc">ServiceToClient</span><span class="o">(</span><span class="n">service</span><span class="o">,</span> <span class="k">new</span> <span class="nc">TBinaryProtocol</span><span class="o">.</span><span class="nc">Factory</span><span class="o">())</span>  <span class="c1">// 4</span>
+  <span class="k">val</span> <span class="n">log</span> <span class="k">=</span> <span class="nc">Logger</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">getClass</span><span class="o">)</span>
+
+  <span class="k">def</span> <span class="n">processLines</span><span class="o">(</span><span class="n">job</span><span class="k">:</span> <span class="kt">ParrotJob</span><span class="o">,</span> <span class="n">lines</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">{</span>                                <span class="c1">// 5</span>
+    <span class="n">lines</span> <span class="n">map</span> <span class="o">{</span> <span class="n">line</span> <span class="k">=&gt;</span>
+      <span class="n">client</span><span class="o">.</span><span class="n">echo</span><span class="o">(</span><span class="n">line</span><span class="o">)</span> <span class="n">respond</span> <span class="o">{</span> <span class="n">rep</span> <span class="k">=&gt;</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">rep</span> <span class="o">==</span> <span class="s">"hello"</span><span class="o">)</span> <span class="o">{</span>
+          <span class="n">client</span><span class="o">.</span><span class="n">echo</span><span class="o">(</span><span class="s">"IT'S TALKING TO US"</span><span class="o">)</span>                                             <span class="c1">// 6</span>
+        <span class="o">}</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="o">(</span><span class="s">"response: "</span> <span class="o">+</span> <span class="n">rep</span><span class="o">)</span>                                                    <span class="c1">// 7</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Java%20Example" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-java-example" class="anchor" href="#java-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Java Example</h3>
+
+<p>To implement a load test in Java, you must extend the Iago server's <code>LoadTest</code> class to specify how to map transactions into the requests that the Iago server delivers to your service. The <code>LoadTest</code> class provides Java-friendly type mappings for the underlying Scala internals. The following example shows a <code>LoadTest</code> subclass that implements a load test on an <code>EchoService</code> HTTP service:    </p>
+
+<div class="highlight highlight-java"><pre><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">twitter</span><span class="o">.</span><span class="na">jexample</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">com.twitter.example.thrift.EchoService</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.processor.LoadTest</span><span class="o">;</span>                                           <span class="c1">// 1</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.thrift.ParrotJob</span><span class="o">;</span>                                             <span class="c1">// 2</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.server.ParrotRequest</span><span class="o">;</span>                                         <span class="c1">// 3</span>
+
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.server.ParrotService</span><span class="o">;</span>                                         <span class="c1">// 3</span>
+<span class="kn">import</span> <span class="nn">com.twitter.util.Future</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.twitter.util.FutureEventListener</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.apache.thrift.protocol.TBinaryProtocol</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.jboss.netty.handler.codec.http.HttpResponse</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">java.util.List</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">EchoLoadTest</span> <span class="kd">extends</span> <span class="n">LoadTest</span> <span class="o">{</span>
+  <span class="n">EchoService</span><span class="o">.</span><span class="na">ServiceToClient</span> <span class="n">client</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="nf">EchoLoadTest</span><span class="o">(</span><span class="n">ParrotService</span><span class="o">&lt;</span><span class="n">ParrotRequest</span><span class="o">,</span> <span class="n">HttpResponse</span><span class="o">&gt;</span> <span class="n">parrotService</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kd">super</span><span class="o">(</span><span class="n">parrotService</span><span class="o">);</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">new</span> <span class="n">EchoService</span><span class="o">.</span><span class="na">ServiceToClient</span><span class="o">(</span><span class="n">service</span><span class="o">(),</span> <span class="k">new</span> <span class="n">TBinaryProtocol</span><span class="o">.</span><span class="na">Factory</span><span class="o">());</span> <span class="c1">// 4</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">processLines</span><span class="o">(</span><span class="n">ParrotJob</span> <span class="n">job</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">lines</span><span class="o">)</span> <span class="o">{</span>                         <span class="c1">// 5</span>
+    <span class="k">for</span><span class="o">(</span><span class="n">String</span> <span class="nl">line:</span> <span class="n">lines</span><span class="o">)</span> <span class="o">{</span>
+      <span class="n">Future</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">future</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="na">echo</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
+      <span class="n">future</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span><span class="k">new</span> <span class="n">FutureEventListener</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;()</span> <span class="o">{</span>
+        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onSuccess</span><span class="o">(</span><span class="n">String</span> <span class="n">msg</span><span class="o">)</span> <span class="o">{</span>
+          <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"response: "</span> <span class="o">+</span> <span class="n">msg</span><span class="o">);</span>
+        <span class="o">}</span>
+
+      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onFailure</span><span class="o">(</span><span class="n">Throwable</span> <span class="n">cause</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"Error: "</span> <span class="o">+</span> <span class="n">cause</span><span class="o">);</span>
+      <span class="o">}</span>
+     <span class="o">});</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Java%20Example" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-java-thrift-example" class="anchor" href="#java-thrift-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Java Thrift Example</h3>
+
+<p>To implement a Thrift load test in Java, you must extend the Iago server's <code>ThriftLoadTest</code> class to specify how to map transactions into the requests that the Iago server delivers to your service. The <code>ThriftLoadTest</code> class provides Java-friendly type mappings for the underlying Scala internals. The following example shows a <code>ThriftLoadTest</code> subclass that implements a load test on an <code>EchoService</code> Thrift service:    </p>
+
+<div class="highlight highlight-java"><pre><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">twitter</span><span class="o">.</span><span class="na">jexample</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">com.twitter.example.thrift.EchoService</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.processor.ThriftLoadTest</span><span class="o">;</span>                                     <span class="c1">// 1</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.thrift.ParrotJob</span><span class="o">;</span>                                             <span class="c1">// 2</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.server.ParrotRequest</span><span class="o">;</span>                                         <span class="c1">// 3</span>
+<span class="kn">import</span> <span class="nn">com.twitter.parrot.server.ParrotService</span><span class="o">;</span>                                         <span class="c1">// 3</span>
+<span class="kn">import</span> <span class="nn">com.twitter.util.Future</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">com.twitter.util.FutureEventListener</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.apache.thrift.protocol.TBinaryProtocol</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">java.util.List</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">EchoLoadTest</span> <span class="kd">extends</span> <span class="n">ThriftLoadTest</span> <span class="o">{</span>
+  <span class="n">EchoService</span><span class="o">.</span><span class="na">ServiceToClient</span> <span class="n">client</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+
+  <span class="kd">public</span> <span class="nf">EchoLoadTest</span><span class="o">(</span><span class="n">ParrotService</span><span class="o">&lt;</span><span class="n">ParrotRequest</span><span class="o">,</span> <span class="kt">byte</span><span class="o">[]&gt;</span> <span class="n">parrotService</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kd">super</span><span class="o">(</span><span class="n">parrotService</span><span class="o">);</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="k">new</span> <span class="n">EchoService</span><span class="o">.</span><span class="na">ServiceToClient</span><span class="o">(</span><span class="n">service</span><span class="o">(),</span> <span class="k">new</span> <span class="n">TBinaryProtocol</span><span class="o">.</span><span class="na">Factory</span><span class="o">());</span> <span class="c1">// 4</span>
+  <span class="o">}</span>
+
+  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">processLines</span><span class="o">(</span><span class="n">ParrotJob</span> <span class="n">job</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">lines</span><span class="o">)</span> <span class="o">{</span>                         <span class="c1">// 5</span>
+    <span class="k">for</span><span class="o">(</span><span class="n">String</span> <span class="nl">line:</span> <span class="n">lines</span><span class="o">)</span> <span class="o">{</span>
+      <span class="n">Future</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">future</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="na">echo</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
+      <span class="n">future</span><span class="o">.</span><span class="na">addEventListener</span><span class="o">(</span><span class="k">new</span> <span class="n">FutureEventListener</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;()</span> <span class="o">{</span>
+        <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onSuccess</span><span class="o">(</span><span class="n">String</span> <span class="n">msg</span><span class="o">)</span> <span class="o">{</span>
+          <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"response: "</span> <span class="o">+</span> <span class="n">msg</span><span class="o">);</span>
+        <span class="o">}</span>
+
+      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onFailure</span><span class="o">(</span><span class="n">Throwable</span> <span class="n">cause</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"Error: "</span> <span class="o">+</span> <span class="n">cause</span><span class="o">);</span>
+      <span class="o">}</span>
+     <span class="o">});</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Code%20Annotations%20for%20the%20Examples" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-code-annotations-for-the-examples" class="anchor" href="#code-annotations-for-the-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code Annotations for the Examples</h3>
+
+<p>You define your Iago subclass to execute your service and map transactions to requests for your service:</p>
+
+<ol class="task-list">
+<li>Import <code>com.twitter.parrot.processor.RecordProcessor</code> (Scala) or <code>LoadTest</code> (Java), whose instance will be executed by a Iago server.</li>
+<li>Import <code>com.twitter.parrot.thrift.ParrotJob</code>, which contains the Iago server class.</li>
+<li>Import <code>com.twitter.parrot.server.ParrotService</code> and <code>com.twitter.parrot.server.ParrotRequest</code>
+</li>
+<li>Create an instance of your service to be placed under test. Your service is a client of the Iago service.</li>
+<li>Define a <code>processLines</code> method to format the request and and execute your service.</li>
+<li>Optionally, you can initiate a new request based on the response to a previous one.</li>
+<li>Optionally, do something with the response. In this example, the response is logged.</li>
+</ol><p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Configuring%20Your%20Test" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-configuring-your-test" class="anchor" href="#configuring-your-test" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring Your Test</h2>
+
+<p>To configure your test, create a <code>launcher.scala</code> file that that creates a <code>ParrotLauncherConfig</code> instance with the configuration parameters you want to set.</p>
+
+<p>There are several parameters to set. A good one to <a href="#Supported%20Services">figure out early is <code>transport</code></a>; that will in turn help you to find out what, e.g., <code>responseType</code> you need.</p>
+
+<p>The following example shows parameters for testing a Thrift service:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">com.twitter.parrot.config.ParrotLauncherConfig</span>
+
+<span class="k">new</span> <span class="nc">ParrotLauncherConfig</span> <span class="o">{</span>
+  <span class="n">distDir</span> <span class="k">=</span> <span class="s">"."</span>
+  <span class="n">jobName</span> <span class="k">=</span> <span class="s">"load_echo"</span>
+  <span class="n">port</span> <span class="k">=</span> <span class="mi">8080</span>
+  <span class="n">victims</span> <span class="k">=</span> <span class="s">"localhost"</span>
+  <span class="n">log</span> <span class="k">=</span> <span class="s">"logs/yesterday.log"</span>
+  <span class="n">requestRate</span> <span class="k">=</span> <span class="mi">1</span>
+  <span class="n">numInstances</span> <span class="k">=</span> <span class="mi">1</span>
+  <span class="n">duration</span> <span class="k">=</span> <span class="mi">5</span>
+  <span class="n">timeUnit</span> <span class="k">=</span> <span class="s">"MINUTES"</span> <span class="c1">// affects duration; does not affect requestRate</span>
+
+  <span class="n">imports</span> <span class="k">=</span> <span class="s">"import com.twitter.example.EchoLoadTest"</span>
+  <span class="n">responseType</span> <span class="k">=</span> <span class="s">"Array[Byte]"</span>
+  <span class="n">transport</span> <span class="k">=</span> <span class="s">"ThriftTransportFactory(this)"</span>
+  <span class="n">loadTest</span> <span class="k">=</span> <span class="s">"new EchoLoadTest(service.get)"</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><strong>Note:</strong> For a sample configuration file, see <code>config/launcher.scala</code> within the Iago distribution.</p>
+
+<p>You can specify any of the following parameters:</p>
+
+<table border="1" cellpadding="1">
+<thead><tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Required or<br>Default Value</th>
+</tr></thead>
+<tr>
+<td><code>createDistribution</code></td>
+    <td>
+<p>You can use this field to create your own distribution rate, instead of having a constant flow. You will need to create a subclass of RequestDistribution and import it.</p>
+    <p><b>Example: </b></p>
+<pre>createDistribution = """createDistribution = {
+  rate =&gt; new MyDistribution(rate)
+}"""</pre>
+</td>
+    <td><i>""</i></td>
+</tr>
+<tr>
+<td><code>customLogSource</code></td> <td>
+<p>A string with Scala code that will be put into the
+    Feeder config. You can use this to get Iago to read in compressed files. Iago can read LZO
+    compressed files using its built-in LzoFileLogSource.</p>
+    <p><b>Example:</b></p>
+<pre>customLogSource = """
+  if(inputLog.endsWith(".lzo")) {
+    logSource = Some(new com.twitter.parrot.feeder.LzoFileLogSource(inputLog))
+  }"""
+    </pre>
+</td> <td><i>""</i></td>
+    </tr>
+<tr>
+<td><code>distDir</code></td>
+    <td>
+<p>The subdirectory of your project you're running from, if any.</p>
+    <p><b>Example: </b><code>distDir = "target"</code></p>
+</td>
+    <td><i>"."</i></td>
+</tr>
+<tr>
+<td><code>doConfirm</code></td>
+    <td>
+<p>If set to false, you will not be asked to confirm the run.</p>
+    <p><b>Example: </b><code>doConfirm = false</code></p>
+</td>
+    <td><i>true</i></td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+    <td>
+<p>An integer value that specifies the time to run the test in <code>timeUnit</code> units.</p>
+    <p><b>Example: </b><code>duration = 5</code></p>
+</td>
+    <td><code> </code></td>
+</tr>
+<tr>
+<td><code>feederXmx</code></td>
+    <td>
+<p>Defines feeder heap size. Suggested not to be higher than 4 GB (will cause issues scheduling)</p>
+    <p><b>Example: </b><code>feederXmx = 2048</code></p>
+</td>
+    <td><i>1744</i></td>
+</tr>
+<tr>
+<td><code>header</code></td>
+    <td>
+<p>A string value that specifies the HTTP Host header.</p>
+    <p><b>Example: </b><code>header = "api.yourdomain.com"</code></p>
+</td>
+    <td><code>""</code></td>
+</tr>
+<tr>
+<td><code>hostConnectionCoresize</code></td>
+    <td>
+<p>Number of connections per host that will be kept open, once established, until they hit max idle time or max lifetime</p>
+    <p><b>Example: </b><code>hostConnectionCoresize = 1</code></p>
+</td>
+    <td><i>1</i></td>
+</tr>
+<tr>
+<td><code>hostConnectionIdleTimeInMs</code></td>
+    <td>
+<p>For any connection &gt; coreSize, maximum amount of time, in milliseconds, between requests we allow before shutting down the connection</p>
+    <p><b>Example: </b><code>hostConnectionIdleTimeInMs = 50000</code></p>
+</td>
+    <td><i>60000</i></td>
+</tr>
+<tr>
+<td><code>hostConnectionLimit</code></td>
+    <td>
+<p>Limit on the number of connections per host</p>
+    <p><b>Example: </b><code>hostConnectionLimit = 4</code></p>
+</td>
+    <td><i>Integer.MAX_VALUE</i></td>
+</tr>
+<tr>
+<td><code>hostConnectionMaxIdleTimeInMs</code></td>
+    <td>
+<p>The maximum time in milliseconds that any connection (including within core size) can stay idle before shutdown</p>
+    <p><b>Example: </b><code>hostConnectionMaxIdleTimeInMs = 500000</code></p>
+</td>
+    <td><i>300000</i></td>
+</tr>
+<tr>
+<td><code>hostConnectionMaxLifeTimeInMs</code></td>
+    <td>
+<p>The maximum time in milliseconds that a connection will be kept open</p>
+    <p><b>Example: </b><code>hostConnectionMaxLifeTimeInMs = 10000</code></p>
+</td>
+    <td><i>Integer.MAX_VALUE</i></td>
+</tr>
+<tr>
+<td><code>jobName</code></td>
+  <td>
+<p>A string value that specifies the the name of your test. This is used for two things:
+      </p>
+<ol class="task-list">
+<li>if the parrot feeder is configured to find its servers using zookeeper, and/or </li>
+    <li>when using mesos it is part of the job names generated. A job name of "foo" results in mesos job sharding groups "parrot_server_foo" and "parrot_feeder_foo".</li>
+      </ol>
+<p><b>Example: </b><code>jobName = "testing_tasty_new_feature"</code></p>
+</td>
+    <td><b>Required</b></td>
+</tr>
+<tr>
+<td><code>localMode</code></td>
+    <td>
+<p>Should Iago attempt to run locally or to use the cluster via mesos?</p>
+    <p><b>Example: </b><code>localMode = true</code></p>
+</td>
+    <td><i>false</i></td>
+</tr>
+<tr>
+<td><code>log</code></td>
+    <td>
+<p>A string value that specifies the complete path to the log you want Iago to replay. If localMode=true then the log should be on your local file system. The log should have at least 1000 items or you should change the <code>reuseFile</code> parameter.</p>
+    <p><b>Example: </b><code>log = "logs/yesterday.log"</code></p>
+    <p></p>
+<p>If localMode=false (the default), then the parrot launcher will copy your log file when attempts to make a package for mesos. You can avoid this, and should, by storing your log file in HDFS.</p>
+<p><b>Example: </b><code>log = "hdfs://hadoop-example.com/yesterday.log"</code></p>
+</td>
+    <td><b>Required</b></td>
+    <td><b>Required</b></td>
+</tr>
+<tr>
+<td><code>loggers</code></td>
+    <td>
+<p>A List of LoggerFactories; allows you to define the type and level of logging you want</p>
+    <p><b>Example:</b></p>
+<pre>import com.twitter.logging.LoggerFactory
+import com.twitter.logging.config._
+
+new ParrotLauncherConfig {
+  ...
+  loggers = new LoggerFactory(
+    level = Level.DEBUG,
+    handlers = new ConsoleHandlerConfig()
+  )
+} </pre>
+</td>
+    <td><i>Nil</i></td>
+</tr>
+<tr>
+<td><code>maxRequests</code></td>
+    <td>
+<p>An integer value that specifies the total number of requests to submit to your service.</p>
+    <p><b>Example: </b><code>maxRequests = 10000</code></p>
+</td>
+    <td><code>1000</code></td>
+</tr>
+<tr>
+<td><code>requestRate</code></td>
+    <td>
+<p>An integer value that specifies the number of requests per second to submit to your service.</p>
+    <p><b>Example: </b><code>requestRate = 10</code></p>
+    <p>Note: if using multiple server instances, requestRate is per-instance, not aggregate.</p>
+</td>
+    <td><code>1</code></td>
+</tr>
+<tr>
+<td><code>reuseFile</code></td>
+    <td>
+<p>A boolean value that specifies whether or not to stop the test when the input log has been read through. Setting this value to true will result in Iago starting back at the beginning of the log when it exhausts the contents. If this is true, your log file should at least be 1,000 lines or more.</p>
+    <p><b>Example: </b><code>reuseFile = false</code></p>
+</td>
+    <td><code>true</code></td>
+</tr>
+<tr>
+<td><code>scheme</code></td>
+    <td>
+<p>A string value that specifies the scheme portion of a URI.</p>
+    <p><b>Example: </b><code>scheme = "http"</code></p>
+</td>
+    <td><code>http</code></td>
+</tr>
+<tr>
+<td><code>serverXmx</code></td>
+    <td>
+<p>Defines server heap size. Suggested not to be higher than 8 GB (will cause issues scheduling)</p>
+    <p><b>Example: </b><code>serverXmx = 5000</code></p>
+</td>
+    <td><i>4000</i></td>
+</tr>
+<tr>
+<td><code>requestTimeoutInMs</code></td>
+  <td>
+    <p>(From the Finagle Documentation) The request timeout is the time given to a *single* request (if there are retries, they each get a fresh request timeout). The timeout is applied only after a connection has been acquired. That is: it is applied to the interval between the dispatch of the request and the receipt of the response.</p>
+    <p>Note that parrot servers will not shut down until every response from every victim has come in. If you've modified your record processor to write test summaries this can be an issue.</p>
+    <p><b>Example: </b><code>requestTimeoutInMs = 3000 // if the victim doesn't respond in three seconds, stop waiting</code></p>
+  </td>
+  <td><code>30000 // 30 seconds</code></td>
+</tr>
+<tr>
+<td><code>reuseConnections</code></td>
+    <td>
+<p>A boolean value that specifies whether connections to your service's hosts can be reused. A value of <code>true</code> enables reuse. Setting this to false greatly increases your use of ephemeral ports and can result in port exhaustion, causing you to achieve a lower rate than requested</p>
+      <p>This is only implemented for FinagleTransport.</p>
+    <p><b>Example: </b><code>reuseConnections = false</code></p>
+</td>
+    <td><code>true</code></td>
+</tr>
+<tr>
+<td><code>thriftClientId</code></td>
+    <td>
+<p>If you are making Thrift requests, your clientId</p>
+    <p><b>Example: </b><code>thriftClientId = "projectname.staging"</code></p>
+</td>
+    <td><i>""</i></td>
+</tr>
+<tr>
+<td><code>timeUnit</code></td>
+    <td>
+<p>A string value that specifies time unit of the <code>duration</code>. It contains one of the following values:
+        </p>
+<ul class="task-list">
+<li> "MINUTES"
+            </li>
+<li> "HOURS"
+            </li>
+<li> "DAYS"
+        </li>
+</ul>
+<p><b>Example: </b><code>timeUnit = "MINUTES"</code></p>
+</td>
+    <td><code> </code></td>
+</tr>
+<tr>
+<td><code>traceLevel</code></td>
+    <td>
+<p>A <code>com.twitter.logging.Level</code> subclass. Controls the level of "debug logging" for servers and feeders.</p>
+    <p><b>Example:</b>
+</p>
+<pre>traceLevel = com.twitter.logging.Level.TRACE</pre>
+</td>
+    <td><code>Level.INFO</code></td>
+</tr>
+<tr>
+<td><code>verboseCmd</code></td>
+    <td>
+<p>A boolean value that specifies the level of feedback from Iago. A value of <code>true</code> specifies maximum feedback.</p>
+    <p><b>Example: </b><code>verboseCmd = true</code></p>
+</td>
+    <td><code>false</code></td>
+</tr>
+</table><p><a name="user-content-Specifying_Victims" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-specifying-victims" class="anchor" href="#specifying-victims" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Specifying Victims]</h4>
+
+<p>The point of Iago is to load-test a service. Iago calls these "victims".</p>
+
+<p>Victims may be a</p>
+
+<ol class="task-list">
+<li>single host:port pair</li>
+<li>list of host:port pairs</li>
+<li>a zookeeper serverset</li>
+</ol><p>Note that ParrotUdpTransport can only handle a single host:port pair. The other transports that come with Iago, being Finagle based, do not have this limitation.</p>
+
+<table border="1" cellpadding="6">
+<thead><tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Required or<br>Default Value</th>
+</tr></thead>
+<tr>
+  <td><code>victims</code></td>
+  <td>
+<p>A list of host:port pairs:</p>
+  <code>victims="example.com:80 example2.com:80"</code>
+  <p></p>
+<p>A zookeeper server set:</p>
+  <code>victims="/some/zookeeper/path"</code>
+  </td>
+  <td><b>Required</b></td>
+</tr>
+<tr>
+<td><code>port</code></td>
+    <td>
+<p>An integer value that specifies the port on which to deliver requests to the <code>victims</code>.</p>
+    <p>The port is used for two things: to provide a port if none were specified in victims, and to provide a port for the host header using a FinagleTransport.</p>
+    <p><b>Example: </b><code>port = 9000</code></p>
+</td>
+    <td><b>Required</b></td>
+</tr>
+<tr>
+<td><code>victimClusterType</code></td>
+  <td>
+  <p>When victimClusterType is "static", we set victims and port. victims can be a single host name, a host:port pair, or a list of host:port pairs separated with commas or spaces.</p>
+  <p>When victimClusterType is "sdzk" (which stands for "service discovery zookeeper") the victim is considered to be a server set, referenced with victims, victimZk, and victimZkPort.</p>
+</td>
+<td>Default: <code>"static"</code>
+</td>
+</tr>
+<tr>
+<td><code>victimZk</code></td>
+<td><p>the host name of the zookeeper where your serverset is registered</p></td>
+<td><p>Default is <code>"sdzookeeper.local.twitter.com"</code></p></td>
+</tr>
+<tr>
+<td><code>victimZkPort</code></td>
+  <td><p>The port of the zookeeper where your serverset is registered</p></td>
+  <td><p>Default: <code>2181</code></p></td>
+</tr>
+</table><p><a name="user-content-extension_point_parameters" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-extension-point-parameters" class="anchor" href="#extension-point-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Extension Point Parameters]</h4>
+
+<p><strong>Alternative Use:</strong> You can specify the following <em>extension point</em> parameters to configure projects in which Iago is used as both a feeder and server. The Iago feeder provides the log lines to your project, which uses these log lines to form requests that the Iago server then handles:</p>
+
+<table border="1" cellpadding="6">
+<thead><tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Required or<br>Default Value</th>
+</tr></thead>
+<tr>
+<td><code>imports</code></td>
+    <td>
+<p>Imports from this project to Iago</p>
+    <p><b>Example: </b>If <code>ProjectX</code> includes Iago as a dependency, you would specify: <br><code>import org.jboss.netty.handler.codec.http.HttpResponse <br>
+    import com.twitter.<i>projectX</i>.util.ProcessorClass</code></p>
+</td>
+    <td><code>import org.jboss.netty.handler.codec.http.HttpResponse<br>
+    import com.twitter.parrot.util.LoadTestStub</code></td>
+</tr>
+<tr>
+<td><code>requestType</code></td>
+    <td>
+<p>The request type of requests from Iago.</p>
+    <p><b>Examples:</b>
+        </p>
+<ul class="task-list"><li> <code>ParrotRequest</code> for most services (including HTTP and Thrift)
+        </li></ul>
+</td>
+    <td><code>ParrotRequest</code></td>
+</tr>
+<tr>
+<td><code>responseType</code></td>
+    <td>
+<p>The response type of responses from Iago.</p>
+    <p><b>Examples:</b>
+        </p>
+<ul class="task-list">
+<li> <code>HttpResponse</code> for an HTTP service
+            </li>
+<li> <code>Array[Byte]</code> for a Thrift service
+        </li>
+</ul>
+</td>
+    <td><code>HttpResponse</code></td>
+</tr>
+<tr>
+<td><code>transport</code></td>
+  <td>
+    <p>The kind of transport to the server, which matches the <code>responseType</code> you want.</p>
+    <p><b>Example:</b><code>transport = "ThriftTransportFactory(this)"</code></p>
+    <p>The Thrift Transport will send your request and give back <code>Future[Array[Byte]]</code>.</p>
+  </td>
+  <td><code>FinagleTransport</code></td>
+</tr>
+<tr>
+<td><code>loadTest</code></td>
+    <td>
+<p>Your processor for the Iago feeder's lines, which converts the lines into requests and sends them to the Iago server.</p>
+    <p><b>Example: </b><code>new LoadTestStub(service.get)</code></p>
+</td>
+    <td><code>new LoadTestStub(service.get)</code></td>
+</tr>
+</table><p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-sending_large_messages" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-sending-large-messages" class="anchor" href="#sending-large-messages" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Sending Large Messages]</h4>
+
+<p>By default, the parrot feeder sends a thousand messages at a time to each connected parrot server until the parrot server has twenty seconds worth of data. This is a good strategy when messages are small (less than a kilobyte). When messages are large, the parrot server will run out of memory. Consider an average message size of 100k, then the feeder will be maintaining an output queue for each connected parrot server of 100 million bytes. For the parrot server, consider a request rate of 2000, then 2000 * 20 * 100k = 4 gigabytes (at least). The following parameters help with large messages:</p>
+
+<table border="1" cellpadding="6">
+<thead><tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Required or<br>Default Value</th>
+</tr></thead>
+<tr>
+<td><code>batchSize</code></td>
+  <td>
+    <p>how many messages the parrot feeder sends at one time to the
+    parrot server. For large messages, setting this to 1 is
+    recommended.</p>
+</td>
+  <td>Default: <code>1000</code>
+</td>
+</tr>
+<tr>
+<td><code>cachedSeconds</code></td>
+<td><p>How many seconds worth of data the parrot server will attempt to cache. Setting this to 1 for large messages is recommended. The consequence is that, if the parrot feeder garbage-collects, there will be a corresponding pause in traffic to your service unless cachedSeconds is set to a value larger than a typical feeder gc. This author has never observed a feeder gc exceeding a fraction of a second.</p></td>
+<td><p>Default is <code>20</code></p></td>
+</tr>
+</table><p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-weighted_requests" aria-hidden="true"></a></p>
+
+<h4>
+<a name="user-content-weighted-requests" class="anchor" href="#weighted-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Weighted Requests]</h4>
+
+<p>Some applications must make bulk requests to their service. In other words, a single meta-request in the input log may result in several requests being satisfied by the victim. A weight field to ParrotRequest was added so that the RecordProcessor can set and use that weight to control the send rate in the RequestConsumer. For example, a request for 17 messages would be given a weight of 17 which would cause the RequestConsumer to sample the request distribution 17 times yielding a consistent distribution of load on the victim.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-metrics" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-metrics" class="anchor" href="#metrics" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Metrics]</h2>
+
+<p>Iago uses <a href="https://github.com/twitter/ostrich">Ostrich</a> to record its metrics. Iago is configured so that a simple graph server is available as long as the parrot server is running. If you are using localMode=true, then the default place for this is</p>
+
+<p>  <a href="http://localhost:9994/graph/">http://localhost:9994/graph/</a></p>
+
+<p>One metric of particular interest is</p>
+
+<p>  <a href="http://localhost:9994/graph/?g=metric:client/request_latency_ms">http://localhost:9994/graph/?g=metric:client/request_latency_ms</a></p>
+
+<p>Request latency is the time it takes to queue the request for sending until the response is received. See the <a href="http://twitter.github.io/finagle/guide/Metrics.html">Finagle User Guide</a> for more about the individual metrics.</p>
+
+<p>Other metrics of interest:</p>
+
+<table border="1" cellpadding="6">
+<thead><tr>
+<th>Statistic</th>
+<th>Description</th>
+</tr></thead>
+<tr>
+<td><code>connection_duration</code></td>
+    <td>duration of a connection from established to closed?</td>
+</tr>
+<tr>
+<td><code>connection_received_bytes</code></td>
+    <td>bytes received per connection</td>
+</tr>
+<tr>
+<td><code>connection_requests</code></td>
+    <td>Number of connection requests that your client did, ie. you can have a pool of 1 connection and the connection can be closed 3 times, so the "connection_requests" would be 4 (even if connections = 1)</td>
+</tr>
+<tr>
+<td><code>connection_sent_bytes</code></td>
+    <td>bytes send per connection</td>
+</tr>
+<tr>
+<td><code>connections</code></td>
+    <td>is the current number of connections between client and server</td>
+</tr>
+<tr>
+<td><code>handletime_us</code></td>
+    <td>time to process the response from the server (ie. execute all the chained map/flatMap)</td>
+</tr>
+<tr>
+<td><code>pending</code></td>
+    <td>Number of pending requests (ie. requests without responses)</td>
+</tr>
+<tr>
+<td><code>request_concurrency</code></td>
+    <td>is the current number of connections being processed by finagle</td>
+</tr>
+<tr>
+<td><code>request_latency_ms</code></td>
+    <td>the time of everything between request/response.</td>
+</tr>
+<tr>
+<td><code>request_queue_size</code></td>
+    <td>Number of requests waiting to be handled by the server</td>
+</tr>
+<tr></tr>
+</table><h3>
+<a name="user-content-raggiana" class="anchor" href="#raggiana" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Raggiana]</h3>
+
+<p>Raggiana is a simple standalone Finagle stats viewer.</p>
+
+<p>You can use Raggiana to view the stats log, <a href="#artifacts">parrot-server-stats.log</a>, generated by Iago.</p>
+
+<p>You can clone it from</p>
+
+<p><a href="https://github.com/twitter/raggiana">https://github.com/twitter/raggiana</a></p>
+
+<p>or, just use it directly at</p>
+
+<p><a href="http://twitter.github.io/raggiana">http://twitter.github.io/raggiana</a></p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-tracing" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-tracing" class="anchor" href="#tracing" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Tracing]</h2>
+
+<p>Parrot works with <a href="http://twitter.github.io/zipkin/">Zipkin</a>, a distributed tracing system.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-artifacts" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-what-files-are-created" class="anchor" href="#what-files-are-created" aria-hidden="true"><span class="octicon octicon-link"></span></a>[What Files Are Created?]</h2>
+
+<p>The Iago launcher creates the following files</p>
+
+<pre><code>config/target/parrot-feeder.scala
+config/target/parrot-server.scala
+scripts/common.sh
+scripts/parrot-feeder.sh
+scripts/parrot-server.sh
+</code></pre>
+
+<p>The Iago feeder creates</p>
+
+<pre><code>parrot-feeder.log
+gc-feeder.log
+</code></pre>
+
+<p>The Iago server creates</p>
+
+<pre><code>parrot-server.log
+parrot-server-stats.log
+gc-server.log 
+</code></pre>
+
+<p>The logs are rotated by size. Each individual log can be up to 100 megabytes before being rotated. There are 6 rotations maintained.</p>
+
+<p>The stats log, <code>parrot-server-stats.log</code>, is a minute-by-minute dump of all the statistics (or <a href="#metrics">Metrics</a>) maintained by the Iago server. Each entry is for the time period since
+the previous one. That is, all entries in <code>parrot-server-stats.log</code> need to be accumulated to match
+the final values reported by <a href="http://localhost:9994/stats.txt">http://localhost:9994/stats.txt</a>.</p>
+
+<p><a href="#Top">Top</a></p>
+
+<h2>
+<a name="user-content-using-iago-as-a-library" class="anchor" href="#using-iago-as-a-library" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Iago as a Library</h2>
+
+<p>While Iago provides everything you need to target your API with a large distributed loadtest with just a small log processor,
+it also exposes a library of classes for log processing, traffic replay, &amp; load generation. These can be used in your Iago configuration or incorporated in your application as a library.</p>
+
+<p>parrot/server:</p>
+
+<ul class="task-list">
+<li>ParrotRequest: Parrot's internal representation of a request</li>
+<li>ParrotTransport (FinagleTransport, KestrelTransport, MemcacheTransport, ParrotUdpTransport, ThriftTransport): Interchangeable transport layer for requests to be sent. Parrot contains transport implementations for the following protocols: HTTP (FinagleTransport), Kestrel, Memcache, raw UDP and Thrift.</li>
+<li>RequestConsumer: Queues ParrotRequests and sends them out on a ParrotTransport at a rate determined by RequestDistribution</li>
+<li>RequestQueue: A wrapper/control layer for RequestConsumer</li>
+<li>ParrotService (ParrotThriftService): Enqueues ParrotRequests to a RequestQueue. ParrotThriftService implements finagle's Service interface for use with finagle thrift clients.</li>
+</ul><p>parrot/util:</p>
+
+<ul class="task-list">
+<li>RequestDistribution: A function specifying the time to arrival of the next request, used to control the request rate. Instances include
+
+<ul class="task-list">
+<li>UniformDistribution: Sends requests at a uniform rate</li>
+<li>PoissonProcess: Sends requests at approximatly constant rate randomly varying using a poisson process. This is the default.</li>
+<li>SinusoidalPoissonProcess: Like PoissonProcess but varying the rate sinusoidally.</li>
+<li>SlowStartPoissonProcess: Same as PoissonProcess but starting with a gradual ramp from initial rate to final rate. It will then hold steady at the final rate until time runs out.</li>
+<li>InfiniteRampPoissonProcess: a two staged ramped distribution. Ideal for services that need a warm-up period before ramping up. The rate continues to increase until time runs out.</li>
+</ul>
+</li>
+</ul><p>You may also find the LogSource and RequestProcessor interfaces discussed earlier useful.</p>
+
+<p>Examples:</p>
+
+<pre>
+// Make 1000 HTTP requests at a roughly constant rate of 10/sec
+
+// construct the transport and queue
+val client =
+  ClientBuilder()
+    .codec(http())
+    .hosts("twitter.com:80")
+    .build()
+val transport = new FinagleTransport(FinagleService(client))
+val consumer = new RequestConsumer(() =&gt; new PoissionProcess(10)
+// add 1000 requests to the queue
+for (i  0) {
+  Thread.sleep(100)
+}
+// shutdown
+consumer.shutdown()
+transport.close()
+</pre>
+
+<pre>
+// Call a thrift service with a sinusoidally varying rate
+
+// Configure cluster for the service using zookeeper
+val zk = "zookeeper.example.com"
+val zkPort = 2181
+val path = "my/env/role/service"
+val zookeeperClient = new ZooKeeperClient(Amount.of(1, Time.SECONDS),
+  Seq(InetSocketAddress.createUnresolved(zk, zkPort)).asJava)
+val serverSet = new ServerSetImpl(zookeeperClient, path)
+val cluster = new ZookeeperServerSetCluster(serverSet)
+
+// create transport and queue
+val client =
+  ClientBuilder()
+    .codec(ThriftClientFramedCodec)
+    .cluster(cluster)
+    .build()
+val transport = new ThriftTransport(client)
+val createDistribution = () =&gt; new SinusoidalPoisionProccess(10, 20, 60.seconds)
+val queue = new RequestQueue(new RequestConsumer(createDistribution, transport), transport)
+// create the service and processor
+val service = transport.createService(queue)
+val processor = new EchoLoadTest(service)
+// start sending
+transport.start()
+consumer.start()
+// Fill the queue from a logfile
+val source = new LogSourceImpl("some_file.txt")
+while (source.hasNext) {
+  processor.processLines(Seq(source.next))
+}
+// wait for the comsumer to exhaust the queue
+while(consumer.size &gt; 0) {
+  Thread.sleep(100)
+}
+// shutdown
+consumer.shutdown()
+transport.close()
+</pre>
+
+<p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-ChangeLog" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-changelog" class="anchor" href="#changelog" aria-hidden="true"><span class="octicon octicon-link"></span></a>[ChangeLog]</h2>
+
+<p>2013-06-25  release 0.6.7</p>
+
+<ul class="task-list">
+<li>graceful shutdown for small log sources</li>
+<li>dropped vestigial parser config</li>
+<li>weighted parrot requests</li>
+<li>supporting large requests (BlobStore): new configurations cachedSeconds &amp; mesosRamInMb</li>
+<li>launcher changes: configurable proxy, create config directory if needed, and handle errors better (don't hang)</li>
+<li>serversets as victims</li>
+<li>make local logs work with non-local distribution directories</li>
+<li>kestrel transport transactional get support</li>
+<li>check generated config files <em>before</em> launch</li>
+<li>LzoFileLogSource for iago</li>
+<li>Thrift over TLS</li>
+<li>traceLevel config</li>
+</ul><p><a href="#Top">Top</a></p>
+
+<p><a name="user-content-Contributing" aria-hidden="true"></a></p>
+
+<h2>
+<a name="user-content-contributing-to-iago" class="anchor" href="#contributing-to-iago" aria-hidden="true"><span class="octicon octicon-link"></span></a>[Contributing to Iago]</h2>
+
+<p>Iago is open source, hosted on Github <a href="http://github.com/twitter/iago">here</a>.
+If you have a contribution to make, please fork the repo and submit a pull request.</p></article></div>

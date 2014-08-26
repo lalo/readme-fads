@@ -1,0 +1,1329 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-geocoder" class="anchor" href="#geocoder" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geocoder</h1>
+
+<p>Geocoder is a complete geocoding solution for Ruby. With Rails it adds geocoding (by street or IP address), reverse geocoding (find street address based on given coordinates), and distance queries. It's as simple as calling <code>geocode</code> on your objects, and then using a scope like <code>Venue.near("Billings, MT")</code>.</p>
+
+<h2>
+<a name="user-content-compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h2>
+
+<ul class="task-list">
+<li>Supports multiple Ruby versions: Ruby 1.9.2, 1.9.3, 2.0.0, 2.1.0, JRuby and Rubinius.</li>
+<li>Supports multiple databases: MySQL, PostgreSQL, SQLite, and MongoDB (1.7.0 and higher).</li>
+<li>Supports Rails 3 and 4. If you need to use it with Rails 2 please see the <code>rails2</code> branch (no longer maintained, limited feature set).</li>
+<li>Works very well outside of Rails, you just need to install either the <code>json</code> (for MRI) or <code>json_pure</code> (for JRuby) gem.</li>
+</ul><h2>
+<a name="user-content-rails-41-note" class="anchor" href="#rails-41-note" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rails 4.1 Note</h2>
+
+<p>Due to <a href="https://github.com/rails/rails/pull/10710">a change in ActiveRecord's <code>count</code> method</a> you will need to use <code>count(:all)</code> to explicitly count all columns ("*") when using a <code>near</code> scope. Using <code>near</code> and calling <code>count</code> with no argument will cause exceptions in many cases.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Install Geocoder like any other Ruby gem:</p>
+
+<pre><code>gem install geocoder
+</code></pre>
+
+<p>Or, if you're using Rails/Bundler, add this to your Gemfile:</p>
+
+<pre><code>gem "geocoder"
+</code></pre>
+
+<p>and run at the command prompt:</p>
+
+<pre><code>bundle install
+</code></pre>
+
+<h2>
+<a name="user-content-object-geocoding" class="anchor" href="#object-geocoding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Object Geocoding</h2>
+
+<h3>
+<a name="user-content-activerecord" class="anchor" href="#activerecord" aria-hidden="true"><span class="octicon octicon-link"></span></a>ActiveRecord</h3>
+
+<p>Your model must have two attributes (database columns) for storing latitude and longitude coordinates. By default they should be called <code>latitude</code> and <code>longitude</code> but this can be changed (see "Model Configuration" below):</p>
+
+<pre><code>rails generate migration AddLatitudeAndLongitudeToModel latitude:float longitude:float
+rake db:migrate
+</code></pre>
+
+<p>For reverse geocoding your model must provide a method that returns an address. This can be a single attribute, but it can also be a method that returns a string assembled from different attributes (eg: <code>city</code>, <code>state</code>, and <code>country</code>).</p>
+
+<p>Next, your model must tell Geocoder which method returns your object's geocodable address:</p>
+
+<pre><code>geocoded_by :full_street_address   # can also be an IP address
+after_validation :geocode          # auto-fetch coordinates
+</code></pre>
+
+<p>For reverse geocoding, tell Geocoder which attributes store latitude and longitude:</p>
+
+<pre><code>reverse_geocoded_by :latitude, :longitude
+after_validation :reverse_geocode  # auto-fetch address
+</code></pre>
+
+<h3>
+<a name="user-content-mongoid" class="anchor" href="#mongoid" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mongoid</h3>
+
+<p>First, your model must have an array field for storing coordinates:</p>
+
+<pre><code>field :coordinates, :type =&gt; Array
+</code></pre>
+
+<p>You may also want an address field, like this:</p>
+
+<pre><code>field :address
+</code></pre>
+
+<p>but if you store address components (city, state, country, etc) in separate fields you can instead define a method called <code>address</code> that combines them into a single string which will be used to query the geocoding service.</p>
+
+<p>Once your fields are defined, include the <code>Geocoder::Model::Mongoid</code> module and then call <code>geocoded_by</code>:</p>
+
+<pre><code>include Geocoder::Model::Mongoid
+geocoded_by :address               # can also be an IP address
+after_validation :geocode          # auto-fetch coordinates
+</code></pre>
+
+<p>Reverse geocoding is similar:</p>
+
+<pre><code>include Geocoder::Model::Mongoid
+reverse_geocoded_by :coordinates
+after_validation :reverse_geocode  # auto-fetch address
+</code></pre>
+
+<p>Once you've set up your model you'll need to create the necessary spatial indices in your database:</p>
+
+<pre><code>rake db:mongoid:create_indexes
+</code></pre>
+
+<p>Be sure to read <em>Latitude/Longitude Order</em> in the <em>Notes on MongoDB</em> section below on how to properly retrieve latitude/longitude coordinates from your objects.</p>
+
+<h3>
+<a name="user-content-mongomapper" class="anchor" href="#mongomapper" aria-hidden="true"><span class="octicon octicon-link"></span></a>MongoMapper</h3>
+
+<p>MongoMapper is very similar to Mongoid, just be sure to include <code>Geocoder::Model::MongoMapper</code>.</p>
+
+<h3>
+<a name="user-content-mongo-indices" class="anchor" href="#mongo-indices" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mongo Indices</h3>
+
+<p>By default, the methods <code>geocoded_by</code> and <code>reverse_geocoded_by</code> create a geospatial index. You can avoid index creation with the <code>:skip_index option</code>, for example:</p>
+
+<pre><code>include Geocoder::Model::Mongoid
+geocoded_by :address, :skip_index =&gt; true
+</code></pre>
+
+<h3>
+<a name="user-content-bulk-geocoding" class="anchor" href="#bulk-geocoding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bulk Geocoding</h3>
+
+<p>If you have just added geocoding to an existing application with a lot of objects you can use this Rake task to geocode them all:</p>
+
+<pre><code>rake geocode:all CLASS=YourModel
+</code></pre>
+
+<p>Geocoder will print warnings if you exceed the rate limit for your geocoding service. Some services — Google notably — enforce a per-second limit in addition to a per-day limit. To avoid exceeding the per-second limit, you can add a <code>SLEEP</code> option to pause between requests for a given amount of time. You can also load objects in batches to save memory, for example:</p>
+
+<pre><code>rake geocode:all CLASS=YourModel SLEEP=0.25 BATCH=100
+</code></pre>
+
+<h3>
+<a name="user-content-avoiding-unnecessary-api-requests" class="anchor" href="#avoiding-unnecessary-api-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Avoiding Unnecessary API Requests</h3>
+
+<p>Geocoding only needs to be performed under certain conditions. To avoid unnecessary work (and quota usage) you will probably want to geocode an object only when:</p>
+
+<ul class="task-list">
+<li>an address is present</li>
+<li>the address has been changed since last save (or it has never been saved)</li>
+</ul><p>The exact code will vary depending on the method you use for your geocodable string, but it would be something like this:</p>
+
+<pre><code>after_validation :geocode, if: -&gt;(obj){ obj.address.present? and obj.address_changed? }
+</code></pre>
+
+<h2>
+<a name="user-content-request-geocoding-by-ip-address" class="anchor" href="#request-geocoding-by-ip-address" aria-hidden="true"><span class="octicon octicon-link"></span></a>Request Geocoding by IP Address</h2>
+
+<p>Geocoder adds a <code>location</code> method to the standard <code>Rack::Request</code> object so you can easily look up the location of any HTTP request by IP address. For example, in a Rails controller or a Sinatra app:</p>
+
+<pre><code># returns Geocoder::Result object
+result = request.location
+</code></pre>
+
+<p>Note that this will usually return <code>nil</code> in your test and development environments because things like "localhost" and "0.0.0.0" are not an Internet IP addresses.</p>
+
+<p>See <em>Advanced Geocoding</em> below for more information about <code>Geocoder::Result</code> objects.</p>
+
+<h2>
+<a name="user-content-location-aware-database-queries" class="anchor" href="#location-aware-database-queries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Location-Aware Database Queries</h2>
+
+<p>To find objects by location, use the following scopes:</p>
+
+<pre><code>Venue.near('Omaha, NE, US', 20)    # venues within 20 miles of Omaha
+Venue.near([40.71, 100.23], 20)    # venues within 20 miles of a point
+Venue.near([40.71, 100.23], 20, :units =&gt; :km)
+                                   # venues within 20 kilometres of a point
+Venue.geocoded                     # venues with coordinates
+Venue.not_geocoded                 # venues without coordinates
+</code></pre>
+
+<p>With geocoded objects you can do things like this:</p>
+
+<pre><code>if obj.geocoded?
+  obj.nearbys(30)                      # other objects within 30 miles
+  obj.distance_from([40.714,-100.234]) # distance from arbitrary point to object
+  obj.bearing_to("Paris, France")      # direction from object to arbitrary point
+end
+</code></pre>
+
+<p>Some utility methods are also available:</p>
+
+<pre><code># look up coordinates of some location (like searching Google Maps)
+Geocoder.coordinates("25 Main St, Cooperstown, NY")
+ =&gt; [42.700149, -74.922767]
+
+# distance (in miles) between Eiffel Tower and Empire State Building
+Geocoder::Calculations.distance_between([47.858205,2.294359], [40.748433,-73.985655])
+ =&gt; 3619.77359999382
+
+# find the geographic center (aka center of gravity) of objects or points
+Geocoder::Calculations.geographic_center([city1, city2, [40.22,-73.99], city4])
+ =&gt; [35.14968, -90.048929]
+</code></pre>
+
+<p>Please see the code for more methods and detailed information about arguments (eg, working with kilometers).</p>
+
+<h2>
+<a name="user-content-distance-and-bearing" class="anchor" href="#distance-and-bearing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Distance and Bearing</h2>
+
+<p>When you run a location-aware query the returned objects have two attributes added to them (only w/ ActiveRecord):</p>
+
+<ul class="task-list">
+<li>
+<code>obj.distance</code> - number of miles from the search point to this object</li>
+<li>
+<code>obj.bearing</code> - direction from the search point to this object</li>
+</ul><p>Results are automatically sorted by distance from the search point, closest to farthest. Bearing is given as a number of clockwise degrees from due north, for example:</p>
+
+<ul class="task-list">
+<li>
+<code>0</code> - due north</li>
+<li>
+<code>180</code> - due south</li>
+<li>
+<code>90</code> - due east</li>
+<li>
+<code>270</code> - due west</li>
+<li>
+<code>230.1</code> - southwest</li>
+<li>
+<code>359.9</code> - almost due north</li>
+</ul><p>You can convert these numbers to compass point names by using the utility method provided:</p>
+
+<pre><code>Geocoder::Calculations.compass_point(355) # =&gt; "N"
+Geocoder::Calculations.compass_point(45)  # =&gt; "NE"
+Geocoder::Calculations.compass_point(208) # =&gt; "SW"
+</code></pre>
+
+<p><em>Note: when using SQLite <code>distance</code> and <code>bearing</code> values are provided for interface consistency only. They are not very accurate.</em></p>
+
+<p>To calculate accurate distance and bearing with SQLite or MongoDB:</p>
+
+<pre><code>obj.distance_to([43.9,-98.6])  # distance from obj to point
+obj.bearing_to([43.9,-98.6])   # bearing from obj to point
+obj.bearing_from(obj2)         # bearing from obj2 to obj
+</code></pre>
+
+<p>The <code>bearing_from/to</code> methods take a single argument which can be: a <code>[lat,lon]</code> array, a geocoded object, or a geocodable address (string). The <code>distance_from/to</code> methods also take a units argument (<code>:mi</code>, <code>:km</code>, or <code>:nm</code> for nautical miles).</p>
+
+<h2>
+<a name="user-content-model-configuration" class="anchor" href="#model-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Model Configuration</h2>
+
+<p>You are not stuck with using the <code>latitude</code> and <code>longitude</code> database column names (with ActiveRecord) or the <code>coordinates</code> array (Mongo) for storing coordinates. For example:</p>
+
+<pre><code>geocoded_by :address, :latitude  =&gt; :lat, :longitude =&gt; :lon # ActiveRecord
+geocoded_by :address, :coordinates =&gt; :coords                # MongoDB
+</code></pre>
+
+<p>This means you can geocode multiple addresses as well:</p>
+
+<pre><code>geocoded_by :start_address, latitude: :start_latitude, longitude: :start_longitude
+geocoded_by :end_address, latitude: :end_latitude, longitude: :end_longitude
+</code></pre>
+
+<p>The <code>address</code> method can return any string you'd use to search Google Maps. For example, any of the following are acceptable:</p>
+
+<ul class="task-list">
+<li>"714 Green St, Big Town, MO"</li>
+<li>"Eiffel Tower, Paris, FR"</li>
+<li>"Paris, TX, US"</li>
+</ul><p>If your model has <code>street</code>, <code>city</code>, <code>state</code>, and <code>country</code> attributes you might do something like this:</p>
+
+<pre><code>geocoded_by :address
+
+def address
+  [street, city, state, country].compact.join(', ')
+end
+</code></pre>
+
+<p>For reverse geocoding you can also specify an alternate name attribute where the address will be stored, for example:</p>
+
+<pre><code>reverse_geocoded_by :latitude, :longitude, :address =&gt; :location  # ActiveRecord
+reverse_geocoded_by :coordinates, :address =&gt; :loc                # MongoDB
+</code></pre>
+
+<p>You can also configure a specific lookup for your model which will override the globally-configured lookup, for example:</p>
+
+<pre><code>geocoded_by :address, :lookup =&gt; :yandex
+</code></pre>
+
+<p>You can also specify a proc if you want to choose a lookup based on a specific property of an object, for example you can use specialized lookups for different regions:</p>
+
+<pre><code>geocoded_by :address, :lookup =&gt; lambda{ |obj| obj.geocoder_lookup }
+
+def geocoder_lookup
+  if country_code == "RU"
+    :yandex
+  elsif country_code == "CN"
+    :baidu
+  else
+    :google
+  end
+end
+</code></pre>
+
+<h2>
+<a name="user-content-advanced-querying" class="anchor" href="#advanced-querying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Querying</h2>
+
+<p>When querying for objects (if you're using ActiveRecord) you can also look within a square rather than a radius (circle) by using the <code>within_bounding_box</code> scope:</p>
+
+<pre><code>distance = 20
+center_point = [40.71, 100.23]
+box = Geocoder::Calculations.bounding_box(center_point, distance)
+Venue.within_bounding_box(box)
+</code></pre>
+
+<p>This can also dramatically improve query performance, especially when used in conjunction with indexes on the latitude/longitude columns. Note, however, that returned results do not include <code>distance</code> and <code>bearing</code> attributes. Note that <code>#near</code> performs both bounding box and radius queries for speed.</p>
+
+<p>You can also specify a minimum radius (if you're using ActiveRecord and not Sqlite) to constrain the
+lower bound (ie. think of a donut, or ring) by using the <code>:min_radius</code> option:</p>
+
+<pre><code>box = Geocoder::Calculations.bounding_box(center_point, distance, :min_radius =&gt; 10.5)
+</code></pre>
+
+<p>With ActiveRecord, you can specify alternate latitude and longitude column names for a geocoded model (useful if you store multiple sets of coordinates for each object):</p>
+
+<pre><code>Venue.near("Paris", 50, latitude: :secondary_latitude, longitude: :secondary_longitude)
+</code></pre>
+
+<h2>
+<a name="user-content-advanced-geocoding" class="anchor" href="#advanced-geocoding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Geocoding</h2>
+
+<p>So far we have looked at shortcuts for assigning geocoding results to object attributes. However, if you need to do something fancy you can skip the auto-assignment by providing a block (takes the object to be geocoded and an array of <code>Geocoder::Result</code> objects) in which you handle the parsed geocoding result any way you like, for example:</p>
+
+<pre><code>reverse_geocoded_by :latitude, :longitude do |obj,results|
+  if geo = results.first
+    obj.city    = geo.city
+    obj.zipcode = geo.postal_code
+    obj.country = geo.country_code
+  end
+end
+after_validation :reverse_geocode
+</code></pre>
+
+<p>Every <code>Geocoder::Result</code> object, <code>result</code>, provides the following data:</p>
+
+<ul class="task-list">
+<li>
+<code>result.latitude</code> - float</li>
+<li>
+<code>result.longitude</code> - float</li>
+<li>
+<code>result.coordinates</code> - array of the above two</li>
+<li>
+<code>result.address</code> - string</li>
+<li>
+<code>result.city</code> - string</li>
+<li>
+<code>result.state</code> - string</li>
+<li>
+<code>result.state_code</code> - string</li>
+<li>
+<code>result.postal_code</code> - string</li>
+<li>
+<code>result.country</code> - string</li>
+<li>
+<code>result.country_code</code> - string</li>
+</ul><p>If you're familiar with the results returned by the geocoding service you're using you can access even more data, but you'll need to be familiar with the particular <code>Geocoder::Result</code> object you're using and the structure of your geocoding service's responses. (See below for links to geocoding service documentation.)</p>
+
+<h2>
+<a name="user-content-geocoding-service-lookup-configuration" class="anchor" href="#geocoding-service-lookup-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geocoding Service ("Lookup") Configuration</h2>
+
+<p>Geocoder supports a variety of street and IP address geocoding services. The default lookups are <code>:google</code> for street addresses and <code>:freegeoip</code> for IP addresses. Please see the listing and comparison below for details on specific geocoding services (not all settings are supported by all services).</p>
+
+<p>To create a Rails initializer with an example configuration:</p>
+
+<pre><code>rails generate geocoder:config
+</code></pre>
+
+<p>Some common configuration options are:</p>
+
+<pre><code># config/initializers/geocoder.rb
+Geocoder.configure(
+
+  # geocoding service (see below for supported options):
+  :lookup =&gt; :yandex,
+
+  # IP address geocoding service (see below for supported options):
+  :ip_lookup =&gt; :maxmind,
+
+  # to use an API key:
+  :api_key =&gt; "...",
+
+  # geocoding service request timeout, in seconds (default 3):
+  :timeout =&gt; 5,
+
+  # set default units to kilometers:
+  :units =&gt; :km,
+
+  # caching (see below for details):
+  :cache =&gt; Redis.new,
+  :cache_prefix =&gt; "..."
+
+)
+</code></pre>
+
+<p>Please see lib/geocoder/configuration.rb for a complete list of configuration options. Additionally, some lookups have their own configuration options, some of which are directly supported by Geocoder. For example, to specify a value for Google's <code>bounds</code> parameter:</p>
+
+<pre><code># with Google:
+Geocoder.search("Paris", :bounds =&gt; [[32.1,-95.9], [33.9,-94.3]])
+</code></pre>
+
+<p>Please see the <a href="https://github.com/alexreisner/geocoder/tree/master/lib/geocoder/lookups">source code for each lookup</a> to learn about directly supported parameters. Parameters which are not directly supported can be specified using the <code>:params</code> option, by which you can pass arbitrary parameters to any geocoding service. For example, to use Nominatim's <code>countrycodes</code> parameter:</p>
+
+<pre><code># with Nominatim:
+Geocoder.search("Paris", :params =&gt; {:countrycodes =&gt; "gb,de,fr,es,us"})
+</code></pre>
+
+<p>You can also configure multiple geocoding services at once, like this:</p>
+
+<pre><code>Geocoder.configure(
+
+  :timeout =&gt; 2,
+  :cache =&gt; Redis.new,
+
+  :yandex =&gt; {
+    :api_key =&gt; "...",
+    :timeout =&gt; 5
+  },
+
+  :baidu =&gt; {
+    :api_key =&gt; "..."
+  },
+
+  :maxmind =&gt; {
+    :api_key =&gt; "...",
+    :service =&gt; :omni
+  }
+
+)
+</code></pre>
+
+<p>The above combines global and service-specific options and could be useful if you specify different geocoding services for different models or under different conditions. Lookup-specific settings override global settings so, for example, in the above the timeout for all lookups would be 2 seconds, except for Yandex which would be 5.</p>
+
+<h3>
+<a name="user-content-street-address-services" class="anchor" href="#street-address-services" aria-hidden="true"><span class="octicon octicon-link"></span></a>Street Address Services</h3>
+
+<p>The following is a comparison of the supported geocoding APIs. The "Limitations" listed for each are a very brief and incomplete summary of some special limitations beyond basic data source attribution. Please read the official Terms of Service for a service before using it.</p>
+
+<h4>
+<a name="user-content-google-google-google_premier" class="anchor" href="#google-google-google_premier" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google (<code>:google</code>, <code>:google_premier</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required for Premier (do NOT use a key for the free version)</li>
+<li>
+<strong>Key signup</strong>: <a href="https://developers.google.com/maps/documentation/business/">https://developers.google.com/maps/documentation/business/</a>
+</li>
+<li>
+<strong>Quota</strong>: 2,500 requests/day, 100,000 with Google Maps API Premier</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: ar, eu, bg, bn, ca, cs, da, de, el, en, en-AU, en-GB, es, eu, fa, fi, fil, fr, gl, gu, hi, hr, hu, id, it, iw, ja, kn, ko, lt, lv, ml, mr, nl, no, pl, pt, pt-BR, pt-PT, ro, ru, sk, sl, sr, sv, tl, ta, te, th, tr, uk, vi, zh-CN, zh-TW (see <a href="http://spreadsheets.google.com/pub?key=p9pdwsai2hDMsLkXsoM05KQ&amp;gid=1">http://spreadsheets.google.com/pub?key=p9pdwsai2hDMsLkXsoM05KQ&amp;gid=1</a>)</li>
+<li>
+<strong>Extra options</strong>: <code>:bounds</code> - pass SW and NE coordinates as an array of two arrays to bias results towards a viewport</li>
+<li>
+<strong>Documentation</strong>: <a href="http://code.google.com/apis/maps/documentation/geocoding/#JSON">http://code.google.com/apis/maps/documentation/geocoding/#JSON</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://code.google.com/apis/maps/terms.html#section_10_12">http://code.google.com/apis/maps/terms.html#section_10_12</a>
+</li>
+<li>
+<strong>Limitations</strong>: "You must not use or display the Content without a corresponding Google map, unless you are explicitly permitted to do so in the Maps APIs Documentation, or through written permission from Google." "You must not pre-fetch, cache, or store any Content, except that you may store: (i) limited amounts of Content for the purpose of improving the performance of your Maps API Implementation..."</li>
+<li>
+<strong>Notes</strong>: To use Google Premier set <code>Geocoder.configure(:lookup =&gt; :google_premier, :api_key =&gt; [key, client, channel])</code>.</li>
+</ul><h4>
+<a name="user-content-yahoo-boss-yahoo" class="anchor" href="#yahoo-boss-yahoo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Yahoo BOSS (<code>:yahoo</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: requires OAuth consumer key and secret (set <code>Geocoder.configure(:api_key =&gt; [key, secret])</code>)</li>
+<li>
+<strong>Key signup</strong>: <a href="http://developer.yahoo.com/boss/geo/">http://developer.yahoo.com/boss/geo/</a>
+</li>
+<li>
+<strong>Quota</strong>: unlimited, but subject to usage fees</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: en, fr, de, it, es, pt, nl, zh, ja, ko</li>
+<li>
+<strong>Documentation</strong>: <a href="http://developer.yahoo.com/boss/geo/docs/index.html">http://developer.yahoo.com/boss/geo/docs/index.html</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://info.yahoo.com/legal/us/yahoo/boss/tou/?pir=ucJPcJ1ibUn.h.d.lVmlcbcEkoHjwJ_PvxG9SLK9VIbIQAw1XFrnDqY-">http://info.yahoo.com/legal/us/yahoo/boss/tou/?pir=ucJPcJ1ibUn.h.d.lVmlcbcEkoHjwJ_PvxG9SLK9VIbIQAw1XFrnDqY-</a>
+</li>
+<li>
+<strong>Limitations</strong>: No mass downloads, no commercial map production based on the data, no storage of data except for caching.</li>
+</ul><h4>
+<a name="user-content-bing-bing" class="anchor" href="#bing-bing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bing (<code>:bing</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Key signup</strong>: <a href="http://www.bingmapsportal.com">http://www.bingmapsportal.com</a>
+</li>
+<li>
+<strong>Quota</strong>: 50,000 requests/24 hrs</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: ?</li>
+<li>
+<strong>Documentation</strong>: <a href="http://msdn.microsoft.com/en-us/library/ff701715.aspx">http://msdn.microsoft.com/en-us/library/ff701715.aspx</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://www.microsoft.com/maps/product/terms.html">http://www.microsoft.com/maps/product/terms.html</a>
+</li>
+<li>
+<strong>Limitations</strong>: No country codes or state names. Must be used on "public-facing, non-password protected web sites," "in conjunction with Bing Maps or an application that integrates Bing Maps."</li>
+</ul><h4>
+<a name="user-content-nominatim-nominatim" class="anchor" href="#nominatim-nominatim" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nominatim (<code>:nominatim</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: 1 request/second</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: ?</li>
+<li>
+<strong>Documentation</strong>: <a href="http://wiki.openstreetmap.org/wiki/Nominatim">http://wiki.openstreetmap.org/wiki/Nominatim</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://wiki.openstreetmap.org/wiki/Nominatim_usage_policy">http://wiki.openstreetmap.org/wiki/Nominatim_usage_policy</a>
+</li>
+<li>
+<strong>Limitations</strong>: Please limit request rate to 1 per second and include your contact information in User-Agent headers (eg: <code>Geocoder.configure(:http_headers =&gt; { "User-Agent" =&gt; "your contact info" })</code>). Data licensed under CC-BY-SA (you must provide attribution).</li>
+</ul><h4>
+<a name="user-content-opencagedata-opencagedata" class="anchor" href="#opencagedata-opencagedata" aria-hidden="true"><span class="octicon octicon-link"></span></a>OpenCageData (<code>:opencagedata</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Key signup</strong>: <a href="http://geocoder.opencagedata.com">http://geocoder.opencagedata.com</a>
+</li>
+<li>
+<strong>Quota</strong>: 2500 requests / day, then ability to purchase more (free during beta)</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: worldwide</li>
+<li>
+<strong>Documentation</strong>: <a href="http://geocoder.opencagedata.com/api.html">http://geocoder.opencagedata.com/api.html</a>
+</li>
+<li>
+<strong>Limitations</strong>: Data licensed under CC-BY-SA or (you must provide attribution).</li>
+</ul><h4>
+<a name="user-content-yandex-yandex" class="anchor" href="#yandex-yandex" aria-hidden="true"><span class="octicon octicon-link"></span></a>Yandex (<code>:yandex</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: 25000 requests / day</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: Russian, Belarusian, Ukrainian, English, Turkish (only for maps of Turkey)</li>
+<li>
+<strong>Documentation</strong>: <a href="http://api.yandex.com.tr/maps/doc/intro/concepts/intro.xml">http://api.yandex.com.tr/maps/doc/intro/concepts/intro.xml</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://api.yandex.com.tr/maps/doc/intro/concepts/intro.xml#rules">http://api.yandex.com.tr/maps/doc/intro/concepts/intro.xml#rules</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+</ul><h4>
+<a name="user-content-geocoderca-geocoder_ca" class="anchor" href="#geocoderca-geocoder_ca" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geocoder.ca (<code>:geocoder_ca</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: ?</li>
+<li>
+<strong>Region</strong>: US and Canada</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: ?</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://geocoder.ca/?terms=1">http://geocoder.ca/?terms=1</a>
+</li>
+<li>
+<strong>Limitations</strong>: "Under no circumstances can our data be re-distributed or re-sold by anyone to other parties without our written permission."</li>
+</ul><h4>
+<a name="user-content-geocoderus-geocoder_us" class="anchor" href="#geocoderus-geocoder_us" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geocoder.us (<code>:geocoder_us</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: HTTP Basic Auth</li>
+<li>
+<strong>Sign up</strong>: <a href="http://geocoder.us/user/signup">http://geocoder.us/user/signup</a>
+</li>
+<li>
+<strong>Quota</strong>: You can purchase 20,000 credits at a time for $50</li>
+<li>
+<strong>Region</strong>: US</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://geocoder.us/help/">http://geocoder.us/help/</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://geocoder.us/terms.shtml">http://geocoder.us/terms.shtml</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+</ul><h4>
+<a name="user-content-mapquest-mapquest" class="anchor" href="#mapquest-mapquest" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mapquest (<code>:mapquest</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Key signup</strong>: <a href="http://developer.mapquest.com/web/products/open">http://developer.mapquest.com/web/products/open</a>
+</li>
+<li>
+<strong>Quota</strong>: ?</li>
+<li>
+<strong>HTTP Headers</strong>: in order to use the licensed API you can configure the http_headers to include a referer as so:
+<code>Geocoder.configure(:http_headers =&gt; { "Referer" =&gt; "http://foo.com" })</code>
+You can also allow a blank referer from the API management console via mapquest but it is potentially a security risk that someone else could use your API key from another domain.</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://www.mapquestapi.com/geocoding/">http://www.mapquestapi.com/geocoding/</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://info.mapquest.com/terms-of-use/">http://info.mapquest.com/terms-of-use/</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+<li>
+<strong>Notes</strong>: You can specify the licensed API by setting: <code>Geocoder.configure(:mapquest =&gt; {:licensed =&gt; true})</code> (defaults to free "open" version)</li>
+</ul><h4>
+<a name="user-content-ovinokia-ovi" class="anchor" href="#ovinokia-ovi" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ovi/Nokia (<code>:ovi</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: not required, but performance restricted without it</li>
+<li>
+<strong>Quota</strong>: ?</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://api.maps.ovi.com/devguide/overview.html">http://api.maps.ovi.com/devguide/overview.html</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://www.developer.nokia.com/Develop/Maps/TC.html">http://www.developer.nokia.com/Develop/Maps/TC.html</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+</ul><h4>
+<a name="user-content-herenokia-here" class="anchor" href="#herenokia-here" aria-hidden="true"><span class="octicon octicon-link"></span></a>Here/Nokia (<code>:here</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: Depending on the API key</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: The preferred language of address elements in the result. Language code must be provided according to RFC 4647 standard.</li>
+<li>
+<strong>Documentation</strong>: <a href="http://developer.here.com/rest-apis/documentation/geocoder">http://developer.here.com/rest-apis/documentation/geocoder</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://developer.here.com/faqs#l&amp;t">http://developer.here.com/faqs#l&amp;t</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+</ul><h4>
+<a name="user-content-esri-esri" class="anchor" href="#esri-esri" aria-hidden="true"><span class="octicon octicon-link"></span></a>ESRI (<code>:esri</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: Required for some scenarios (see Terms of Service)</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://resources.arcgis.com/en/help/arcgis-online-geocoding-rest-api/">http://resources.arcgis.com/en/help/arcgis-online-geocoding-rest-api/</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://www.esri.com/legal/software-license">http://www.esri.com/legal/software-license</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+<li>
+<strong>Notes</strong>: You can specify which projection you want to use by setting, for example: <code>Geocoder.configure(:esri =&gt; {:outSR =&gt; 102100})</code>.</li>
+</ul><h4>
+<a name="user-content-data-science-toolkit-dstk" class="anchor" href="#data-science-toolkit-dstk" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data Science Toolkit (<code>:dstk</code>)</h4>
+
+<p>Data Science Toolkit provides an API whose reponse format is like Google's but which can be set up as a privately hosted service.</p>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: None quota if you are self-hosting the service.</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: ?</li>
+<li>
+<strong>Languages</strong>: en</li>
+<li>
+<strong>Documentation</strong>: <a href="http://www.datasciencetoolkit.org/developerdocs">http://www.datasciencetoolkit.org/developerdocs</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://www.datasciencetoolkit.org/developerdocs#googlestylegeocoder">http://www.datasciencetoolkit.org/developerdocs#googlestylegeocoder</a>
+</li>
+<li>
+<strong>Limitations</strong>: No reverse geocoding.</li>
+<li>
+<strong>Notes</strong>: If you are hosting your own DSTK server you will need to configure the host name, eg: <code>Geocoder.configure(:lookup =&gt; :dstk, :host =&gt; "localhost:4567")</code>.</li>
+</ul><h4>
+<a name="user-content-baidu-baidu" class="anchor" href="#baidu-baidu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Baidu (<code>:baidu</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: No quota limits for geocoding</li>
+<li>
+<strong>Region</strong>: China</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: Chinese (Simplified)</li>
+<li>
+<strong>Documentation</strong>: <a href="http://developer.baidu.com/map/webservice-geocoding.htm">http://developer.baidu.com/map/webservice-geocoding.htm</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://developer.baidu.com/map/law.htm">http://developer.baidu.com/map/law.htm</a>
+</li>
+<li>
+<strong>Limitations</strong>: Only good for non-commercial use. For commercial usage please check <a href="http://developer.baidu.com/map/question.htm#qa0013">http://developer.baidu.com/map/question.htm#qa0013</a>
+</li>
+<li>
+<strong>Notes</strong>: To use Baidu set <code>Geocoder.configure(:lookup =&gt; :baidu, :api_key =&gt; "your_api_key")</code>.</li>
+</ul><h4>
+<a name="user-content-geocodio-geocodio" class="anchor" href="#geocodio-geocodio" aria-hidden="true"><span class="octicon octicon-link"></span></a>Geocodio (<code>:geocodio</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: 2,500 free requests/day then purchase $.001 for each</li>
+<li>
+<strong>Region</strong>: US</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: en</li>
+<li>
+<strong>Documentation</strong>: <a href="http://geocod.io/docs">http://geocod.io/docs</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://geocod.io/terms-of-use">http://geocod.io/terms-of-use</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+</ul><h4>
+<a name="user-content-smartystreets-smarty_streets" class="anchor" href="#smartystreets-smarty_streets" aria-hidden="true"><span class="octicon octicon-link"></span></a>SmartyStreets (<code>:smarty_streets</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: 10,000 free, 250/month then purchase at sliding scale. Unlimited free for nonprofits &amp; startups</li>
+<li>
+<strong>Region</strong>: US</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: en</li>
+<li>
+<strong>Documentation</strong>: <a href="http://smartystreets.com/kb/liveaddress-api/rest-endpoint">http://smartystreets.com/kb/liveaddress-api/rest-endpoint</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://smartystreets.com/legal/terms-of-service">http://smartystreets.com/legal/terms-of-service</a>
+</li>
+<li>
+<strong>Limitations</strong>: No reverse geocoding.</li>
+</ul><h3>
+<a name="user-content-ip-address-services" class="anchor" href="#ip-address-services" aria-hidden="true"><span class="octicon octicon-link"></span></a>IP Address Services</h3>
+
+<h4>
+<a name="user-content-freegeoip-freegeoip" class="anchor" href="#freegeoip-freegeoip" aria-hidden="true"><span class="octicon octicon-link"></span></a>FreeGeoIP (<code>:freegeoip</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: 10000 requests per hour. After reaching the hourly quota, all of your requests will result in HTTP 403 (Forbidden) until it clears up on the next roll over.</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://github.com/fiorix/freegeoip/blob/master/README.md">http://github.com/fiorix/freegeoip/blob/master/README.md</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: ?</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+<li>
+<strong>Notes</strong>: If you are <a href="https://github.com/fiorix/freegeoip">running your own local instance of the FreeGeoIP service</a> you can configure the host like this: <code>Geocoder.configure(freegeoip: {host: "..."})</code>.</li>
+</ul><h4>
+<a name="user-content-pointpin-pointpin" class="anchor" href="#pointpin-pointpin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pointpin (<code>:pointpin</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: 50,000/mo for €9 through 1m/mo for €49</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="https://pointp.in/docs/get-started">https://pointp.in/docs/get-started</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="https://pointp.in/terms">https://pointp.in/terms</a>
+</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+<li>
+<strong>Notes</strong>: To use Pointpin set <code>Geocoder.configure(:ip_lookup =&gt; :pointpin, :api_key =&gt; "your_pointpin_api_key")</code>.</li>
+</ul><h4>
+<a name="user-content-telize-telize" class="anchor" href="#telize-telize" aria-hidden="true"><span class="octicon octicon-link"></span></a>Telize (<code>:telize</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none</li>
+<li>
+<strong>Quota</strong>: none</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://www.telize.com/">http://www.telize.com/</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: ?</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+</ul><h4>
+<a name="user-content-maxmind-web-services-maxmind" class="anchor" href="#maxmind-web-services-maxmind" aria-hidden="true"><span class="octicon octicon-link"></span></a>MaxMind Web Services (<code>:maxmind</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: Request Packs can be purchased</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: yes</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://www.maxmind.com/app/web_services">http://www.maxmind.com/app/web_services</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: ?</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+<li>
+<strong>Notes</strong>: You must specify which MaxMind service you are using in your configuration. For example: <code>Geocoder.configure(:maxmind =&gt; {:service =&gt; :omni})</code>.</li>
+</ul><h4>
+<a name="user-content-maxmind-local-maxmind_local---experimental" class="anchor" href="#maxmind-local-maxmind_local---experimental" aria-hidden="true"><span class="octicon octicon-link"></span></a>MaxMind Local (<code>:maxmind_local</code>) - EXPERIMENTAL</h4>
+
+<p>This lookup provides methods for geocoding IP addresses without making a call to a remote API (improves speed and availability). It works, but support is new and should not be considered production-ready. Please <a href="https://github.com/alexreisner/geocoder/issues">report any bugs</a> you encounter.</p>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: none (requires the GeoLite City database which can be downloaded from <a href="http://dev.maxmind.com/geoip/legacy/geolite/">MaxMind</a>)</li>
+<li>
+<strong>Quota</strong>: none</li>
+<li>
+<strong>Region</strong>: world</li>
+<li>
+<strong>SSL support</strong>: N/A</li>
+<li>
+<strong>Languages</strong>: English</li>
+<li>
+<strong>Documentation</strong>: <a href="http://www.maxmind.com/en/city">http://www.maxmind.com/en/city</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: ?</li>
+<li>
+<strong>Limitations</strong>: ?</li>
+<li>
+<strong>Notes</strong>: There are two supported formats for MaxMind local data: binary file, and CSV file imported into an SQL database. <strong>You must download a database from MaxMind and set either the <code>:file</code> or <code>:package</code> configuration option for local lookups to work.</strong>
+</li>
+</ul><p><strong>To use a binary file</strong> you must add the <em>geoip</em> (or <em>jgeoip</em> for JRuby) gem to your Gemfile or have it installed in your system, and specify the path of the MaxMind database in your configuration. For example:</p>
+
+<pre><code>Geocoder.configure(ip_lookup: :maxmind_local, maxmind_local: {file: File.join('folder', 'GeoLiteCity.dat')})
+</code></pre>
+
+<p><strong>To use a CSV file</strong> you must import it into an SQL database. The GeoLite <em>City</em> and <em>Country</em> packages are supported. Configure like so:</p>
+
+<pre><code>Geocoder.configure(ip_lookup: :maxmind_local, maxmind_local: {package: :city})
+</code></pre>
+
+<p>You can generate ActiveRecord migrations and download and import data via provided rake tasks:</p>
+
+<pre><code>rails generate geocoder:maxmind:geolite PACKAGE=city
+
+rake geocoder:maxmind:geolite:download PACKAGE=city
+rake geocoder:maxmind:geolite:extract PACKAGE=city
+rake geocoder:maxmind:geolite:insert PACKAGE=city
+rake geocoder:maxmind:geolite:load PACKAGE=city # runs the above three in sequence
+</code></pre>
+
+<p>You can replace <code>city</code> with <code>country</code> in any of the above tasks, generators, and configurations.</p>
+
+<h4>
+<a name="user-content-baidu-ip-baidu_ip" class="anchor" href="#baidu-ip-baidu_ip" aria-hidden="true"><span class="octicon octicon-link"></span></a>Baidu IP (<code>:baidu_ip</code>)</h4>
+
+<ul class="task-list">
+<li>
+<strong>API key</strong>: required</li>
+<li>
+<strong>Quota</strong>: No quota limits for geocoding</li>
+<li>
+<strong>Region</strong>: China</li>
+<li>
+<strong>SSL support</strong>: no</li>
+<li>
+<strong>Languages</strong>: Chinese (Simplified)</li>
+<li>
+<strong>Documentation</strong>: <a href="http://developer.baidu.com/map/webservice-geocoding.htm">http://developer.baidu.com/map/webservice-geocoding.htm</a>
+</li>
+<li>
+<strong>Terms of Service</strong>: <a href="http://developer.baidu.com/map/law.htm">http://developer.baidu.com/map/law.htm</a>
+</li>
+<li>
+<strong>Limitations</strong>: Only good for non-commercial use. For commercial usage please check <a href="http://developer.baidu.com/map/question.htm#qa0013">http://developer.baidu.com/map/question.htm#qa0013</a>
+</li>
+<li>
+<strong>Notes</strong>: To use Baidu set <code>Geocoder.configure(:lookup =&gt; :baidu_ip, :api_key =&gt; "your_api_key")</code>.</li>
+</ul><h2>
+<a name="user-content-caching" class="anchor" href="#caching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caching</h2>
+
+<p>It's a good idea, when relying on any external service, to cache retrieved data. When implemented correctly it improves your app's response time and stability. It's easy to cache geocoding results with Geocoder, just configure a cache store:</p>
+
+<pre><code>Geocoder.configure(:cache =&gt; Redis.new)
+</code></pre>
+
+<p>This example uses Redis, but the cache store can be any object that supports these methods:</p>
+
+<ul class="task-list">
+<li>
+<code>store#[](key)</code> or <code>#get</code> or <code>#read</code> - retrieves a value</li>
+<li>
+<code>store#[]=(key, value)</code> or <code>#set</code> or <code>#write</code> - stores a value</li>
+<li>
+<code>store#del(url)</code> - deletes a value</li>
+</ul><p>Even a plain Ruby hash will work, though it's not a great choice (cleared out when app is restarted, not shared between app instances, etc).</p>
+
+<p>You can also set a custom prefix to be used for cache keys:</p>
+
+<pre><code>Geocoder.configure(:cache_prefix =&gt; "...")
+</code></pre>
+
+<p>By default the prefix is <code>geocoder:</code></p>
+
+<p>If you need to expire cached content:</p>
+
+<pre><code>Geocoder::Lookup.get(Geocoder.config[:lookup]).cache.expire(:all)  # expire cached results for current Lookup
+Geocoder::Lookup.get(:google).cache.expire("http://...")           # expire cached result for a specific URL
+Geocoder::Lookup.get(:google).cache.expire(:all)                   # expire cached results for Google Lookup
+# expire all cached results for all Lookups.
+# Be aware that this methods spawns a new Lookup object for each Service
+Geocoder::Lookup.all_services.each{|service| Geocoder::Lookup.get(service).cache.expire(:all)}
+</code></pre>
+
+<p>Do <em>not</em> include the prefix when passing a URL to be expired. Expiring <code>:all</code> will only expire keys with the configured prefix (won't kill every entry in your key/value store).</p>
+
+<p>For an example of a cache store with URL expiry please see examples/autoexpire_cache.rb</p>
+
+<p><em>Before you implement caching in your app please be sure that doing so does not violate the Terms of Service for your geocoding service.</em></p>
+
+<h2>
+<a name="user-content-forward-and-reverse-geocoding-in-the-same-model" class="anchor" href="#forward-and-reverse-geocoding-in-the-same-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Forward and Reverse Geocoding in the Same Model</h2>
+
+<p>If you apply both forward and reverse geocoding functionality to the same model (say users can supply an address or coordinates and you want to fill in whatever's missing), you will provide two address methods:</p>
+
+<ul class="task-list">
+<li>one for storing the fetched address (reverse geocoding)</li>
+<li>one for providing an address to use when fetching coordinates (forward geocoding)</li>
+</ul><p>For example:</p>
+
+<pre><code>class Venue
+
+  # build an address from street, city, and state attributes
+  geocoded_by :address_from_components
+
+  # store the fetched address in the full_address attribute
+  reverse_geocoded_by :latitude, :longitude, :address =&gt; :full_address
+end
+</code></pre>
+
+<p>However, there can be only one set of latitude/longitude attributes, and whichever you specify last will be used. For example:</p>
+
+<pre><code>class Venue
+
+  geocoded_by :address,
+    :latitude  =&gt; :fetched_latitude,  # this will be overridden by the below
+    :longitude =&gt; :fetched_longitude  # same here
+
+  reverse_geocoded_by :latitude, :longitude
+end
+</code></pre>
+
+<p>The reason for this is that we don't want ambiguity when doing distance calculations. We need a single, authoritative source for coordinates!</p>
+
+<p>Once both forward and reverse geocoding has been applied, it is possible to call them sequentially.</p>
+
+<p>For example:</p>
+
+<pre><code>class Venue
+
+  after_validation :geocode, :reverse_geocode
+
+end
+</code></pre>
+
+<p>For certain geolocation services such as Google geolocation API this may cause issues during subsequent updates to database records if the longtitude and latitude coordinates cannot be associated known location address (on a large body of water for example). On subsequent callbacks the following call:</p>
+
+<pre><code> after_validation :geocode
+</code></pre>
+
+<p>will alter the longtitude and latitude attributes based on the location field, which would be the closest known location to the original coordinates. In this case it is better to add conditions to each call, as not to override coordinates that do not have known location addresses associated with them.</p>
+
+<p>For example:</p>
+
+<pre><code>class Venue
+
+  after_validation :reverse_geocode, :if =&gt; :has_coordinates
+  after_validation :geocode, :if =&gt; :has_location, :unless =&gt; :has_coordinates
+
+end
+</code></pre>
+
+<h2>
+<a name="user-content-use-outside-of-rails" class="anchor" href="#use-outside-of-rails" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use Outside of Rails</h2>
+
+<p>You can use Geocoder outside of Rails by calling the <code>Geocoder.search</code> method:</p>
+
+<pre><code>results = Geocoder.search("McCarren Park, Brooklyn, NY")
+</code></pre>
+
+<p>This returns an array of <code>Geocoder::Result</code> objects with all data provided by the geocoding service.</p>
+
+<h2>
+<a name="user-content-testing-apps-that-use-geocoder" class="anchor" href="#testing-apps-that-use-geocoder" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing Apps that Use Geocoder</h2>
+
+<p>When writing tests for an app that uses Geocoder it may be useful to avoid network calls and have Geocoder return consistent, configurable results. To do this, configure and use the <code>:test</code> lookup. For example:</p>
+
+<pre><code>Geocoder.configure(:lookup =&gt; :test)
+
+Geocoder::Lookup::Test.add_stub(
+  "New York, NY", [
+    {
+      'latitude'     =&gt; 40.7143528,
+      'longitude'    =&gt; -74.0059731,
+      'address'      =&gt; 'New York, NY, USA',
+      'state'        =&gt; 'New York',
+      'state_code'   =&gt; 'NY',
+      'country'      =&gt; 'United States',
+      'country_code' =&gt; 'US'
+    }
+  ]
+)
+</code></pre>
+
+<p>Now, any time Geocoder looks up "New York, NY" its results array will contain one result with the above attributes. You can also set a default stub:</p>
+
+<pre><code>Geocoder.configure(:lookup =&gt; :test)
+
+Geocoder::Lookup::Test.set_default_stub(
+  [
+    {
+      'latitude'     =&gt; 40.7143528,
+      'longitude'    =&gt; -74.0059731,
+      'address'      =&gt; 'New York, NY, USA',
+      'state'        =&gt; 'New York',
+      'state_code'   =&gt; 'NY',
+      'country'      =&gt; 'United States',
+      'country_code' =&gt; 'US'
+    }
+  ]
+)
+</code></pre>
+
+<p>Any query that hasn't been explicitly stubbed will return that result.</p>
+
+<h2>
+<a name="user-content-command-line-interface" class="anchor" href="#command-line-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Command Line Interface</h2>
+
+<p>When you install the Geocoder gem it adds a <code>geocode</code> command to your shell. You can search for a street address, IP address, postal code, coordinates, etc just like you can with the Geocoder.search method for example:</p>
+
+<pre><code>$ geocode 29.951,-90.081
+Latitude:         29.952211
+Longitude:        -90.080563
+Full address:     1500 Sugar Bowl Dr, New Orleans, LA 70112, USA
+City:             New Orleans
+State/province:   Louisiana
+Postal code:      70112
+Country:          United States
+Google map:       http://maps.google.com/maps?q=29.952211,-90.080563
+</code></pre>
+
+<p>There are also a number of options for setting the geocoding API, key, and language, viewing the raw JSON reponse, and more. Please run <code>geocode -h</code> for details.</p>
+
+<h2>
+<a name="user-content-numeric-data-types-and-precision" class="anchor" href="#numeric-data-types-and-precision" aria-hidden="true"><span class="octicon octicon-link"></span></a>Numeric Data Types and Precision</h2>
+
+<p>Geocoder works with any numeric data type (e.g. float, double, decimal) on which trig (and other mathematical) functions can be performed.</p>
+
+<p>A summary of the relationship between geographic precision and the number of decimal places in latitude and longitude degree values is available on <a href="http://en.wikipedia.org/wiki/Decimal_degrees#Accuracy">Wikipedia</a>. As an example: at the equator, latitude/longitude values with 4 decimal places give about 11 metres precision, whereas 5 decimal places gives roughly 1 metre precision.</p>
+
+<h2>
+<a name="user-content-notes-on-mongodb" class="anchor" href="#notes-on-mongodb" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes on MongoDB</h2>
+
+<h3>
+<a name="user-content-the-near-method" class="anchor" href="#the-near-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Near Method</h3>
+
+<p>Mongo document classes (Mongoid and MongoMapper) have a built-in <code>near</code> scope, but since it only works two-dimensions Geocoder overrides it with its own spherical <code>near</code> method in geocoded classes.</p>
+
+<h3>
+<a name="user-content-latitudelongitude-order" class="anchor" href="#latitudelongitude-order" aria-hidden="true"><span class="octicon octicon-link"></span></a>Latitude/Longitude Order</h3>
+
+<p>Coordinates are generally printed and spoken as latitude, then longitude ([lat,lon]). Geocoder respects this convention and always expects method arguments to be given in [lat,lon] order. However, MongoDB requires that coordinates be stored in [lon,lat] order as per the GeoJSON spec (<a href="http://geojson.org/geojson-spec.html#positions">http://geojson.org/geojson-spec.html#positions</a>), so internally they are stored "backwards." However, this does not affect order of arguments to methods when using Mongoid or MongoMapper.</p>
+
+<p>To access an object's coordinates in the conventional order, use the <code>to_coordinates</code> instance method provided by Geocoder. For example:</p>
+
+<pre><code>obj.to_coordinates  # =&gt; [37.7941013, -122.3951096] # [lat, lon]
+</code></pre>
+
+<p>Calling <code>obj.coordinates</code> directly returns the internal representation of the coordinates which, in the case of MongoDB, is probably the reverse of what you want:</p>
+
+<pre><code>obj.coordinates     # =&gt; [-122.3951096, 37.7941013] # [lon, lat]
+</code></pre>
+
+<p>For consistency with the rest of Geocoder, always use the <code>to_coordinates</code> method instead.</p>
+
+<h2>
+<a name="user-content-notes-on-non-rails-frameworks" class="anchor" href="#notes-on-non-rails-frameworks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Notes on Non-Rails Frameworks</h2>
+
+<p>If you are using Geocoder with ActiveRecord and a framework other than Rails (like Sinatra or Padrino) you will need to add this in your model before calling Geocoder methods:</p>
+
+<pre><code>extend Geocoder::Model::ActiveRecord
+</code></pre>
+
+<h2>
+<a name="user-content-optimisation-of-distance-queries" class="anchor" href="#optimisation-of-distance-queries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optimisation of Distance Queries</h2>
+
+<p>In MySQL and Postgres the finding of objects near a given point is speeded up by using a bounding box to limit the number of points over which a full distance calculation needs to be done.</p>
+
+<p>To take advantage of this optimisation you need to add a composite index on latitude and longitude. In your Rails migration:</p>
+
+<pre><code>add_index :table, [:latitude, :longitude]
+</code></pre>
+
+<h2>
+<a name="user-content-distance-queries-in-sqlite" class="anchor" href="#distance-queries-in-sqlite" aria-hidden="true"><span class="octicon octicon-link"></span></a>Distance Queries in SQLite</h2>
+
+<p>SQLite's lack of trigonometric functions requires an alternate implementation of the <code>near</code> scope. When using SQLite, Geocoder will automatically use a less accurate algorithm for finding objects near a given point. Results of this algorithm should not be trusted too much as it will return objects that are outside the given radius, along with inaccurate distance and bearing calculations.</p>
+
+<h3>
+<a name="user-content-discussion" class="anchor" href="#discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion</h3>
+
+<p>There are few options for finding objects near a given point in SQLite without installing extensions:</p>
+
+<ol class="task-list">
+<li><p>Use a square instead of a circle for finding nearby points. For example, if you want to find points near 40.71, 100.23, search for objects with latitude between 39.71 and 41.71 and longitude between 99.23 and 101.23. One degree of latitude or longitude is at most 69 miles so divide your radius (in miles) by 69.0 to get the amount to add and subtract from your center coordinates to get the upper and lower bounds. The results will not be very accurate (you'll get points outside the desired radius), but you will get all the points within the required radius.</p></li>
+<li><p>Load all objects into memory and compute distances between them using the <code>Geocoder::Calculations.distance_between</code> method. This will produce accurate results but will be very slow (and use a lot of memory) if you have a lot of objects in your database.</p></li>
+<li><p>If you have a large number of objects (so you can't use approach #2) and you need accurate results (better than approach #1 will give), you can use a combination of the two. Get all the objects within a square around your center point, and then eliminate the ones that are too far away using <code>Geocoder::Calculations.distance_between</code>.</p></li>
+</ol><p>Because Geocoder needs to provide this functionality as a scope, we must go with option #1, but feel free to implement #2 or #3 if you need more accuracy.</p>
+
+<h2>
+<a name="user-content-tests" class="anchor" href="#tests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tests</h2>
+
+<p>Geocoder comes with a test suite (just run <code>rake test</code>) that mocks ActiveRecord and is focused on testing the aspects of Geocoder that do not involve executing database queries. Geocoder uses many database engine-specific queries which must be tested against all supported databases (SQLite, MySQL, etc). Ideally this involves creating a full, working Rails application, and that seems beyond the scope of the included test suite. As such, I have created a separate repository which includes a full-blown Rails application and some utilities for easily running tests against multiple environments:</p>
+
+<p><a href="http://github.com/alexreisner/geocoder_test">http://github.com/alexreisner/geocoder_test</a></p>
+
+<h2>
+<a name="user-content-error-handling" class="anchor" href="#error-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Handling</h2>
+
+<p>By default Geocoder will rescue any exceptions raised by calls to a geocoding service and return an empty array (using warn() to inform you of the error). You can override this on a per-exception basis, and also have Geocoder raise its own exceptions for certain events (eg: API quota exceeded) by using the <code>:always_raise</code> option:</p>
+
+<pre><code>Geocoder.configure(:always_raise =&gt; [SocketError, TimeoutError])
+</code></pre>
+
+<p>You can also do this to raise all exceptions:</p>
+
+<pre><code>Geocoder.configure(:always_raise =&gt; :all)
+</code></pre>
+
+<p>The raise-able exceptions are:</p>
+
+<pre><code>SocketError
+TimeoutError
+Geocoder::OverQueryLimitError
+Geocoder::RequestDenied
+Geocoder::InvalidRequest
+Geocoder::InvalidApiKey
+</code></pre>
+
+<p>Note that not all lookups support all exceptions.</p>
+
+<h2>
+<a name="user-content-troubleshooting" class="anchor" href="#troubleshooting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Troubleshooting</h2>
+
+<h3>
+<a name="user-content-mongoid-1" class="anchor" href="#mongoid-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mongoid</h3>
+
+<p>If you get one of these errors:</p>
+
+<pre><code>uninitialized constant Geocoder::Model::Mongoid
+uninitialized constant Geocoder::Model::Mongoid::Mongo
+</code></pre>
+
+<p>you should check your Gemfile to make sure the Mongoid gem is listed <em>before</em> Geocoder. If Mongoid isn't loaded when Geocoder is initialized, Geocoder will not load support for Mongoid.</p>
+
+<h3>
+<a name="user-content-activerecord-1" class="anchor" href="#activerecord-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>ActiveRecord</h3>
+
+<p>A lot of debugging time can be saved by understanding how Geocoder works with ActiveRecord. When you use the <code>near</code> scope or the <code>nearbys</code> method of a geocoded object, Geocoder creates an ActiveModel::Relation object which adds some attributes (eg: distance, bearing) to the SELECT clause. It also adds a condition to the WHERE clause to check that distance is within the given radius. Because the SELECT clause is modified, anything else that modifies the SELECT clause may produce strange results, for example:</p>
+
+<ul class="task-list">
+<li>using the <code>pluck</code> method (selects only a single column)</li>
+<li>specifying another model through <code>includes</code> (selects columns from other tables)</li>
+</ul><h3>
+<a name="user-content-unexpected-responses-from-geocoding-services" class="anchor" href="#unexpected-responses-from-geocoding-services" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unexpected Responses from Geocoding Services</h3>
+
+<p>Take a look at the server's raw JSON response. You can do this by getting the request URL in an app console:</p>
+
+<pre><code>Geocoder::Lookup.get(:google).query_url(Geocoder::Query.new("..."))
+</code></pre>
+
+<p>Replace <code>:google</code> with the lookup you are using and replace <code>...</code> with the address you are trying to geocode. Then visit the returned URL in your web browser. Often the API will return an error message that helps you resolve the problem. If, after reading the raw response, you believe there is a problem with Geocoder, please post an issue and include both the URL and raw response body.</p>
+
+<h2>
+<a name="user-content-reporting-issues" class="anchor" href="#reporting-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reporting Issues</h2>
+
+<p>When reporting an issue, please list the version of Geocoder you are using and any relevant information about your application (Rails version, database type and version, etc). Also avoid vague language like "it doesn't work." Please describe as specifically as you can what behavior your are actually seeing (eg: an error message? a nil return value?).</p>
+
+<h2>
+<a name="user-content-known-issue" class="anchor" href="#known-issue" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known Issue</h2>
+
+<p>You cannot use the <code>near</code> scope with another scope that provides an <code>includes</code> option because the <code>SELECT</code> clause generated by <code>near</code> will overwrite it (or vice versa).</p>
+
+<p>Instead of using <code>includes</code> to reduce the number of database queries, try using <code>joins</code> with either the <code>:select</code> option or a call to <code>preload</code>. For example:</p>
+
+<pre><code># Pass a :select option to the near scope to get the columns you want.
+# Instead of City.near(...).includes(:venues), try:
+City.near("Omaha, NE", 20, :select =&gt; "cities.*, venues.*").joins(:venues)
+
+# This preload call will normally trigger two queries regardless of the
+# number of results; one query on hotels, and one query on administrators.
+# Instead of Hotel.near(...).includes(:administrator), try:
+Hotel.near("London, UK", 50).joins(:administrator).preload(:administrator)
+</code></pre>
+
+<p>If anyone has a more elegant solution to this problem I am very interested in seeing it.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>Contributions are welcome via pull requests on Github. Please respect the following guidelines:</p>
+
+<ul class="task-list">
+<li>Each pull request should implement ONE feature or bugfix. If you want to add or fix more than one thing, submit more than one pull request.</li>
+<li>Do not commit changes to files that are irrelevant to your feature or bugfix (eg: <code>.gitignore</code>).</li>
+<li>Do not add dependencies on other gems.</li>
+<li>Do not add unnecessary <code>require</code> statements which could cause LoadErrors on certain systems.</li>
+<li>Remember: Geocoder needs to run outside of Rails. Don't assume things like ActiveSupport are available.</li>
+<li>Do not add to base configuration options; instead document required lookup-specific options in the README.</li>
+<li>Be willing to accept criticism and work on improving your code; Geocoder is used by thousands of developers and care must be taken not to introduce bugs.</li>
+<li>Be aware that the pull request review process is not immediate, and is generally proportional to the size of the pull request.</li>
+</ul><p>Copyright (c) 2009-12 Alex Reisner, released under the MIT license</p></article></div>

@@ -1,0 +1,387 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-pipework" class="anchor" href="#pipework" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pipework</h1>
+
+<p><strong><em>Software-Defined Networking for Linux Containers</em></strong></p>
+
+<p>Pipework lets you connect together containers in arbitrarily complex scenarios. 
+Pipework works with "plain" LXC containers (created with <code>lxc-start</code>),
+and therefore, it also works with the awesome <a href="http://www.docker.io/">Docker</a>.</p>
+
+<h5>
+<a name="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Table of Contents</h5>
+
+<ul class="task-list">
+<li>
+<a href="#notes">Things to note</a><br><ul class="task-list">
+<li>Virtualbox</li>
+<li>Docker</li>
+</ul>
+</li>
+<li>
+<a href="#lamp">LAMP stack with a private network between the MySQL and Apache containers</a><br>
+</li>
+<li>
+<a href="#docker_integration">Docker integration</a><br>
+</li>
+<li>
+<a href="#peeking_inside">Peeking inside the private network</a><br>
+</li>
+<li>
+<a href="#setting_internal">Setting container internal interface</a><br>
+</li>
+<li>
+<a href="#different_netmask">Using a different netmask</a><br>
+</li>
+<li>
+<a href="#default_gateway">Setting a default gateway</a><br>
+</li>
+<li>
+<a href="#local_physical">Connect a container to a local physical interface</a><br>
+</li>
+<li>
+<a href="#macvlan">Let the Docker host communicate over macvlan interfaces</a><br>
+</li>
+<li>
+<a href="#wait_ready">Wait for the network to be ready</a><br>
+</li>
+<li>
+<a href="#no_ip">Add the interface without an IP address</a><br>
+</li>
+<li>
+<a href="#dhcp">DHCP</a><br>
+</li>
+<li>
+<a href="#custom_mac">Specify a custom MAC address</a><br>
+</li>
+<li>
+<a href="#vlan">Virtual LAN (VLAN)</a><br>
+</li>
+<li>
+<a href="#openvswitch">Support Open vSwitch</a><br>
+</li>
+<li>
+<a href="#cleanup">Cleanup</a><br>
+</li>
+</ul><p><a name="user-content-notes" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-things-to-note" class="anchor" href="#things-to-note" aria-hidden="true"><span class="octicon octicon-link"></span></a>Things to note</h3>
+
+<h4>
+<a name="user-content-virtualbox" class="anchor" href="#virtualbox" aria-hidden="true"><span class="octicon octicon-link"></span></a>Virtualbox</h4>
+
+<p><strong>If you use VirtualBox</strong>, you will have to update your VM network settings.
+Open the settings panel for the VM, go the the "Network" tab, pull down the
+"Advanced" settings. Here, the "Adapter Type" should be <code>pcnet</code> (the full
+name is something like "PCnet-FAST III"), instead of the default <code>e1000</code>
+(Intel PRO/1000). Also, "Promiscuous Mode" should be set to "Allow All".
+If you don't do that, bridged containers won't work, because the virtual
+NIC will filter out all packets with a different MAC address.  If you are
+running VirtualBox in headless mode, the command line equivalent of the above
+is <code>modifyvm --nicpromisc1 allow-all</code>.  If you are using Vagrant, you can add
+the following to the config for the same effect:</p>
+
+<div class="highlight highlight-Ruby"><pre><span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provider</span> <span class="s2">"virtualbox"</span> <span class="k">do</span> <span class="o">|</span><span class="n">v</span><span class="o">|</span>
+  <span class="n">v</span><span class="o">.</span><span class="n">customize</span> <span class="o">[</span><span class="s1">'modifyvm'</span><span class="p">,</span> <span class="ss">:id</span><span class="p">,</span> <span class="s1">'--nicpromisc1'</span><span class="p">,</span> <span class="s1">'allow-all'</span><span class="o">]</span>
+<span class="k">end</span>
+</pre></div>
+
+<h4>
+<a name="user-content-docker" class="anchor" href="#docker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Docker</h4>
+
+<p><strong>Before using Pipework, please ask on the <a href="https://groups.google.com/forum/#!forum/docker-user">docker-user mailing list</a> if there is a "native"
+way to achieve what you want to do <em>without</em> Pipework.</strong></p>
+
+<p>In the long run, Docker will allow complex scenarios, and Pipework should
+become obsolete.</p>
+
+<p>If there is really no other way to plumb your containers together with
+the current version of Docker, then okay, let's see how we can help you!</p>
+
+<p>The following examples show what Pipework can do for you and your containers.</p>
+
+<p><a name="user-content-lamp" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-lamp-stack-with-a-private-network-between-the-mysql-and-apache-containers" class="anchor" href="#lamp-stack-with-a-private-network-between-the-mysql-and-apache-containers" aria-hidden="true"><span class="octicon octicon-link"></span></a>LAMP stack with a private network between the MySQL and Apache containers</h3>
+
+<p>Let's create two containers, running the web tier and the database tier:</p>
+
+<pre><code>APACHE=$(docker run -d apache /usr/sbin/httpd -D FOREGROUND)
+MYSQL=$(docker run -d mysql /usr/sbin/mysqld_safe)
+</code></pre>
+
+<p>Now, bring superpowers to the web tier:</p>
+
+<pre><code>pipework br1 $APACHE 192.168.1.1/24
+</code></pre>
+
+<p>This will:</p>
+
+<ul class="task-list">
+<li>create a bridge named <code>br1</code> in the docker host;</li>
+<li>add an interface named <code>eth1</code> to the <code>$APACHE</code> container;</li>
+<li>assign IP address 192.168.1.1 to this interface,</li>
+<li>connect said interface to <code>br1</code>.</li>
+</ul><p>Now (drum roll), let's do this:</p>
+
+<pre><code>pipework br1 $MYSQL 192.168.1.2/24
+</code></pre>
+
+<p>This will:</p>
+
+<ul class="task-list">
+<li>not create a bridge named <code>br1</code>, since it already exists;</li>
+<li>add an interface named <code>eth1</code> to the <code>$MYSQL</code> container;</li>
+<li>assign IP address 192.168.1.2 to this interface,</li>
+<li>connect said interface to <code>br1</code>.</li>
+</ul><p>Now, both containers can ping each other on the 192.168.1.0/24 subnet.</p>
+
+<p><a name="user-content-docker_integration" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-docker-integration" class="anchor" href="#docker-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Docker integration</h3>
+
+<p>Pipework can resolve Docker containers names. If the container ID that
+you gave to Pipework cannot be found, Pipework will try to resolve it
+with <code>docker inspect</code>. This makes it even simpler to use:</p>
+
+<pre><code>docker run -name web1 -d apache
+pipework br1 web1 192.168.12.23/24
+</code></pre>
+
+<p><a name="user-content-peeking_inside" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-peeking-inside-the-private-network" class="anchor" href="#peeking-inside-the-private-network" aria-hidden="true"><span class="octicon octicon-link"></span></a>Peeking inside the private network</h3>
+
+<p>Want to connect to those containers using their private addresses? Easy:</p>
+
+<pre><code>ip addr add 192.168.1.254/24 dev br1
+</code></pre>
+
+<p>Voilà!</p>
+
+<p><a name="user-content-setting_internal" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-setting-container-internal-interface" class="anchor" href="#setting-container-internal-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting container internal interface</h3>
+
+<p>By default pipework creates a new interface <code>eth1</code> inside the container. In case you want to change this interface name like <code>eth2</code>, e.g., to have more than one interface set by pipework, use:</p>
+
+<p><code>pipework br1 -i eth2 ...</code></p>
+
+<p><a name="user-content-different_netmask" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-using-a-different-netmask" class="anchor" href="#using-a-different-netmask" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using a different netmask</h3>
+
+<p>The IP addresses given to <code>pipework</code> are directly passed to the <code>ip addr</code>
+tool; so you can append a subnet size using traditional CIDR notation.</p>
+
+<p>I.e.:</p>
+
+<pre><code>pipework br1 $CONTAINERID 192.168.4.25/20
+</code></pre>
+
+<p>Don't forget that all containers should use the same subnet size;
+pipework is not clever enough to use your specified subnet size for
+the first container, and retain it to use it for the other containers.</p>
+
+<p><a name="user-content-default_gateway" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-setting-a-default-gateway" class="anchor" href="#setting-a-default-gateway" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setting a default gateway</h3>
+
+<p>If you want <em>outbound</em> traffic (i.e. when the containers connects
+to the outside world) to go through the interface managed by
+Pipework, you need to change the default route of the container.</p>
+
+<p>This can be useful in some usecases, like traffic shaping, or if
+you want the container to use a specific outbound IP address.</p>
+
+<p>This can be automated by Pipework, by adding the gateway address
+after the IP address and subnet mask:</p>
+
+<pre><code>pipework br1 $CONTAINERID 192.168.4.25/20@192.168.4.1
+</code></pre>
+
+<p><a name="user-content-local_physical" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-connect-a-container-to-a-local-physical-interface" class="anchor" href="#connect-a-container-to-a-local-physical-interface" aria-hidden="true"><span class="octicon octicon-link"></span></a>Connect a container to a local physical interface</h3>
+
+<p>Let's pretend that you want to run two Hipache instances, listening on real
+interfaces eth2 and eth3, using specific (public) IP addresses. Easy!</p>
+
+<pre><code>pipework eth2 $(docker run -d hipache /usr/sbin/hipache) 50.19.169.157
+pipework eth3 $(docker run -d hipache /usr/sbin/hipache) 107.22.140.5
+</code></pre>
+
+<p>Note that this will use <code>macvlan</code> subinterfaces, so you can actually put
+multiple containers on the same physical interface.</p>
+
+<p><a name="user-content-macvlan" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-let-the-docker-host-communicate-over-macvlan-interfaces" class="anchor" href="#let-the-docker-host-communicate-over-macvlan-interfaces" aria-hidden="true"><span class="octicon octicon-link"></span></a>Let the Docker host communicate over macvlan interfaces</h3>
+
+<p>If you use macvlan interfaces as shown in the previous paragraph, you
+will notice that the host will not be able to reach the containers over
+their macvlan interfaces. This is because traffic going in and out of
+macvlan interfaces is segregated from the "root" interface.</p>
+
+<p>If you want to enable that kind of communication, no problem: just
+create a macvlan interface in your host, and move the IP address from
+the "normal" interface to the macvlan interface. </p>
+
+<p>For instance, on a machine where <code>eth0</code> is the main interface, and has
+address <code>10.1.1.123/24</code>, with gateway <code>10.1.1.254</code>, you would do this:</p>
+
+<pre><code>ip addr del 10.1.1.123/24 dev eth0
+ip link add link eth0 dev eth0m type macvlan mode bridge
+ip link set eth0m up
+ip addr add 10.1.1.123/24 dev eth0m
+</code></pre>
+
+<p>Then, you would start a container and assign it a macvlan interface
+the usual way:</p>
+
+<pre><code>CID=$(docker run -d ...)
+pipework eth0 $CID 10.1.1.234/24@10.1.1.254
+</code></pre>
+
+<p><a name="user-content-wait_ready" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-wait-for-the-network-to-be-ready" class="anchor" href="#wait-for-the-network-to-be-ready" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wait for the network to be ready</h3>
+
+<p>Sometimes, you want the extra network interface to be up and running <em>before</em>
+starting your service. A dirty (and unreliable) solution would be to add
+a <code>sleep</code> command before starting your service; but that could break in
+"interesting" ways if the server happens to be a bit slower at one point.</p>
+
+<p>There is a better option: add the <code>pipework</code> script to your Docker image,
+and before starting the service, call <code>pipework --wait</code>. It will wait
+until the <code>eth1</code> interface is present and in <code>UP</code> operational state,
+then exit gracefully.</p>
+
+<p><a name="user-content-no_ip" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-add-the-interface-without-an-ip-address" class="anchor" href="#add-the-interface-without-an-ip-address" aria-hidden="true"><span class="octicon octicon-link"></span></a>Add the interface without an IP address</h3>
+
+<p>If for some reason you want to set the IP address from within the
+container, you can use <code>0/0</code> as the IP address. The interface will
+be created, connected to the network, and assigned to the container,
+but without configuring an IP address:</p>
+
+<pre><code>pipework br1 $CONTAINERID 0/0
+</code></pre>
+
+<p><a name="user-content-dhcp" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-dhcp" class="anchor" href="#dhcp" aria-hidden="true"><span class="octicon octicon-link"></span></a>DHCP</h3>
+
+<p>You can use DHCP to obtain the IP address of the new interface. Just
+specify <code>dhcp</code> instead of an IP address; for instance:</p>
+
+<pre><code>pipework eth1 $CONTAINERID dhcp
+</code></pre>
+
+<p>The value of $CONTAINERID will be provided to the DHCP client to use
+as the hostname in the DHCP request. Depending on the configuration of
+your network's DHCP server, this may enable other machines on the network
+to access the container using the $CONTAINERID as a hostname; therefore,
+specifying $CONTAINERID as a container name rather than a container id
+may be more appropriate in this use-case.</p>
+
+<p>You need three things for this to work correctly:</p>
+
+<ul class="task-list">
+<li>obviously, a DHCP server (in the example above, a DHCP server should
+be listening on the network to which we are connected on <code>eth1</code>);</li>
+<li>a DHCP client (either <code>udhcpc</code>, <code>dhclient</code> or <code>dhcpcp</code>) must be installed
+on your Docker <em>host</em> (you don't have to install it in your containers,
+but it must be present on the host);</li>
+<li>the underlying network must support bridged frames.</li>
+</ul><p>The last item might be particularly relevant if you are trying to
+bridge your containers with a WPA-protected WiFi network. I'm not 100%
+sure about this, but I think that the WiFi access point will drop frames
+originating from unknown MAC addresses; meaning that you have to go
+through extra hoops if you want it to work properly.</p>
+
+<p>It works fine on plain old wired Ethernet, though.</p>
+
+<p><a name="user-content-custom_mac" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-specify-a-custom-mac-address" class="anchor" href="#specify-a-custom-mac-address" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specify a custom MAC address</h3>
+
+<p>If you need to specify the MAC address to be used (either by the <code>macvlan</code>
+subinterface, or the <code>veth</code> interface), no problem. Just add it as the
+command-line, as the last argument:</p>
+
+<pre><code>pipework eth0 $(docker run -d haproxy) 192.168.1.2 26:2e:71:98:60:8f
+</code></pre>
+
+<p>This can be useful if your network environment requires whitelisting
+your hardware addresses (some hosting providers do that), or if you want
+to obtain a specific address from your DHCP server. Also, some projects like
+<a href="https://github.com/cvlc/orchestrator">Orchestrator</a> rely on static
+MAC-IPv6 bindings for DHCPv6:</p>
+
+<pre><code>pipework br0 $(docker run -d zerorpcworker) dhcp fa:de:b0:99:52:1c
+</code></pre>
+
+<p><strong>Note:</strong> if you generate your own MAC addresses, try remember those two
+simple rules:</p>
+
+<ul class="task-list">
+<li>the lowest bit of the first byte should be <code>0</code>, otherwise, you are
+defining a multicast address;</li>
+<li>the second lowest bit of the first byte should be <code>1</code>, otherwise,
+you are using a globally unique (OUI enforced) address.</li>
+</ul><p>In other words, if your MAC address is <code>?X:??:??:??:??:??</code>, <code>X</code> should
+be <code>2</code>, <code>6</code>, <code>a</code>, or <code>e</code>. You can check <a href="http://en.wikipedia.org/wiki/MAC_address">Wikipedia</a> if you want even more details.</p>
+
+<p><a name="user-content-vlan" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-virtual-lan-vlan" class="anchor" href="#virtual-lan-vlan" aria-hidden="true"><span class="octicon octicon-link"></span></a>Virtual LAN (VLAN)</h3>
+
+<p>If you want to attach the container to a specific VLAN, the VLAN ID can be
+specified using the <code>[MAC]@VID</code> notation in the MAC address parameter.</p>
+
+<p><strong>Note:</strong> VLAN attachment is currently only supported for containers to be
+attached to either an Open vSwitch bridge or a physical interface. Linux
+bridges are currently not supported.</p>
+
+<p>The following will attach container zerorpcworker to the Open vSwitch bridge
+ovs0 and attach the container to VLAN ID 10.</p>
+
+<pre><code>pipework ovsbr0 $(docker run -d zerorpcworker) dhcp @10
+</code></pre>
+
+<p><a name="user-content-openvswitch" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-support-open-vswitch" class="anchor" href="#support-open-vswitch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support Open vSwitch</h3>
+
+<p>If you want to attach a container to the Open vSwitch bridge, no problem.</p>
+
+<pre><code>ovs-vsctl list-br
+ovsbr0
+pipework ovsbr0 $(docker run -d mysql /usr/sbin/mysqld_safe) 192.168.1.2/24
+</code></pre>
+
+<p><a name="user-content-cleanup" aria-hidden="true"></a></p>
+
+<h3>
+<a name="user-content-cleanup" class="anchor" href="#cleanup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cleanup</h3>
+
+<p>When a container is terminated (the last process of the net namespace exits),
+the network interfaces are garbage collected. The interface in the container
+is automatically destroyed, and the interface in the docker host (part of the
+bridge) is then destroyed as well.</p></article></div>

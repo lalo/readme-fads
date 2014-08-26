@@ -1,0 +1,178 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-libphenom" class="anchor" href="#libphenom" aria-hidden="true"><span class="octicon octicon-link"></span></a>libPhenom</h1>
+
+<p>libPhenom is an eventing framework for building high performance and high
+scalability systems in C</p>
+
+<h2>
+<a name="user-content-system-requirements" class="anchor" href="#system-requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>System Requirements</h2>
+
+<p>libPhenom is known to compile and pass its test suite on:</p>
+
+<ul class="task-list">
+<li>Linux systems with <code>epoll</code>
+</li>
+<li>OS X</li>
+<li>Illumos and Solaris style systems that have <code>port_create(3C)</code>.</li>
+</ul><p>libPhenom has been known to compile and pass its test suite on these
+systems, but they have not been tried in a little while, so may require
+a little bit of TLC:</p>
+
+<ul class="task-list">
+<li>BSDish systems that have the <code>kqueue(2)</code> facility, including
+FreeBSD 9.1 and OpenBSD 5.2</li>
+</ul><p>libPhenom depends on:</p>
+
+<ul class="task-list">
+<li>
+<code>pkg-config</code> to find dependencies.</li>
+<li>
+<a href="http://concurrencykit.org/">Concurrency Kit</a> for its excellent
+concurrency primitives and key data structures.
+If you are on OS/X, you can <code>brew install concurrencykit</code>.
+On other platforms, you will You will need to install
+CK yourself as it is not widely distributed at this time.
+We expect to be able to find CK using <code>pkg-config</code>.</li>
+<li>
+<strong>OpenSSL</strong> is required; this should be provided by your OS.
+You will need to install <code>openssl-devel</code> or <code>libssl-dev</code> or a similarly
+named package.</li>
+<li>
+<strong>autoconf</strong>, <strong>automake</strong> and <strong>libtool</strong> are required to build libPhenom</li>
+</ul><p>libPhenom works best if built with GCC version 4.3 or later, but should
+be able to build with any C99 compiler.</p>
+
+<p><a href="https://travis-ci.org/facebook/libphenom"><img src="https://camo.githubusercontent.com/234629fbf78a8a34606e99fae95380610cf1e36f/68747470733a2f2f7472617669732d63692e6f72672f66616365626f6f6b2f6c69627068656e6f6d2e706e67" alt="Build Status" data-canonical-src="https://travis-ci.org/facebook/libphenom.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-facilities" class="anchor" href="#facilities" aria-hidden="true"><span class="octicon octicon-link"></span></a>Facilities</h2>
+
+<ul class="task-list">
+<li>Memory management with counters - record how much of which kinds
+of memory your application is using.</li>
+<li>Jobs - decompose your application into portions of work
+and let the phenom scheduler manage getting them done</li>
+<li>streaming I/O with buffers</li>
+<li>Handy data structures (hash tables, lists, queues)</li>
+<li>Variant data type to enable serialization and deserialization of
+JSON</li>
+<li>A printf implementation with registerable object formatting</li>
+</ul><h2>
+<a name="user-content-goals" class="anchor" href="#goals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Goals</h2>
+
+<ul class="task-list">
+<li>Balance ease of use with performance</li>
+<li>Aim to be neutral wrt. your choice of threaded or event-based dispatch
+and work well with both.</li>
+<li>Where possible, avoid contention points in our implementation so as to
+avoid limiting scalability with the number of cores in the system.</li>
+</ul><h2>
+<a name="user-content-how-to-use-these-docs" class="anchor" href="#how-to-use-these-docs" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use these docs</h2>
+
+<p>If you're reading these on <a href="http://facebook.github.io/libphenom">http://facebook.github.io/libphenom</a>, simply start
+typing and the search box will suggest topics.  You may select topics from the
+<code>Topics</code> menu or browse the header files via the <code>Headers</code> menu.</p>
+
+<h2>
+<a name="user-content-getting-it" class="anchor" href="#getting-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting it</h2>
+
+<p>You can obtain the sources from <a href="https://github.com/facebook/libphenom">https://github.com/facebook/libphenom</a>:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>git clone https://github.com/facebook/libphenom.git
+</pre></div>
+
+<p>or <a href="https://github.com/facebook/libphenom/archive/master.zip">grab a snapshot of master</a></p>
+
+<h2>
+<a name="user-content-build" class="anchor" href="#build" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build</h2>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>./autogen.sh
+<span class="nv">$ </span>./configure
+<span class="nv">$ </span>make
+<span class="nv">$ </span>make check
+<span class="nv">$ </span>sudo make install
+</pre></div>
+
+<h2>
+<a name="user-content-quick-start-for-using-the-library" class="anchor" href="#quick-start-for-using-the-library" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick Start for using the library</h2>
+
+<p>You'll want to set up the main loop using something like this:</p>
+
+<div class="highlight highlight-c"><pre><span class="c1">// Always include phenom/defs.h first to correctly set up the compilation env</span>
+<span class="cp">#include "phenom/defs.h"</span>
+<span class="cp">#include "phenom/configuration.h"</span>
+<span class="cp">#include "phenom/job.h"</span>
+<span class="cp">#include "phenom/log.h"</span>
+<span class="cp">#include "phenom/sysutil.h"</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="c1">// Must be called prior to calling any other phenom functions</span>
+  <span class="n">ph_library_init</span><span class="p">();</span>
+  <span class="c1">// Optional config file for tuning internals</span>
+  <span class="n">ph_config_load_config_file</span><span class="p">(</span><span class="s">"/path/to/my/config.json"</span><span class="p">);</span>
+  <span class="c1">// Enable the non-blocking IO manager</span>
+  <span class="n">ph_nbio_init</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+  <span class="c1">// Do stuff here to register client/server stuff.</span>
+  <span class="c1">// This enables a very simple request/response console</span>
+  <span class="c1">// that allows you to run diagnostic commands:</span>
+  <span class="c1">// `echo memory | nc -UC /tmp/phenom-debug-console`</span>
+  <span class="c1">// (on BSD systems, use `nc -Uc`!)</span>
+  <span class="c1">// The code behind this is in</span>
+  <span class="c1">// https://github.com/facebook/libphenom/blob/master/corelib/debug_console.c</span>
+  <span class="n">ph_debug_console_start</span><span class="p">(</span><span class="s">"/tmp/phenom-debug-console"</span><span class="p">);</span>
+
+  <span class="c1">// Run</span>
+  <span class="n">ph_sched_run</span><span class="p">();</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>And compile it using something like this: (you need optimization enabled)</p>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>gcc -O2 main.c <span class="sb">`</span>pkg-config libphenom --cflags --libs<span class="sb">`</span>
+</pre></div>
+
+<p>(this will link against <code>libphenom</code>).</p>
+
+<p>A more detailed example can be found at <a href="https://github.com/facebook/libphenom/blob/master/examples/echo.c">https://github.com/facebook/libphenom/blob/master/examples/echo.c</a></p>
+
+<p>Want more inspiration?  Take a look at the code in the test suite.</p>
+
+<h2>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p>We're still hacking and evolving this library, so there may be some rough
+edges.  We're very open to feedback; check out the Contributing section
+below.</p>
+
+<h2>
+<a name="user-content-getting-help" class="anchor" href="#getting-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Help</h2>
+
+<p>We've started an IRC channel for realtime conversations; join us in
+#phenom @ freenode</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>If you're thinking of hacking on libPhenom we'd love to hear from you!
+Feel free to use the Github issue tracker and pull requests to discuss and
+submit code changes.</p>
+
+<p>We (Facebook) have to ask for a "Contributor License Agreement" from someone
+who sends in a patch or code that we want to include in the codebase.  This is
+a legal requirement; a similar situation applies to Apache and other ASF
+projects.</p>
+
+<p>If we ask you to fill out a CLA we'll direct you to <a href="https://developers.facebook.com/opensource/cla">our online CLA
+page</a> where you can complete it
+easily.  We use the same form as the Apache CLA so that friction is minimal.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>libPhenom is made available under the terms of the Apache License 2.0.  See the
+LICENSE file that accompanies this distribution for the full text of the
+license.</p></article></div>

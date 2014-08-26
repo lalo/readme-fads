@@ -1,0 +1,467 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-typhoeus---" class="anchor" href="#typhoeus---" aria-hidden="true"><span class="octicon octicon-link"></span></a>Typhoeus <a href="https://travis-ci.org/typhoeus/typhoeus"><img src="https://camo.githubusercontent.com/a4b9f15a63962c845c9091944375b59998c35787/68747470733a2f2f696d672e736869656c64732e696f2f7472617669732f747970686f6575732f747970686f6575732f6d61737465722e737667" alt="Build Status" data-canonical-src="https://img.shields.io/travis/typhoeus/typhoeus/master.svg" style="max-width:100%;"></a> <a href="https://codeclimate.com/github/typhoeus/typhoeus"><img src="https://camo.githubusercontent.com/a9789c32f282d2830db75a4098ca8f0e7e50cd37/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636c696d6174652f6769746875622f747970686f6575732f747970686f6575732e737667" alt="Code Climate" data-canonical-src="https://img.shields.io/codeclimate/github/typhoeus/typhoeus.svg" style="max-width:100%;"></a> <a href="https://rubygems.org/gems/typhoeus"><img src="https://camo.githubusercontent.com/cf80f2afeb8317be540fc63a502d2a753b8a1d29/68747470733a2f2f696d672e736869656c64732e696f2f67656d2f762f747970686f6575732e737667" alt="Gem Version" data-canonical-src="https://img.shields.io/gem/v/typhoeus.svg" style="max-width:100%;"></a>
+</h1>
+
+<p>Like a modern code version of the mythical beast with 100 serpent heads, Typhoeus runs HTTP requests in parallel while cleanly encapsulating handling logic.</p>
+
+<h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p>A single request:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">followlocation</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<p>Parallel requests:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">hydra</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">new</span>
+<span class="mi">10</span><span class="o">.</span><span class="n">times</span><span class="o">.</span><span class="n">map</span><span class="p">{</span> <span class="n">hydra</span><span class="o">.</span><span class="n">queue</span><span class="p">(</span><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">followlocation</span><span class="p">:</span> <span class="kp">true</span><span class="p">))</span> <span class="p">}</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<pre><code>gem install typhoeus
+</code></pre>
+
+<pre><code>gem "typhoeus"
+</code></pre>
+
+<h2>
+<a name="user-content-project-tracking" class="anchor" href="#project-tracking" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Tracking</h2>
+
+<ul class="task-list">
+<li>
+<a href="http://rubydoc.info/github/typhoeus/typhoeus/frames/Typhoeus">Documentation</a> (GitHub master)</li>
+<li><a href="http://groups.google.com/group/typhoeus">Mailing list</a></li>
+</ul><h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h3>
+
+<p>The primary interface for Typhoeus is comprised of three classes: Request, Response, and Hydra. Request represents an HTTP request object, response represents an HTTP response, and Hydra manages making parallel HTTP connections.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span>
+  <span class="s2">"www.example.com"</span><span class="p">,</span>
+  <span class="nb">method</span><span class="p">:</span> <span class="ss">:post</span><span class="p">,</span>
+  <span class="ss">body</span><span class="p">:</span> <span class="s2">"this is a request body"</span><span class="p">,</span>
+  <span class="ss">params</span><span class="p">:</span> <span class="p">{</span> <span class="ss">field1</span><span class="p">:</span> <span class="s2">"a field"</span> <span class="p">},</span>
+  <span class="ss">headers</span><span class="p">:</span> <span class="p">{</span> <span class="ss">Accept</span><span class="p">:</span> <span class="s2">"text/html"</span> <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+
+<p>We can see from this that the first argument is the url. The second is a set of options.
+The options are all optional. The default for <code>:method</code> is <code>:get</code>.</p>
+
+<p>When you want to send URL parameters, you can use <code>:params</code> hash to do so. Please note that in case of you should send a request via <code>x-www-form-urlencoded</code> parameters, you need to use <code>:body</code> hash instead. <code>params</code> are for URL parameters and <code>:body</code> is for the request body.</p>
+
+<p>You can run the query either on its own or through the hydra:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">request</span><span class="o">.</span><span class="n">run</span>
+<span class="c1">#=&gt; &lt;Typhoeus::Response ... &gt;</span>
+</pre></div>
+
+<div class="highlight highlight-ruby"><pre><span class="n">hydra</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">hydra</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">queue</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<p>The response object will be set after the request is run.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">response</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">response</span>
+<span class="n">response</span><span class="o">.</span><span class="n">code</span>
+<span class="n">response</span><span class="o">.</span><span class="n">total_time</span>
+<span class="n">response</span><span class="o">.</span><span class="n">headers</span>
+<span class="n">response</span><span class="o">.</span><span class="n">body</span>
+</pre></div>
+
+<h3>
+<a name="user-content-making-quick-requests" class="anchor" href="#making-quick-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Making Quick Requests</h3>
+
+<p>Typhoeus has some convenience methods for performing single HTTP requests. The arguments are the same as those you pass into the request constructor.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"www.example.com/posts/1"</span><span class="p">,</span> <span class="ss">body</span><span class="p">:</span> <span class="s2">"whoo, a body"</span><span class="p">)</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"www.example.com/posts"</span><span class="p">,</span> <span class="ss">body</span><span class="p">:</span> <span class="p">{</span> <span class="ss">title</span><span class="p">:</span> <span class="s2">"test post"</span><span class="p">,</span> <span class="ss">content</span><span class="p">:</span> <span class="s2">"this is my test"</span><span class="p">})</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"www.example.com/posts/1"</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-handling-http-errors" class="anchor" href="#handling-http-errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling HTTP errors</h3>
+
+<p>You can query the response object to figure out if you had a successful
+request or not. Here’s some example code that you might use to handle errors.
+The callbacks are executed right after the request is finished, make sure to define
+them before running the request.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">followlocation</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+
+<span class="n">request</span><span class="o">.</span><span class="n">on_complete</span> <span class="k">do</span> <span class="o">|</span><span class="n">response</span><span class="o">|</span>
+  <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">success?</span>
+    <span class="c1"># hell yeah</span>
+  <span class="k">elsif</span> <span class="n">response</span><span class="o">.</span><span class="n">timed_out?</span>
+    <span class="c1"># aw hell no</span>
+    <span class="n">log</span><span class="p">(</span><span class="s2">"got a time out"</span><span class="p">)</span>
+  <span class="k">elsif</span> <span class="n">response</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="c1"># Could not get an http response, something's wrong.</span>
+    <span class="n">log</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">return_message</span><span class="p">)</span>
+  <span class="k">else</span>
+    <span class="c1"># Received a non-successful http response.</span>
+    <span class="n">log</span><span class="p">(</span><span class="s2">"HTTP request failed: "</span> <span class="o">+</span> <span class="n">response</span><span class="o">.</span><span class="n">code</span><span class="o">.</span><span class="n">to_s</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="n">request</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<p>This also works with serial (blocking) requests in the same fashion. Both
+serial and parallel requests return a Response object.</p>
+
+<h3>
+<a name="user-content-handling-file-uploads" class="anchor" href="#handling-file-uploads" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling file uploads</h3>
+
+<p>A File object can be passed as a param for a POST request to handle uploading
+files to the server. Typhoeus will upload the file as the original file name
+and use Mime::Types to set the content type.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+  <span class="s2">"http://localhost:3000/posts"</span><span class="p">,</span>
+  <span class="ss">body</span><span class="p">:</span> <span class="p">{</span>
+    <span class="ss">title</span><span class="p">:</span> <span class="s2">"test post"</span><span class="p">,</span>
+    <span class="ss">content</span><span class="p">:</span> <span class="s2">"this is my test"</span><span class="p">,</span>
+    <span class="ss">file</span><span class="p">:</span> <span class="no">File</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"thesis.txt"</span><span class="p">,</span><span class="s2">"r"</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-streaming-the-response-body" class="anchor" href="#streaming-the-response-body" aria-hidden="true"><span class="octicon octicon-link"></span></a>Streaming the response body</h3>
+
+<p>Typhoeus can stream responses. When you're expecting a large response,
+set the <code>on_body</code> callback on a request. Typhoeus will yield to the callback
+with chunks of the response, as they're read. When you set an <code>on_body</code> callback,
+Typhoeus will not store the complete response.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">downloaded_file</span> <span class="o">=</span> <span class="no">File</span><span class="o">.</span><span class="n">open</span> <span class="s1">'huge.iso'</span><span class="p">,</span> <span class="s1">'wb'</span>
+<span class="n">request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com/huge.iso"</span><span class="p">)</span>
+<span class="n">request</span><span class="o">.</span><span class="n">on_headers</span> <span class="k">do</span> <span class="o">|</span><span class="n">response</span><span class="o">|</span>
+  <span class="k">if</span> <span class="o">!</span> <span class="n">response</span><span class="o">.</span><span class="n">success?</span>
+    <span class="k">raise</span> <span class="s2">"Request failed"</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+<span class="n">request</span><span class="o">.</span><span class="n">on_body</span> <span class="k">do</span> <span class="o">|</span><span class="n">chunk</span><span class="o">|</span>
+  <span class="n">downloaded_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">request</span><span class="o">.</span><span class="n">on_complete</span> <span class="k">do</span> <span class="o">|</span><span class="n">response</span><span class="o">|</span>
+  <span class="n">downloaded_file</span><span class="o">.</span><span class="n">close</span>
+  <span class="c1"># Note that response.body is ""</span>
+<span class="k">end</span>
+<span class="n">request</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<h3>
+<a name="user-content-making-parallel-requests" class="anchor" href="#making-parallel-requests" aria-hidden="true"><span class="octicon octicon-link"></span></a>Making Parallel Requests</h3>
+
+<p>Generally, you should be running requests through hydra. Here is how that looks</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">hydra</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">hydra</span>
+
+<span class="n">first_request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com/posts/1.json"</span><span class="p">)</span>
+<span class="n">first_request</span><span class="o">.</span><span class="n">on_complete</span> <span class="k">do</span> <span class="o">|</span><span class="n">response</span><span class="o">|</span>
+  <span class="n">third_request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com/posts/3.json"</span><span class="p">)</span>
+  <span class="n">hydra</span><span class="o">.</span><span class="n">queue</span> <span class="n">third_request</span>
+<span class="k">end</span>
+<span class="n">second_request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com/posts/2.json"</span><span class="p">)</span>
+
+<span class="n">hydra</span><span class="o">.</span><span class="n">queue</span> <span class="n">first_request</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">queue</span> <span class="n">second_request</span>
+<span class="c1"># this is a blocking call that returns once all requests are complete</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<p>The execution of that code goes something like this. The first and second requests are built and queued. When hydra is run the first and second requests run in parallel. When the first request completes, the third request is then built and queued up. The moment it is queued Hydra starts executing it.  Meanwhile the second request would continue to run (or it could have completed before the first). Once the third request is done, <code>hydra.run</code> returns.</p>
+
+<p>How to get an array of responses back after executing a queue:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">hydra</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">new</span>
+<span class="n">requests</span> <span class="o">=</span> <span class="mi">10</span><span class="o">.</span><span class="n">times</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span> 
+  <span class="n">request</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">followlocation</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+  <span class="n">hydra</span><span class="o">.</span><span class="n">queue</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> 
+  <span class="n">request</span>
+<span class="p">}</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">run</span>
+
+<span class="n">responses</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">map</span> <span class="p">{</span> <span class="o">|</span><span class="n">request</span><span class="o">|</span>
+  <span class="n">request</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">response_body</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3>
+<a name="user-content-specifying-max-concurrency" class="anchor" href="#specifying-max-concurrency" aria-hidden="true"><span class="octicon octicon-link"></span></a>Specifying Max Concurrency</h3>
+
+<p>Hydra will also handle how many requests you can make in parallel. Things will get flakey if you try to make too many requests at the same time. The built in limit is 200. When more requests than that are queued up, hydra will save them for later and start the requests as others are finished. You can raise or lower the concurrency limit through the Hydra constructor.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">max_concurrency</span><span class="p">:</span> <span class="mi">20</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-memoization" class="anchor" href="#memoization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Memoization</h3>
+
+<p>Hydra memoizes requests within a single run call. You have to enable memoization.
+This will result in a single request being issued. However, the on_complete handlers of both will be called.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Config</span><span class="o">.</span><span class="n">memoize</span> <span class="o">=</span> <span class="kp">true</span>
+
+<span class="n">hydra</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">max_concurrency</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span>
+<span class="mi">2</span><span class="o">.</span><span class="n">times</span> <span class="k">do</span>
+  <span class="n">hydra</span><span class="o">.</span><span class="n">queue</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<p>This will result in two requests.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Config</span><span class="o">.</span><span class="n">memoize</span> <span class="o">=</span> <span class="kp">false</span>
+
+<span class="n">hydra</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Hydra</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">max_concurrency</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span>
+<span class="mi">2</span><span class="o">.</span><span class="n">times</span> <span class="k">do</span>
+  <span class="n">hydra</span><span class="o">.</span><span class="n">queue</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">hydra</span><span class="o">.</span><span class="n">run</span>
+</pre></div>
+
+<h3>
+<a name="user-content-caching" class="anchor" href="#caching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caching</h3>
+
+<p>Typhoeus includes built in support for caching. In the following example, if there is a cache hit, the cached object is passed to the on_complete handler of the request object.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Cache</span>
+  <span class="k">def</span> <span class="nf">initialize</span>
+    <span class="vi">@memory</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="vi">@memory</span><span class="o">[</span><span class="n">request</span><span class="o">]</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+    <span class="vi">@memory</span><span class="o">[</span><span class="n">request</span><span class="o">]</span> <span class="o">=</span> <span class="n">response</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">Typhoeus</span><span class="o">::</span><span class="no">Config</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="no">Cache</span><span class="o">.</span><span class="n">new</span>
+
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span><span class="o">.</span><span class="n">cached?</span>
+<span class="c1">#=&gt; false</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span><span class="o">.</span><span class="n">cached?</span>
+<span class="c1">#=&gt; true</span>
+</pre></div>
+
+<p>For use with <a href="https://github.com/mperham/dalli">Dalli</a>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Cache</span>
+  <span class="k">def</span> <span class="nf">initialize</span>
+    <span class="vi">@client</span> <span class="o">=</span> <span class="no">Dalli</span><span class="o">::</span><span class="no">Client</span><span class="o">.</span><span class="n">new</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="vi">@client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">cache_key</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+    <span class="vi">@client</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">cache_key</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">Typhoeus</span><span class="o">::</span><span class="no">Config</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="no">Cache</span><span class="o">.</span><span class="n">new</span>
+</pre></div>
+
+<p>For use with Rails:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">Cache</span>
+  <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="no">Rails</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+    <span class="no">Rails</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="no">Typhoeus</span><span class="o">::</span><span class="no">Config</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="no">Cache</span><span class="o">.</span><span class="n">new</span>
+</pre></div>
+
+<h3>
+<a name="user-content-direct-stubbing" class="anchor" href="#direct-stubbing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Direct Stubbing</h3>
+
+<p>Hydra allows you to stub out specific urls and patterns to avoid hitting
+remote servers while testing.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">response</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Response</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">code</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="ss">body</span><span class="p">:</span> <span class="s2">"{'name' : 'paul'}"</span><span class="p">)</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">stub</span><span class="p">(</span><span class="s1">'www.example.com'</span><span class="p">)</span><span class="o">.</span><span class="n">and_return</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span> <span class="o">==</span> <span class="n">response</span>
+<span class="c1">#=&gt; true</span>
+</pre></div>
+
+<p>The queued request will hit the stub. You can also specify a regex to match urls.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">response</span> <span class="o">=</span> <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Response</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">code</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="ss">body</span><span class="p">:</span> <span class="s2">"{'name' : 'paul'}"</span><span class="p">)</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">stub</span><span class="p">(</span><span class="sr">/example/</span><span class="p">)</span><span class="o">.</span><span class="n">and_return</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span> <span class="o">==</span> <span class="n">response</span>
+<span class="c1">#=&gt; true</span>
+</pre></div>
+
+<p>When testing make sure to clear your expectations or the stubs will persist between tests. The following can be included in your spec_helper.rb file to do this automatically.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">RSpec</span><span class="o">.</span><span class="n">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">before</span> <span class="ss">:each</span> <span class="k">do</span>
+    <span class="no">Typhoeus</span><span class="o">::</span><span class="no">Expectation</span><span class="o">.</span><span class="n">clear</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-timeouts" class="anchor" href="#timeouts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Timeouts</h3>
+
+<p>No exceptions are raised on HTTP timeouts. You can check whether a request timed out with the following methods:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">)</span><span class="o">.</span><span class="n">timed_out?</span>
+</pre></div>
+
+<p>There are two different timeouts available: <a href="http://curl.haxx.se/libcurl/c/curl_easy_setopt.html#CURLOPTTIMEOUT"><code>timeout</code></a>
+and <a href="http://curl.haxx.se/libcurl/c/curl_easy_setopt.html#CURLOPTCONNECTTIMEOUT"><code>connecttimeout</code></a>. <code>timeout</code> is the
+maximum time in seconds that you allow the libcurl transfer operation to take and <code>connecttimeout</code> is the maximum
+time in seconds that you allow the connection to the server to take. These two are always available, while <code>timeout_ms</code> ond
+<code>connecttimeout_ms</code> accept milliseconds but only an option when curl is build with <code>c-ares</code>, it will use <code>timeout</code> or <code>connecttimeout</code> otherwise.</p>
+
+<h3>
+<a name="user-content-following-redirections" class="anchor" href="#following-redirections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Following Redirections</h3>
+
+<p>Use <code>followlocation: true</code>, eg:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">followlocation</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-basic-authentication" class="anchor" href="#basic-authentication" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Authentication</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">userpwd</span><span class="p">:</span> <span class="s2">"user:password"</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-compression" class="anchor" href="#compression" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compression</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">accept_encoding</span><span class="p">:</span> <span class="s2">"gzip"</span><span class="p">)</span>
+</pre></div>
+
+<p>The above has a different behavior than setting the header directly in the header hash, eg:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">headers</span><span class="p">:</span> <span class="p">{</span><span class="s2">"Accept-Encoding"</span> <span class="o">=&gt;</span> <span class="s2">"gzip"</span><span class="p">})</span>
+</pre></div>
+
+<p>Setting the header hash directly will not include the <code>--compressed</code> flag in the libcurl command and therefore libcurl will not decompress the response.  If you want the <code>--compressed</code> flag to be added automatically, set <code>:accept_encoding</code> Typhoeus option.</p>
+
+<h3>
+<a name="user-content-cookies" class="anchor" href="#cookies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cookies</h3>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Request</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"www.example.com"</span><span class="p">,</span> <span class="ss">cookiefile</span><span class="p">:</span> <span class="s2">"/path/to/file"</span><span class="p">,</span> <span class="ss">cookiejar</span><span class="p">:</span> <span class="s2">"/path/to/file"</span><span class="p">)</span>
+</pre></div>
+
+<p>Here, <code>cookiefile</code> is a file to read cookies from, and <code>cookiejar</code> is a file to write received cookies to.
+If you just want cookies enabled, you need to pass the same filename for both options.</p>
+
+<h3>
+<a name="user-content-other-curl-options" class="anchor" href="#other-curl-options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other CURL options</h3>
+
+<p>Are available and documented <a href="http://rubydoc.info/github/typhoeus/ethon/Ethon/Easy/Options">here</a></p>
+
+<h3>
+<a name="user-content-ssl" class="anchor" href="#ssl" aria-hidden="true"><span class="octicon octicon-link"></span></a>SSL</h3>
+
+<p>SSL comes built in to libcurl so it’s in Typhoeus as well. If you pass in a
+url with "https" it should just work assuming that you have your <a href="http://curl.haxx.se/docs/caextract.html">cert
+bundle</a> in order and the server is
+verifiable. You must also have libcurl built with SSL support enabled. You can
+check that by doing this:</p>
+
+<pre><code>curl --version
+</code></pre>
+
+<p>Now, even if you have libcurl built with OpenSSL you may still have a messed
+up cert bundle or if you’re hitting a non-verifiable SSL server then you’ll
+have to disable peer verification to make SSL work. Like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"https://www.example.com"</span><span class="p">,</span> <span class="ss">ssl_verifypeer</span><span class="p">:</span> <span class="kp">false</span><span class="p">)</span>
+</pre></div>
+
+<p>If you are getting "SSL: certificate subject name does not match target host
+name" from curl (ex:- you are trying to access to b.c.host.com when the
+certificate subject is *.host.com). You can disable host verification. Like
+this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="c1"># host checking enabled</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"https://www.example.com"</span><span class="p">,</span> <span class="ss">ssl_verifyhost</span><span class="p">:</span> <span class="mi">2</span><span class="p">)</span>
+<span class="c1"># host checking disabled</span>
+<span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"https://www.example.com"</span><span class="p">,</span> <span class="ss">ssl_verifyhost</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-verbose-debug-output" class="anchor" href="#verbose-debug-output" aria-hidden="true"><span class="octicon octicon-link"></span></a>Verbose debug output</h3>
+
+<p>It’s sometimes useful to see verbose output from curl. You can enable it on a per-request basis:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"http://example.com"</span><span class="p">,</span> <span class="ss">verbose</span><span class="p">:</span> <span class="kp">true</span><span class="p">)</span>
+</pre></div>
+
+<p>or globally:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Typhoeus</span><span class="o">::</span><span class="no">Config</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kp">true</span>
+</pre></div>
+
+<p>Just remember that libcurl prints it’s debug output to the console (to
+STDERR), so you’ll need to run your scripts from the console to see it.</p>
+
+<h3>
+<a name="user-content-running-the-specs" class="anchor" href="#running-the-specs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running the specs</h3>
+
+<p>Running the specs should be as easy as:</p>
+
+<pre><code>bundle install
+bundle exec rake
+</code></pre>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>LICENSE</h2>
+
+<p>(The MIT License)</p>
+
+<p>Copyright © 2009-2010 <a href="http://www.pauldix.net/">Paul Dix</a></p>
+
+<p>Copyright © 2011-2012 <a href="https://github.com/dbalatero/">David Balatero</a></p>
+
+<p>Copyright © 2012-2014 <a href="http://github.com/i0rek/">Hans Hasselberg</a></p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons
+to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.</p>
+
+<p><a href="https://bitdeli.com/free" title="Bitdeli Badge"><img src="https://camo.githubusercontent.com/4e095e80ab6e8b00a0ae1f07816b633d9d3709bc/68747470733a2f2f64327765637a68766c38323376302e636c6f756466726f6e742e6e65742f747970686f6575732f747970686f6575732f7472656e642e706e67" alt="Bitdeli Badge" data-canonical-src="https://d2weczhvl823v0.cloudfront.net/typhoeus/typhoeus/trend.png" style="max-width:100%;"></a></p></article></div>

@@ -1,0 +1,537 @@
+<div class="announce instapaper_body md" data-path="Readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-bolts" class="anchor" href="#bolts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bolts</h1>
+
+<p>Bolts is a collection of low-level libraries designed to make developing mobile
+apps easier. Bolts was designed by Parse and Facebook for our own internal use,
+and we have decided to open source these libraries to make them available to
+others. Using these libraries does not require using any Parse services. Nor
+do they require having a Parse or Facebook developer account.</p>
+
+<p>Bolts includes:</p>
+
+<ul class="task-list">
+<li>"Tasks", which make organization of complex asynchronous code more manageable. A task is kind of like a JavaScript Promise, but available for iOS and Android.</li>
+<li>An implementation of the <a href="http://www.applinks.org">App Links protocol</a>, helping you link to content in other apps and handle incoming deep-links.</li>
+</ul><p>For more information, see the <a href="http://boltsframework.github.io/docs/android/">Bolts Android API Reference</a>.</p>
+
+<h1>
+<a name="user-content-tasks" class="anchor" href="#tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h1>
+
+<p>To build a truly responsive Android application, you must keep long-running operations off of the UI thread, and be careful to avoid blocking anything the UI thread might be waiting on. This means you will need to execute various operations in the background. To make this easier, we've added a class called <code>Task</code>. A task represents an asynchronous operation. Typically, a <code>Task</code> is returned from an asynchronous function and gives the ability to continue processing the result of the task. When a task is returned from a function, it's already begun doing its job. A task is not tied to a particular threading model: it represents the work being done, not where it is executing. Tasks have many advantages over other methods of asynchronous programming, such as callbacks and <code>AsyncTask</code>.</p>
+
+<ul class="task-list">
+<li>They consume fewer system resources, since they don't occupy a thread while waiting on other tasks.</li>
+<li>They are independent of threading model, so you don't have to worry about reaching the maximum number of allowed threads, as can happen with <code>AsyncTask</code>.</li>
+<li>Performing several tasks in a row will not create nested "pyramid" code as you would get when using only callbacks.</li>
+<li>Tasks are fully composable, allowing you to perform branching, parallelism, and complex error handling, without the spaghetti code of having many named callbacks.</li>
+<li>You can arrange task-based code in the order that it executes, rather than having to split your logic across scattered callback functions.</li>
+</ul><p>For the examples in this doc, assume there are async versions of some common Parse methods, called <code>saveAsync</code> and <code>findAsync</code> which return a <code>Task</code>. In a later section, we'll show how to define these functions yourself.</p>
+
+<h2>
+<a name="user-content-the-continuewith-method" class="anchor" href="#the-continuewith-method" aria-hidden="true"><span class="octicon octicon-link"></span></a>The <code>continueWith</code> Method</h2>
+
+<p>Every <code>Task</code> has a method named <code>continueWith</code> which takes a <code>Continuation</code>. A continuation is an interface that you implement which has one method, named <code>then</code>. The <code>then</code> method is called when the task is complete. You can then inspect the task to check if it was successful and to get its result.</p>
+
+<div class="highlight highlight-java"><pre><span class="n">saveAsync</span><span class="o">(</span><span class="n">obj</span><span class="o">).</span><span class="na">continueWith</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">task</span><span class="o">.</span><span class="na">isCancelled</span><span class="o">())</span> <span class="o">{</span>
+      <span class="c1">// the save was cancelled.</span>
+    <span class="o">}</span> <span class="k">else</span> <span class="nf">if</span> <span class="o">(</span><span class="n">task</span><span class="o">.</span><span class="na">isFaulted</span><span class="o">())</span> <span class="o">{</span>
+      <span class="c1">// the save failed.</span>
+      <span class="n">Exception</span> <span class="n">error</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getError</span><span class="o">()</span>
+    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+      <span class="c1">// the object was saved successfully.</span>
+      <span class="n">ParseObject</span> <span class="n">object</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<p>Tasks are strongly-typed using Java Generics, so getting the syntax right can be a little tricky at first. Let's look closer at the types involved with an example.</p>
+
+<div class="highlight highlight-java"><pre><span class="cm">/**</span>
+<span class="cm"> Gets a String asynchronously.</span>
+<span class="cm"> */</span>
+<span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">getStringAsync</span><span class="o">()</span> <span class="o">{</span>
+  <span class="c1">// Let's suppose getIntAsync() returns a Task&lt;Integer&gt;.</span>
+  <span class="k">return</span> <span class="nf">getIntAsync</span><span class="o">().</span><span class="na">continueWith</span><span class="o">(</span>
+    <span class="c1">// This Continuation is a function which takes an Integer as input,</span>
+    <span class="c1">// and provides a String as output. It must take an Integer because</span>
+    <span class="c1">// that's what was returned from the previous Task.</span>
+    <span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;()</span> <span class="o">{</span>
+      <span class="c1">// The Task getIntAsync() returned is passed to "then" for convenience.</span>
+      <span class="kd">public</span> <span class="n">String</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+        <span class="n">Integer</span> <span class="n">number</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+        <span class="k">return</span> <span class="n">String</span><span class="o">.</span><span class="na">format</span><span class="o">(</span><span class="s">"%d"</span><span class="o">,</span> <span class="n">Locale</span><span class="o">.</span><span class="na">US</span><span class="o">,</span> <span class="n">number</span><span class="o">);</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+  <span class="o">);</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>In many cases, you only want to do more work if the previous task was successful, and propagate any errors or cancellations to be dealt with later. To do this, use the <code>onSuccess</code> method instead of <code>continueWith</code>.</p>
+
+<div class="highlight highlight-java"><pre><span class="n">saveAsync</span><span class="o">(</span><span class="n">obj</span><span class="o">).</span><span class="na">onSuccess</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// the object was saved successfully.</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<h2>
+<a name="user-content-chaining-tasks-together" class="anchor" href="#chaining-tasks-together" aria-hidden="true"><span class="octicon octicon-link"></span></a>Chaining Tasks Together</h2>
+
+<p>Tasks are a little bit magical, in that they let you chain them without nesting. If you use <code>continueWithTask</code> instead of <code>continueWith</code>, then you can return a new task. The task returned by <code>continueWithTask</code> will not be considered finished until the new task returned from within <code>continueWithTask</code> is. This lets you perform multiple actions without incurring the pyramid code you would get with callbacks. Likewise, <code>onSuccessTask</code> is a version of <code>onSuccess</code> that returns a new task. So, use <code>continueWith</code>/<code>onSuccess</code> to do more synchronous work, or <code>continueWithTask</code>/<code>onSuccessTask</code> to do more asynchronous work.</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">final</span> <span class="n">ParseQuery</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">query</span> <span class="o">=</span> <span class="n">ParseQuery</span><span class="o">.</span><span class="na">getQuery</span><span class="o">(</span><span class="s">"Student"</span><span class="o">);</span>
+<span class="n">query</span><span class="o">.</span><span class="na">orderByDescending</span><span class="o">(</span><span class="s">"gpa"</span><span class="o">);</span>
+<span class="n">findAsync</span><span class="o">(</span><span class="n">query</span><span class="o">).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">0</span><span class="o">).</span><span class="na">put</span><span class="o">(</span><span class="s">"valedictorian"</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nf">saveAsync</span><span class="o">(</span><span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">0</span><span class="o">));</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span><span class="o">{</span>
+    <span class="n">ParseObject</span> <span class="n">valedictorian</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="k">return</span> <span class="nf">findAsync</span><span class="o">(</span><span class="n">query</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="na">put</span><span class="o">(</span><span class="s">"salutatorian"</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nf">saveAsync</span><span class="o">(</span><span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccess</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Everything is done!</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<h2>
+<a name="user-content-error-handling" class="anchor" href="#error-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Handling</h2>
+
+<p>By carefully choosing whether to call <code>continueWith</code> or <code>onSuccess</code>, you can control how errors are propagated in your application. Using <code>continueWith</code> lets you handle errors by transforming them or dealing with them. You can think of failed tasks kind of like throwing an exception. In fact, if you throw an exception inside a continuation, the resulting task will be faulted with that exception.</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">final</span> <span class="n">ParseQuery</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">query</span> <span class="o">=</span> <span class="n">ParseQuery</span><span class="o">.</span><span class="na">getQuery</span><span class="o">(</span><span class="s">"Student"</span><span class="o">);</span>
+<span class="n">query</span><span class="o">.</span><span class="na">orderByDescending</span><span class="o">(</span><span class="s">"gpa"</span><span class="o">);</span>
+<span class="n">findAsync</span><span class="o">(</span><span class="n">query</span><span class="o">).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">0</span><span class="o">).</span><span class="na">put</span><span class="o">(</span><span class="s">"valedictorian"</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+    <span class="c1">// Force this callback to fail.</span>
+    <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">"There was an error."</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Now this continuation will be skipped.</span>
+    <span class="n">ParseObject</span> <span class="n">valedictorian</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="k">return</span> <span class="nf">findAsync</span><span class="o">(</span><span class="n">query</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">continueWithTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">task</span><span class="o">.</span><span class="na">isFaulted</span><span class="o">())</span> <span class="o">{</span>
+      <span class="c1">// This error handler WILL be called.</span>
+      <span class="c1">// The exception will be "There was an error."</span>
+      <span class="c1">// Let's handle the error by returning a new value.</span>
+      <span class="c1">// The task will be completed with null as its value.</span>
+      <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="c1">// This will also be skipped.</span>
+    <span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">students</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+    <span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">1</span><span class="o">).</span><span class="na">put</span><span class="o">(</span><span class="s">"salutatorian"</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nf">saveAsync</span><span class="o">(</span><span class="n">students</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccess</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Everything is done! This gets called.</span>
+    <span class="c1">// The task's result is null.</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<p>It's often convenient to have a long chain of success callbacks with only one error handler at the end.</p>
+
+<h2>
+<a name="user-content-creating-tasks" class="anchor" href="#creating-tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating Tasks</h2>
+
+<p>When you're getting started, you can just use the tasks returned from methods like <code>findAsync</code> or <code>saveAsync</code>. However, for more advanced scenarios, you may want to make your own tasks. To do that, you create a <code>TaskCompletionSource</code>. This object will let you create a new Task, and control whether it gets marked as finished or cancelled. After you create a <code>Task</code>, you'll need to call <code>setResult</code>, <code>setError</code>, or <code>setCancelled</code> to trigger its continuations.</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">succeedAsync</span><span class="o">()</span> <span class="o">{</span>
+  <span class="c1">// Java Generics syntax can be confusing sometimes. :)</span>
+  <span class="c1">// This creates a TCS for a Task&lt;String&gt;.</span>
+  <span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;.</span><span class="na">TaskCompletionSource</span> <span class="n">successful</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="na">create</span><span class="o">();</span>
+  <span class="n">successful</span><span class="o">.</span><span class="na">setResult</span><span class="o">(</span><span class="s">"The good result."</span><span class="o">);</span>
+  <span class="k">return</span> <span class="n">successful</span><span class="o">.</span><span class="na">getTask</span><span class="o">();</span>
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="nf">failAsync</span><span class="o">()</span> <span class="o">{</span>
+  <span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;.</span><span class="na">TaskCompletionSource</span> <span class="n">failed</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="na">create</span><span class="o">();</span>
+  <span class="n">failed</span><span class="o">.</span><span class="na">setError</span><span class="o">(</span><span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">"An error message."</span><span class="o">));</span>
+  <span class="k">return</span> <span class="n">failed</span><span class="o">.</span><span class="na">getTask</span><span class="o">();</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>If you know the result of a task at the time it is created, there are some convenience methods you can use.</p>
+
+<div class="highlight highlight-java"><pre><span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">successful</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="na">forResult</span><span class="o">(</span><span class="s">"The good result."</span><span class="o">);</span>
+
+<span class="n">Task</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">failed</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="na">forError</span><span class="o">(</span><span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">"An error message."</span><span class="o">));</span>
+</pre></div>
+
+<h2>
+<a name="user-content-creating-async-methods" class="anchor" href="#creating-async-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>Creating Async Methods</h2>
+
+<p>With these tools, it's easy to make your own asynchronous functions that return tasks. For example, you can define <code>fetchAsync</code> easily.</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="nf">fetchAsync</span><span class="o">(</span><span class="n">ParseObject</span> <span class="n">obj</span><span class="o">)</span> <span class="o">{</span>
+  <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;.</span><span class="na">TaskCompletionSource</span> <span class="n">task</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="nf">create</span><span class="o">();</span>
+  <span class="n">obj</span><span class="o">.</span><span class="na">fetchInBackground</span><span class="o">(</span><span class="k">new</span> <span class="nf">GetCallback</span><span class="o">()</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">done</span><span class="o">(</span><span class="n">ParseObject</span> <span class="n">object</span><span class="o">,</span> <span class="n">ParseException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+     <span class="k">if</span> <span class="o">(</span><span class="n">e</span> <span class="o">==</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+       <span class="n">task</span><span class="o">.</span><span class="na">setResult</span><span class="o">(</span><span class="n">object</span><span class="o">);</span>
+     <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+       <span class="n">task</span><span class="o">.</span><span class="na">setError</span><span class="o">(</span><span class="n">e</span><span class="o">);</span>
+     <span class="o">}</span>
+   <span class="o">}</span>
+  <span class="o">});</span>
+  <span class="k">return</span> <span class="n">task</span><span class="o">.</span><span class="na">getTask</span><span class="o">();</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>It's similarly easy to create <code>saveAsync</code>, <code>findAsync</code> or <code>deleteAsync</code>. We've also provided some convenience functions to help you create tasks from straight blocks of code. <code>callInBackground</code> runs a task on our background thread pool, while <code>call</code> tries to execute its block immediately.</p>
+
+<div class="highlight highlight-java"><pre><span class="n">Task</span><span class="o">.</span><span class="na">callInBackground</span><span class="o">(</span><span class="k">new</span> <span class="n">Callable</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">call</span><span class="o">()</span> <span class="o">{</span>
+    <span class="c1">// Do a bunch of stuff.</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">continueWith</span><span class="o">(...);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-tasks-in-series" class="anchor" href="#tasks-in-series" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks in Series</h2>
+
+<p>Tasks are convenient when you want to do a series of tasks in a row, each one waiting for the previous to finish. For example, imagine you want to delete all of the comments on your blog.</p>
+
+<div class="highlight highlight-java"><pre><span class="n">ParseQuery</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">query</span> <span class="o">=</span> <span class="n">ParseQuery</span><span class="o">.</span><span class="na">getQuery</span><span class="o">(</span><span class="s">"Comments"</span><span class="o">);</span>
+<span class="n">query</span><span class="o">.</span><span class="na">whereEqualTo</span><span class="o">(</span><span class="s">"post"</span><span class="o">,</span> <span class="mi">123</span><span class="o">);</span>
+
+<span class="n">findAsync</span><span class="o">(</span><span class="n">query</span><span class="o">).</span><span class="na">continueWithTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="n">results</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Create a trivial completed task as a base case.</span>
+    <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="n">task</span> <span class="o">=</span> <span class="n">Task</span><span class="o">.</span><span class="na">forResult</span><span class="o">(</span><span class="kc">null</span><span class="o">);</span>
+    <span class="k">for</span> <span class="o">(</span><span class="kd">final</span> <span class="n">ParseObject</span> <span class="n">result</span> <span class="o">:</span> <span class="n">results</span><span class="o">)</span> <span class="o">{</span>
+      <span class="c1">// For each item, extend the task with a function to delete the item.</span>
+      <span class="n">task</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">continueWithTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+        <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="n">ignored</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+          <span class="c1">// Return a task that will be marked as completed when the delete is finished.</span>
+          <span class="k">return</span> <span class="nf">deleteAsync</span><span class="o">(</span><span class="n">result</span><span class="o">);</span>
+        <span class="o">}</span>
+      <span class="o">});</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">task</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">continueWith</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="n">ignored</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Every comment was deleted.</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<h2>
+<a name="user-content-tasks-in-parallel" class="anchor" href="#tasks-in-parallel" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks in Parallel</h2>
+
+<p>You can also perform several tasks in parallel, using the <code>whenAll</code> method. You can start multiple operations at once, and use <code>Task.whenAll</code> to create a new task that will be marked as completed when all of its input tasks are completed. The new task will be successful only if all of the passed-in tasks succeed. Performing operations in parallel will be faster than doing them serially, but may consume more system resources and bandwidth.</p>
+
+<div class="highlight highlight-java"><pre><span class="n">ParseQuery</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">query</span> <span class="o">=</span> <span class="n">ParseQuery</span><span class="o">.</span><span class="na">getQuery</span><span class="o">(</span><span class="s">"Comments"</span><span class="o">);</span>
+<span class="n">query</span><span class="o">.</span><span class="na">whereEqualTo</span><span class="o">(</span><span class="s">"post"</span><span class="o">,</span> <span class="mi">123</span><span class="o">);</span>
+
+<span class="n">findAsync</span><span class="o">(</span><span class="n">query</span><span class="o">).</span><span class="na">continueWithTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;</span> <span class="n">results</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Collect one task for each delete into an array.</span>
+    <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;&gt;</span> <span class="n">tasks</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;&gt;();</span>
+    <span class="k">for</span> <span class="o">(</span><span class="n">ParseObject</span> <span class="n">result</span> <span class="o">:</span> <span class="n">results</span><span class="o">)</span> <span class="o">{</span>
+      <span class="c1">// Start this delete immediately and add its task to the list.</span>
+      <span class="n">tasks</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">deleteAsync</span><span class="o">(</span><span class="n">result</span><span class="o">));</span>
+    <span class="o">}</span>
+    <span class="c1">// Return a new task that will be marked as completed when all of the deletes are</span>
+    <span class="c1">// finished.</span>
+    <span class="k">return</span> <span class="n">Task</span><span class="o">.</span><span class="na">whenAll</span><span class="o">(</span><span class="n">tasks</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccess</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="n">ignored</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Every comment was deleted.</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<h2>
+<a name="user-content-task-executors" class="anchor" href="#task-executors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Task Executors</h2>
+
+<p>All of the <code>continueWith</code> and <code>onSuccess</code> methods can take an instance of <code>java.util.concurrent.Executor</code> as an optional second argument. This allows you to control how the continuation is executed. <code>Task.call()</code> invokes <code>Callable</code>s on the current thread and <code>Task.callInBackground</code> will use its own thread pool, but you can provide your own executor to schedule work onto a different thread. For example, if you want to do work on a specific thread pool:</p>
+
+<div class="highlight highlight-java"><pre><span class="kd">static</span> <span class="kd">final</span> <span class="n">Executor</span> <span class="n">NETWORK_EXECUTOR</span> <span class="o">=</span> <span class="n">Executors</span><span class="o">.</span><span class="na">newCachedThreadPool</span><span class="o">();</span>
+<span class="kd">static</span> <span class="kd">final</span> <span class="n">Executor</span> <span class="n">DISK_EXECUTOR</span> <span class="o">=</span> <span class="n">Executors</span><span class="o">.</span><span class="na">newCachedThreadPool</span><span class="o">();</span>
+</pre></div>
+
+<div class="highlight highlight-java"><pre><span class="kd">final</span> <span class="n">Request</span> <span class="n">request</span> <span class="o">=</span> <span class="o">...</span>
+<span class="n">Task</span><span class="o">.</span><span class="na">call</span><span class="o">(</span><span class="k">new</span> <span class="n">Callable</span><span class="o">&lt;</span><span class="n">HttpResponse</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="nd">@Override</span>
+  <span class="kd">public</span> <span class="n">HttpResponse</span> <span class="nf">call</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Work is specified to be done on NETWORK_EXECUTOR</span>
+    <span class="k">return</span> <span class="n">client</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">request</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">},</span> <span class="n">NETWORK_EXECUTOR</span><span class="o">).</span><span class="na">continueWithTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">HttpResponse</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="kt">byte</span><span class="o">[]&gt;&gt;()</span> <span class="o">{</span>
+  <span class="nd">@Override</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="kt">byte</span><span class="o">[]&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">HttpResponse</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// Since no executor is specified, it's continued on NETWORK_EXECUTOR</span>
+    <span class="k">return</span> <span class="nf">processResponseAsync</span><span class="o">(</span><span class="n">response</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">continueWithTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="kt">byte</span><span class="o">[],</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="nd">@Override</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="kt">byte</span><span class="o">[]&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// We don't want to clog NETWORK_EXECUTOR with disk I/O, so we specify to use DISK_EXECUTOR</span>
+    <span class="k">return</span> <span class="nf">writeToDiskAsync</span><span class="o">(</span><span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">());</span>
+  <span class="o">}</span>
+<span class="o">},</span> <span class="n">DISK_EXECUTOR</span><span class="o">);</span>
+</pre></div>
+
+<p>For common cases, such as dispatching on the main thread, we have provided default implementations of Executor. These include <code>Task.UI_THREAD_EXECUTOR</code> and <code>Task.BACKGROUND_EXECUTOR</code>. For example:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">fetchAsync</span><span class="o">(</span><span class="n">object</span><span class="o">).</span><span class="na">continueWith</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">object</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">TextView</span> <span class="n">textView</span> <span class="o">=</span> <span class="o">(</span><span class="n">TextView</span><span class="o">)</span><span class="n">findViewById</span><span class="o">(</span><span class="n">R</span><span class="o">.</span><span class="na">id</span><span class="o">.</span><span class="na">name</span><span class="o">);</span>
+    <span class="n">textView</span><span class="o">.</span><span class="na">setText</span><span class="o">(</span><span class="n">object</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="s">"name"</span><span class="o">));</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">},</span> <span class="n">Task</span><span class="o">.</span><span class="na">UI_THREAD_EXECUTOR</span><span class="o">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-capturing-variables" class="anchor" href="#capturing-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capturing Variables</h2>
+
+<p>One difficulty in breaking up code across multiple callbacks is that they have different variable scopes. Java allows functions to "capture" variables from outer scopes, but only if they are marked as <code>final</code>, making them immutable. This is inconvenient. That's why we've added another convenience class called <code>Capture</code>, which lets you share a mutable variable with your callbacks. Just call <code>get</code> and <code>set</code> on the variable to change its value.</p>
+
+<div class="highlight highlight-java"><pre><span class="c1">// Capture a variable to be modified in the Task callbacks.</span>
+<span class="kd">final</span> <span class="n">Capture</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">successfulSaveCount</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Capture</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;(</span><span class="mi">0</span><span class="o">);</span>
+
+<span class="n">saveAsync</span><span class="o">(</span><span class="n">obj1</span><span class="o">).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">obj1</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nf">saveAsync</span><span class="o">(</span><span class="n">obj2</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">obj2</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nf">saveAsync</span><span class="o">(</span><span class="n">obj3</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccessTask</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">obj3</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span><span class="o">);</span>
+    <span class="k">return</span> <span class="nf">saveAsync</span><span class="o">(</span><span class="n">obj4</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">onSuccess</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">,</span> <span class="n">Void</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Void</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">ParseObject</span><span class="o">&gt;</span> <span class="n">obj4</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">get</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span><span class="o">);</span>
+    <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}).</span><span class="na">continueWith</span><span class="o">(</span><span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">,</span> <span class="n">Integer</span><span class="o">&gt;()</span> <span class="o">{</span>
+  <span class="kd">public</span> <span class="n">Integer</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span> <span class="n">ignored</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+    <span class="c1">// successfulSaveCount now contains the number of saves that succeeded.</span>
+    <span class="k">return</span> <span class="n">successfulSaveCount</span><span class="o">.</span><span class="na">get</span><span class="o">();</span>
+  <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<h1>
+<a name="user-content-app-links" class="anchor" href="#app-links" aria-hidden="true"><span class="octicon octicon-link"></span></a>App Links</h1>
+
+<p><a href="http://www.applinks.org">App Links</a> provide a cross-platform mechanism that allows a developer to define and publish a deep-linking scheme for their content, allowing other apps to link directly to an experience optimized for the device they are running on. Whether you are building an app that receives incoming links or one that may link out to other apps' content, Bolts provides tools to simplify implementation of the <a href="http://www.applinks.org/documentation">App Links protocol</a>.</p>
+
+<h2>
+<a name="user-content-handling-an-app-link" class="anchor" href="#handling-an-app-link" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling an App Link</h2>
+
+<p>The most common case will be making your app receive App Links. In-linking will allow your users to quickly access the richest, most native-feeling presentation of linked content on their devices. Bolts makes it easy to handle an inbound App Link by providing utilities for processing an incoming <code>Intent</code>.</p>
+
+<p>For example, you can use the <code>AppLinks</code> utility class to parse an incoming <code>Intent</code> in your <code>Activity</code>:</p>
+
+<div class="highlight highlight-java"><pre><span class="nd">@Override</span>
+<span class="kd">protected</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">(</span><span class="n">Bundle</span> <span class="n">savedInstanceState</span><span class="o">)</span> <span class="o">{</span>
+  <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">(</span><span class="n">savedInstanceState</span><span class="o">);</span>
+
+  <span class="c1">// An intent filter in your AndroidManifest.xml has probably already filtered by path</span>
+  <span class="c1">// to some extent.</span>
+
+  <span class="c1">// Use the target URL from the App Link to locate content.</span>
+  <span class="n">Uri</span> <span class="n">targetUrl</span> <span class="o">=</span> <span class="n">AppLinks</span><span class="o">.</span><span class="na">getTargetUrlFromInboundIntent</span><span class="o">(</span><span class="n">getIntent</span><span class="o">());</span>
+  <span class="k">if</span> <span class="o">(</span><span class="n">targetUrl</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+    <span class="c1">// This is activity is started by app link intent.</span>
+
+    <span class="c1">// targetUrl is the URL shared externerly. In most cases, you embed your content identifier</span>
+    <span class="c1">// in this data. In this case, you can hanle with the targetUrl just as how you hanle https urls.</span>
+    <span class="n">String</span> <span class="n">profileName</span> <span class="o">=</span> <span class="n">HttpDeepLinkHandler</span><span class="o">.</span><span class="na">getProfileName</span><span class="o">(</span><span class="n">targetUrl</span><span class="o">);</span>
+
+    <span class="c1">// If you need to access other data you passing from the meta tag from your website or from opening app.</span>
+    <span class="c1">// You can get them from applinkData and referrerAppData.</span>
+    <span class="n">Bundle</span> <span class="n">applinkData</span> <span class="o">=</span> <span class="n">AppLinks</span><span class="o">.</span><span class="na">getAppLinkData</span><span class="o">(</span><span class="n">getIntent</span><span class="o">());</span>
+    <span class="n">Bundle</span> <span class="n">referrerAppData</span> <span class="o">=</span> <span class="n">applinkData</span><span class="o">.</span><span class="na">getBundle</span><span class="o">(</span><span class="s">"referer_app_link"</span><span class="o">);</span>
+
+    <span class="c1">// Apps can easily check the Extras and App Link data from the App Link as well.</span>
+    <span class="n">String</span> <span class="n">fbAccessToken</span> <span class="o">=</span> <span class="n">AppLinks</span><span class="o">.</span><span class="na">getAppLinkExtras</span><span class="o">(</span><span class="s">"fb_access_token"</span><span class="o">);</span>
+    <span class="n">String</span> <span class="n">refererData</span> <span class="o">=</span> <span class="n">AppLinks</span><span class="o">.</span><span class="na">getAppLinkExtras</span><span class="o">(</span><span class="s">"referer"</span><span class="o">);</span>
+  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+    <span class="c1">// Not an applink, your existing code goes here.</span>
+
+    <span class="c1">// Apps that have existing deep-linking support and map their App Links to existing</span>
+    <span class="c1">// deep-linking functionality may instead want to perform these operations on the original</span>
+    <span class="c1">// data URL.</span>
+    <span class="n">String</span> <span class="n">profileName</span> <span class="o">=</span> <span class="n">HttpDeepLinkHandler</span><span class="o">.</span><span class="na">getProfileName</span><span class="o">(</span><span class="n">getIntent</span><span class="o">().</span><span class="na">getData</span><span class="o">());</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-navigating-to-a-url" class="anchor" href="#navigating-to-a-url" aria-hidden="true"><span class="octicon octicon-link"></span></a>Navigating to a URL</h2>
+
+<p>Following an App Link allows your app to provide the best user experience (as defined by the receiving app) when a user navigates to a link. Bolts makes this process simple, automating the steps required to follow a link:</p>
+
+<ol class="task-list">
+<li>Resolve the App Link by getting the App Link metadata from the HTML at the URL specified</li>
+<li>Step through App Link targets relevant to the device being used, checking whether the app that can handle the target is present on the device</li>
+<li>If an app is present, build an <code>Intent</code> with the appropriate al_applink_data specified and navigate to that <code>Intent</code>
+</li>
+<li>Otherwise, open the browser with the original URL specified</li>
+</ol><p>In the simplest case, it takes just one line of code to navigate to a URL that may have an App Link:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">AppLinkNavigation</span><span class="o">.</span><span class="na">navigateInBackground</span><span class="o">(</span><span class="n">getContext</span><span class="o">(),</span> <span class="n">url</span><span class="o">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-adding-app-and-navigation-data" class="anchor" href="#adding-app-and-navigation-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding App and Navigation Data</h3>
+
+<p>Under most circumstances, the data that will need to be passed along to an app during a navigation will be contained in the URL itself, so that whether or not the app is actually installed on the device, users are taken to the correct content. Occasionally, however, apps will want to pass along data that is relevant for an app-to-app navigation, or will want to augment the App Link protocol with information that might be used by the app to adjust how the app should behave (e.g. showing a link back to the referring app).</p>
+
+<p>If you want to take advantage of these features, you can break apart the navigation process. First, you must have an App Link to which you wish to navigate:</p>
+
+<div class="highlight highlight-java"><pre><span class="k">new</span> <span class="nf">WebViewAppLinkResolver</span><span class="o">(</span><span class="n">getContext</span><span class="o">()).</span><span class="na">getAppLinkFromUrlInBackground</span><span class="o">(</span><span class="n">url</span><span class="o">).</span><span class="na">continueWith</span><span class="o">(</span>
+    <span class="k">new</span> <span class="n">Continuation</span><span class="o">&lt;</span><span class="n">AppLink</span><span class="o">,</span> <span class="n">AppLinkNavigation</span><span class="o">.</span><span class="na">NavigationType</span><span class="o">&gt;()</span> <span class="o">{</span>
+      <span class="nd">@Override</span>
+      <span class="kd">public</span> <span class="n">AppLinkNavigation</span><span class="o">.</span><span class="na">NavigationType</span> <span class="nf">then</span><span class="o">(</span><span class="n">Task</span><span class="o">&lt;</span><span class="n">AppLink</span><span class="o">&gt;</span> <span class="n">task</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">AppLink</span> <span class="n">link</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="na">getResult</span><span class="o">();</span>
+        <span class="k">return</span> <span class="kc">null</span><span class="o">;</span>
+      <span class="o">}</span>
+    <span class="o">});</span>
+</pre></div>
+
+<p>Then, you can build an App Link request with any additional data you would like and navigate:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">Bundle</span> <span class="n">extras</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Bundle</span><span class="o">();</span>
+<span class="n">extras</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"access_token"</span><span class="o">,</span> <span class="s">"t0kEn"</span><span class="o">);</span>
+<span class="n">Bundle</span> <span class="n">appLinkData</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Bundle</span><span class="o">();</span>
+<span class="n">appLinkData</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">"12345"</span><span class="o">);</span>
+<span class="n">AppLinkNavigation</span> <span class="n">navigation</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">AppLinkNavigation</span><span class="o">(</span><span class="n">link</span><span class="o">,</span> <span class="n">extras</span><span class="o">,</span> <span class="n">appLinkData</span><span class="o">);</span>
+<span class="k">return</span> <span class="n">navigation</span><span class="o">.</span><span class="na">navigate</span><span class="o">();</span>
+</pre></div>
+
+<h3>
+<a name="user-content-resolving-app-link-metadata" class="anchor" href="#resolving-app-link-metadata" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resolving App Link Metadata</h3>
+
+<p>Bolts allows for custom App Link resolution, which may be used as a performance optimization (e.g. caching the metadata) or as a mechanism to allow developers to use a centralized index for obtaining App Link metadata. A custom App Link resolver just needs to be able to take a URL and return an <code>AppLink</code> containing the ordered list of <code>AppLink.Target</code>s that are applicable for this device. Bolts provides one of these out of the box that performs this resolution on the device using a hidden <code>WebView</code>.</p>
+
+<p>You can use any resolver that implements the <code>AppLinkResolver</code> interface by using one of the overloads on <code>AppLinkNavigation</code>:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">AppLinkNavigation</span><span class="o">.</span><span class="na">navigateInBackground</span><span class="o">(</span><span class="n">url</span><span class="o">,</span> <span class="n">resolver</span><span class="o">);</span>
+</pre></div>
+
+<p>Alternatively, a you can swap out the default resolver to be used by the built-in APIs:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">AppLinkNavigation</span><span class="o">.</span><span class="na">setDefaultResolver</span><span class="o">(</span><span class="n">resolver</span><span class="o">);</span>
+<span class="n">AppLinkNavigation</span><span class="o">.</span><span class="na">navigateInBackground</span><span class="o">(</span><span class="n">url</span><span class="o">);</span>
+</pre></div>
+
+<h2>
+<a name="user-content-analytics" class="anchor" href="#analytics" aria-hidden="true"><span class="octicon octicon-link"></span></a>Analytics</h2>
+
+<p>Bolts introduces Measurement Event. App Links broadcast two Measurement Events to the application, which can be caught and integrated with existing analytics components in your application. (<a href="http://developer.android.com/tools/support-library/index.html">Android Support Library v4</a> is required in your runtime to enable Analytics.)</p>
+
+<ul class="task-list">
+<li> <code>al_nav_out</code> — Raised when your app sends out an App Links URL.</li>
+<li> <code>al_nav_in</code> — Raised when your app opens an incoming App Links URL or intent.</li>
+</ul><h3>
+<a name="user-content-listen-for-app-links-measurement-events" class="anchor" href="#listen-for-app-links-measurement-events" aria-hidden="true"><span class="octicon octicon-link"></span></a>Listen for App Links Measurement Events</h3>
+
+<p>There are other analytics tools that are integrated with Bolts' App Links events, but you can also listen for these events yourself:</p>
+
+<div class="highlight highlight-java"><pre><span class="n">LocalBroadcastManager</span> <span class="n">manager</span> <span class="o">=</span> <span class="n">LocalBroadcastManager</span><span class="o">.</span><span class="na">getInstance</span><span class="o">(</span><span class="n">context</span><span class="o">);</span>
+<span class="n">manager</span><span class="o">.</span><span class="na">registerReceiver</span><span class="o">(</span>
+    <span class="k">new</span> <span class="nf">BroadcastReceiver</span><span class="o">()</span> <span class="o">{</span>
+      <span class="nd">@Override</span>
+      <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onReceive</span><span class="o">(</span><span class="n">Context</span> <span class="n">context</span><span class="o">,</span> <span class="n">Intent</span> <span class="n">intent</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">String</span> <span class="n">eventName</span> <span class="o">=</span> <span class="n">intent</span><span class="o">.</span><span class="na">getStringExtra</span><span class="o">(</span><span class="n">MeasurementEvent</span><span class="o">.</span><span class="na">MEASUREMENT_EVENT_NAME_KEY</span><span class="o">);</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">eventName</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">MeasurementEvent</span><span class="o">.</span><span class="na">APP_LINK_NAVIGATE_IN_EVENT_NAME</span><span class="o">))</span> <span class="o">{</span>
+          <span class="n">Bundle</span> <span class="n">eventArgs</span> <span class="o">=</span> <span class="n">intent</span><span class="o">.</span><span class="na">getBundleExtra</span><span class="o">(</span><span class="n">MeasurementEvent</span><span class="o">.</span><span class="na">MEASUREMENT_EVENT_ARGS_KEY</span><span class="o">);</span>
+          <span class="n">String</span> <span class="n">targetURL</span> <span class="o">=</span> <span class="n">eventArgs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"targetURL"</span><span class="o">);</span>
+          <span class="n">String</span> <span class="n">referrerName</span> <span class="o">=</span> <span class="n">eventArgs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">"refererAppName"</span><span class="o">);</span>
+          <span class="c1">// Integrate to your logging/analytics component.</span>
+        <span class="o">}</span>
+      <span class="o">}</span>
+    <span class="o">},</span>
+    <span class="k">new</span> <span class="nf">IntentFilter</span><span class="o">(</span><span class="n">MeasurementEvent</span><span class="o">.</span><span class="na">MEASUREMENT_EVENT_NOTIFICATION_NAME</span><span class="o">)</span>
+<span class="o">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-app-links-event-fields" class="anchor" href="#app-links-event-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>App Links Event Fields</h3>
+
+<p>App Links Measurement Events sends additional information from App Links Intents in flattened string key value pairs. Here are some of the useful fields for the two events.</p>
+
+<ul class="task-list">
+<li>
+<p><code>al_nav_in</code></p>
+
+<ul class="task-list">
+<li>
+<code>inputURL</code>: the URL that opens the app.</li>
+<li>
+<code>inputURLScheme</code>: the scheme of <code>inputURL</code>.</li>
+<li>
+<code>refererURL</code>: the URL that the referrer app added into <code>al_applink_data</code>: <code>referer_app_link</code>.</li>
+<li>
+<code>refererAppName</code>: the app name that the referrer app added to <code>al_applink_data</code>: <code>referer_app_link</code>.</li>
+<li>
+<code>sourceApplication</code>: the bundle of referrer application.</li>
+<li>
+<code>targetURL</code>: the <code>target_url</code> field in <code>al_applink_data</code>.</li>
+<li>
+<code>version</code>: App Links API  version.</li>
+</ul>
+</li>
+<li>
+<p><code>al_nav_out</code></p>
+
+<ul class="task-list">
+<li>
+<code>outputURL</code>: the URL used to open the other app (or browser). If there is an eligible app to open, this will be the custom scheme url/intent in <code>al_applink_data</code>.</li>
+<li>
+<code>outputURLScheme</code>: the scheme of <code>outputURL</code>.</li>
+<li>
+<code>sourceURL</code>: the URL of the page hosting App Links meta tags.</li>
+<li>
+<code>sourceURLHost</code>: the hostname of <code>sourceURL</code>.</li>
+<li>
+<code>success</code>: <code>“1”</code> to indicate success in opening the App Link in another app or browser; <code>“0”</code> to indicate failure to open the App Link.</li>
+<li>
+<code>type</code>: <code>“app”</code> for open in app, <code>“web”</code> for open in browser; <code>“fail”</code> when the success field is <code>“0”</code>.</li>
+<li>
+<code>version</code>: App Links API version.</li>
+</ul>
+</li>
+</ul></article></div>

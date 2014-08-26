@@ -1,0 +1,221 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-sandstorm" class="anchor" href="#sandstorm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sandstorm</h1>
+
+<ul class="task-list">
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#caveats">Caveats</a></li>
+<li><a href="#installing-the-easy-way">Easy Install</a></li>
+<li><a href="#installing-from-source">Hard Install</a></li>
+<li><a href="#how-it-works">How it Works</a></li>
+<li><a href="#how-to-port-apps">How to Port Apps</a></li>
+<li><a href="#the-future">The Future</a></li>
+<li><a href="#contribute">Contribute</a></li>
+</ul><h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>See <a href="https://sandstorm.io">sandstorm.io</a></p>
+
+<p><a href="https://demo.sandstorm.io">Try the demo</a></p>
+
+<p><a href="http://igg.me/at/sandstorm">Fund us on Indiegogo</a></p>
+
+<h2>
+<a name="user-content-caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
+
+<h3>
+<a name="user-content-warning-warning" class="anchor" href="#warning-warning" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>WARNING! WARNING!</em>
+</h3>
+
+<p>Sandstorm is in the very early stages of development.  We want developers to start playing with it,
+but keep some things in mind:</p>
+
+<ul class="task-list">
+<li>At present, Sandstorm's sandboxing is incomplete.  Malicious code probably can escape.  Malicious
+code <em>definitely can</em> DoS your server by consuming all available resources.</li>
+<li>The sharing model is very primitive right now.  Simply copy/paste an app instance link to share
+it with others.</li>
+<li>There are no resource quotas yet. It's probably a good idea not to invite anyone who might abuse
+your server.</li>
+<li>The UI needs work.</li>
+<li>Apps can't do a whole lot yet, since we don't have many APIs to interact with the outside world.
+See our <a href="#the-future">future plans</a> and
+<a href="https://groups.google.com/group/sandstorm-dev">let us know</a> what we should build next!</li>
+<li>The API (what there is of it) is not final.  It could change in a way that breaks existing apps.</li>
+</ul><h2>
+<a name="user-content-installing-the-easy-way" class="anchor" href="#installing-the-easy-way" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing the Easy Way</h2>
+
+<p>To install on your own Linux machine, just do:</p>
+
+<pre><code>curl https://install.sandstorm.io | bash
+</code></pre>
+
+<p>Or, if you don't like piping directly to shell, download first:</p>
+
+<pre><code>curl https://install.sandstorm.io &gt; install.sh
+bash install.sh
+</code></pre>
+
+<p>This will install a self-contained and (optionally) auto-updating Sandstorm bundle. It won't touch
+anything on your system other than your chosen installation directory and (optional) init script.</p>
+
+<p>Please note that Sandstorm requires root access to set up the sandbox. If this bothers you,
+consider installing it in its own VM. Note: Sandstorm currently does not work under LXC /
+Docker, because it uses the same kernel features, and making them nest requires kernel features
+that only recently became available. We intend to fix this eventually.</p>
+
+<h3>
+<a name="user-content-tips" class="anchor" href="#tips" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tips</h3>
+
+<ul class="task-list">
+<li>Sandstorm serves the front-end on the port you choose, but serves each app on a different port,
+starting from 7000 and counting up (the more files you have open at once, the more ports are
+used).  If there is a firewall or NAT between you and the server, you'll need to open these ports.</li>
+<li>If you want to run on port 80, we recommend setting up an <a href="http://nginx.org/">nginx</a> reverse
+proxy rather than trying to get Node to open port 80 directly.  Make sure to configure
+<a href="http://nginx.org/en/docs/http/websocket.html">WebSocket forwarding</a>, which requires nginx
+1.3.13 or better.</li>
+<li>If you want SSL, then you will definitely need an nginx proxy (or something equivalent). You will
+further need to use a wildcard certificate, and wildcard DNS. In SSL mode, Sandstorm switches
+from using ports for each app to using different host names, formed by adding <code>-$PORT</code> to the
+first component of the shell's host name. For example, for <code>alpha.sandstorm.io</code>, apps are hosted
+from <code>alpha-7000.sandstorm.io</code>, <code>alpha-7001.sandstorm.io</code>, etc. You will need to configure nginx
+to forward each of these host names to the corresponding local port number; this can be done
+easily with a regex rule.</li>
+</ul><p>For reference, <a href="nginx-example.conf">nginx-example.conf</a> contains the http server part of nginx
+config used by Sandstorm Alpha.</p>
+
+<h2>
+<a name="user-content-installing-from-source" class="anchor" href="#installing-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing from Source</h2>
+
+<h3>
+<a name="user-content-prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prerequisites</h3>
+
+<p>Please install the following:</p>
+
+<ul class="task-list">
+<li>Linux, with reasonably new kernel version.</li>
+<li>
+<code>libcap</code> with headers (e.g. <code>libcap-dev</code> on Debian/Ubuntu)</li>
+<li>
+<code>libseccomp</code> with headers (e.g. <code>libseccomp-dev</code> on Debian/Ubuntu)</li>
+<li>
+<code>pkg-config</code> (make sure this is installed <em>before</em> building libsodium)</li>
+<li>
+<code>XZ</code> for installing packages (<code>xz-utils</code> on Debian/Ubuntu)</li>
+<li>
+<a href="http://clang.llvm.org/">Clang compiler</a> version 3.4 or better. WARNING: Ubuntu Saucy's
+<code>clang-3.4</code> package is NOT Clang 3.4! It's actually some random cut from trunk between 3.3 and
+3.4, and it's not new enough.  Try <a href="http://llvm.org/apt/">the official packages from
+LLVM</a> instead.</li>
+<li>
+<a href="http://capnproto.org">Cap'n Proto</a> from git (do not use a release version -- Sandstorm and Cap'n
+Proto are being developed together, so Sandstorm often uses brand-new Cap'n Proto features)</li>
+<li>
+<a href="https://github.com/jedisct1/libsodium">libsodium</a> latest release</li>
+<li><a href="http://meteor.com">Meteor</a></li>
+<li><a href="https://github.com/oortcloud/meteorite">Meteorite</a></li>
+<li>
+<a href="http://npmjs.org">npm</a> module <code>jsontool</code>
+</li>
+<li>ImageMagick</li>
+</ul><h3>
+<a name="user-content-building--installing-the-binaries" class="anchor" href="#building--installing-the-binaries" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building / installing the binaries</h3>
+
+<p>Build the Sandstorm bundle:</p>
+
+<pre><code>make -j
+</code></pre>
+
+<p>Install it:</p>
+
+<pre><code>make install
+</code></pre>
+
+<p>This installs your locally-built bundle just as would get if you had installed using
+<code>https://install.sandstorm.io</code>. You will be asked various configuration questions. If you intend
+to hack on Sandstorm itself, you should choose to run the server to run under your local user
+account (the default is to create a separate user called <code>sandstorm</code>).</p>
+
+<p>If Sandstorm is already installed, you can update to your newly-built version like so:</p>
+
+<pre><code>make update
+</code></pre>
+
+<p>Note that this only works if you installed Sandstorm to run at startup. Otherwise, you will
+have to manually do:</p>
+
+<pre><code>/path/to/sandstorm update $PWD/sandstorm-0.tar.xz
+</code></pre>
+
+<h3>
+<a name="user-content-hacking-on-the-shell" class="anchor" href="#hacking-on-the-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hacking on the shell</h3>
+
+<p>You can run the shell (front-end) in dev mode so that you can modify it without rebuilding the
+whole bundle for every change. Just do:</p>
+
+<pre><code>cd shell
+sudo service sandstorm stop-fe
+./run-dev.sh
+</code></pre>
+
+<p>Now connect to your local server like you normally would.</p>
+
+<p>Later, when you are done hacking, you may want to restart the installed front-end:</p>
+
+<pre><code>sudo service sandstorm start-fe
+</code></pre>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How It Works</h2>
+
+<ul class="task-list">
+<li>Sandstorm's server-side sandboxing is based on the same underlying Linux kernel features as LXC and Docker.  We use the system calls directly for finer-grained control.</li>
+<li>(Planned) The kernel attack surface is reduced using seccomp-bpf to block and/or virtualize system calls.</li>
+<li>procfs, sysfs, etc. are not mounted in the sandbox, and only a minimal set of devices are available.</li>
+<li>(Planned) On the client side, apps run in a sandboxed iframe employing the <code>Content-Security-Policy</code> header to prevent them from sending any kind of network communication to any server other than their own.</li>
+<li>All communication between the sandboxed server and the outside world takes place through a single <a href="http://capnproto.org">Cap'n Proto</a> RPC socket which the app's root process receives as file descriptor #3.  We've provided a program, <code>legacy-bridge</code>, which can receive HTTP-over-RPC requests on this socket and proxy them to a regular HTTP server running in the sandbox.</li>
+<li>Every object (e.g., each document) that you create with an application runs in a separate isolated sandbox.  We sandbox per-object rather than per-app so that it is easy and safe to share one object without also sharing everything created using the same app.</li>
+<li>An application package (<code>.spk</code> file) is essentially an archive containing an entire chroot environment in which the application runs.</li>
+<li>The application runs with the contents of its package mounted read-only, so that multiple instances of the same app can share disk space for the package.</li>
+<li>The application may store persistent state in the <code>/var</code> directory.</li>
+<li>App servers are aggressively killed off as soon as the user closes the browser tab, then restarted when the user returns later.</li>
+<li>Packages are cryptographically signed.  Packages signed with the same key represent versions of the same app, and are thus allowed to replace older versions -- although the user must still confirm these upgrades.</li>
+</ul><h2>
+<a name="user-content-how-to-port-apps" class="anchor" href="#how-to-port-apps" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to Port Apps</h2>
+
+<p>See <a href="https://github.com/sandstorm-io/sandstorm/wiki/Porting-Guide">the porting guide</a>.</p>
+
+<h2>
+<a name="user-content-the-future" class="anchor" href="#the-future" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Future</h2>
+
+<p>As of May 2014, sandboxed apps can receive and respond to HTTP and WebSocket requests from users
+of the Sandstorm shell interface. That's it. This is enough for document-editor-type apps, but
+not anything that needs to interact with the world.</p>
+
+<p>However, we want to allow apps to do many more things in the future:</p>
+
+<ul class="task-list">
+<li>Export <a href="http://capnproto.org">Cap'n Proto</a> RPC APIs which can then be used from other apps, with permissions mediated through a <a href="http://plash.beasts.org/powerbox.html">powerbox</a>-style user interface.</li>
+<li>Export external RESTful APIs (to non-Sandstorm clients) with OAuth handled by the platform.</li>
+<li>Publish static content under a domain name -- accessible to the whole world without going through the sandstorm shell -- as a way to maintain a web site / blog using a Sandstorm app.</li>
+<li>Send and receive e-mail, XMPP, etc.</li>
+<li>Make outbound HTTP requests (to servers approved by the user), with OAuth credentials managed by the platform.</li>
+<li>Specify multiple "permission levels" which can be used with sharing, so that a user can e.g. share read-only access to a document.</li>
+<li>Publish static assets to be served directly by the Sandstorm infrastructure so that these requests need not pass through the app's sandbox.</li>
+<li>Integrate securely with desktop and mobile client apps -- imagine installing a Sandstorm app and having the mobile client installed automatically, with permission only to talk to its server.</li>
+</ul><p>We hope that this will enable apps like:</p>
+
+<ul class="task-list">
+<li>E-mail / chat / communications.</li>
+<li>Federated social networks.</li>
+<li>Documents / spreedsheets / etc.</li>
+<li>Blogging.</li>
+<li>RSS readers.</li>
+<li>Media storage and playback.</li>
+<li>Most importantly:  Things that we don't expect!</li>
+</ul><p>Have a great idea for an app? <a href="https://groups.google.com/group/sandstorm-dev">Share it with us</a>, and we'll help you figure out how to make it fit in Sandstorm.</p>
+
+<h2>
+<a name="user-content-contribute" class="anchor" href="#contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribute</h2>
+
+<p>Want to help?  Get on the <a href="https://groups.google.com/group/sandstorm-dev">discussion group</a> and let us know!</p></article></div>

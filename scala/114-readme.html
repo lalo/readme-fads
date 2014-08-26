@@ -1,0 +1,122 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-sbt-dependency-graph" class="anchor" href="#sbt-dependency-graph" aria-hidden="true"><span class="octicon octicon-link"></span></a>sbt-dependency-graph</h1>
+
+<p>Visualize your project's dependencies.</p>
+
+<h2>
+<a name="user-content-how-to-use" class="anchor" href="#how-to-use" aria-hidden="true"><span class="octicon octicon-link"></span></a>How To Use</h2>
+
+<p>For sbt 0.11/0.12/0.13, add sbt-dependency-graph as a dependency in <code>project/plugins.sbt</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">addSbtPlugin</span><span class="o">(</span><span class="s">"net.virtual-void"</span> <span class="o">%</span> <span class="s">"sbt-dependency-graph"</span> <span class="o">%</span> <span class="s">"0.7.4"</span><span class="o">)</span>
+</pre></div>
+
+<p>Then, add the following to your <code>&lt;project-root&gt;/build.sbt</code> (that's not <code>project/build.sbt</code>!) as a standalone line:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">net</span><span class="o">.</span><span class="n">virtualvoid</span><span class="o">.</span><span class="n">sbt</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="nc">Plugin</span><span class="o">.</span><span class="n">graphSettings</span>
+</pre></div>
+
+<p>OR, alternatively, if you use the full configuration, i.e. you define your build definition in <code>project/build.scala</code>, for example,
+to define a multi-module project, you should add</p>
+
+<div class="highlight highlight-scala"><pre><span class="o">.</span><span class="n">settings</span><span class="o">(</span><span class="n">net</span><span class="o">.</span><span class="n">virtualvoid</span><span class="o">.</span><span class="n">sbt</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="nc">Plugin</span><span class="o">.</span><span class="n">graphSettings</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span>
+</pre></div>
+
+<p>to each of the project definitions for which you want to use the plugin. The definition of your project should then
+look approximately this way:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">MyBuild</span> <span class="k">extends</span> <span class="nc">Build</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">proj</span> <span class="k">=</span>
+    <span class="nc">Project</span><span class="o">(</span><span class="s">"my-project"</span><span class="o">,</span> <span class="n">file</span><span class="o">(</span><span class="s">"base"</span><span class="o">))</span>
+      <span class="o">.</span><span class="n">settings</span><span class="o">(</span><span class="n">net</span><span class="o">.</span><span class="n">virtualvoid</span><span class="o">.</span><span class="n">sbt</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="nc">Plugin</span><span class="o">.</span><span class="n">graphSettings</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Check out the <a href="https://gist.github.com/3106492">example project</a> for a skeleton build setup.</p>
+
+<h2>
+<a name="user-content-tasks" class="anchor" href="#tasks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tasks</h2>
+
+<ul class="task-list">
+<li>
+<code>dependency-graph</code>: Shows an ASCII graph of the project's dependencies on the sbt console</li>
+<li>
+<code>dependency-graph-ml</code>: Generates a .graphml file with the project's dependencies to <code>target/dependencies-&lt;config&gt;.graphml</code>.
+Use e.g. <a href="http://www.yworks.com/en/products_yed_about.html">yEd</a> to format the graph to your needs.</li>
+<li>
+<code>dependency-dot</code>: Generates a .dot file with the project's dependencies to <code>target/dependencies-&lt;config&gt;.dot</code>.
+Use <a href="http://www.graphviz.org/">graphviz</a> to render it to your preferred graphic format.</li>
+<li>
+<code>dependency-tree</code>: Shows an ASCII tree representation of the project's dependencies</li>
+<li>
+<code>what-depends-on &lt;organization&gt; &lt;module&gt; &lt;revision&gt;</code>: Find out what depends on an artifact. Shows a reverse dependency
+tree for the selected module.</li>
+<li>
+<code>dependency-license-info</code>: show dependencies grouped by declared license</li>
+<li>
+<code>ivy-report</code>: let's ivy generate the resolution report for you project. Use
+<code>show ivy-report</code> for the filename of the generated report</li>
+</ul><p>All tasks can be scoped to a configuration to get the report for a specific configuration. <code>test:dependency-graph</code>,
+for example, prints the dependencies in the <code>test</code> configuration. If you don't specify any configuration, <code>compile</code> is
+assumed as usual.</p>
+
+<h2>
+<a name="user-content-configuration-settings" class="anchor" href="#configuration-settings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration settings</h2>
+
+<ul class="task-list">
+<li>
+<code>filterScalaLibrary</code>: Defines if the scala library should be excluded from the output of the dependency-* functions.
+If <code>true</code>, instead of showing the dependency <code>"[S]"</code> is appended to the artifact name. Set to <code>false</code> if
+you want the scala-library dependency to appear in the output. (default: true)</li>
+<li>
+<code>dependencyGraphMLFile</code>: a setting which allows configuring the output path of <code>dependency-graph-ml</code>.</li>
+<li>
+<code>dependencyDotFile</code>: a setting which allows configuring the output path of <code>dependency-dot</code>.</li>
+<li>
+<code>dependencyDotHeader</code>: a setting to customize the header of the dot file (e.g. to set your preferred node shapes).</li>
+<li>
+<code>dependencyDotNodeLabel</code>: defines the format of a node label
+(default set to <code>[organisation]&lt;BR/&gt;&lt;B&gt;[name]&lt;/B&gt;&lt;BR/&gt;[version]</code>)</li>
+</ul><p>E.g. in <code>build.sbt</code> you can change configuration settings like this:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">filterScalaLibrary</span> <span class="o">:=</span> <span class="kc">false</span> <span class="c1">// include scala library in output</span>
+
+<span class="n">dependencyDotFile</span> <span class="o">:=</span> <span class="n">file</span><span class="o">(</span><span class="s">"dependencies.dot"</span><span class="o">)</span> <span class="c1">//render dot file to `./dependencies.dot`</span>
+</pre></div>
+
+<h2>
+<a name="user-content-standalone-usage" class="anchor" href="#standalone-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Standalone usage</h2>
+
+<p>You can use the project without sbt as well by either depending on the library and calling
+<code>IvyGraphMLDependencies.saveAsGraphML(IvyGraphMLDependencies.graph(reportFile), outputFile)</code> or by just getting the binary
+and calling it like <code>scala sbt-dependency-graph-0.7.4.jar &lt;ivy-report-xml-path&gt; &lt;target-path&gt;</code>.</p>
+
+<h2>
+<a name="user-content-inner-workings" class="anchor" href="#inner-workings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inner Workings</h2>
+
+<p>sbt/Ivy's <code>update</code> task create ivy-report xml-files inside <code>.ivy2/cache</code> (in sbt 0.12.1:
+<code>&lt;project-dir&gt;/target/resolution-cache/reports/&lt;project-id&gt;</code>). You can
+just open them with your browser to look at the dependency report for your project.
+This project takes the report xml of your project and creates a graphml file out of it. (BTW,
+ivy can create graphml files itself, but since I didn't want to spend to much time getting
+sbt to call into Ivy to create graphs, I went with the easy way here)</p>
+
+<h2>
+<a name="user-content-known-issues" class="anchor" href="#known-issues" aria-hidden="true"><span class="octicon octicon-link"></span></a>Known issues</h2>
+
+<ul class="task-list">
+<li>#19: There's an unfixed bug with graph generation for particular layouts. Workaround:
+Use <code>dependency-tree</code> instead of <code>dependency-graph</code>.</li>
+<li>#12: Excluded dependencies will be shown in the graph in sbt &lt; 0.12, works with later versions</li>
+</ul><h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Credits</h2>
+
+<ul class="task-list">
+<li>Matt Russell (@mdr) for contributing the ASCII graph layout.</li>
+<li>berleon (@berleon) for contributing rendering to dot.</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright (c) 2011, 2012 Johannes Rudolph</p>
+
+<p>Published under the <a href="http://en.wikipedia.org/wiki/Apache_license">Apache License 2.0</a>.</p></article></div>

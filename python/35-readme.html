@@ -1,0 +1,399 @@
+<div class="announce instapaper_body rst" data-path="README.rst" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-celery---distributed-task-queue" class="anchor" href="#celery---distributed-task-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>celery - Distributed Task Queue</h1>
+<a href="https://camo.githubusercontent.com/5f14c92c47bdec6f6f742c8b3bb55a434a344d98/687474703a2f2f636c6f75642e6769746875622e636f6d2f646f776e6c6f6164732f63656c6572792f63656c6572792f63656c6572795f3132382e706e67" target="_blank"><img alt="http://cloud.github.com/downloads/celery/celery/celery_128.png" src="https://camo.githubusercontent.com/5f14c92c47bdec6f6f742c8b3bb55a434a344d98/687474703a2f2f636c6f75642e6769746875622e636f6d2f646f776e6c6f6164732f63656c6572792f63656c6572792f63656c6572795f3132382e706e67" data-canonical-src="http://cloud.github.com/downloads/celery/celery/celery_128.png" style="max-width:100%;"></a><table frame="void" rules="none"><tbody valign="top">
+<tr>
+<th>Version:</th>
+<td>3.2.0a1 (Cipater)</td>
+</tr>
+<tr>
+<th>Web:</th>
+<td><a href="http://celeryproject.org/">http://celeryproject.org/</a></td>
+</tr>
+<tr>
+<th>Download:</th>
+<td><a href="http://pypi.python.org/pypi/celery/">http://pypi.python.org/pypi/celery/</a></td>
+</tr>
+<tr>
+<th>Source:</th>
+<td><a href="http://github.com/celery/celery/">http://github.com/celery/celery/</a></td>
+</tr>
+<tr>
+<th>Keywords:</th>
+<td>task queue, job queue, asynchronous, async, rabbitmq, amqp, redis,
+python, webhooks, queue, distributed</td>
+</tr>
+</tbody></table><p>--</p>
+<h2>
+<a name="user-content-what-is-a-task-queue" class="anchor" href="#what-is-a-task-queue" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is a Task Queue?</h2>
+<p>Task queues are used as a mechanism to distribute work across threads or
+machines.</p>
+<p>A task queue's input is a unit of work, called a task, dedicated worker
+processes then constantly monitor the queue for new work to perform.</p>
+<p>Celery communicates via messages, usually using a broker
+to mediate between clients and workers.  To initiate a task a client puts a
+message on the queue, the broker then delivers the message to a worker.</p>
+<p>A Celery system can consist of multiple workers and brokers, giving way
+to high availability and horizontal scaling.</p>
+<p>Celery is a library written in Python, but the protocol can be implemented in
+any language.  So far there's <a href="http://leapfrogdevelopment.github.com/rcelery/">RCelery</a> for the Ruby programming language, and a
+PHP client, but language interoperability can also be achieved
+by using webhooks.</p>
+<h2>
+<a name="user-content-what-do-i-need" class="anchor" href="#what-do-i-need" aria-hidden="true"><span class="octicon octicon-link"></span></a>What do I need?</h2>
+<p>Celery version 3.0 runs on,</p>
+<ul>
+<li>Python (2.6, 2.7, 3.3, 3.4)</li>
+<li>PyPy (1.8, 1.9)</li>
+<li>Jython (2.5, 2.7).</li>
+</ul><p>This is the last version to support Python 2.5,
+and from Celery 3.1, Python 2.6 or later is required.
+The last version to support Python 2.4 was Celery series 2.2.</p>
+<p><em>Celery</em> is usually used with a message broker to send and receive messages.
+The RabbitMQ, Redis transports are feature complete,
+but there's also experimental support for a myriad of other solutions, including
+using SQLite for local development.</p>
+<p><em>Celery</em> can run on a single machine, on multiple machines, or even
+across datacenters.</p>
+<h2>
+<a name="user-content-get-started" class="anchor" href="#get-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Get Started</h2>
+<p>If this is the first time you're trying to use Celery, or you are
+new to Celery 3.0 coming from previous versions then you should read our
+getting started tutorials:</p>
+<ul>
+<li>
+<p><a href="http://docs.celeryproject.org/en/latest/getting-started/first-steps-with-celery.html">First steps with Celery</a></p>
+<blockquote>
+<p>Tutorial teaching you the bare minimum needed to get started with Celery.</p>
+</blockquote>
+</li>
+<li>
+<p><a href="http://docs.celeryproject.org/en/latest/getting-started/next-steps.html">Next steps</a></p>
+<blockquote>
+<p>A more complete overview, showing more features.</p>
+</blockquote>
+</li>
+</ul><h2>
+<a name="user-content-celery-is" class="anchor" href="#celery-is" aria-hidden="true"><span class="octicon octicon-link"></span></a>Celery is...</h2>
+<ul>
+<li>
+<p><strong>Simple</strong></p>
+<blockquote>
+<p>Celery is easy to use and maintain, and does <em>not need configuration files</em>.</p>
+<p>It has an active, friendly community you can talk to for support,
+including a <a href="#mailing-list">mailing-list</a> and and an IRC channel.</p>
+<p>Here's one of the simplest applications you can make:</p>
+<pre>
+from celery import Celery
+
+app = Celery('hello', broker='amqp://guest@localhost//')
+
+@app.task
+def hello():
+    return 'hello world'
+</pre>
+</blockquote>
+</li>
+<li>
+<p><strong>Highly Available</strong></p>
+<blockquote>
+<p>Workers and clients will automatically retry in the event
+of connection loss or failure, and some brokers support
+HA in way of <em>Master/Master</em> or <em>Master/Slave</em> replication.</p>
+</blockquote>
+</li>
+<li>
+<p><strong>Fast</strong></p>
+<blockquote>
+<p>A single Celery process can process millions of tasks a minute,
+with sub-millisecond round-trip latency (using RabbitMQ,
+py-librabbitmq, and optimized settings).</p>
+</blockquote>
+</li>
+<li>
+<p><strong>Flexible</strong></p>
+<blockquote>
+<p>Almost every part of <em>Celery</em> can be extended or used on its own,
+Custom pool implementations, serializers, compression schemes, logging,
+schedulers, consumers, producers, autoscalers, broker transports and much more.</p>
+</blockquote>
+</li>
+</ul><h2>
+<a name="user-content-it-supports" class="anchor" href="#it-supports" aria-hidden="true"><span class="octicon octicon-link"></span></a>It supports...</h2>
+<blockquote>
+<ul>
+<li>
+<p><strong>Message Transports</strong></p>
+<blockquote>
+<ul>
+<li>
+<a href="http://rabbitmq.com">RabbitMQ</a>, <a href="http://redis.io">Redis</a>,</li>
+<li>
+<a href="http://mongodb.org">MongoDB</a> (experimental), Amazon SQS (experimental),</li>
+<li>
+<a href="http://couchdb.apache.org">CouchDB</a> (experimental), <a href="http://sqlalchemy.org">SQLAlchemy</a> (experimental),</li>
+<li>Django ORM (experimental), <a href="http://iron.io">IronMQ</a>
+</li>
+<li>and more...</li>
+</ul>
+</blockquote>
+</li>
+<li>
+<p><strong>Concurrency</strong></p>
+<blockquote>
+<ul>
+<li>Prefork, <a href="http://eventlet.net/">Eventlet</a>, <a href="http://gevent.org/">gevent</a>, threads/single threaded</li>
+</ul>
+</blockquote>
+</li>
+<li>
+<p><strong>Result Stores</strong></p>
+<blockquote>
+<ul>
+<li>AMQP, Redis</li>
+<li>memcached, MongoDB</li>
+<li>SQLAlchemy, Django ORM</li>
+<li>Apache Cassandra, IronCache</li>
+</ul>
+</blockquote>
+</li>
+<li>
+<p><strong>Serialization</strong></p>
+<blockquote>
+<ul>
+<li>
+<em>pickle</em>, <em>json</em>, <em>yaml</em>, <em>msgpack</em>.</li>
+<li>
+<em>zlib</em>, <em>bzip2</em> compression.</li>
+<li>Cryptographic message signing.</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</blockquote>
+<h2>
+<a name="user-content-framework-integration" class="anchor" href="#framework-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Framework Integration</h2>
+<p>Celery is easy to integrate with web frameworks, some of which even have
+integration packages:</p>
+<blockquote>
+<table><tbody valign="top">
+<tr>
+<td><a href="http://djangoproject.com/">Django</a></td>
+<td>not needed</td>
+</tr>
+<tr>
+<td><a href="http://docs.pylonsproject.org/en/latest/docs/pyramid.html">Pyramid</a></td>
+<td><a href="http://pypi.python.org/pypi/pyramid_celery/">pyramid_celery</a></td>
+</tr>
+<tr>
+<td><a href="http://pylonshq.com/">Pylons</a></td>
+<td><a href="http://pypi.python.org/pypi/celery-pylons">celery-pylons</a></td>
+</tr>
+<tr>
+<td><a href="http://flask.pocoo.org/">Flask</a></td>
+<td>not needed</td>
+</tr>
+<tr>
+<td><a href="http://web2py.com/">web2py</a></td>
+<td><a href="http://code.google.com/p/web2py-celery/">web2py-celery</a></td>
+</tr>
+<tr>
+<td><a href="http://www.tornadoweb.org/">Tornado</a></td>
+<td><a href="http://github.com/mher/tornado-celery/">tornado-celery</a></td>
+</tr>
+</tbody></table>
+</blockquote>
+<p>The integration packages are not strictly necessary, but they can make
+development easier, and sometimes they add important hooks like closing
+database connections at <tt>fork</tt>.</p>
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+<p>The <a href="http://docs.celeryproject.org/en/latest/">latest documentation</a> with user guides, tutorials and API reference
+is hosted at Read The Docs.</p>
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+<p>You can install Celery either via the Python Package Index (PyPI)
+or from source.</p>
+<p>To install using pip,:</p>
+<pre>
+$ pip install -U Celery
+</pre>
+<p>To install using easy_install,:</p>
+<pre>
+$ easy_install -U Celery
+</pre>
+<h3>
+<a name="user-content-bundles" class="anchor" href="#bundles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bundles</h3>
+<p>Celery also defines a group of bundles that can be used
+to install Celery and the dependencies for a given feature.</p>
+<p>You can specify these in your requirements or on the <tt>pip</tt> comand-line
+by using brackets.  Multiple bundles can be specified by separating them by
+commas.</p>
+<pre>
+$ pip install "celery[librabbitmq]"
+
+$ pip install "celery[librabbitmq,redis,auth,msgpack]"
+</pre>
+<p>The following bundles are available:</p>
+<h4>
+<a name="user-content-serializers" class="anchor" href="#serializers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializers</h4>
+<table frame="void" rules="none"><tbody valign="top">
+<tr>
+<th>celery[auth]:</th>
+<td>for using the auth serializer.</td>
+</tr>
+<tr><th colspan="2">celery[msgpack]:</th></tr>
+<tr>
+<td> </td>
+<td>for using the msgpack serializer.</td>
+</tr>
+<tr>
+<th>celery[yaml]:</th>
+<td>for using the yaml serializer.</td>
+</tr>
+</tbody></table><h4>
+<a name="user-content-concurrency" class="anchor" href="#concurrency" aria-hidden="true"><span class="octicon octicon-link"></span></a>Concurrency</h4>
+<table frame="void" rules="none"><tbody valign="top">
+<tr><th colspan="2">celery[eventlet]:</th></tr>
+<tr>
+<td> </td>
+<td>for using the eventlet pool.</td>
+</tr>
+<tr>
+<th>celery[gevent]:</th>
+<td>for using the gevent pool.</td>
+</tr>
+<tr><th colspan="2">celery[threads]:</th></tr>
+<tr>
+<td> </td>
+<td>for using the thread pool.</td>
+</tr>
+</tbody></table><h4>
+<a name="user-content-transports-and-backends" class="anchor" href="#transports-and-backends" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transports and Backends</h4>
+<table frame="void" rules="none"><tbody valign="top">
+<tr><th colspan="2">celery[librabbitmq]:</th></tr>
+<tr>
+<td> </td>
+<td>for using the librabbitmq C library.</td>
+</tr>
+<tr>
+<th>celery[redis]:</th>
+<td>for using Redis as a message transport or as a result backend.</td>
+</tr>
+<tr><th colspan="2">celery[mongodb]:</th></tr>
+<tr>
+<td> </td>
+<td>for using MongoDB as a message transport (<em>experimental</em>),
+or as a result backend (<em>supported</em>).</td>
+</tr>
+<tr>
+<th>celery[sqs]:</th>
+<td>for using Amazon SQS as a message transport (<em>experimental</em>).</td>
+</tr>
+<tr><th colspan="2">celery[memcache]:</th></tr>
+<tr>
+<td> </td>
+<td>for using memcached as a result backend.</td>
+</tr>
+<tr><th colspan="2">celery[cassandra]:</th></tr>
+<tr>
+<td> </td>
+<td>for using Apache Cassandra as a result backend.</td>
+</tr>
+<tr><th colspan="2">celery[couchdb]:</th></tr>
+<tr>
+<td> </td>
+<td>for using CouchDB as a message transport (<em>experimental</em>).</td>
+</tr>
+<tr><th colspan="2">celery[couchbase]:</th></tr>
+<tr>
+<td> </td>
+<td>for using CouchBase as a result backend.</td>
+</tr>
+<tr><th colspan="2">celery[beanstalk]:</th></tr>
+<tr>
+<td> </td>
+<td>for using Beanstalk as a message transport (<em>experimental</em>).</td>
+</tr>
+<tr><th colspan="2">celery[zookeeper]:</th></tr>
+<tr>
+<td> </td>
+<td>for using Zookeeper as a message transport.</td>
+</tr>
+<tr>
+<th>celery[zeromq]:</th>
+<td>for using ZeroMQ as a message transport (<em>experimental</em>).</td>
+</tr>
+<tr><th colspan="2">celery[sqlalchemy]:</th></tr>
+<tr>
+<td> </td>
+<td>for using SQLAlchemy as a message transport (<em>experimental</em>),
+or as a result backend (<em>supported</em>).</td>
+</tr>
+<tr>
+<th>celery[pyro]:</th>
+<td>for using the Pyro4 message transport (<em>experimental</em>).</td>
+</tr>
+<tr>
+<th>celery[slmq]:</th>
+<td>for using the SoftLayer Message Queue transport (<em>experimental</em>).</td>
+</tr>
+</tbody></table><h3>
+<a name="user-content-downloading-and-installing-from-source" class="anchor" href="#downloading-and-installing-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Downloading and installing from source</h3>
+<p>Download the latest version of Celery from
+<a href="http://pypi.python.org/pypi/celery/">http://pypi.python.org/pypi/celery/</a></p>
+<p>You can install it by doing the following,:</p>
+<pre>
+$ tar xvfz celery-0.0.0.tar.gz
+$ cd celery-0.0.0
+$ python setup.py build
+# python setup.py install
+</pre>
+<p>The last command must be executed as a privileged user if
+you are not currently using a virtualenv.</p>
+<h3>
+<a name="user-content-using-the-development-version" class="anchor" href="#using-the-development-version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the development version</h3>
+<h4>
+<a name="user-content-with-pip" class="anchor" href="#with-pip" aria-hidden="true"><span class="octicon octicon-link"></span></a>With pip</h4>
+<p>The Celery development version also requires the development
+versions of <tt>kombu</tt>, <tt>amqp</tt> and <tt>billiard</tt>.</p>
+<p>You can install the latest snapshot of these using the following
+pip commands:</p>
+<pre>
+$ pip install https://github.com/celery/celery/zipball/master#egg=celery
+$ pip install https://github.com/celery/billiard/zipball/master#egg=billiard
+$ pip install https://github.com/celery/py-amqp/zipball/master#egg=amqp
+$ pip install https://github.com/celery/kombu/zipball/master#egg=kombu
+</pre>
+<h4>
+<a name="user-content-with-git" class="anchor" href="#with-git" aria-hidden="true"><span class="octicon octicon-link"></span></a>With git</h4>
+<p>Please the Contributing section.</p>
+<h2>
+<a name="user-content-getting-help" class="anchor" href="#getting-help" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Help</h2>
+<h3>
+<a name="user-content-mailing-list" class="anchor" href="#mailing-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mailing list</h3>
+<p>For discussions about the usage, development, and future of celery,
+please join the <a href="http://groups.google.com/group/celery-users/">celery-users</a> mailing list.</p>
+<h3>
+<a name="user-content-irc" class="anchor" href="#irc" aria-hidden="true"><span class="octicon octicon-link"></span></a>IRC</h3>
+<p>Come chat with us on IRC. The <strong>#celery</strong> channel is located at the <a href="http://freenode.net">Freenode</a>
+network.</p>
+<h2>
+<a name="user-content-bug-tracker" class="anchor" href="#bug-tracker" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bug tracker</h2>
+<p>If you have any suggestions, bug reports or annoyances please report them
+to our issue tracker at <a href="http://github.com/celery/celery/issues/">http://github.com/celery/celery/issues/</a></p>
+<h2>
+<a name="user-content-wiki" class="anchor" href="#wiki" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wiki</h2>
+<p><a href="http://wiki.github.com/celery/celery/">http://wiki.github.com/celery/celery/</a></p>
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+<p>Development of celery happens at Github: <a href="http://github.com/celery/celery">http://github.com/celery/celery</a></p>
+<p>You are highly encouraged to participate in the development
+of celery. If you don't like Github (for some reason) you're welcome
+to send regular patches.</p>
+<p>Be sure to also read the <a href="http://docs.celeryproject.org/en/master/contributing.html">Contributing to Celery</a> section in the
+documentation.</p>
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+<p>This software is licensed under the New BSD License. See the <tt>LICENSE</tt>
+file in the top distribution directory for the full license text.</p>
+<a href="https://bitdeli.com/free"><img alt="Bitdeli badge" src="https://camo.githubusercontent.com/6711f0128ddb7d45ff2d6fdd7af6cdb4263c3464/68747470733a2f2f64327765637a68766c38323376302e636c6f756466726f6e742e6e65742f63656c6572792f63656c6572792f7472656e642e706e67" data-canonical-src="https://d2weczhvl823v0.cloudfront.net/celery/celery/trend.png" style="max-width:100%;"></a></article></div>

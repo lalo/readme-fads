@@ -1,0 +1,236 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-the-silver-searcher" class="anchor" href="#the-silver-searcher" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Silver Searcher</h1>
+
+<p>A code searching tool similar to <code>ack</code>, with a focus on speed.</p>
+
+<p><a href="https://floobits.com/ggreer/ag/redirect">
+  <img alt="Floobits status" width="100" height="40" src="https://camo.githubusercontent.com/50857b5e29f7402901efdc6d5d311ed522b56297/68747470733a2f2f666c6f6f626974732e636f6d2f6767726565722f61672e706e67" data-canonical-src="https://floobits.com/ggreer/ag.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-whats-so-great-about-ag" class="anchor" href="#whats-so-great-about-ag" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's so great about Ag?</h2>
+
+<ul class="task-list">
+<li>It searches code about 3–5× faster than <code>ack</code>.</li>
+<li>It ignores file patterns from your <code>.gitignore</code> and <code>.hgignore</code>.</li>
+<li>If there are files in your source repo you don't want to search, just add their patterns to a <code>.agignore</code> file. *cough* extern *cough*</li>
+<li>The command name is 33% shorter than <code>ack</code>, and all keys are on the home row!</li>
+</ul><h2>
+<a name="user-content-how-is-it-so-fast" class="anchor" href="#how-is-it-so-fast" aria-hidden="true"><span class="octicon octicon-link"></span></a>How is it so fast?</h2>
+
+<ul class="task-list">
+<li>Searching for literals (no regex) uses <a href="http://en.wikipedia.org/wiki/Boyer%E2%80%93Moore%E2%80%93Horspool_algorithm">Boyer-Moore-Horspool strstr</a>.</li>
+<li>Files are <code>mmap()</code>ed instead of read into a buffer.</li>
+<li>If you're building with PCRE 8.21 or greater, regex searches use <a href="http://sljit.sourceforge.net/pcre.html">the JIT compiler</a>.</li>
+<li>Ag calls <code>pcre_study()</code> before executing the regex on a jillion files.</li>
+<li>Instead of calling <code>fnmatch()</code> on every pattern in your ignore files, non-regex patterns are loaded into an array and binary searched.</li>
+<li>Ag uses <a href="http://en.wikipedia.org/wiki/POSIX_Threads">Pthreads</a> to take advantage of multiple CPU cores and search files in parallel.</li>
+</ul><p>I've written several blog posts showing how I've improved performance. These include how I <a href="http://geoff.greer.fm/2012/09/07/the-silver-searcher-adding-pthreads/">added pthreads</a>, <a href="http://geoff.greer.fm/2012/09/03/profiling-ag-writing-my-own-scandir/">wrote my own <code>scandir()</code></a>, <a href="http://geoff.greer.fm/2012/08/25/the-silver-searcher-benchmarking-revisions/">benchmarked every revision to find performance regressions</a>, and profiled with <a href="http://geoff.greer.fm/2012/02/08/profiling-with-gprof/">gprof</a> and <a href="http://geoff.greer.fm/2012/01/23/making-programs-faster-profiling/">Valgrind</a>.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-gentoo" class="anchor" href="#gentoo" aria-hidden="true"><span class="octicon octicon-link"></span></a>Gentoo</h3>
+
+<pre><code>emerge the_silver_searcher
+</code></pre>
+
+<h3>
+<a name="user-content-os-x" class="anchor" href="#os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>OS X</h3>
+
+<pre><code>brew install the_silver_searcher
+</code></pre>
+
+<p>or</p>
+
+<pre><code>port install the_silver_searcher
+</code></pre>
+
+<h3>
+<a name="user-content-arch-linux" class="anchor" href="#arch-linux" aria-hidden="true"><span class="octicon octicon-link"></span></a>Arch Linux</h3>
+
+<pre><code>pacman -S the_silver_searcher
+</code></pre>
+
+<h3>
+<a name="user-content-debian-unstable" class="anchor" href="#debian-unstable" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian unstable</h3>
+
+<pre><code>apt-get install silversearcher-ag
+</code></pre>
+
+<h3>
+<a name="user-content-ubuntu-1310-or-later" class="anchor" href="#ubuntu-1310-or-later" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu 13.10 or later</h3>
+
+<pre><code>apt-get install silversearcher-ag
+</code></pre>
+
+<h3>
+<a name="user-content-freebsd" class="anchor" href="#freebsd" aria-hidden="true"><span class="octicon octicon-link"></span></a>FreeBSD</h3>
+
+<pre><code>pkg install the_silver_searcher
+</code></pre>
+
+<p>or</p>
+
+<pre><code>pkg_add -r the_silver_searcher
+</code></pre>
+
+<p>To build from source on FreeBSD:</p>
+
+<pre><code>make -C /usr/ports/textproc/the_silver_searcher install clean
+</code></pre>
+
+<h3>
+<a name="user-content-openbsd" class="anchor" href="#openbsd" aria-hidden="true"><span class="octicon octicon-link"></span></a>OpenBSD</h3>
+
+<pre><code>pkg_add the_silver_searcher
+</code></pre>
+
+<p>To build from source on OpenBSD:</p>
+
+<pre><code>cd /usr/ports/textproc/the_silver_searcher &amp;&amp; make install
+</code></pre>
+
+<p>If you want a CentOS rpm or Ubuntu deb, take a look at <a href="http://swiftsignal.com/packages/">Vikram Dighe's packages</a>.</p>
+
+<h2>
+<a name="user-content-building-from-source" class="anchor" href="#building-from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building from source</h2>
+
+<ol class="task-list">
+<li>
+<p>Install dependencies (Automake, pkg-config, PCRE, LZMA):</p>
+
+<ul class="task-list">
+<li>
+<p>Ubuntu:</p>
+
+<pre><code>apt-get install -y automake pkg-config libpcre3-dev zlib1g-dev liblzma-dev
+</code></pre>
+</li>
+<li>
+<p>Fedora:</p>
+
+<pre><code>yum -y install pkgconfig automake gcc zlib-devel pcre-devel xz-devel
+</code></pre>
+</li>
+<li>
+<p>CentOS:</p>
+
+<pre><code>yum -y groupinstall "Development Tools"
+yum -y install pcre-devel xz-devel
+</code></pre>
+</li>
+<li>
+<p>OS X:</p>
+
+<pre><code>brew install automake pkg-config pcre
+</code></pre>
+
+<p>or</p>
+
+<pre><code>port install automake pkgconfig pcre
+</code></pre>
+</li>
+<li>Windows: It's complicated. See <a href="https://github.com/ggreer/the_silver_searcher/wiki/Windows">this wiki page</a>.</li>
+</ul>
+</li>
+<li>
+<p>Run the build script (which just runs aclocal, automake, etc):</p>
+
+<pre><code>./build.sh
+</code></pre>
+
+<p>On Windows:</p>
+
+<pre><code>  mingw32-make -f Makefile.w32
+</code></pre>
+</li>
+<li>
+<p>Make install:</p>
+
+<pre><code>sudo make install
+</code></pre>
+</li>
+</ol><h2>
+<a name="user-content-current-development-status" class="anchor" href="#current-development-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Current development status</h2>
+
+<p>It's quite stable now. Most changes are new features, minor bug fixes, or performance improvements. It's much faster than Ack in my benchmarks.</p>
+
+<pre><code>ack blahblahblah ~/code  6.59s user 1.94s system 99% cpu 8.547 total
+
+ag blahblahblah ~/code  1.39s user 1.81s system 229% cpu 1.396 total
+</code></pre>
+
+<h2>
+<a name="user-content-editor-integration" class="anchor" href="#editor-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Editor Integration</h2>
+
+<h3>
+<a name="user-content-textmate" class="anchor" href="#textmate" aria-hidden="true"><span class="octicon octicon-link"></span></a>TextMate</h3>
+
+<p>TextMate users can use Ag with <a href="https://github.com/ggreer/AckMate">my fork</a> of the popular AckMate plugin, which lets you use both Ack and Ag for searching. If you already have AckMate you just want to replace Ack with Ag, move or delete <code>"~/Library/Application Support/TextMate/PlugIns/AckMate.tmplugin/Contents/Resources/ackmate_ack"</code> and run <code>ln -s /usr/local/bin/ag "~/Library/Application Support/TextMate/PlugIns/AckMate.tmplugin/Contents/Resources/ackmate_ack"</code></p>
+
+<h3>
+<a name="user-content-vim" class="anchor" href="#vim" aria-hidden="true"><span class="octicon octicon-link"></span></a>Vim</h3>
+
+<p>You can use Ag with <a href="https://github.com/mileszs/ack.vim">ack.vim</a> by adding the following line to your <code>.vimrc</code>:</p>
+
+<pre><code>let g:ackprg = 'ag --nogroup --nocolor --column'
+</code></pre>
+
+<p>There's also a fork of ack.vim tailored for use with Ag: <a href="https://github.com/rking/ag.vim">ag.vim</a></p>
+
+<h3>
+<a name="user-content-emacs" class="anchor" href="#emacs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Emacs</h3>
+
+<p>You can use use <a href="https://github.com/Wilfred/ag.el">ag.el</a> as an Emacs fronted to Ag.</p>
+
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<p>I like when people send pull requests. It validates my existence. If you want to help out, check the <a href="https://github.com/ggreer/the_silver_searcher/issues?sort=updated&amp;state=open">issue list</a> or search the codebase for <code>TODO</code>. Don't worry if you lack experience writing C. If I think a pull request isn't ready to be merged, I'll give feedback in comments. Once everything looks good, I'll comment on your pull request with a cool animated gif and hit the merge button.</p>
+
+<h2>
+<a name="user-content-todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h2>
+
+<p>A special thanks goes out to Alex Davies. He has given me some excellent recommendations to improve Ag. Many of these things are still on my list:</p>
+
+<ul class="task-list">
+<li>Optimizations
+
+<ul class="task-list">
+<li>Write a benchmarking script that tweaks various settings to find what's fastest.</li>
+</ul>
+</li>
+<li>Features
+
+<ul class="task-list">
+<li>Behave better when matching in files with really long lines.</li>
+<li>Report "match found at position X of line N" if line is &gt; 10k chars.</li>
+</ul>
+</li>
+<li>Windows support
+
+<ul class="task-list">
+<li>
+<code>readdir()</code> and <code>stat()</code> are much slower on Windows. Use <code>FindNextFile()</code> instead.</li>
+<li>Support Visual Studio instead of autotools?</li>
+<li>Need to use pthreads-win32 or something similar.</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-other-stuff-you-might-like" class="anchor" href="#other-stuff-you-might-like" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other stuff you might like</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/petdance/ack">Ack</a> - Better than grep. Without Ack, Ag would not exist.</li>
+<li>
+<a href="https://github.com/protocool/AckMate">AckMate</a> - An ack-powered replacement for TextMate's slow built-in search.</li>
+<li><a href="https://github.com/mileszs/ack.vim">ack.vim</a></li>
+<li><a href="https://github.com/rking/ag.vim">ag.vim</a></li>
+<li>
+<a href="http://ctags.sourceforge.net/">Exuberant Ctags</a> - Faster than Ag, but it builds an index beforehand. Good for <em>really</em> big codebases.</li>
+<li>
+<a href="http://git-scm.com/docs/git-grep">Git-grep</a> - As fast as Ag but only works on git repos.</li>
+<li>
+<a href="https://github.com/sampson-chen/sack">Sack</a> - A utility that wraps Ack and Ag. It removes a lot of repetition from searching and opening matching files.</li>
+</ul></article></div>

@@ -1,0 +1,254 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-transparent-git-encryption" class="anchor" href="#transparent-git-encryption" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transparent Git Encryption</h1>
+
+<p>The gitcrypt tool is inspired by <a href="http://syncom.appspot.com/papers/git_encryption.txt" title="GIT transparent encryption">this document</a> written by <a href="http://syncom.appspot.com/">Ning Shang</a>,
+which was in turn inspired by <a href="http://git.661346.n2.nabble.com/Transparently-encrypt-repository-contents-with-GPG-td2470145.html" title="Web discussion: Transparently encrypt repository contents with GPG">this post</a>. Without these two documents,
+by people much smarter than me, gitcrypt would not exist.</p>
+
+<blockquote>
+<p>There is <a href="http://article.gmane.org/gmane.comp.version-control.git/113221" title="Junio Hamano does not recommend this technique">some controversy</a> over using this technique, so do your research
+and understand the implications of using this tool before you go crazy with it.</p>
+</blockquote>
+
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p><strong>Not Verified on Windows</strong></p>
+
+<p>Now you can encrypt/decrypt and recrypt(change passphrase) all history</p>
+
+<pre><code>$ gitcrypt crypthistory
+$ gitcrypt decrypthistory
+$ gitcrypt recrypt
+</code></pre>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>Openssl must be installed and the binary must be available in your $PATH.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a name="user-content-from-a-package-manager" class="anchor" href="#from-a-package-manager" aria-hidden="true"><span class="octicon octicon-link"></span></a>From a package manager</h3>
+
+<p>Install from npm.</p>
+
+<pre><code>npm install -g git-encrypt
+</code></pre>
+
+<h3>
+<a name="user-content-manually" class="anchor" href="#manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manually</h3>
+
+<p>Clone git-encrypt somewhere on your local machine:</p>
+
+<pre><code>$ git clone https://github.com/shadowhand/git-encrypt
+$ cd git-encrypt
+</code></pre>
+
+<p>The <code>gitcrypt</code> command must be executable:</p>
+
+<pre><code>$ chmod 0755 gitcrypt
+</code></pre>
+
+<p>And it must be accessible in your <code>$PATH</code>:</p>
+
+<pre><code>$ sudo ln -s "$(pwd)/gitcrypt" /usr/local/bin/gitcrypt
+</code></pre>
+
+<h3>
+<a name="user-content-for-windows" class="anchor" href="#for-windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>For Windows</h3>
+
+<p><strong>Verified on PortableGit Only !</strong></p>
+
+<p>Copy the file gitcrypt to your PortableGit/bin location. In my environment PortableGit is
+available at E:\PortableGit. </p>
+
+<blockquote>
+<p>copy gitcrypt E:\PortableGit\bin</p>
+</blockquote>
+
+<p>Also make sure that PATH environment variable has E:\PortableGit\bin 
+available in it.</p>
+
+<blockquote>
+<p>Path=C:\Python27\;C:\Python27\Scripts;E:\PortableGit\bin;E:\PortableGit\libexec\git-core;C:\windows\system32;C:\windows\;C:\window
+s\system32\WBEM;c:\windows\System32\WindowsPowerShell\v1.0\;c:\i386~configs;C:\Users\VKHANORK\AppData\Roaming\Python\Scripts</p>
+</blockquote>
+
+<p>Setup gitcrypt:</p>
+
+<blockquote>
+<p>E:&gt;mkdir TEST</p>
+
+<p>E:&gt;cd TEST</p>
+
+<p>E:\TEST&gt;git init
+Initialized empty Git repository in E:/TEST/.git/</p>
+
+<p>E:\TEST&gt;git config core.autocrlf false</p>
+
+<p>E:\TEST&gt;E:\PortableGit\bin\bash.exe E:\PortableGit\bin\gitcrypt init
+Generate a random salt? [Y/n]
+Generate a random password? [Y/n]
+What encryption cipher do you want to use? [aes-256-ecb]</p>
+
+<p>This configuration will be stored:</p>
+
+<p>salt:   5ecc05565042de81
+pass:   iLC#GkuzE1iOmUVItIQww8**oBDTfKE2
+cipher: aes-256-ecb</p>
+
+<p>Does this look right? [Y/n]
+Do you want to use .git/info/attributes? [Y/n]
+What files do you want encrypted? [*]</p>
+
+<p>E:\TEST&gt;</p>
+</blockquote>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>To quickly setup gitcrypt interactively, run <code>gitcrypt init</code> from the root
+of your git repository. It will ask you for a passphrase, shared salt,
+cipher mode, and what files should be encrypted.</p>
+
+<pre><code>$ cd my-repo
+$ gitcrypt init
+</code></pre>
+
+<p>Your repository is now set up! Any time you <code>git add</code> a file that matches the
+filter pattern the <code>clean</code> filter is applied, automatically encrypting the file
+before it is staged. Using <code>git diff</code> will work normally, as it automatically
+decrypts file content as necessary.</p>
+
+<h3>
+<a name="user-content-manual-configuration" class="anchor" href="#manual-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual Configuration</h3>
+
+<p>First, you will need to add a shared salt (16 hex characters) and a secure
+passphrase to your git configuration:</p>
+
+<pre><code>$ git config gitcrypt.salt 0000000000000000
+$ git config gitcrypt.pass my-secret-phrase
+</code></pre>
+
+<blockquote>
+<p>It is possible to set these options globally using <code>git config --global</code>,
+but more secure to create a separate passphrase for every repository.</p>
+</blockquote>
+
+<p>The default <a href="http://en.wikipedia.org/wiki/Cipher">encryption cipher</a> is <code>aes-256-ebc</code>, which should be suitable
+for almost everyone. However, it is also possible to use a different cipher:</p>
+
+<pre><code>$ git config gitcrypt.cipher aes-256-ebc
+</code></pre>
+
+<blockquote>
+<p>An "ECB" mode is used because it encrypts in a format that provides usable
+text diff, meaning that a single change will not cause the entire file to be
+internally marked as changed. Because a static salt must be used, using "CBC"
+would provide very little, if any, increased security over "ECB" mode.</p>
+</blockquote>
+
+<p>Next, you need to define what files will be automatically encrypted using the
+<a href="http://www.kernel.org/pub/software/scm/git/docs/gitattributes.html">.git/info/attributes</a> file. Any file <a href="http://www.kernel.org/pub/software/scm/git/docs/gitignore.html#_pattern_format">pattern format</a> can be used here.</p>
+
+<p>To encrypt all the files in the repo:</p>
+
+<pre><code>* filter=encrypt diff=encrypt
+[merge]
+    renormalize = true
+</code></pre>
+
+<p>To encrypt only one file, you could do this:</p>
+
+<pre><code>secret.txt filter=encrypt diff=encrypt
+</code></pre>
+
+<p>Or to encrypt all ".secure" files:</p>
+
+<pre><code>*.secure filter=encrypt diff=encrypt
+</code></pre>
+
+<blockquote>
+<p>If you want this mapping to be included in your repository, use a
+<code>.gitattributes</code> file instead and <strong>do not</strong> encrypt it.</p>
+</blockquote>
+
+<p>Next, you need to map the <code>encrypt</code> filter to <code>gitcrypt</code>:</p>
+
+<pre><code>$ git config filter.encrypt.smudge "gitcrypt smudge"
+$ git config filter.encrypt.clean "gitcrypt clean"
+$ git config diff.encrypt.textconv "gitcrypt diff"
+</code></pre>
+
+<p>Or if you prefer to manually edit <code>.git/config</code>:</p>
+
+<pre><code>[filter "encrypt"]
+    smudge = gitcrypt smudge
+    clean = gitcrypt clean
+[diff "encrypt"]
+    textconv = gitcrypt diff
+</code></pre>
+
+<h2>
+<a name="user-content-decrypting-clones" class="anchor" href="#decrypting-clones" aria-hidden="true"><span class="octicon octicon-link"></span></a>Decrypting Clones</h2>
+
+<p>To set up decryption from a clone, you will need to repeat the same setup on
+the new clone.</p>
+
+<p>First, clone the repository, but <strong>do not perform a checkout</strong>:</p>
+
+<pre><code>$ git clone -n git://github.com/johndoe/encrypted.git
+$ cd encrypted
+</code></pre>
+
+<blockquote>
+<p>If you do a <code>git status</code> now, it will show all your files as being deleted.
+Do not fear, this is actually what we want right now, because we need to setup
+gitcrypt before doing a checkout.</p>
+</blockquote>
+
+<p>Now you can either run <code>gitcrypt init</code> or do the same manual configuration that
+performed on the original repository.</p>
+
+<p>Once configuration is complete, reset and checkout all the files:</p>
+
+<pre><code>$ git reset --hard HEAD
+</code></pre>
+
+<p>All the files in the are now decrypted and ready to be edited.</p>
+
+<h1>
+<a name="user-content-alternate-method-git-encrypt-initsh" class="anchor" href="#alternate-method-git-encrypt-initsh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Alternate method: git-encrypt-init.sh</h1>
+
+<p>Contributed by <a href="https://jaytaylor.com" title="jaytaylor.com">Jay Taylor</a></p>
+
+<p>The git-encrypt-init.sh shell script automatically performs all prepartion,
+setup and configuration for a local repository clone, prompting the user for
+any required information (salt and password phrases.)  This method of also
+ensures that the git-encrypt scripts are automatically installed to
+<code>~/.gitencrypt/</code>. One drawback to this approach is that it only supports having
+1 password.</p>
+
+<p>One reason to use this alternate approach is because it makes decrypting cloned
+repositories as simple as executing one script.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Once you've cloned git-encrypt using the alternate script is straightforward:</p>
+
+<pre><code>$ cd /path/to/your/repository
+$ sh /path/to/git-encrypt/git-encrypt-init.sh
+</code></pre>
+
+<p>Then you can add the files you would like to have encrypted to the
+.gitattributes file contained in the root of your repository.</p>
+
+<h1>
+<a name="user-content-conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusion</h1>
+
+<p>Enjoy your secure git repository! If you think gitcrypt is totally awesome,
+you could <a href="http://www.amazon.com/gp/registry/wishlist/1474H3P2204L8">buy me something</a> or <a href="http://www.pledgie.com/campaigns/14931">donate some money</a>.</p></article></div>

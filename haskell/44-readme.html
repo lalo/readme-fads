@@ -1,0 +1,353 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-angel" class="anchor" href="#angel" aria-hidden="true"><span class="octicon octicon-link"></span></a>Angel</h1>
+
+<p><a href="https://travis-ci.org/MichaelXavier/Angel"><img src="https://camo.githubusercontent.com/27532ac245ebd72b63e44c5f852241cbc382a797/68747470733a2f2f7472617669732d63692e6f72672f4d69636861656c5861766965722f416e67656c2e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/MichaelXavier/Angel.png?branch=master" style="max-width:100%;"></a></p>
+
+<p><code>angel</code> is a daemon that runs and monitors other processes.  It
+is similar to djb's <code>daemontools</code> or the Ruby project <code>god</code>.</p>
+
+<p>It's goals are to keep a set of services running, and to facilitate
+the easy configuration and restart of those services.</p>
+
+<h2>
+<a name="user-content-motivation" class="anchor" href="#motivation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Motivation</h2>
+
+<p>The author is a long-time user of <code>daemontools</code> due to its reliability
+and simplicity; however, <code>daemontools</code> is quirky and follows many
+unusual conventions.  </p>
+
+<p><code>angel</code> is an attempt to recreate <code>daemontools</code>'s capabilities (though 
+not the various bundled utility programs which are still quite useful) 
+in a more intuitive and modern unix style.</p>
+
+<h2>
+<a name="user-content-functionality" class="anchor" href="#functionality" aria-hidden="true"><span class="octicon octicon-link"></span></a>Functionality</h2>
+
+<p><code>angel</code> is driven by a configuration file that contains a list of
+program specifications to run.  <code>angel</code> assumes every program listed in 
+the specification file should be running at all times.</p>
+
+<p><code>angel</code> starts each program, and optionally sets the program's stdout
+and stderr to some file(s) which have been opened in append mode
+(or pipes stdout and stderr to some logger process); at
+this point, the program is said to be "supervised".</p>
+
+<p>If the program dies for any reason, <code>angel</code> waits a specified number
+of seconds (default, 5), then restarts the program.</p>
+
+<p>The <code>angel</code> process itself will respond to a HUP signal by 
+re-processing its configuration file, and synchronizing the run
+states with the new configuration.  Specifically:</p>
+
+<ul class="task-list">
+<li>If a new program has been added to the file, it is started and
+supervised</li>
+<li>If a program's specification has changed (command line path,
+stdin/stdout path, delay time, etc) that supervised child
+process will be sent a TERM signal, and as a consequence of
+normal supervision, will be restarted with the updated spec</li>
+<li>If a program has been removed from the configuration file,
+the corresponding child process will be sent a TERM signal;
+when it dies, supervision of the process will end, and 
+therefore, it will not be restarted</li>
+</ul><h2>
+<a name="user-content-safety-and-reliability" class="anchor" href="#safety-and-reliability" aria-hidden="true"><span class="octicon octicon-link"></span></a>Safety and Reliability</h2>
+
+<p>Because of <code>angel</code>'s role in policing the behavior of other
+daemons, it has been written to be very reliable:</p>
+
+<ul class="task-list">
+<li>It is written in Haskell, which boasts a combination of
+strong, static typing and purity-by-default that lends
+itself to very low bug counts</li>
+<li>It uses multiple, simple, independent lightweight threads
+with specific roles, ownership, and interfaces</li>
+<li>It uses STM for mutex-free state synchronization between
+these threads</li>
+<li>It falls back to polling behavior to ensure eventual
+synchronization between configuration state and run
+state, just in case odd timing issues should make
+event-triggered changes fail</li>
+<li>It simply logs errors and keeps running the last good
+configuration if it runs into problems on configuration
+reloads</li>
+<li>It has logged hundreds of thousands of uptime-hours
+since 2010-07 supervising all the daemons that power
+<a href="http://bu.mp">http://bu.mp</a> without a single memory leak or crash</li>
+</ul><h2>
+<a name="user-content-building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h2>
+
+<ol class="task-list">
+<li>Install the haskell-platform (or somehow, ghc 7.0 + 
+cabal-install)</li>
+<li>Run <code>cabal install</code> in the project root (this directory)</li>
+<li>Either add the ~/.cabal/bin file to your $PATH or copy
+the <code>angel</code> executable to /usr/local/bin</li>
+</ol><p>Notes:</p>
+
+<ul class="task-list">
+<li>I have not tried building <code>angel</code> against ghc 6.10 or earlier;
+6.12, 7.0, 7.2, 7.4, and 7.6 are known to work</li>
+</ul><h2>
+<a name="user-content-configuration-and-usage-example" class="anchor" href="#configuration-and-usage-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration and Usage Example</h2>
+
+<p>The <code>angel</code> executable takes exactly one argument: a path to
+an angel configuration file.</p>
+
+<p><code>angel</code>'s configuration system is based on Bryan O'Sullivan's <code>configurator</code>
+package.  A full description of the format can be found here:</p>
+
+<p><a href="http://hackage.haskell.org/packages/archive/configurator/0.1.0.0/doc/html/Data-Configurator.html">http://hackage.haskell.org/packages/archive/configurator/0.1.0.0/doc/html/Data-Configurator.html</a></p>
+
+<p>A basic configuration file might look like this:</p>
+
+<pre><code>watch-date {
+    exec = "watch date"
+}
+
+ls {
+    exec = "ls"
+    stdout = "/tmp/ls_log"
+    stderr = "/tmp/ls_log"
+    delay = 7
+    termgrace = off
+}
+
+workers {
+    directory = "/path/to/worker"
+    exec      = "run_worker"
+    count     = 30
+    pidfile   = "/path/to/pidfile.pid"
+    env {
+      FOO = "BAR"
+      BAR = "BAZ"
+    }
+    termgrace = 10
+}
+</code></pre>
+
+<p>Each program that should be supervised starts a <code>program-id</code> block:</p>
+
+<pre><code>watch-date {
+</code></pre>
+
+<p>Then, a series of corresponding configuration commands follow:</p>
+
+<ul class="task-list">
+<li>
+<code>exec</code> is the exact command line to run (required)</li>
+<li>
+<code>stdout</code> is a path to a file where the program's standard output 
+should be appended (optional, defaults to /dev/null)</li>
+<li>
+<code>stderr</code> is a path to a file where the program's standard error
+should be appended (optional, defaults to /dev/null)</li>
+<li>
+<code>delay</code> is the number of seconds (integer) <code>angel</code> should wait
+after the program dies before attempting to start it again
+(optional, defaults to 5)</li>
+<li>
+<code>directory</code> is the current working directory of the newly
+executed program (optional, defaults to angel's cwd)</li>
+<li>
+<code>logger</code> is another process that should be launched to handle
+logging.  The <code>exec</code> process will then have its stdout and stderr
+piped into stdin of this logger.  Recommended log
+rotation daemons include <a href="https://github.com/jamwt/clog">clog</a>
+or <a href="http://cr.yp.to/daemontools.html">multilog</a>. <em>Note that
+if you use a logger process, it is a configuration error
+to specify either stdout or stderr as well.</em>
+</li>
+<li>
+<code>count</code> is an optional argument to specify the number of processes to spawn.
+For instance, if you specified a count of 2, it will spawn the program
+twice, internally as <code>workers-1</code> and <code>workers-2</code>, for example. Note that
+<code>count</code> will inject the environment variable <code>ANGEL_PROCESS_NUMBER</code> into the
+child process' environment variable.</li>
+<li>
+<code>pidfile</code> is an optional argument to specify where a pidfile should be
+created. If you don't specify an absolute path, it will use the running
+directory of angel. When combined with the <code>count</code> option, specifying a
+pidfile of <code>worker.pid</code>, it will generate <code>worker-1.pid</code>, <code>worker-2.pid</code>,
+etc. If you don't specify a <code>pidfile</code> directive, then <code>angel</code> will <em>not</em>
+create a pidfile</li>
+<li>
+<code>env</code> is a nested config of string key/value pairs. Non-string values are
+invalid.</li>
+<li>
+<code>termgrace</code> is an optional number of seconds to wait between
+sending a SIGTERM and a SIGKILL to a program when it needs to shut
+down. Any positive number will be interpreted as seconds. <code>0</code>,
+<code>off</code>, or omission will be interpreted as disabling the feature and
+only a sigterm will be sent. This is useful for processes that must
+not be brought down forcefully to avoid corruption of data or other
+ill effects.</li>
+</ul><p>Assuming the above configuration was in a file called "example.conf",
+here's what a shell session might look like:</p>
+
+<pre><code>jamie@choo:~/random/angel$ angel example.conf 
+[2010/08/24 15:21:22] {main} Angel started
+[2010/08/24 15:21:22] {main} Using config file: example.conf
+[2010/08/24 15:21:22] {process-monitor} Must kill=0, must start=2
+[2010/08/24 15:21:22] {- program: watch-date -} START
+[2010/08/24 15:21:22] {- program: watch-date -} RUNNING
+[2010/08/24 15:21:22] {- program: ls -} START
+[2010/08/24 15:21:22] {- program: ls -} RUNNING
+[2010/08/24 15:21:22] {- program: ls -} ENDED
+[2010/08/24 15:21:22] {- program: ls -} WAITING
+[2010/08/24 15:21:29] {- program: ls -} RESTART
+[2010/08/24 15:21:29] {- program: ls -} START
+[2010/08/24 15:21:29] {- program: ls -} RUNNING
+[2010/08/24 15:21:29] {- program: ls -} ENDED
+[2010/08/24 15:21:29] {- program: ls -} WAITING
+</code></pre>
+
+<p>.. etc</p>
+
+<p>You can see that when the configuration is parsed, the process-monitor
+notices that two programs need to be started.  A supervisor is started
+in a lightweight thread for each, and starts logging with the context
+<code>program: &lt;program-id&gt;</code>.
+pp
+<code>watch-date</code> starts up and runs.  Since <code>watch</code> is a long-running process
+it just keeps running in the background.</p>
+
+<p><code>ls</code>, meanwhile, runs and immediately ends, of course; then, the WAITING
+state is entered until <code>delay</code> seconds pass.  Finally, the RESTART event
+is triggered and it is started again, ad naseum.</p>
+
+<p>Now, let's see what happens if we modify the config file to look like this:</p>
+
+<pre><code>#watch-date {
+#    exec = "watch date"
+#}
+
+ls {
+    exec = "ls"
+    stdout = "/tmp/ls_log"
+    stderr = "/tmp/ls_log"
+    delay = 7
+}
+</code></pre>
+
+<p>.. and then send HUP to angel.</p>
+
+<pre><code>[2010/08/24 15:33:59] {config-monitor} HUP caught, reloading config
+[2010/08/24 15:33:59] {process-monitor} Must kill=1, must start=0
+[2010/08/24 15:33:59] {- program: watch-date -} ENDED
+[2010/08/24 15:33:59] {- program: watch-date -} QUIT
+[2010/08/24 15:34:03] {- program: ls -} RESTART
+[2010/08/24 15:34:03] {- program: ls -} START
+[2010/08/24 15:34:03] {- program: ls -} RUNNING
+[2010/08/24 15:34:03] {- program: ls -} ENDED
+[2010/08/24 15:34:03] {- program: ls -} WAITING
+</code></pre>
+
+<p>As you can see, the config monitor reloaded on HUP, and then the
+process monitor marked the watch-date process for killing.  TERM
+was sent to the child process, and then the supervisor loop QUIT
+because the watch-date program no longer had a config entry.</p>
+
+<p>This also works for when you specify count. Incrementing/decrementing the count
+will intelligently shut down excess processes and spin new ones up.</p>
+
+<h2>
+<a name="user-content-advanced-configuration" class="anchor" href="#advanced-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced Configuration</h2>
+
+<p>The <code>configurator</code> package supports <code>import</code> statements, as
+well as environment variable expansion.  Using collections
+of configuration files and host-based or service-based
+environment variables, efficient, templated <code>angel</code>
+configurations can be had.</p>
+
+<h2>
+<a name="user-content-testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>If you prefer to stick with haskell tools, use cabal to build the package.</p>
+
+<p>If you have Ruby installed, I've set up a Rakefile for assisting in the
+build/testing/sandboxing/dependency process. This isn't necessary to build or
+test Angel, but it makes it easier. Run:</p>
+
+<pre><code>gem install bundler # if you don't have it already
+bundle install
+rake --tasks
+</code></pre>
+
+<p>If you're using cabal 0.17 or later, and I suggest you do, run</p>
+
+<pre><code>rake sandbox
+</code></pre>
+
+<p>Run the full test suite with</p>
+
+<pre><code>rake test
+</code></pre>
+
+<p>You can also use <code>guard start</code> which will watch for changes made to any source/test
+files and re-run the tests for a rapid feedback cycle.</p>
+
+<h2>
+<a name="user-content-faq" class="anchor" href="#faq" aria-hidden="true"><span class="octicon octicon-link"></span></a>FAQ</h2>
+
+<p><strong>Can I have multiple programs logging to the same file?</strong></p>
+
+<p>Yes, angel <code>dup()</code>s file descriptors and makes effort to safely
+allow concurrent writes by child programs; you should DEFINITELY
+make sure your child program is doing stdout/stderr writes in 
+line-buffered mode so this doesn't result in a complete interleaved
+mess in the log file.</p>
+
+<p><strong>Will angel restart programs for me?</strong></p>
+
+<p>No; the design is just to send your programs TERM, then <code>angel</code> will
+restart them.  <code>angel</code> tries to work in harmony with traditional
+Unix process management conventions.</p>
+
+<p><strong>How can I take a service down without wiping out its configuration?</strong></p>
+
+<p>Specify a <code>count</code> of 0 for the process. That will kill any running processes
+but still let you keep it in the config file.</p>
+
+<h2>
+<a name="user-content-changelog" class="anchor" href="#changelog" aria-hidden="true"><span class="octicon octicon-link"></span></a>CHANGELOG</h2>
+
+<h3>
+<a name="user-content-050" class="anchor" href="#050" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.5.0</h3>
+
+<ul class="task-list">
+<li>Drop depdendency on MissingH</li>
+</ul><h3>
+<a name="user-content-044" class="anchor" href="#044" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.4.4</h3>
+
+<ul class="task-list">
+<li>Add <code>env</code> option to config.</li>
+<li>Inject <code>ANGEL_PROCESS_NUMBER</code> environment variable into processes started
+with <code>count</code>.</li>
+</ul><h3>
+<a name="user-content-043" class="anchor" href="#043" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.4.3</h3>
+
+<ul class="task-list">
+<li>Fix install failure from pidfile module not being accounted for.</li>
+</ul><h3>
+<a name="user-content-042" class="anchor" href="#042" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.4.2</h3>
+
+<ul class="task-list">
+<li>Add <code>pidfile</code> option to program spec to specify a pidfile location.</li>
+</ul><h3>
+<a name="user-content-041" class="anchor" href="#041" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.4.1</h3>
+
+<ul class="task-list">
+<li>Add <code>count</code> option to program spec to launch multiple instances of a program.</li>
+</ul><h2>
+<a name="user-content-author" class="anchor" href="#author" aria-hidden="true"><span class="octicon octicon-link"></span></a>Author</h2>
+
+<p>Original Author: Jamie Turner <a href="mailto:jamie@jamwt.com">jamie@jamwt.com</a>
+Current Maintainer: Michael Xavier <a href="mailto:michael@michaelxavier.net">michael@michaelxavier.net</a></p>
+
+<p>Thanks to Bump Technologies, Inc. (<a href="http://bu.mp">http://bu.mp</a>) for sponsoring some
+of the work on angel.</p>
+
+<p>And, of course, thanks to all Angel's contributors:</p>
+
+<p><a href="https://github.com/MichaelXavier/Angel/contributors">https://github.com/MichaelXavier/Angel/contributors</a></p></article></div>

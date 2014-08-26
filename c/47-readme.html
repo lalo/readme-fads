@@ -1,0 +1,596 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-fibers1----fiber-support-for-v8-and-node" class="anchor" href="#fibers1----fiber-support-for-v8-and-node" aria-hidden="true"><span class="octicon octicon-link"></span></a>fibers(1) -- Fiber support for v8 and Node</h1>
+
+<h2>
+<a name="user-content-installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>INSTALLING</h2>
+
+<h3>
+<a name="user-content-via-npm" class="anchor" href="#via-npm" aria-hidden="true"><span class="octicon octicon-link"></span></a>via npm</h3>
+
+<ul class="task-list">
+<li><code>npm install fibers</code></li>
+<li>You're done!</li>
+</ul><h3>
+<a name="user-content-from-source" class="anchor" href="#from-source" aria-hidden="true"><span class="octicon octicon-link"></span></a>from source</h3>
+
+<ul class="task-list">
+<li><code>git clone git://github.com/laverdet/node-fibers.git</code></li>
+<li><code>cd node-fibers</code></li>
+<li><code>npm install</code></li>
+</ul><p>Note: node-fibers uses <a href="https://github.com/TooTallNate/node-gyp">node-gyp</a> for
+building. To manually invoke the build process, you can use <code>node-gyp rebuild</code>.
+This will put the compiled extension in <code>build/Release/fibers.node</code>. However,
+when you do <code>require('fibers')</code>, it will expect the module to be in, for
+example, <code>bin/linux-x64-v8-3.11/fibers.node</code>. You can manually put the module
+here every time you build, or you can use the included build script. Either
+<code>npm install</code> or <code>node build -f</code> will do this for you. If you are going to be
+hacking on node-fibers, it may be worthwhile to first do <code>node-gyp configure</code>
+and then for subsequent rebuilds you can just do <code>node-gyp build</code> which will
+be faster than a full <code>npm install</code> or <code>node-gyp rebuild</code>.</p>
+
+<h3>
+<a name="user-content-important" class="anchor" href="#important" aria-hidden="true"><span class="octicon octicon-link"></span></a>important!</h3>
+
+<p>It's recommended that you use node 0.6.18 or higher with node-fibers. Using
+other versions may lead to instability during high loads.</p>
+
+<h3>
+<a name="user-content-other-notes" class="anchor" href="#other-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>other notes</h3>
+
+<p>Unlike most NodeJS projects, node-fibers is a C++ project. Some extra work is
+required to compile node-fibers, but pretty much every platform is supported
+in some way. Binary distributions in 32 and 64-bit forms are provided in npm for
+Linux, OS X, and Windows (special thanks to
+<a href="https://github.com/japj">Jeroen Janssen</a> for his work on fibers in Windows).</p>
+
+<p>Support for Solaris, FreeBSD, and OpenBSD is provided by compiling the extension
+on your system during install time via
+<a href="https://github.com/TooTallNate/node-gyp">node-gyp</a>. If your operating system
+isn't listed here you may have luck copying the build process for one of the
+other OS's, assuming you are running a POSIX-like OS.</p>
+
+<p>node 0.6.x is required to run this release of node-fibers. Older versions of
+node (0.4.x) are supported in older releases of node-fibers. See the 0.5.x
+branch of node-fibers for documentation.</p>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>EXAMPLES</h2>
+
+<p>The examples below describe basic use of <code>Fiber</code>, but note that it is <strong>not
+recommended</strong> to use <code>Fiber</code> without an abstraction in between your code and
+fibers. See "FUTURES" below for additional information.</p>
+
+<h3>
+<a name="user-content-sleep" class="anchor" href="#sleep" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sleep</h3>
+
+<p>This is a quick example of how you can write sleep() with fibers. Note that
+while the sleep() call is blocking inside the fiber, node is able to handle
+other events.</p>
+
+<pre><code>$ cat sleep.js
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">Fiber</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'fibers'</span><span class="p">);</span>
+
+<span class="kd">function</span> <span class="nx">sleep</span><span class="p">(</span><span class="nx">ms</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">.</span><span class="nx">current</span><span class="p">;</span>
+    <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">fiber</span><span class="p">.</span><span class="nx">run</span><span class="p">();</span>
+    <span class="p">},</span> <span class="nx">ms</span><span class="p">);</span>
+    <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="nx">Fiber</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'wait... '</span> <span class="o">+</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">);</span>
+    <span class="nx">sleep</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'ok... '</span> <span class="o">+</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">);</span>
+<span class="p">}).</span><span class="nx">run</span><span class="p">();</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'back in main'</span><span class="p">);</span>
+</pre></div>
+
+<pre><code>$ node sleep.js
+wait... Fri Jan 21 2011 22:42:04 GMT+0900 (JST)
+back in main
+ok... Fri Jan 21 2011 22:42:05 GMT+0900 (JST)
+</code></pre>
+
+<h3>
+<a name="user-content-incremental-generator" class="anchor" href="#incremental-generator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Incremental Generator</h3>
+
+<p>Yielding execution will resume back in the fiber right where you left off. You
+can also pass values back and forth through yield() and run(). Again, the node
+event loop is never blocked while this script is running.</p>
+
+<pre><code>$ cat generator.js
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">Fiber</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'fibers'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">inc</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">start</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">total</span> <span class="o">=</span> <span class="nx">start</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">total</span> <span class="o">+=</span> <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">(</span><span class="nx">total</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">ii</span> <span class="o">=</span> <span class="nx">inc</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="nx">ii</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">ii</span> <span class="o">=</span> <span class="nx">inc</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">ii</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<pre><code>$ node generator.js
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</code></pre>
+
+<h3>
+<a name="user-content-fibonacci-generator" class="anchor" href="#fibonacci-generator" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fibonacci Generator</h3>
+
+<p>Expanding on the incremental generator above, we can create a generator which
+returns a new Fibonacci number with each invocation. You can compare this with
+the <a href="http://wiki.ecmascript.org/doku.php?id=harmony:generators">ECMAScript Harmony
+Generator</a> Fibonacci
+example.</p>
+
+<pre><code>$ cat fibonacci.js
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">Fiber</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'fibers'</span><span class="p">);</span>
+
+<span class="c1">// Generator function. Returns a function which returns incrementing</span>
+<span class="c1">// Fibonacci numbers with each call.</span>
+<span class="kd">function</span> <span class="nx">Fibonacci</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Create a new fiber which yields sequential Fibonacci numbers</span>
+    <span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="c1">// F(0) -&gt; 0</span>
+        <span class="kd">var</span> <span class="nx">prev</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">curr</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+        <span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">(</span><span class="nx">curr</span><span class="p">);</span>
+            <span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="nx">prev</span> <span class="o">+</span> <span class="nx">curr</span><span class="p">;</span>
+            <span class="nx">prev</span> <span class="o">=</span> <span class="nx">curr</span><span class="p">;</span>
+            <span class="nx">curr</span> <span class="o">=</span> <span class="nx">tmp</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+    <span class="c1">// Return a bound handle to `run` on this fiber</span>
+    <span class="k">return</span> <span class="nx">fiber</span><span class="p">.</span><span class="nx">run</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">fiber</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Initialize a new Fibonacci sequence and iterate up to 1597</span>
+<span class="kd">var</span> <span class="nx">seq</span> <span class="o">=</span> <span class="nx">Fibonacci</span><span class="p">();</span>
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">ii</span> <span class="o">=</span> <span class="nx">seq</span><span class="p">();</span> <span class="nx">ii</span> <span class="o">&lt;=</span> <span class="mi">1597</span><span class="p">;</span> <span class="nx">ii</span> <span class="o">=</span> <span class="nx">seq</span><span class="p">())</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">ii</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+<pre><code>$ node fibonacci.js
+0
+1
+1
+2
+3
+5
+8
+13
+21
+34
+55
+89
+144
+233
+377
+610
+987
+1597
+</code></pre>
+
+<h3>
+<a name="user-content-basic-exceptions" class="anchor" href="#basic-exceptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Exceptions</h3>
+
+<p>Fibers are exception-safe; exceptions will continue travelling through fiber
+boundaries:</p>
+
+<pre><code>$ cat error.js
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">Fiber</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'fibers'</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">fn</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'async work here...'</span><span class="p">);</span>
+    <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">();</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'still working...'</span><span class="p">);</span>
+    <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">();</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'just a little bit more...'</span><span class="p">);</span>
+    <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">();</span>
+    <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s1">'oh crap!'</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="k">try</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">fn</span><span class="p">.</span><span class="nx">run</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'safely caught that error!'</span><span class="p">);</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">stack</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'done!'</span><span class="p">);</span>
+</pre></div>
+
+<pre><code>$ node error.js
+async work here...
+still working...
+just a little bit more...
+safely caught that error!
+Error: oh crap!
+        at error.js:11:9
+done!
+</code></pre>
+
+<h2>
+<a name="user-content-futures" class="anchor" href="#futures" aria-hidden="true"><span class="octicon octicon-link"></span></a>FUTURES</h2>
+
+<p>Using the <code>Fiber</code> class without an abstraction in between your code and the raw
+API is <strong>not recommended</strong>. <code>Fiber</code> is meant to implement the smallest amount of
+functionality in order make possible many different programming patterns. This
+makes the <code>Fiber</code> class relatively lousy to work with directly, but extremely
+powerful when coupled with a decent abstraction. There is no right answer for
+which abstraction is right for you and your project. Included with <code>node-fibers</code>
+is an implementation of "futures" which is fiber-aware. Usage of this library
+is documented below. There are several other externally-maintained options
+which can be found on the <a href="https://github.com/laverdet/node-fibers/wiki">wiki</a>.
+You <strong>should</strong> feel encouraged to be creative with fibers and build a solution
+which works well with your project. For instance, <code>Future</code> is not a good
+abstraction to use if you want to build a generator function (see Fibonacci
+example above).</p>
+
+<p>Using <code>Future</code> to wrap existing node functions. At no point is the node event
+loop blocked:</p>
+
+<pre><code>$ cat ls.js
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">Future</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'fibers/future'</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">Future</span><span class="p">.</span><span class="nx">wrap</span><span class="p">(</span><span class="nx">require</span><span class="p">(</span><span class="s1">'fs'</span><span class="p">));</span>
+
+<span class="nx">Future</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Get a list of files in the directory</span>
+    <span class="kd">var</span> <span class="nx">fileNames</span> <span class="o">=</span> <span class="nx">fs</span><span class="p">.</span><span class="nx">readdirFuture</span><span class="p">(</span><span class="s1">'.'</span><span class="p">).</span><span class="nx">wait</span><span class="p">();</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Found '</span><span class="o">+</span> <span class="nx">fileNames</span><span class="p">.</span><span class="nx">length</span><span class="o">+</span> <span class="s1">' files'</span><span class="p">);</span>
+
+    <span class="c1">// Stat each file</span>
+    <span class="kd">var</span> <span class="nx">stats</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">ii</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">ii</span> <span class="o">&lt;</span> <span class="nx">fileNames</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="o">++</span><span class="nx">ii</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">stats</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">statFuture</span><span class="p">(</span><span class="nx">fileNames</span><span class="p">[</span><span class="nx">ii</span><span class="p">]));</span>
+    <span class="p">}</span>
+    <span class="nx">stats</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">f</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">f</span><span class="p">.</span><span class="nx">wait</span><span class="p">()</span>
+    <span class="p">});</span>
+
+    <span class="c1">// Print file size</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">ii</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">ii</span> <span class="o">&lt;</span> <span class="nx">fileNames</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="o">++</span><span class="nx">ii</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">fileNames</span><span class="p">[</span><span class="nx">ii</span><span class="p">]</span><span class="o">+</span> <span class="s1">': '</span><span class="o">+</span> <span class="nx">stats</span><span class="p">[</span><span class="nx">ii</span><span class="p">].</span><span class="nx">get</span><span class="p">().</span><span class="nx">size</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}).</span><span class="nx">detach</span><span class="p">();</span>
+</pre></div>
+
+<pre><code>$ node ls.js 
+Found 11 files
+bin: 4096
+fibers.js: 1708
+.gitignore: 37
+README.md: 8664
+future.js: 5833
+.git: 4096
+LICENSE: 1054
+src: 4096
+ls.js: 860
+Makefile: 436
+package.json: 684
+</code></pre>
+
+<p>The future API is designed to make it easy to move between classic
+callback-style code and fiber-aware waiting code:</p>
+
+<pre><code>$ cat sleep.js
+</code></pre>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">Future</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'fibers/future'</span><span class="p">),</span> <span class="nx">wait</span> <span class="o">=</span> <span class="nx">Future</span><span class="p">.</span><span class="nx">wait</span><span class="p">;</span>
+
+<span class="c1">// This function returns a future which resolves after a timeout. This</span>
+<span class="c1">// demonstrates manually resolving futures.</span>
+<span class="kd">function</span> <span class="nx">sleep</span><span class="p">(</span><span class="nx">ms</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">future</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Future</span><span class="p">;</span>
+    <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nx">future</span><span class="p">.</span><span class="k">return</span><span class="p">();</span>
+    <span class="p">},</span> <span class="nx">ms</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">future</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// You can create functions which automatically run in their own fiber and</span>
+<span class="c1">// return futures that resolve when the fiber returns (this probably sounds</span>
+<span class="c1">// confusing.. just play with it to understand).</span>
+<span class="kd">var</span> <span class="nx">calcTimerDelta</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">ms</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">start</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">;</span>
+    <span class="nx">sleep</span><span class="p">(</span><span class="nx">ms</span><span class="p">).</span><span class="nx">wait</span><span class="p">();</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="nb">Date</span> <span class="o">-</span> <span class="nx">start</span><span class="p">;</span>
+<span class="p">}.</span><span class="nx">future</span><span class="p">();</span> <span class="c1">// &lt;-- important!</span>
+
+<span class="c1">// And futures also include node-friendly callbacks if you don't want to use</span>
+<span class="c1">// wait()</span>
+<span class="nx">calcTimerDelta</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="nx">resolve</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">val</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">'Set timer for 2000ms, waited '</span><span class="o">+</span> <span class="nx">val</span><span class="o">+</span> <span class="s1">'ms'</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<pre><code>$ node sleep.js
+Set timer for 2000ms, waited 2009ms
+</code></pre>
+
+<h2>
+<a name="user-content-api-documentation" class="anchor" href="#api-documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>API DOCUMENTATION</h2>
+
+<p>Fiber's definition looks something like this:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="cm">/**</span>
+<span class="cm"> * Instantiate a new Fiber. You may invoke this either as a function or as</span>
+<span class="cm"> * a constructor; the behavior is the same.</span>
+<span class="cm"> *</span>
+<span class="cm"> * When run() is called on this fiber for the first time, `fn` will be</span>
+<span class="cm"> * invoked as the first frame on a new stack. Execution will continue on</span>
+<span class="cm"> * this new stack until `fn` returns, or Fiber.yield() is called.</span>
+<span class="cm"> *</span>
+<span class="cm"> * After the function returns the fiber is reset to original state and</span>
+<span class="cm"> * may be restarted with another call to run().</span>
+<span class="cm"> */</span>
+<span class="kd">function</span> <span class="nx">Fiber</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[</span><span class="kr">native</span> <span class="nx">code</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * `Fiber.current` will contain the currently-running Fiber. It will be</span>
+<span class="cm"> * `undefined` if there is no fiber (i.e. the main stack of execution).</span>
+<span class="cm"> *</span>
+<span class="cm"> * See "Garbage Collection" for more information on responsible use of</span>
+<span class="cm"> * `Fiber.current`.</span>
+<span class="cm"> */</span>
+<span class="nx">Fiber</span><span class="p">.</span><span class="nx">current</span> <span class="o">=</span> <span class="kc">undefined</span><span class="p">;</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * `Fiber.yield()` will halt execution of the current fiber and return control</span>
+<span class="cm"> * back to original caller of run(). If an argument is supplied to yield(),</span>
+<span class="cm"> * run() will return that value.</span>
+<span class="cm"> *</span>
+<span class="cm"> * When run() is called again, yield() will return.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Note that this function is a global to allow for correct garbage</span>
+<span class="cm"> * collection. This results in no loss of functionality because it is only</span>
+<span class="cm"> * valid to yield from the currently running fiber anyway.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Note also that `yield` is a reserved word in Javascript. This is normally</span>
+<span class="cm"> * not an issue, however some code linters may complain. Rest assured that it</span>
+<span class="cm"> * will run fine now and in future versions of Javascript.</span>
+<span class="cm"> */</span>
+<span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">param</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[</span><span class="kr">native</span> <span class="nx">code</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * run() will start execution of this Fiber, or if it is currently yielding,</span>
+<span class="cm"> * it will resume execution. If an argument is supplied, this argument will</span>
+<span class="cm"> * be passed to the fiber, either as the first parameter to the main</span>
+<span class="cm"> * function [if the fiber has not been started] or as the return value of</span>
+<span class="cm"> * yield() [if the fiber is currently yielding].</span>
+<span class="cm"> *</span>
+<span class="cm"> * This function will return either the parameter passed to yield(), or the</span>
+<span class="cm"> * returned value from the fiber's main function.</span>
+<span class="cm"> */</span>
+<span class="nx">Fiber</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">run</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">param</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[</span><span class="kr">native</span> <span class="nx">code</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * reset() will terminate a running Fiber and restore it to its original</span>
+<span class="cm"> * state, as if it had returned execution.</span>
+<span class="cm"> *</span>
+<span class="cm"> * This is accomplished by causing yield() to throw an exception, and any</span>
+<span class="cm"> * futher calls to yield() will also throw an exception. This continues</span>
+<span class="cm"> * until the fiber has completely unwound and returns.</span>
+<span class="cm"> *</span>
+<span class="cm"> * If the fiber returns a value it will be returned by reset().</span>
+<span class="cm"> *</span>
+<span class="cm"> * If the fiber is not running, reset() will have no effect.</span>
+<span class="cm"> */</span>
+<span class="nx">Fiber</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">reset</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="p">[</span><span class="kr">native</span> <span class="nx">code</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * throwInto() will cause a currently yielding fiber's yield() call to</span>
+<span class="cm"> * throw instead of return gracefully. This can be useful for notifying a</span>
+<span class="cm"> * fiber that you are no longer interested in its task, and that it should</span>
+<span class="cm"> * give up.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Note that if the fiber does not handle the exception it will continue to</span>
+<span class="cm"> * bubble up and throwInto() will throw the exception right back at you.</span>
+<span class="cm"> */</span>
+<span class="nx">Fiber</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">throwInto</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">exception</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">[</span><span class="kr">native</span> <span class="nx">code</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Future's definition looks something like this:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="cm">/**</span>
+<span class="cm"> * Returns a future-function which, when run, starts running the target</span>
+<span class="cm"> * function and returns a future for the result.</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: </span>
+<span class="cm"> * var funcy = function(arg) {</span>
+<span class="cm"> *   return arg+1;</span>
+<span class="cm"> * }.future();</span>
+<span class="cm"> * </span>
+<span class="cm"> * funcy(1).wait(); // returns 2</span>
+<span class="cm"> */</span>
+<span class="nb">Function</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">future</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Future object, instantiated with the new operator.</span>
+<span class="cm"> */</span>
+<span class="kd">function</span> <span class="nx">Future</span><span class="p">()</span> <span class="p">{}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Wrap a node-style async function to return a future in place of using a callback.</span>
+<span class="cm"> * </span>
+<span class="cm"> * fn - the function or object to wrap</span>
+<span class="cm"> * array - indicates that this callback will return more than 1 argument after `err`. For example,</span>
+<span class="cm"> *         `child_process.exec()` returns [err, stdout, stderr]</span>
+<span class="cm"> * suffix - appends a string to every method that was overridden, if you passed an object</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: Future.wrap(asyncFunction)(arg1).wait()</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">wrap</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="nx">multi</span><span class="p">,</span> <span class="nx">suffix</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Invoke a function that will be run in its own fiber context and return a future to its return</span>
+<span class="cm"> * value.</span>
+<span class="cm"> *</span>
+<span class="cm"> * Example:</span>
+<span class="cm"> * Future.task(function() {</span>
+<span class="cm"> *   // You can safely `wait` on stuff here</span>
+<span class="cm"> * }).detach();</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">task</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Wait on a series of futures and then return. If the futures throw an exception this function</span>
+<span class="cm"> * /won't/ throw it back. You can get the value of the future by calling get() on it directly. If</span>
+<span class="cm"> * you want to wait on a single future you're better off calling future.wait() on the instance.</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: Future.wait(aFuture, anotherFuture)</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">wait</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="cm">/* ... */</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Return the value of this future. If the future hasn't resolved yet this will throw an error.</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">get</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Mark this future as returned. All pending callbacks will be invoked immediately.</span>
+<span class="cm"> * </span>
+<span class="cm"> * value - the value to return when get() or wait() is called.</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: aFuture.return(value)</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="k">return</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Throw from this future as returned. All pending callbacks will be invoked immediately.</span>
+<span class="cm"> * Note that execution will continue normally after running this method, </span>
+<span class="cm"> * so make sure you exit appropriately after running throw()</span>
+<span class="cm"> * </span>
+<span class="cm"> * error - the error to throw when get() or wait() is called.</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: aFuture.throw(new Error("Something borked"))</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="k">throw</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * "detach" this future. Basically this is useful if you want to run a task in a future, you</span>
+<span class="cm"> * aren't interested in its return value, but if it throws you don't want the exception to be</span>
+<span class="cm"> * lost. If this fiber throws, an exception will be thrown to the event loop and node will</span>
+<span class="cm"> * probably fall down.</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">detach</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Returns whether or not this future has resolved yet.</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">isResolved</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Returns a node-style function which will mark this future as resolved when called.</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: </span>
+<span class="cm"> *   var errback = aFuture.resolver();</span>
+<span class="cm"> *   asyncFunction(arg1, arg2, etc, errback)</span>
+<span class="cm"> *   var result = aFuture.wait();</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">resolver</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Waits for this future to resolve and then invokes a callback.</span>
+<span class="cm"> *</span>
+<span class="cm"> * If only one argument is passed it is a standard function(err, val){} errback.</span>
+<span class="cm"> *</span>
+<span class="cm"> * If two arguments are passed, the first argument is a future which will be thrown to in the case</span>
+<span class="cm"> * of error, and the second is a function(val){} callback.</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">resolve</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="cm">/* errback or future, callback */</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Propogate results to another future.</span>
+<span class="cm"> * </span>
+<span class="cm"> * Example usage: future1.proxy(future2) // future2 gets automatically resolved with however future1 resolves</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">proxy</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">future</span><span class="p">)</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+
+<span class="cm">/**</span>
+<span class="cm"> * Differs from its functional counterpart in that it actually resolves the future. Thus if the</span>
+<span class="cm"> * future threw, future.wait() will throw.</span>
+<span class="cm"> */</span>
+<span class="nx">Future</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">wait</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="p">...</span> <span class="p">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-garbage-collection" class="anchor" href="#garbage-collection" aria-hidden="true"><span class="octicon octicon-link"></span></a>GARBAGE COLLECTION</h2>
+
+<p>If you intend to build generators, iterators, or "lazy lists", you should be
+aware that all fibers must eventually unwind. This is implemented by causing
+yield() to throw unconditionally when the library is trying to unwind your
+fiber-- either because reset() was called, or all handles to the fiber were lost
+and v8 wants to delete it.</p>
+
+<p>Something like this will, at some point, cause an infinite loop in your
+application:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">try</span> <span class="p">{</span>
+            <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">();</span>
+        <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{}</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+<span class="nx">fiber</span><span class="p">.</span><span class="nx">run</span><span class="p">();</span>
+</pre></div>
+
+<p>If you either call reset() on this fiber, or the v8 garbage collector decides it
+is no longer in use, the fiber library will attempt to unwind the fiber by
+causing all calls to yield() to throw. However, if you catch these exceptions
+and continue anyway, an infinite loop will occur.</p>
+
+<p>There are other garbage collection issues that occur with misuse of fiber
+handles. If you grab a handle to a fiber from within itself, you should make
+sure that the fiber eventually unwinds. This application will leak memory:</p>
+
+<div class="highlight highlight-javascript"><pre><span class="kd">var</span> <span class="nx">fiber</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="nx">Fiber</span><span class="p">.</span><span class="nx">current</span><span class="p">;</span>
+    <span class="nx">Fiber</span><span class="p">.</span><span class="k">yield</span><span class="p">();</span>
+<span class="p">}</span>
+<span class="nx">fiber</span><span class="p">.</span><span class="nx">run</span><span class="p">();</span>
+<span class="nx">fiber</span> <span class="o">=</span> <span class="kc">undefined</span><span class="p">;</span>
+</pre></div>
+
+<p>There is no way to get back into the fiber that was started, however it's
+impossible for v8's garbage collector to detect this. With a handle to the fiber
+still outstanding, v8 will never garbage collect it and the stack will remain in
+memory until the application exits.</p>
+
+<p>Thus, you should take care when grabbing references to <code>Fiber.current</code>.</p></article></div>

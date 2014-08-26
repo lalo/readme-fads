@@ -1,0 +1,817 @@
+<div class="announce instapaper_body pod" data-path="README.pod" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><a name="user-content-___top" aria-hidden="true"></a>
+
+<h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-NAME" aria-hidden="true">NAME</a>
+</h1>
+
+<p>git-deploy - automate the git steps required for a deploying code from a git repository</p>
+
+<h1>
+<a name="user-content-synopsis" class="anchor" href="#synopsis" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-SYNOPSIS" aria-hidden="true">SYNOPSIS</a>
+</h1>
+
+<pre>    git deploy [deploy-options] [action [prefix]] [action-options]
+    git deploy --man
+
+    actions:
+        status                   # show rollout status of current repository
+        start|abort|sync|finish  # normal multi-server rollout sequence (finish is automatic if sync succeeds)
+        start|abort|release      # normal single-server rollout sequence (when you don't need a sync hook)
+        hotfix                   # Roll out the site with a hotfix (a.k.a. start without an automatic "git pull")
+        revert                   # revert site to previous rollout (interactive - replaces start)
+        manual-sync              # manual sync process (replaces sync - can be used for a gradual sync)
+        show                     # show list of tags
+        show-tag                 # show the currently deployed tag (if it exists)
+        tag                      # create a tag for this commit (restricted to certain environments)
+        log                      # during a rollout show log of changes since the last rollout
+        diff                     # during a rollout show differences between previous rollout</pre>
+
+<h1>
+<a name="user-content-navigation" class="anchor" href="#navigation" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-NAVIGATION" aria-hidden="true">NAVIGATION</a>
+</h1>
+
+<ul>
+<li>See <a href="#DESCRIPTION">"DESCRIPTION"</a> for an overview of what <b>git-deploy</b> is all about, and how it operates from a big picture perspective.</li>
+
+<li>See <a href="#ACTIONS">"ACTIONS"</a> for the <b>git-deploy</b> sub-commands. These are the commands you'll be using on a daily (or hopefully less than hourly) basis to do rollouts.</li>
+
+<li>See <a href="#OPTIONS">"OPTIONS"</a> and <a href="#OTHER_OPTIONS">"OTHER OPTIONS"</a> for common options you might want to use, and increasingly obscure options you'll probably never need, respectively.</li>
+
+<li>See <a href="#CONFIGURATION">"CONFIGURATION"</a> for configuring <b>git-deploy</b>. Unless you're the sysadmin setting up the tool you don't need to worry about this.</li>
+
+<li>See <a href="#WRITING_DEPLOY_HOOKS">"WRITING DEPLOY HOOKS"</a> for how deploy hooks work. This is relevant to you if you're the poor sob tasked with implementing said hooks.</li>
+</ul><h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-DESCRIPTION" aria-hidden="true">DESCRIPTION</a>
+</h1>
+
+<p><b>git-deploy</b> is a tool written to make deployments so easy that you'll let new hires do them on their first day. Conceived and introduced at Booking.com in 2008, it has changed deployments from being something that took hours, to being so easy that deploying 20 times a day is what happens (on a slow day).</p>
+
+<p>It's highly configurable and pluggable. We use it for deploying everything from single-server environments to deploying our main web server cluster.</p>
+
+<p>It creates an annotated git tag for every rollout, and pushes those tags upstream, so anyone with a copy of the repository can see what's deployed where. This is invaluable for debugging and tracking the history of deployments.</p>
+
+<p>It adheres to the Unix philosophy, being a tool that does one thing and, does it well. It's fully pluggable (the hook API is just a bunch of executable files with exit() values, you don't have to learn to use a complicated API), it's easily scriptable, and it runs anywhere you have a standard installation of Perl 5.8 or later.</p>
+
+<p>But enough with the sales pitch, what does it actually do?</p>
+
+<ul>
+<li>git-deploy implements exclusive locking, i.e. it allows only one person to deploy to an environment at the same time. This is how a deployment starts, and you do this with:
+<pre>    git-deploy start</pre>
+
+<p>...which will create a lock file and do "git pull" for you, to update your local tree to include the latest upstream code.</p>
+
+<p>This means that you have a repository somewhere that you do deployments from. This is your staging server, or the only server you have, it doesn't matter. It just has to be one standard location.</p>
+
+<p>Under the hood locking is simply implemented with a <em>.git/deploy/lock</em> file - if users have configured their umask correctly (and git-deploy can enforce this) you can forcibly take over another user's deployments with <code>--force</code>.</p>
+</li>
+
+<li>Once you're in the locked state you can do any git operation you'd like. git-deploy doesn't care, you can "git pull", you can make new commits (as long as you push them upstream before the sync step).
+<p>If you chicken out at this point you can always:</p>
+
+<pre>    git-deploy abort</pre>
+
+<p>Which'll get you back to the state you were in before you ran <a href="#start">"start"</a>.</p>
+
+<p>When you're happy with the state of things you want to deploy, git-deploy will create a tag to record in the commit history that the current state is what was released, and then call your sync hooks (if any are configured):</p>
+
+<pre>    git-deploy sync</pre>
+
+<p>...which will create a tag, and roll it out to your network. The details of the rollout itself are <b>completely up to you</b> (see <a href="#Sync_Hooks">"Sync Hooks"</a>). You can use everything from git itself to carrier pigeons, git-deploy doesn't care.</p>
+
+<p>If the sync hook fails (e.g. because a cat ate your pigeon) git-deploy exits with an error and expects you to fix the situation.</p>
+
+<p>Usually fixing it is a combination of running the sync hook manually again, and making a mental note to beat your sysadmins with a rake.</p>
+
+<p>If you prefer to perform the rollout yourself, you can instead use git-deploy to simply tag a release and push that back to your main repository.</p>
+
+<pre>    git-deploy release</pre>
+
+<p>This is not a recommended way to use the tool since one of git-deploy's functions is to manage the process of pushing code out to multiple production boxes. Your life will be much easier if you choose to implement sync hooks instead.</p>
+
+<p>You'll have to set <a href="#deploy.can-make-tags">"deploy.can-make-tags"</a> to <code>true</code> to use this.</p>
+
+<p>Once you've done the former successfully:</p>
+
+<pre>    git-deploy finish</pre>
+
+<p>(...which "git-deploy release" and "git-deploy sync" do for you if you haven't encountered an error.)</p>
+
+<p>That'll perform any final actions (like sending an e-mail about your shiny new deployment), and then unlock the deployment server so the next poor sob who has to do a deployment can use it.</p>
+</li>
+</ul><p>Does that sound simple? Well that's because it is. It's a very simple tool, it's so simple that we even allow designers to use it.</p>
+
+<p>So why do you need it? Well partly because we've been lying to you up until this point. The main feature of this tool is not actually doing rollouts, it's doing reverts.</p>
+
+<p>When you inevitably bork a rollout and you want to undo as fast as possible, <b>git-deploy</b> makes this really easy. You can run <b>git-deploy show</b> to see a history of recent rollouts, and you can use <b>git-deploy revert</b> to interactively revert to a previous revision.</p>
+
+<p>This means that you get presented with a list of things that were recently rolled out, and then have the chance to choose which should be rolled out as a replacement. Once you select the synchronization process is started and the bad code is replaced by whatever you have selected.</p>
+
+<p>When you manage to get even this wrong, and revert to the wrong commit <b>git-deploy</b> makes it easy to see exactly what happened and what you did, and <b>git-deploy show</b> will show you which of the several tags you've been jumping back and forth between correspond to a given revision. Once have figured out which commit you should go to, use <b>git-deploy revert</b> to roll it out.</p>
+
+<p>The tool also performs very exhaustive error checking added over years of trial and error, as its inexperienced users have tried to screw up rollouts in every way possible.</p>
+
+<p>If there is a problem in general the tool will detect it, and advise you of what it is and how to deal with it.</p>
+
+<p>It'll ensure that tags are created which you can roll back to, and ensure that they are pushed afterwards.</p>
+
+<p><b>git-deploy</b> will fetch all tags from the remote repository configured in the current repository before processing. You can disable this behaviour by using --no-remote which overrides all remote actions.</p>
+
+<p>In the case of an unclean working directory an error message will be produced and the output of `git status` will be displayed. Note: This includes untracked files, which must be either deleted or added to the repository's <em>.gitignore</em> (which itself must then be committed), before you can proceed with using <b>git-deploy</b>. You can disable this with --no-check if you're feeling adventurous.</p>
+
+<p>One thing it definitely doesn't do is worry about how your code gets copied around to your production servers, that's completely up to you.</p>
+
+<p>If you have some way of copying around code to be deployed (git archive, rsync, building .deb or .rpm packages) that you use now you can and should continue using it.</p>
+
+<p>git-deploy solves the problem of making your deployment history available in a distributed way to everyone with a Git checkout, as well as making sure that there's an exclusive lock on deployments while they're in progress (although you could skip that part if you were feeling adventurous enough).</p>
+
+<h2>
+<a name="user-content-deploy-files" class="anchor" href="#deploy-files" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Deploy_Files" aria-hidden="true">Deploy Files</a>
+</h2>
+
+<p>A deploy file consists of a set of keys and values, followed by a newline, followed by the deployment message used to create the deployment tag. For instance:</p>
+
+<pre>    commit: 7e25a770901c9b1eb75ad1511580a98acff4ad60
+    tag: sheep-20080827-1419
+    deploy-date: 2008-08-27 14:19:58
+    deployed-from: bountiful.farm.com
+    deployed-by: rafael
+
+    rollout of sheep
+
+    &lt;EOF&gt;</pre>
+
+<p>If new key/values are added, they will always be added before the blank line.</p>
+
+<h2>
+<a name="user-content-deploy-hooks" class="anchor" href="#deploy-hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Deploy_Hooks" aria-hidden="true">Deploy Hooks</a>
+</h2>
+
+<p>At various points in the deployment process <em>git-deploy</em> can execute user-supplied hooks.</p>
+
+<p>This is to provide a mechanism by which actions and tests will be automatically executed, and if necessary can prevent the final sync step from occurring.</p>
+
+<p>Hooks can be specific at the generic level (i.e. for all environments), and on an environment-specific basis.</p>
+
+<h1>
+<a name="user-content-options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-OPTIONS" aria-hidden="true">OPTIONS</a>
+</h1>
+
+<p>Use git-deploy --man to see complete set of options and details of use.</p>
+
+<dl>
+<dt><a name="user-content---force" aria-hidden="true"><b>--force</b></a></dt>
+
+<dd>
+<p>Force the action, and bypass most sanity checks. Do not use unless you know what you are doing.</p>
+
+</dd>
+<dt><a name="user-content---verbose" aria-hidden="true"><b>--verbose</b></a></dt>
+
+<dd>
+<p>Emits progress information to STDERR during processing.</p>
+
+</dd>
+<dt><a name="user-content---help" aria-hidden="true"><b>--help</b></a></dt>
+
+<dd>
+<p>Print a brief help message and exits. (You are probably reading this output right now.)</p>
+
+</dd>
+<dt><a name="user-content---man" aria-hidden="true"><b>--man</b></a></dt>
+
+<dd>
+<p>Uses perldoc/man to output far far more than you ever realized there was to know about using this tool.</p>
+</dd>
+</dl><h1>
+<a name="user-content-other-options" class="anchor" href="#other-options" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-OTHER_OPTIONS" aria-hidden="true">OTHER OPTIONS</a>
+</h1>
+
+<dl>
+<dt><a name="user-content---message=STRING" aria-hidden="true"><b>--message</b>=STRING</a></dt>
+
+<dd>
+<p>Message to use when creating a tag. Required when creating a new tag. Since you can't know the name of the newly created tag when writing the message you can use the special sequence <code>%TAG</code> as a replacement.</p>
+
+</dd>
+<dt><a name="user-content---show-prefix" aria-hidden="true"><b>--show-prefix</b></a></dt>
+
+<dd>
+<p>Print to STDOUT whatever prefix would be used given the current arguments and then exit. Throw an error if there would be no prefix.</p>
+
+</dd>
+<dt><a name="user-content---to-mail=STRING" aria-hidden="true"><b>--to-mail</b>=STRING</a></dt>
+
+<dd>
+<p>Address to use to send announcement mails to. Defaults to 'none'. See <a href="#deploy.announce-mail">"deploy.announce-mail"</a> for a config option to set this.</p>
+
+</dd>
+<dt><a name="user-content---show-deploy-file" aria-hidden="true"><b>--show-deploy-file</b></a></dt>
+
+<dd>
+<p>Prints the name of the current deploy file to STDOUT, if and only if the commit it contains corresponds to HEAD. Otherwise prints nothing. Exits immediately afterwards.</p>
+
+</dd>
+<dt><a name="user-content---deploy-file-name" aria-hidden="true"><b>--deploy-file-name</b></a></dt>
+
+<dd>
+<p>Set the deploy file name. If this option is not provided the deploy file defaults to <code>./lib/.deploy</code> if a directory named <code>./lib</code> exists, and otherwise to <code>./.deploy</code></p>
+
+</dd>
+<dt><a name="user-content---list" aria-hidden="true"><b>--list</b></a></dt>
+
+<dd>
+</dd>
+<dt><a name="user-content---list-all" aria-hidden="true"><b>--list-all</b></a></dt>
+
+<dd>
+<p>Instead of printing out a single tagname for the current commit's tag, print out a verbose list of tags, sorted by the date that they contain in order of most recent to oldest. The output is structured like so:</p>
+
+<pre>    7e25a770901c.. *tag: sheep-20080827-1419
+    2806eb24c3c2..  tag: cows-20080827-1240
+    d6af6e1ad6f1..  tag: goats_20080826-1458
+    889f65216880..  tag: goats_20080826-1034
+    90318602f8d2..  tag: cows_20080826-1005
+    6bd340c67bdb..  tag: sheep-20080825-2245
+    19587c195a8b..  tag: sheep-20080825-2116 -&gt; sheep-20080825-2105
+    19587c195a8b..  tag: sheep-20080825-2105</pre>
+
+<p>The first column is the abbreviated commit SHA1 (abbreviation can be disabled with the <code>--long-digest</code> option), Followed by either <code>&lt;space&gt;&lt;space&gt;</code> or by <code>&lt;space&gt;&lt;star&gt;</code>. The starred items correspond to HEAD. The arrow indicates that there are two different tags to the same commit, and points to the oldest equivalent tag. This is then followed by either 'tag:' or 'branch:' (depending on whether <code>--include-branches</code> is invoked) and then the item name. This may then be followed by space and an arrow, and then a second name, which indicates that the tag is a duplicate and shows the oldest displayed item. Undated items like branches go last in alphabetic order, with some special exceptions for i.e. trunk or master.</p>
+
+<p>When used with just <code>--list</code> mode, only starred items corresponding to HEAD are displayed, --list-all shows unstarred items that do not correspond to HEAD as well.</p>
+
+</dd>
+<dt><a name="user-content---include-branches" aria-hidden="true"><b>--include-branches</b></a></dt>
+
+<dd>
+<p>Show information about branches as well when in <code>--list</code> mode</p>
+
+</dd>
+<dt><a name="user-content---long-digest" aria-hidden="true"><b>--long-digest</b></a></dt>
+
+<dd>
+<p>Show full SHA1's when in <code>--list</code> mode.</p>
+
+</dd>
+<dt><a name="user-content---ignore-older-than=YYYYMMDD" aria-hidden="true"><b>--ignore-older-than</b>=YYYYMMDD</a></dt>
+
+<dd>
+<p>Totally ignore tags which are from before this date. Defaults to <code>20080101</code>.</p>
+
+<p>Checking *every* tag to see if it corresponds to HEAD can be expensive. This options makes it possible to filter old tags by date to avoid checking them when you know they wont match.</p>
+
+</dd>
+<dt><a name="user-content---make-tag" aria-hidden="true"><b>--make-tag</b></a></dt>
+
+<dd>
+<p>Make a tag. This is the same as the "tag" action except the tag will not be automatically pushed.</p>
+
+</dd>
+<dt><a name="user-content---no-check-clean" aria-hidden="true"><b>--no-check-clean</b></a></dt>
+
+<dd>
+<p>Do not check that the working directory is clean before doing things.</p>
+
+</dd>
+<dt><a name="user-content---no-remote" aria-hidden="true"><b>--no-remote</b></a></dt>
+
+<dd>
+<p>Skip any actions that involve talking to a remote repository.</p>
+
+</dd>
+<dt><a name="user-content---remote-site=STRING" aria-hidden="true"><b>--remote-site</b>=STRING</a></dt>
+
+<dd>
+<p>Name of remote site to access when pushing, pulling or fetching. Defaults to 'origin'.</p>
+
+<p>Using an remote site name of 'none' is the same as using --no-remote</p>
+
+</dd>
+<dt><a name="user-content---remote-branch=STRING" aria-hidden="true"><b>--remote-branch</b>=STRING</a></dt>
+
+<dd>
+<p>Name of remote branch to access when pushing, pulling or fetching. Defaults to the current branch, just like git pull or git push would.</p>
+
+</dd>
+<dt><a name="user-content---date-fmt=FORMAT" aria-hidden="true"><b>--date-fmt</b>=FORMAT</a></dt>
+
+<dd>
+<p>Perl strfime() format to use in datestamped tags. Defaults to '%Y%m%d-%H%M'. Changing this value is probably unwise, as various features of the deploy process expect to be able to parse date stamps in this format.</p>
+</dd>
+</dl><h1>
+<a name="user-content-actions" class="anchor" href="#actions" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-ACTIONS" aria-hidden="true">ACTIONS</a>
+</h1>
+
+<h2>
+<a name="user-content-start" class="anchor" href="#start" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-start" aria-hidden="true">start</a>
+</h2>
+
+<p>Used to start a multi step rollout procedure. Remembers (and if necessary, tags) start position as well as create locks to prevent two people from doing a procedure at the same time. See <code>hotfix</code> below for rollout out a hotfix on top of a previous rollout tag.</p>
+
+<h2>
+<a name="user-content-sync" class="anchor" href="#sync" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-sync" aria-hidden="true">sync</a>
+</h2>
+
+<p>Used to declare that the current commit is ready for sync. This will automatically call the appropriate sync command for this app, as defined in <em>deploy/sync/$app.sync</em>.</p>
+
+<h2>
+<a name="user-content-abort" class="anchor" href="#abort" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-abort" aria-hidden="true">abort</a>
+</h2>
+
+<p>A command which can be used any time prior to the manual synchronization step which will automatically end the rollout, restore the git working directory from the current state to the start position. Note this is NOT the way to "rollback a rollout", it is the way to abort a rollout prior to its completion.</p>
+
+<p>I.e. if someone else has started a rollout and gone away you can do:</p>
+
+<pre>    git-deploy --force abort</pre>
+
+<p>And the state of the rollout machine will be reset back to what it was before they ran <code>git-deploy start</code>.</p>
+
+<h2>
+<a name="user-content-finish" class="anchor" href="#finish" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-finish" aria-hidden="true">finish</a>
+</h2>
+
+<p>Used to declare that the rollout session is finished, and that git-deploy should push any new commits or tags, create the final emails of any changes and perform related functions.</p>
+
+<h2>
+<a name="user-content-release" class="anchor" href="#release" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-release" aria-hidden="true">release</a>
+</h2>
+
+<p>Used in the "two step" rollout process for boxes where there is no manual synchronization step.</p>
+
+<h2>
+<a name="user-content-tag" class="anchor" href="#tag" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-tag" aria-hidden="true">tag</a>
+</h2>
+
+<p>Used in the "one step" rollout process to tag a commit and push it to the remote.</p>
+
+<h2>
+<a name="user-content-revert" class="anchor" href="#revert" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-revert" aria-hidden="true">revert</a>
+</h2>
+
+<p>This is used to do an interactive "revert" of the site to a previous rollout. It combines the steps "git-deploy start/git reset .../git-deploy sync/git-deploy finish" into one, with interactive selection of the commit to revert to. If sync hooks and deploy hooks are provided then they will be automatically run as normal. If they aren't, a manual sync/finish is required.</p>
+
+<h2>
+<a name="user-content-show-tag" class="anchor" href="#show-tag" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-show-tag" aria-hidden="true">show-tag</a>
+</h2>
+
+<p>Show the tag for the current commit, if there is one.</p>
+
+<h2>
+<a name="user-content-status" class="anchor" href="#status" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-status" aria-hidden="true">status</a>
+</h2>
+
+<p>Show the status of the deploy procedure. Can be used to check what step you are on.</p>
+
+<h2>
+<a name="user-content-hotfix" class="anchor" href="#hotfix" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-hotfix" aria-hidden="true">hotfix</a>
+</h2>
+
+<p>Here's how you can do a hotfix rollout, i.e. when you have an existing rollout tag that you wish to apply a single commit (or several) onto.</p>
+
+<p>First, instead of <code>git-deploy start</code>, do:</p>
+
+<pre>    git-deploy hotfix</pre>
+
+<p>...which will start <code>git-deploy</code> without performing a <code>git pull</code> beforehand. Then you cherry-pick some commit/s:</p>
+
+<pre>    git cherry-pick SHA1_OF_HOTFIX</pre>
+
+<p>...and make a note of the resulting &lt;NEW_SHA1&gt;:</p>
+
+<pre>    git --no-pager log -1 --pretty=%H</pre>
+
+<p>Then do a:</p>
+
+<pre>    git pull --no-rebase</pre>
+
+<p>Followed by:</p>
+
+<pre>    git push</pre>
+
+<p>to push your hotfix to the Git server. But now you're not at what you want to roll out, so do:</p>
+
+<pre>    git reset --hard NEW_SHA1
+    git checkout -f</pre>
+
+<p>This will ensure that you are on your hotfix commit, and that any git hooks are executed. You should then TEST the code. On a webserver this normally involves</p>
+
+<pre>    httpd restart</pre>
+
+<p>followed by some manual testing of the relevant web site.</p>
+
+<p>When you are satisfied that things are OK, you can execute the sync:</p>
+
+<pre>    git-deploy sync</pre>
+
+<p><b>TODO</b>: The last 3 pull/push/reset steps are busywork that should be, and eventually will be merged into <code>git-deploy sync</code>.</p>
+
+<h2>
+<a name="user-content-manual-sync" class="anchor" href="#manual-sync" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-manual-sync" aria-hidden="true">manual-sync</a>
+</h2>
+
+<p>Declares the current commit is ready for sync, but will drop the user back into the shell to execute the sync manually. It is then up to the user to execute the finish action when they have deemed the rollout to be complete.</p>
+
+<h1>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-CONFIGURATION" aria-hidden="true">CONFIGURATION</a>
+</h1>
+
+<p>git-deploy uses <a href="http://man.he.net/man1/git">git(1)</a> to drive its configuration. This means that if you're rolling out a given repository situated at <em>/some/path</em> you can configure everything in <em>/some/path/.git/config</em> with <a href="http://man.he.net/man1/git-config">git-config(1)</a>.</p>
+
+<p>We use the namespace <code>deploy</code> for our configuration. See this section for an overview of our configuration options, but you can also jump to <a href="#EXAMPLE_CONFIGURATION">"EXAMPLE CONFIGURATION"</a> for an example of how to configure the tool.</p>
+
+<p>These are <a href="http://man.he.net/man1/git">git(1)</a> config options that need to be set, see <a href="http://man.he.net/man1/git-config">git-config(1)</a> for details:</p>
+
+<ul>
+<li>user.name</li>
+
+<li>user.email</li>
+</ul><p>And these are <a href="http://man.he.net/man1/git-deploy">git-deploy(1)</a>-specific options:</p>
+
+<h3>
+<a name="user-content-deploylog-directory" class="anchor" href="#deploylog-directory" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.log-directory" aria-hidden="true">deploy.log-directory</a>
+</h3>
+
+<p>This is a directory where we emit a <em>git-deploy.log</em> file and if <code>deploy.log-timing-data</code> is true we'll also emit timing data there.</p>
+
+<h3>
+<a name="user-content-deploylog-timing-data" class="anchor" href="#deploylog-timing-data" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.log-timing-data" aria-hidden="true">deploy.log-timing-data</a>
+</h3>
+
+<p>A boolean option that configures whether or not we log timing data, off by default.</p>
+
+<h3>
+<a name="user-content-deployblock-file" class="anchor" href="#deployblock-file" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.block-file" aria-hidden="true">deploy.block-file</a>
+</h3>
+
+<p>A path to a file which if existent will block rollouts, e.g. <em>/etc/ROLLOUTS_BLOCKED</em></p>
+
+<h3>
+<a name="user-content-deploycan-make-tags" class="anchor" href="#deploycan-make-tags" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.can-make-tags" aria-hidden="true">deploy.can-make-tags</a>
+</h3>
+
+<p>Can this environment make tags manually with <code>git-deploy tag</code>? Used for special purposes, you probably don't need this.</p>
+
+<h3>
+<a name="user-content-deployconfig-file" class="anchor" href="#deployconfig-file" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.config-file" aria-hidden="true">deploy.config-file</a>
+</h3>
+
+<p>The <code>git-deploy</code> config file, set this to e.g. <code>/etc/git-deploy.ini</code> in <code>/etc/gitconfig</code> on the deployment box to have <code>git-deploy</code> read that config file.</p>
+
+<p>We'll read the config file with <code>git config --file</code> so you can <b>also</b> put stuff in <code>/etc/gitconfig</code>, <code>.git/config</code> or any other file Git normally reads.</p>
+
+<h3>
+<a name="user-content-deploydeploy-file" class="anchor" href="#deploydeploy-file" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.deploy-file" aria-hidden="true">deploy.deploy-file</a>
+</h3>
+
+<p>This is a file we write out to the directory being deployed before the <code>sync</code> step to indicate what tag we've deployed, who deployed it etc. See <a href="#Deploy_Files">"Deploy Files"</a> for details.</p>
+
+<p>This is <em>.deploy</em> by default, but you can also set it to e.g. <em>lib/.deploy</em> in environments where only the lib/ directory is synced out.</p>
+
+<h3>
+<a name="user-content-deployhook-dir" class="anchor" href="#deployhook-dir" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.hook-dir" aria-hidden="true">deploy.hook-dir</a>
+</h3>
+
+<p>What directory do we look for our hooks in? See <a href="#Deploy_Hooks">"Deploy Hooks"</a> for details.</p>
+
+<h3>
+<a name="user-content-deploytag-prefix" class="anchor" href="#deploytag-prefix" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.tag-prefix" aria-hidden="true">deploy.tag-prefix</a>
+</h3>
+
+<p>A prefix we'll add to your tags, set to e.g. <code>cron</code> for your cron deploys, <code>app</code> for your main web application. <code>debug</code> is something you can use to test the tool.</p>
+
+<h3>
+<a name="user-content-deploysupport-email" class="anchor" href="#deploysupport-email" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.support-email" aria-hidden="true">deploy.support-email</a>
+</h3>
+
+<p>An e-mail address we'll tell the user to contact if the sync hook fails. This'll be in the big "DON'T PANIC" message that we emit if the sync hook fails.</p>
+
+<h3>
+<a name="user-content-deploymail-tool" class="anchor" href="#deploymail-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.mail-tool" aria-hidden="true">deploy.mail-tool</a>
+</h3>
+
+<p>The tool we use to send mail. <code>/usr/sbin/sendmail -f</code> by default.</p>
+
+<h3>
+<a name="user-content-deployrestrict-umask" class="anchor" href="#deployrestrict-umask" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.restrict-umask" aria-hidden="true">deploy.restrict-umask</a>
+</h3>
+
+<p>Force the user to have a given umask before they can invoke us.</p>
+
+<h3>
+<a name="user-content-deployannounce-mail" class="anchor" href="#deployannounce-mail" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.announce-mail" aria-hidden="true">deploy.announce-mail</a>
+</h3>
+
+<p>An e-mail address that the below <code>send-mail-on-*</code> mails will be sent to.</p>
+
+<h3>
+<a name="user-content-deploysend-mail-on-action" class="anchor" href="#deploysend-mail-on-action" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.send-mail-on-ACTION" aria-hidden="true">deploy.send-mail-on-ACTION</a>
+</h3>
+
+<p>A boolean option that configures when we send mail. E.g. <code>deploy.send-mail-on-start = true</code> will have mail sent when we do "git-deploy start".</p>
+
+<h3>
+<a name="user-content-deployrepo-name-detection" class="anchor" href="#deployrepo-name-detection" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.repo-name-detection" aria-hidden="true">deploy.repo-name-detection</a>
+</h3>
+
+<p>The strategy we'll use to detect the current repository name. Currently only <code>dot-git-parent-dir</code> is supported. See the <a href="#EXAMPLE_CONFIGURATION">"EXAMPLE CONFIGURATION"</a> for how this is used.</p>
+
+<h3>
+<a name="user-content-deploylock-dir-root" class="anchor" href="#deploylock-dir-root" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.lock-dir-root" aria-hidden="true">deploy.lock-dir-root</a>
+</h3>
+
+<p>Normally git-deploy tucks its lock file and reference data away in the .git directory of the repo being deployed. It can be useful to specify a common place for multiple repositories to share for this purpose, providing an "interlock" behaviour that prevents more than one of the repositories being rolled out at once.</p>
+
+<h3>
+<a name="user-content-deploymessage-on-sync-hook-fail-whale" class="anchor" href="#deploymessage-on-sync-hook-fail-whale" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-deploy.message-on-sync-hook-fail-whale" aria-hidden="true">deploy.message-on-sync-hook-fail-whale</a>
+</h3>
+
+<p>A message you can specify which'll be output when we fail to run the sync hook instead of the default message. You can put any site-specific instructions here to replace the defaults.</p>
+
+<p>The strings <code>{SYNC_HOOK}</code> and <code>{SUPPORT_EMAIL}</code> in that message will be replaced with the sync hook that was run and the support E-Mail specified in <a href="#deploy.support-email">"deploy.support-email"</a>.</p>
+
+<h1>
+<a name="user-content-example-configuration" class="anchor" href="#example-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-EXAMPLE_CONFIGURATION" aria-hidden="true">EXAMPLE CONFIGURATION</a>
+</h1>
+
+<p>Here's an example git-deploy configuration that can deal with rolling out more than one repository on a given box with a globally maintained config file. First we set up <code>deploy.config-file</code> in <em>/etc/gitconfig</em>:</p>
+
+<pre>    $ cat /etc/gitconfig
+    [deploy]
+            config-file = /etc/git-deploy.conf</pre>
+
+<p>Then we configure git-deploy in the <em>/etc/git-deploy.conf</em> to roll out two repositories, <em>/repo/code</em> and <em>/repo/static_assets</em>:</p>
+
+<pre>    $ cat /etc/git-deploy.conf
+    ;; Global options
+    [deploy]
+            ;; Force users to have this umask
+            restrict-umask = 0002
+
+            ;; If this file exists all rollouts are blocked
+            block-file = /etc/ROLLOUTS_BLOCKED
+
+            ;; E-Mail addresses to complain to when stuff goes wrong
+            support-email = admins@example.com, infrastructure@example.com
+
+            ;; What strategy should we use to detect the repo name?
+            repo-name-detection = dot-git-parent-dir
+
+            ;; Where should the mail configured below go?
+            announce-mail = announce@example.com
+
+            ;; When should we send an E-Mail?
+            send-mail-on-sync   = true
+            send-mail-on-revert = true
+
+            ;; Where to store the timing information
+            log-directory = /var/log/deploy
+
+            ;; We want timing information
+            log-timing-data = true
+
+    ;; Per-repo options, keys here override equivalent keys in the
+    ;; global options
+
+    [deploy "repository code"]
+            ;; Prefix to give to tags created here. A prefix of 'debug'
+            ;; will result in debug-YYYYMMDD-HHMMSS tags
+            tag-prefix = app
+
+            ;; In code.git we put the .deploy file in lib/.deploy. this is
+            ;; because traditionally we only sync out the lib
+            ;; folder.
+            deploy-file = lib/.deploy
+
+            ;; Where the git-deploy hooks live
+            hook-dir = /repos/hooks/git-deploy-data/deploy-code
+
+    [deploy "repository static_assets"]
+            ;; Prefix to give to tags created here. A prefix of 'debug'
+            ;; will result in debug-YYYYMMDD-HHMMSS tags
+            tag-prefix = app_tmpl
+
+            ;; We sync out this whole repository
+            deploy-file = .deploy
+
+            ;; Where the git-deploy hooks live
+            hook-dir = /repos/hooks/git-deploy-data/deploy-static_assets</pre>
+
+<p>Notice how they have sections of their own later in the config file, these sections only apply to them using the <code>deploy.repo-name-detection</code> logic, any values in the per-repo sections override the corresponding deploy.* values.</p>
+
+<p>Since we're using the <code>dot-git-parent-dir</code> strategy for <code>deploy.repo-name-detection</code> running git-deploy inside <em>/repo/code</em> will cause us to pick up the "repository code" section of the configuration. I.e. we're using the name of the parent folder of our <em>.git</em> directory.</p>
+
+<h1>
+<a name="user-content-writing-deploy-hooks" class="anchor" href="#writing-deploy-hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-WRITING_DEPLOY_HOOKS" aria-hidden="true">WRITING DEPLOY HOOKS</a>
+</h1>
+
+<p>The pre-deploy framework is expected to reside in the <em>$GIT_WORK_DIR/deploy</em> directory (i.e. the <em>deploy</em> directory of the repository that's being rolled out). This directory has the following tree:</p>
+
+<pre>    $GIT_WORK_DIR/deploy/                   # deploy directory
+                        /apps/              # Directory per application + 'common'
+                             /common/       # deploy scripts that apply to all apps
+                             /$app/         # deploy scripts for a specific $app
+                        /sync/              # sync
+                             /$app.sync</pre>
+
+<p>The <code>$app</code> in <em>deploy/{apps,sync}/$app</em> is the server prefix that you'd see in the rollout tag. E.g. A company might have multiple environments which they roll out, for instance "sheep", "cows" and "goats". Here is a practical example of the deployment hooks that might be used in the <code>sheep</code> environment:</p>
+
+<pre>    $ tree deploy/apps/{sheep,common}/ deploy/sync/
+    deploy/apps/sheep/
+    |-- post-pull.010_httpd_configtest.sh
+    |-- post-pull.020_restart_httpd.sh
+    |-- pre-pull.010_nobranch_rollout.sh
+    |-- pre-pull.020_check_that_we_are_in_the_load_balancer.pl
+    |-- pre-pull.021_take_us_out_of_the_load_balancer.pl
+    `-- pre-pull.022_check_that_we_are_not_in_the_load_balancer.pl -&gt; pre-pull.020_check_that_we_are_in_the_load_balancer.pl
+    deploy/apps/common/
+    |-- pre-sync.001_setup_affiliate_symlink.pl
+    `-- pre-sync.002_check_permissions.pl
+    deploy/sync/
+    |-- sheep.sync</pre>
+
+<p>All the hooks in <em>deploy/apps</em> are prefixed by a <code>phase</code> in which <code>git-deploy</code> will execute them (e.g. <code>pre-pull</code> just before a pull).</p>
+
+<p>During these phases <code>git-deploy</code> will <code>glob</code> in all the <em>deploy/apps/{common,$app}/$phase.*</em> hooks and execute them in <code>sort</code> order, first the <code>common</code> hooks and then the <code>$app</code> specific hooks. Note that the hooks <b>MUST</b> have their executable bit set.</p>
+
+<h2>
+<a name="user-content-environment-variables-available-to-hooks" class="anchor" href="#environment-variables-available-to-hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Environment_variables_available_to_hooks" aria-hidden="true">Environment variables available to hooks</a>
+</h2>
+
+<p>The following environment variables are available to the phase hooks:</p>
+
+<h3>
+<a name="user-content-git_deploy_action" class="anchor" href="#git_deploy_action" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-GIT_DEPLOY_ACTION" aria-hidden="true">GIT_DEPLOY_ACTION</a>
+</h3>
+
+<p>The current action we're running, e.g. "start", "hotfix", "abort" etc.</p>
+
+<h3>
+<a name="user-content-git_deploy_phase" class="anchor" href="#git_deploy_phase" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-GIT_DEPLOY_PHASE" aria-hidden="true">GIT_DEPLOY_PHASE</a>
+</h3>
+
+<p>The current hook phase, e.g. "post-pull", "pre-sync" etc.</p>
+
+<h3>
+<a name="user-content-git_deploy_prefix" class="anchor" href="#git_deploy_prefix" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-GIT_DEPLOY_PREFIX" aria-hidden="true">GIT_DEPLOY_PREFIX</a>
+</h3>
+
+<p>The prefix of the current environment, e.g. "sheep", "cron" etc.</p>
+
+<h3>
+<a name="user-content-git_deploy_hook_prefix" class="anchor" href="#git_deploy_hook_prefix" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-GIT_DEPLOY_HOOK_PREFIX" aria-hidden="true">GIT_DEPLOY_HOOK_PREFIX</a>
+</h3>
+
+<p>The prefix of the currently executing hook, like <a href="#GIT_DEPLOY_PREFIX">"GIT_DEPLOY_PREFIX"</a> except this will be "common" when the "common" hooks are being executed.</p>
+
+<h3>
+<a name="user-content-git_deploy_start_tag" class="anchor" href="#git_deploy_start_tag" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-GIT_DEPLOY_START_TAG" aria-hidden="true">GIT_DEPLOY_START_TAG</a>
+</h3>
+
+<p>Set to the tag we started with, currently only set (and can only ever be set) for a subset of the hooks.</p>
+
+<h3>
+<a name="user-content-git_deploy_rollout_tag" class="anchor" href="#git_deploy_rollout_tag" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-GIT_DEPLOY_ROLLOUT_TAG" aria-hidden="true">GIT_DEPLOY_ROLLOUT_TAG</a>
+</h3>
+
+<p>The tag we're rolling out, like <a href="#GIT_DEPLOY_START_TAG">"GIT_DEPLOY_START_TAG"</a> this isn't set for all hooks.</p>
+
+<h2>
+<a name="user-content-available-phase-hooks" class="anchor" href="#available-phase-hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Available_phase_hooks" aria-hidden="true">Available phase hooks</a>
+</h2>
+
+<p>Currently, these are the hooks that will be executed. All the hooks, except the <a href="#post-tree-update">"post-tree-update"</a> hook, correspond to specific git-deploy actions:</p>
+
+<h3>
+<a name="user-content-pre-start" class="anchor" href="#pre-start" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-pre-start" aria-hidden="true">pre-start</a>
+</h3>
+
+<p>The first hook to be executed. Will be run before the deployment tag is created (but obviously, after we do <code>git fetch</code>).</p>
+
+<h3>
+<a name="user-content-post-start" class="anchor" href="#post-start" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-start" aria-hidden="true">post-start</a>
+</h3>
+
+<p>Executed after the start phase (also executed on hotfix), useful to e.g. print out any custom messages you'd like to print out at the end of the start/hotfix phase.</p>
+
+<h3>
+<a name="user-content-pre-pull" class="anchor" href="#pre-pull" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-pre-pull" aria-hidden="true">pre-pull</a>
+</h3>
+
+<p>Executed before we update the working tree with <code>git pull</code>. This is where hooks that e.g. take the deployment machine out of the load balancer should be executed.</p>
+
+<h3>
+<a name="user-content-post-pull" class="anchor" href="#post-pull" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-pull" aria-hidden="true">post-pull</a>
+</h3>
+
+<p>Just after the pull in the "start" phase.</p>
+
+<h3>
+<a name="user-content-pre-sync" class="anchor" href="#pre-sync" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-pre-sync" aria-hidden="true">pre-sync</a>
+</h3>
+
+<p>Just before we create the tag we're about to sync out and execute the <em>deploy/sync/$app.sync</em> hook.</p>
+
+<h3>
+<a name="user-content-post-tag" class="anchor" href="#post-tag" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-tag" aria-hidden="true">post-tag</a>
+</h3>
+
+<p>Run right after we've created and are about to push a tag.</p>
+
+<p>Useful for e.g. updating some foreign system saying that we're trying to rollout this tag. Will have <a href="#GIT_DEPLOY_ROLLOUT_TAG">"GIT_DEPLOY_ROLLOUT_TAG"</a> set with the tag name we've just created.</p>
+
+<h3>
+<a name="user-content-post-sync" class="anchor" href="#post-sync" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-sync" aria-hidden="true">post-sync</a>
+</h3>
+
+<p>After we've finished the sync phase.</p>
+
+<p>Note, this'll currently run even on failure. See <a href="https://github.com/git-deploy/git-deploy/issues/27">https://github.com/git-deploy/git-deploy/issues/27</a> for an issue filed for that.</p>
+
+<h3>
+<a name="user-content-post-finish" class="anchor" href="#post-finish" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-finish" aria-hidden="true">post-finish</a>
+</h3>
+
+<p>Run on finish. Here you could e.g. send custom e-mails indicating that the deployment was a success.</p>
+
+<h3>
+<a name="user-content-post-abort" class="anchor" href="#post-abort" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-abort" aria-hidden="true">post-abort</a>
+</h3>
+
+<p>Hooks executed after an <code>abort</code>.</p>
+
+<h3>
+<a name="user-content-post-reset" class="anchor" href="#post-reset" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-reset" aria-hidden="true">post-reset</a>
+</h3>
+
+<p>Hooks executed after a reset, either via <code>abort</code> or <code>revert</code>. Most of the time you want to use <code>post-tree-update</code> hooks instead, but this is useful e.g. for putting a staging server back into a load balancer.</p>
+
+<h3>
+<a name="user-content-post-tree-update" class="anchor" href="#post-tree-update" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-post-tree-update" aria-hidden="true">post-tree-update</a>
+</h3>
+
+<p>Executed after we update the working tree to a new revision, whether that's after the <code>pull</code> in the <code>start</code> phase, after <code>git reset --hard</code> in the <code>abort</code> phase, or after a <code>revert</code>.</p>
+
+<p>Here's where hooks that e.g. restart the webserver and run any critical tests (e.g. config tests) should be run.</p>
+
+<p>The exit code from these hooks is ignored in actions like <code>abort</code> and <code>revert</code>. We don't want the abort or revert to fail just because a web server didn't restart.</p>
+
+<h3>
+<a name="user-content-log" class="anchor" href="#log" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-log" aria-hidden="true">log</a>
+</h3>
+
+<p>Called at various points with log messages, these are just like normal phase hooks except they'll have a few extra environment variables set for them. By default we ignore the exit code of log hooks, because we don't want failure in logging to stop the deployment.</p>
+
+<dl>
+<dt><a name="user-content-GIT_DEPLOY_LOG_LEVEL" aria-hidden="true">GIT_DEPLOY_LOG_LEVEL</a></dt>
+
+<dd>
+<p>The log level, the lowercase equivalent of the levels documented in <a href="http://man.he.net/man3/syslog">syslog(3)</a> without the <code>LOG_*</code> prefix, e.g. "info" or "warning".</p>
+
+</dd>
+<dt><a name="user-content-GIT_DEPLOY_LOG_MESSAGE" aria-hidden="true">GIT_DEPLOY_LOG_MESSAGE</a></dt>
+
+<dd>
+<p>A free-form log message that we're passing to the log hook</p>
+
+</dd>
+<dt><a name="user-content-GIT_DEPLOY_LOG_ANNOUNCE" aria-hidden="true">GIT_DEPLOY_LOG_ANNOUNCE</a></dt>
+
+<dd>
+<p>Whether this message should be announced. These are messages that are more important than others that you'd e.g. like to output to your IRC or Jabber deployment channel.</p>
+</dd>
+</dl><h2>
+<a name="user-content-return-values" class="anchor" href="#return-values" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Return_values" aria-hidden="true">Return values</a>
+</h2>
+
+<p>Each script is expected to return a nonzero exit code on failure, and a zero exit code on success (in other words, standard Unix shell return semantics). Any script that "fails" will cause <code>git-deploy</code> to abort at that point.</p>
+
+<p>More granular failure codes are planned in the future. E.g. "failed but should try again", "failed but should ask the user before trying again" etc. But this hasn't yet been implemented.</p>
+
+<h2>
+<a name="user-content-sync-hooks" class="anchor" href="#sync-hooks" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Sync_Hooks" aria-hidden="true">Sync Hooks</a>
+</h2>
+
+<p>A special case for a hook that really should be just a regular <a href="#Available_phase_hooks">phase hook</a>. But isn't yet because it would have required more major surgery on <code>git-deploy</code> at the time phase hooks were written, as well as access by the author to all deployment environments (which wasn't the case).</p>
+
+<p>The only notable difference is that there is only one phase hook for each <code>$app</code>, and it's located in <em>deploy-$repo/sync/$app.sync</em>.</p>
+
+<p>Note: the sync hook can be skipped (and the associated finish) with the manual-sync action. This will however execute the pre-sync and post-sync hooks, possibly with errors.</p>
+
+<h1>
+<a name="user-content-details" class="anchor" href="#details" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-DETAILS" aria-hidden="true">DETAILS</a>
+</h1>
+
+<h2>
+<a name="user-content-source-code-repository" class="anchor" href="#source-code-repository" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Source_Code_Repository" aria-hidden="true">Source Code Repository</a>
+</h2>
+
+<p>git-deploy master development repository is hosted by GitHub at:</p>
+
+<pre>    https://github.com/git-deploy/git-deploy</pre>
+
+<p>The authors would like to thank GitHub for their support of the open source community.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-LICENSE" aria-hidden="true">LICENSE</a>
+</h2>
+
+<p>This software is licensed under the same terms as the Perl language. See <a href="http://dev.perl.org/licenses/">http://dev.perl.org/licenses/</a> for details.</p></article></div>

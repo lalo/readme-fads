@@ -1,0 +1,191 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-pattern" class="anchor" href="#pattern" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pattern</h1>
+
+<p>Pattern is a web mining module for Python. It has tools for:</p>
+
+<ul class="task-list">
+<li>Data Mining: web services (Google, Twitter, Wikipedia), web crawler, HTML DOM parser</li>
+<li>Natural Language Processing: part-of-speech taggers, n-gram search, sentiment analysis, WordNet</li>
+<li>Machine Learning: vector space model, clustering, classification (KNN, SVM, Perceptron)</li>
+<li>Network Analysis: graph centrality and visualization.</li>
+</ul><p>It is well documented and bundled with 50+ examples and 350+ unit tests. The source code is licensed under BSD and available from <a href="http://www.clips.ua.ac.be/pages/pattern">http://www.clips.ua.ac.be/pages/pattern</a>.</p>
+
+<p><a href="https://camo.githubusercontent.com/28dbbcd11d84c9238c40170d4d46e5e4a59fb88c/687474703a2f2f7777772e636c6970732e75612e61632e62652f6d656469612f7061747465726e5f736368656d612e676966" target="_blank"><img src="https://camo.githubusercontent.com/28dbbcd11d84c9238c40170d4d46e5e4a59fb88c/687474703a2f2f7777772e636c6970732e75612e61632e62652f6d656469612f7061747465726e5f736368656d612e676966" alt="Pattern example workflow" data-canonical-src="http://www.clips.ua.ac.be/media/pattern_schema.gif" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-version" class="anchor" href="#version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version</h2>
+
+<p>2.6</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><strong>BSD</strong>, see <code>LICENSE.txt</code> for further details.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>Pattern is written for Python 2.5+ (no support for Python 3 yet). The module has no external dependencies except when using LSA in the pattern.vector module, which requires NumPy (installed by default on Mac OS X). To install Pattern so that it is available in all your scripts, unzip the download and from the command line do:</p>
+
+<div class="highlight highlight-bash"><pre><span class="nb">cd </span>pattern-2.6
+python setup.py install
+</pre></div>
+
+<p>If you have pip, you can automatically download and install from the PyPi repository:</p>
+
+<div class="highlight highlight-bash"><pre>pip install pattern
+</pre></div>
+
+<p>If none of the above works, you can make Python aware of the module in three ways:</p>
+
+<ul class="task-list">
+<li>Put the pattern folder in the same folder as your script.</li>
+<li>Put the pattern folder in the standard location for modules so it is available to all scripts:
+
+<ul class="task-list">
+<li>
+<code>c:\python26\Lib\site-packages\</code> (Windows),</li>
+<li>
+<code>/Library/Python/2.6/site-packages/</code> (Mac OS X),</li>
+<li>
+<code>/usr/lib/python2.6/site-packages/</code> (Unix).</li>
+</ul>
+</li>
+<li>Add the location of the module to <code>sys.path</code> in your script, before importing it:</li>
+</ul><div class="highlight highlight-python"><pre><span class="n">MODULE</span> <span class="o">=</span> <span class="s">'/users/tom/desktop/pattern'</span>
+<span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span> <span class="k">if</span> <span class="n">MODULE</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MODULE</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">pattern.en</span> <span class="kn">import</span> <span class="n">parsetree</span>
+</pre></div>
+
+<h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p>This example trains a classifier on adjectives mined from Twitter. First, tweets that contain hashtag #win or #fail are collected. For example: "$20 tip off a sweet little old lady today #win". The word part-of-speech tags are then parsed, keeping only adjectives. Each tweet is transformed to a vector, a dictionary of adjective → count items, labeled <code>WIN</code> or <code>FAIL</code>. The classifier uses the vectors to learn which other tweets look more like  <code>WIN</code> or more like <code>FAIL</code>.</p>
+
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">pattern.web</span>    <span class="kn">import</span> <span class="n">Twitter</span>
+<span class="kn">from</span> <span class="nn">pattern.en</span>     <span class="kn">import</span> <span class="n">tag</span>
+<span class="kn">from</span> <span class="nn">pattern.vector</span> <span class="kn">import</span> <span class="n">KNN</span><span class="p">,</span> <span class="n">count</span>
+
+<span class="n">twitter</span><span class="p">,</span> <span class="n">knn</span> <span class="o">=</span> <span class="n">Twitter</span><span class="p">(),</span> <span class="n">KNN</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">tweet</span> <span class="ow">in</span> <span class="n">twitter</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">'#win OR #fail'</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">tweet</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="s">'#win'</span> <span class="ow">in</span> <span class="n">s</span> <span class="ow">and</span> <span class="s">'WIN'</span> <span class="ow">or</span> <span class="s">'FAIL'</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">tag</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">word</span> <span class="k">for</span> <span class="n">word</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">v</span> <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="s">'JJ'</span><span class="p">]</span> <span class="c"># JJ = adjective</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">count</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="c"># {'sweet': 1}</span>
+        <span class="k">if</span> <span class="n">v</span><span class="p">:</span>
+            <span class="n">knn</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+
+<span class="k">print</span> <span class="n">knn</span><span class="o">.</span><span class="n">classify</span><span class="p">(</span><span class="s">'sweet potato burger'</span><span class="p">)</span>
+<span class="k">print</span> <span class="n">knn</span><span class="o">.</span><span class="n">classify</span><span class="p">(</span><span class="s">'stupid autocorrect'</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-documentation" class="anchor" href="#documentation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p><a href="http://www.clips.ua.ac.be/pages/pattern">http://www.clips.ua.ac.be/pages/pattern</a></p>
+
+<h2>
+<a name="user-content-reference" class="anchor" href="#reference" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reference</h2>
+
+<p>De Smedt, T., Daelemans, W. (2012). Pattern for Python. <em>Journal of Machine Learning Research, 13</em>, 2031–2035.</p>
+
+<h2>
+<a name="user-content-contribute" class="anchor" href="#contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribute</h2>
+
+<p>The source code is hosted on GitHub and contributions or donations are welcomed, see the <a href="http://www.clips.ua.ac.be/pages/pattern#contribute">developer documentation</a>. If you use Pattern in your work, please cite our reference paper.</p>
+
+<h2>
+<a name="user-content-bundled-dependencies" class="anchor" href="#bundled-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bundled dependencies</h2>
+
+<p>Pattern is bundled with the following data sets, algorithms and Python packages:</p>
+
+<ul class="task-list">
+<li>
+<strong>Beautiful Soup</strong>, Leonard Richardson</li>
+<li>
+<strong>Brill tagger</strong>, Eric Brill</li>
+<li>
+<strong>Brill tagger for Dutch</strong>, Jeroen Geertzen</li>
+<li>
+<strong>Brill tagger for German</strong>, Gerold Schneider &amp; Martin Volk</li>
+<li>
+<strong>Brill tagger for Spanish</strong>, trained on Wikicorpus (Samuel Reese &amp; Gemma Boleda et al.)</li>
+<li>
+<strong>Brill tagger for French</strong>, trained on Lefff (Benoît Sagot &amp; Lionel Clément et al.)</li>
+<li>
+<strong>Brill tagger for Italian</strong>, mined from Wiktionary</li>
+<li>
+<strong>English pluralization</strong>, Damian Conway</li>
+<li>
+<strong>Spanish verb inflection</strong>, Fred Jehle</li>
+<li>
+<strong>French verb inflection</strong>, Bob Salita</li>
+<li>
+<strong>Graph JavaScript framework</strong>, Aslak Hellesoy &amp; Dave Hoover</li>
+<li>
+<strong>LIBSVM</strong>, Chih-Chung Chang &amp; Chih-Jen Lin</li>
+<li>
+<strong>LIBLINEAR</strong>, Rong-En Fan et al.</li>
+<li>
+<strong>NetworkX centrality</strong>, Aric Hagberg, Dan Schult &amp; Pieter Swart</li>
+<li>
+<strong>PDFMiner</strong>, Yusuke Shinyama</li>
+<li>
+<strong>Python docx</strong>, Mike Maccana</li>
+<li>
+<strong>PyWordNet</strong>, Oliver Steele</li>
+<li>
+<strong>simplejson</strong>, Bob Ippolito</li>
+<li>
+<strong>spelling corrector</strong>, Peter Norvig</li>
+<li>
+<strong>Universal Feed Parser</strong>, Mark Pilgrim</li>
+<li>
+<strong>WordNet</strong>, Christiane Fellbaum et al.</li>
+</ul><h2>
+<a name="user-content-acknowledgements" class="anchor" href="#acknowledgements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Acknowledgements</h2>
+
+<p><strong>Authors:</strong></p>
+
+<ul class="task-list">
+<li>Tom De Smedt (<a href="mailto:tom@organisms.be">tom@organisms.be</a>)</li>
+<li>Walter Daelemans (<a href="mailto:walter.daelemans@ua.ac.be">walter.daelemans@ua.ac.be</a>)</li>
+</ul><p><strong>Contributors (chronological):</strong></p>
+
+<ul class="task-list">
+<li>Frederik De Bleser</li>
+<li>Jason Wiener</li>
+<li>Daniel Friesen</li>
+<li>Jeroen Geertzen</li>
+<li>Thomas Crombez</li>
+<li>Ken Williams</li>
+<li>Peteris Erins</li>
+<li>Rajesh Nair</li>
+<li>F. De Smedt</li>
+<li>Radim Řehůřek</li>
+<li>Tom Loredo</li>
+<li>John DeBovis</li>
+<li>Thomas Sileo</li>
+<li>Gerold Schneider</li>
+<li>Martin Volk</li>
+<li>Samuel Joseph</li>
+<li>Shubhanshu Mishra</li>
+<li>Robert Elwell</li>
+<li>Fred Jehle</li>
+<li>Antoine Mazières + fabelier.org</li>
+<li>Rémi de Zoeten + closealert.nl</li>
+<li>Kenneth Koch</li>
+<li>Jens Grivolla</li>
+<li>Fabio Marfia</li>
+<li>Steven Loria</li>
+<li>Colin Molter + tevizz.com</li>
+<li>Peter Bull</li>
+<li>Maurizio Sambati</li>
+<li>Dan Fu</li>
+<li>Salvatore Di Dio</li>
+<li>Vincent Van Asch</li>
+<li>Frederik Elwert</li>
+</ul></article></div>

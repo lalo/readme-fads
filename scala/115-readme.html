@@ -1,0 +1,102 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-scala-automatic-resource-management" class="anchor" href="#scala-automatic-resource-management" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scala Automatic Resource Management</h1>
+
+<p>This project is an attempt to provide an Automatic-Resource-Management library for the scala distribution.  It is based off of code contributed to the Scalax project.</p>
+
+<h2>
+<a name="user-content-using-scala-arm" class="anchor" href="#using-scala-arm" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using scala-arm</h2>
+
+<p>In SBT:</p>
+
+<pre><code>libraryDependencies += "com.jsuereth" %% "scala-arm" % "1.3"
+</code></pre>
+
+<p><em>or</em></p>
+
+<pre><code>libraryDependencies += "com.jsuereth" % "scala-arm_2.9.2" % "1.3"
+libraryDependencies += "com.jsuereth" % "scala-arm_2.10" % "1.3"
+</code></pre>
+
+<p>In Maven:</p>
+
+<pre><code>&lt;dependency&gt;
+   &lt;groupId&gt;com.jsuereth&lt;/groupId&gt;
+   &lt;artifactId&gt;scala-arm_${scala.binary.version}&lt;/artifactId&gt;
+   &lt;version&gt;1.3&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examples</h2>
+
+<p>Scala-arm provides many ways of managing resources and re-using code.  Here's a few examples.</p>
+
+<h3>
+<a name="user-content-imperative-style" class="anchor" href="#imperative-style" aria-hidden="true"><span class="octicon octicon-link"></span></a>Imperative Style</h3>
+
+<pre><code>import resource._
+// Copy input into output.
+for(input &lt;- managed(new java.io.FileInputStream("test.txt"));
+    output &lt;- managed(new java.io.FileOutputStream("test2.txt"))) {
+  val buffer = new Array[Byte](512)
+  def read(): Unit = input.read(buffer) match {
+    case -1 =&gt; ()
+    case  n =&gt; output.write(buffer,0,size); read()
+  }
+  read()
+}
+</code></pre>
+
+<h3>
+<a name="user-content-delimited-continuation-style" class="anchor" href="#delimited-continuation-style" aria-hidden="true"><span class="octicon octicon-link"></span></a>Delimited continuation style</h3>
+
+<pre><code>import resource._
+import java.io.{File, FileInputStream =&gt; Fin, FileOutputStream =&gt; Fout}
+def copyFile(from: File, to: File): Unit =
+  withResources {
+    val f = managed(new Fin(from)).reflect[Unit]
+    val t = managed(new Fout(to)).reflect[Unit]
+    val buffer = new Array[Byte](512)
+    def read(): Unit = f.read(buffer) match {
+      case -1 =&gt; ()
+      case  n =&gt; t.write(buffer,0,n); read()
+    }
+    read()
+}
+</code></pre>
+
+<p>For more information on usage, see <a href="http://jsuereth.com/scala-arm/usage.html">Usage</a></p>
+
+<h2>
+<a name="user-content-scala-license" class="anchor" href="#scala-license" aria-hidden="true"><span class="octicon octicon-link"></span></a>SCALA LICENSE</h2>
+
+<p>Copyright (c) 2002-2013 EPFL, Lausanne, unless otherwise specified.
+All rights reserved.</p>
+
+<p>This software was developed by the Programming Methods Laboratory of the
+Swiss Federal Institute of Technology (EPFL), Lausanne, Switzerland.</p>
+
+<p>Permission to use, copy, modify, and distribute this software in source
+or binary form for any purpose with or without fee is hereby granted,
+provided that the following conditions are met:</p>
+
+<ol class="task-list">
+<li><p>Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.</p></li>
+<li><p>Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.</p></li>
+<li><p>Neither the name of the EPFL nor the names of its contributors
+  may be used to endorse or promote products derived from this
+  software without specific prior written permission.</p></li>
+</ol><p>THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.</p></article></div>

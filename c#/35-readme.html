@@ -1,0 +1,170 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-akavache-an-asynchronous-key-value-store-for-native-applications" class="anchor" href="#akavache-an-asynchronous-key-value-store-for-native-applications" aria-hidden="true"><span class="octicon octicon-link"></span></a>Akavache: An Asynchronous Key-Value Store for Native Applications</h2>
+
+<p>Akavache is an <em>asynchronous</em>, <em>persistent</em> (i.e. writes to disk) key-value
+store created for writing desktop and mobile applications in C#. Think of it
+like memcached for desktop apps.</p>
+
+<p><a href="https://camo.githubusercontent.com/351d64d00103a2a25b2f52f8a520397c2ec545a9/687474703a2f2f662e636c2e6c792f6974656d732f32523364316f3132326d3039304b30573038314c2f416b6176616368652e706e67" target="_blank"><img src="https://camo.githubusercontent.com/351d64d00103a2a25b2f52f8a520397c2ec545a9/687474703a2f2f662e636c2e6c792f6974656d732f32523364316f3132326d3039304b30573038314c2f416b6176616368652e706e67" alt="Dat Logo" data-canonical-src="http://f.cl.ly/items/2R3d1o122m090K0W081L/Akavache.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-where-can-i-use-it" class="anchor" href="#where-can-i-use-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Where can I use it?</h2>
+
+<p>Akavache is currently compatible with:</p>
+
+<ul class="task-list">
+<li>Xamarin.iOS / Xamarin.Mac</li>
+<li>Xamarin.Android</li>
+<li>.NET 4.5 Desktop (WPF)</li>
+<li>Windows Phone 8</li>
+<li>WinRT (Windows Store)</li>
+<li>Windows Phone 8.1 Universal Apps</li>
+</ul><h2>
+<a name="user-content-what-does-that-mean" class="anchor" href="#what-does-that-mean" aria-hidden="true"><span class="octicon octicon-link"></span></a>What does that mean?</h2>
+
+<p>Downloading and caching remote data from the internet while still keeping the
+UI responsive is a task that nearly every modern application needs to do.
+However, many applications that don't take the consideration of caching into
+the design from the start often end up with inconsistent, duplicated code for
+caching different types of objects. </p>
+
+<p><a href="https://github.com/github/akavache">Akavache</a> is a library that makes common app
+patterns easy, and unifies caching of different object types (i.e. HTTP
+responses vs. JSON objects vs. images). </p>
+
+<p>It's built on a core key-value byte array store (conceptually similar to a
+<code>Dictionary&lt;string, byte[]&gt;</code>), and on top of that store, extensions are
+added to support:</p>
+
+<ul class="task-list">
+<li>Arbitrary objects via JSON.NET</li>
+<li>HTTP Requests</li>
+<li>Fetching and loading Images</li>
+<li>Securely storing User Credentials</li>
+</ul><h2>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h2>
+
+<p>Interacting with Akavache is primarily done through an object called
+<code>BlobCache</code>. At App startup, you must first set your app's name via
+<code>BlobCache.ApplicationName</code> - on the desktop, your application's data will be
+stored in <code>%AppData%\[ApplicationName]</code> and
+<code>%LocalAppData%\[ApplicationName]</code>. Store data that should be shared between
+different machines in <code>BlobCache.UserAccount</code> and store data that is
+throwaway or per-machine (such as images) in <code>BlobCache.LocalMachine</code>.</p>
+
+<p>The most straightforward way to use Akavache is via the object extensions:</p>
+
+<div class="highlight highlight-cs"><pre><span class="k">using</span> <span class="nn">System.Reactive</span><span class="p">;</span>   <span class="c1">// IMPORTANT - this makes await work!</span>
+
+<span class="kt">var</span> <span class="n">myToaster</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Toaster</span><span class="p">();</span>
+<span class="k">await</span> <span class="n">BlobCache</span><span class="p">.</span><span class="n">UserAccount</span><span class="p">.</span><span class="n">InsertObject</span><span class="p">(</span><span class="s">"toaster"</span><span class="p">,</span> <span class="n">myToaster</span><span class="p">);</span>
+
+<span class="c1">//</span>
+<span class="c1">// ...later, in another part of town...</span>
+<span class="c1">//</span>
+
+<span class="c1">// Using async/await</span>
+<span class="kt">var</span> <span class="n">toaster</span> <span class="p">=</span> <span class="k">await</span> <span class="n">BlobCache</span><span class="p">.</span><span class="n">UserAccount</span><span class="p">.</span><span class="n">GetObjectAsync</span><span class="p">&lt;</span><span class="n">Toaster</span><span class="p">&gt;(</span><span class="s">"toaster"</span><span class="p">);</span>
+
+<span class="c1">// or without async/await</span>
+<span class="n">Toaster</span> <span class="n">toaster</span><span class="p">;</span>
+
+<span class="n">BlobCache</span><span class="p">.</span><span class="n">UserAccount</span><span class="p">.</span><span class="n">GetObjectAsync</span><span class="p">&lt;</span><span class="n">Toaster</span><span class="p">&gt;(</span><span class="s">"toaster"</span><span class="p">)</span>
+    <span class="p">.</span><span class="n">Subscribe</span><span class="p">(</span><span class="n">x</span> <span class="p">=&gt;</span> <span class="n">toaster</span> <span class="p">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">ex</span> <span class="p">=&gt;</span> <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">"No Key!"</span><span class="p">));</span>
+</pre></div>
+
+<h2>
+<a name="user-content-use-sqlite3" class="anchor" href="#use-sqlite3" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use SQLite3!</h2>
+
+<p>Akavache also ships with a separate <code>IBlobCache</code> implementation in the
+<code>akavache.sqlite3</code> NuGet package which supports every platform except for
+WP8.</p>
+
+<p>While the default implementation is still quite usable, the SQLite3
+implementation has a number of speed and concurrency advantages, and is
+<strong>recommended for all new applications</strong>. It's not the default because it
+requires a native DLL (<code>sqlite3.dll</code>) which is a bit more work to set up. See
+<a href="/Akavache.Sqlite3/sqlite3-hint.txt">the Sqlite3 README</a> for more info.</p>
+
+<p>To use it, simply include <code>Akavache.Sqlite3.dll</code></p>
+
+<h2>
+<a name="user-content-handling-errors" class="anchor" href="#handling-errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling Errors</h2>
+
+<p>When a key is not present in the cache, GetObject throws a
+KeyNotFoundException (or more correctly, OnError's the IObservable). Often,
+you would want to return a default value instead of failing:</p>
+
+<div class="highlight highlight-cs"><pre>
+<span class="n">Toaster</span> <span class="n">toaster</span><span class="p">;</span>
+
+<span class="k">try</span> <span class="p">{</span>
+    <span class="n">toaster</span> <span class="p">=</span> <span class="k">await</span> <span class="n">BlobCache</span><span class="p">.</span><span class="n">UserAccount</span><span class="p">.</span><span class="n">GetObjectAsync</span><span class="p">&lt;</span><span class="n">Toaster</span><span class="p">&gt;(</span><span class="s">"toaster"</span><span class="p">);</span>
+<span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">KeyNotFoundException</span> <span class="n">ex</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">toaster</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Toaster</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="c1">// Or without async/await:</span>
+<span class="n">toaster</span> <span class="p">=</span> <span class="k">await</span> <span class="n">BlobCache</span><span class="p">.</span><span class="n">UserAccount</span><span class="p">.</span><span class="n">GetObjectAsync</span><span class="p">&lt;</span><span class="n">Toaster</span><span class="p">&gt;(</span><span class="s">"toaster"</span><span class="p">)</span>
+    <span class="p">.</span><span class="n">Catch</span><span class="p">(</span><span class="n">Observable</span><span class="p">.</span><span class="n">Return</span><span class="p">(</span><span class="k">new</span> <span class="n">Toaster</span><span class="p">()));</span>
+</pre></div>
+
+<h2>
+<a name="user-content-examining-akavache-caches" class="anchor" href="#examining-akavache-caches" aria-hidden="true"><span class="octicon octicon-link"></span></a>Examining Akavache caches</h2>
+
+<p>Using <a href="https://github.com/xpaulbettsx/AkavacheExplorer">Akavache Explorer</a>, you
+can dig into Akavache repos for debugging purposes to see what has been stored.</p>
+
+<p><a href="https://camo.githubusercontent.com/ac41099f0cbce66ba1beedeab39b51470e3cdca6/687474703a2f2f662e636c2e6c792f6974656d732f32443359304c306b3236325830553079334230652f496d616765253230323031322e30352e3037253230363a35373a3438253230504d2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/ac41099f0cbce66ba1beedeab39b51470e3cdca6/687474703a2f2f662e636c2e6c792f6974656d732f32443359304c306b3236325830553079334230652f496d616765253230323031322e30352e3037253230363a35373a3438253230504d2e706e67" alt="" data-canonical-src="http://f.cl.ly/items/2D3Y0L0k262X0U0y3B0e/Image%202012.05.07%206:57:48%20PM.png" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-whats-this-global-variable-nonsense-why-cant-i-use-favorite_ioc_library" class="anchor" href="#whats-this-global-variable-nonsense-why-cant-i-use-favorite_ioc_library" aria-hidden="true"><span class="octicon octicon-link"></span></a>What's this Global Variable nonsense? Why can't I use $FAVORITE_IOC_LIBRARY</h2>
+
+<p>You totally can. Just instantiate <code>PersistentBlobCache</code> or
+<code>EncryptedBlobCache</code> instead - the static variables are there just to make it
+easier to get started.</p>
+
+<h2>
+<a name="user-content-unit-testing-with-akavache" class="anchor" href="#unit-testing-with-akavache" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unit Testing with Akavache</h2>
+
+<p>By default, if Akavache detects that it is being run in a unit test runner, it
+will use the <code>TestBlobCache</code> implementation instead of the default
+implementation. <code>TestBlobCache</code> implements <code>IBlobCache</code> in memory
+synchronously using a Dictionary instead of persisting to disk.</p>
+
+<p>This class can be explicitly created as well, and initialized to have specific
+contents to test cache hit / cache miss scenarios. Use the
+<code>TestBlobCache.OverrideGlobals</code> method to temporarily replace the
+<code>BlobCache.UserAccount</code> variables with a specific TestBlobCache.</p>
+
+<p>Testing expiration can also be done, using Rx's <code>TestScheduler</code>:</p>
+
+<div class="highlight highlight-cs"><pre><span class="na">[Fact]</span>
+<span class="k">public</span> <span class="k">void</span> <span class="nf">TestSomeExpirationStuff</span><span class="p">()</span>
+<span class="p">{</span>
+    <span class="p">(</span><span class="k">new</span> <span class="n">TestScheduler</span><span class="p">()).</span><span class="n">With</span><span class="p">(</span><span class="n">sched</span> <span class="p">=&gt;</span> <span class="p">{</span>
+        <span class="k">using</span> <span class="p">(</span><span class="n">cache</span> <span class="p">=</span> <span class="n">TestBlobCache</span><span class="p">.</span><span class="n">OverrideGlobals</span><span class="p">(</span><span class="k">null</span><span class="p">,</span> <span class="n">sched</span><span class="p">))</span> <span class="p">{</span>
+            <span class="n">cache</span><span class="p">.</span><span class="n">Insert</span><span class="p">(</span><span class="s">"foo"</span><span class="p">,</span> <span class="k">new</span> <span class="kt">byte</span><span class="p">[]</span> <span class="p">{</span> <span class="m">1</span><span class="p">,</span><span class="m">2</span><span class="p">,</span><span class="m">3</span> <span class="p">},</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromMilliseconds</span><span class="p">(</span><span class="m">100</span><span class="p">));</span>
+
+            <span class="n">sched</span><span class="p">.</span><span class="n">AdvanceByMs</span><span class="p">(</span><span class="m">50</span><span class="p">);</span>
+
+            <span class="kt">var</span> <span class="n">result</span> <span class="p">=</span> <span class="n">cache</span><span class="p">.</span><span class="n">GetAsync</span><span class="p">(</span><span class="s">"foo"</span><span class="p">).</span><span class="n">First</span><span class="p">();</span>
+            <span class="n">Assert</span><span class="p">.</span><span class="n">Equal</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="m">0</span><span class="p">]);</span>
+
+            <span class="c1">// Fast forward to t=200ms, after the cache entry is expired</span>
+            <span class="n">sched</span><span class="p">.</span><span class="n">AdvanceByMs</span><span class="p">(</span><span class="m">150</span><span class="p">);</span>
+
+            <span class="kt">bool</span> <span class="n">didThrow</span><span class="p">;</span>
+            <span class="k">try</span> <span class="p">{</span>
+                <span class="c1">// This should now throw KeyNotFoundException</span>
+                <span class="n">result</span> <span class="p">=</span> <span class="n">cache</span><span class="p">.</span><span class="n">GetAsync</span><span class="p">(</span><span class="s">"foo"</span><span class="p">).</span><span class="n">First</span><span class="p">();</span>
+                <span class="n">didThrow</span> <span class="p">=</span> <span class="k">false</span><span class="p">;</span>
+            <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="n">Exception</span> <span class="n">ex</span><span class="p">)</span> <span class="p">{</span>
+                <span class="n">didThrow</span> <span class="p">=</span> <span class="k">true</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="n">Assert</span><span class="p">.</span><span class="n">True</span><span class="p">(</span><span class="n">didThrow</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre></div></article></div>

@@ -1,0 +1,331 @@
+<div class="announce instapaper_body textile" data-path="readme.textile" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
+<p>Scalang is a message passing and actor library that allows Scala and Erlang applications to easily communicate.  Scalang includes a full implementation of the Erlang distributed node protocol.  It provides an actor oriented API that can be used to interact with Erlang nodes in an idiomatic, OTP compliant way.  Scalang is built on Netty for its networking layer and Jetlang for its actor implementation.</p>
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+<p>From Maven:</p>
+<pre>
+<code>
+  &lt;repositories&gt;
+    &lt;repository&gt;
+      &lt;id&gt;Boundary Public Repo&lt;/id&gt;
+      &lt;url&gt;http://maven.boundary.com/artifactory/repo&lt;/url&gt;
+    &lt;/repository&gt;
+  &lt;/repositories&gt;
+
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;com.boundary&lt;/groupId&gt;
+      &lt;artifactId&gt;scalang-scala_2.9.1&lt;/artifactId&gt;
+      &lt;version&gt;0.18&lt;/version&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+</code>
+</pre>
+<p>From SBT:</p>
+<pre>
+<code>
+  val boundaryPublic = "Boundary Public Repo" at "http://maven.boundary.com/artifactory/repo"
+
+  val scalang = "com.boundary" %% "scalang" % "0.18"
+</code>
+</pre>
+<p>Scalang currently supports Scala 2.9.1.  Scalang also requires <a href="http://www.erlang.org/doc/man/epmd.html">epmd</a> in order to run.</p>
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+<h2>
+<a name="user-content-starting" class="anchor" href="#starting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Starting</h2>
+<p>The main entry point for Scalang’s API is the node class.  An instance of the Node class is a self contained representation of an Erlang Node, distinct in the set of nodes participating in a distributed system.  Multiple nodes may be run within the same JVM.  Start a node with the following invocation:</p>
+<pre>
+<code>
+    val node = Node("scala@localhost.local", "cookie")
+</code>
+</pre>
+<p>Starting a Scalang node like this will register it with the local <a href="http://erlang.org/doc/man/epmd.html">epmd</a> instance, which must be running on the local host.  Scalang will then be available to receive and make connections to other Erlang nodes.  In this case, its node name would be scala@localhost.local and its magic cookie is <code>cookie</code>.  Any Erlang or Scalang node which shares this magic cookie can now connect to this node and send messages using the node name.</p>
+<h2>
+<a name="user-content-processes" class="anchor" href="#processes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Processes</h2>
+<p>Scalang shares Erlang’s concept of a process, a lightweight actor that is capable of sending messages to other processes, either local or remote.  You can define your own processes by subclassing the Process class.  The following code defines and then spawns a process:</p>
+<pre>
+<code>
+  class MyProcess(ctx : ProcessContext) extends Process(ctx) {
+    override def onMessage(msg : Any) {
+      log.info("received %s", msg)
+    }
+  }
+
+  val pid = node.spawn[MyProcess]("my_process")
+
+  //send to the pid
+  node.send(pid, "hey there")
+
+  //send to the regname
+  node.send("my_process", "you wanna party?")
+</code>
+</pre>
+<h2>
+<a name="user-content-message-passing" class="anchor" href="#message-passing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Message Passing</h2>
+<p>Message passing / receiving is the main means by which processes may interact with the outside world.  Processes receive messages via the message handler method onMessage.  Only one message may be handled by a process at a time unless that process has been spawned with the reentrant option.</p>
+<p>The following shows a simple echo server and client that demonstrate message sending.</p>
+<pre>
+<code>
+  class EchoServer(ctx : ProcessContext) extends Process(ctx) {
+    override def onMessage(msg : Any) = msg match {
+      case (pid : Pid, request : Any) =&gt;
+        pid ! request
+      case m =&gt;
+        log.error("sorry I don't understand %s.", m)
+    }
+  }
+
+
+  val server = node.spawn[EchoServer]("echo_server")
+
+  val client = node.spawn { mbox =&gt;
+    mbox.send(server, (client,'derp))
+    val received = mbox.receive
+    println("received " + received)
+  }
+</code>
+</pre>
+<p>Messages can also easily be passed from a remote node.  Scalang supports Erlang’s convention of addressing messages to the tuple of a registered name and a node name.</p>
+<pre>
+<code>
+  val remoteNode = Node("remote", cookie)
+  val client = node.spawn { mbox =&gt;
+    mbox.send(('echo_server, Symbol("test@localhost")), "heyo!")
+  }
+</code>
+</pre>
+<p>The above code will send a message to the process registered as “echo_server” on the node named “test@localhost”.</p>
+<h2>
+<a name="user-content-error-handling" class="anchor" href="#error-handling" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Handling</h2>
+<p>Scalang implements the Erlang concept of links.  A link is a bidirectional relationship between two processes.  If one of the processes exits the link will break and the other process will receive an exit notification.  The default behavior of a process during exit notification is for the receiving process to exit with the same error message that was delivered with the link breakage.  Creating a link between two processes requires both pids.</p>
+<p>Processes that must implement custom behavior may override the trapExit method.</p>
+<pre>
+<code>
+  class ExitHandler(ctx : ProcessContext) extends Process(ctx) {
+    override def onMessage(msg : Any) = msg match {
+      case _ =&gt; log.info("derp %s", msg)
+    }
+
+    override def trapExit(from : Pid, msg : Any) {
+      log.warning("got exit notification from %s reason %s", from, msg)
+    }
+  }
+</code>
+</pre>
+<h2>
+<a name="user-content-serialization" class="anchor" href="#serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serialization</h2>
+<p>Scalang messages are serialized into <a href="http://www.erlang.org/doc/apps/erts/erl_ext_dist.html">Erlang’s external term format</a>.  Serialization automatically happens when messages are either sent from or received by a Scalang process.  For the most part Scalang provides a 1-1 mapping of Erlangs terms onto Scala types.  The type mappings are illustrated below.</p>
+<table>
+<tr>
+<td> <b>From Erlang</b> </td>
+		<td> <b>To Scala</b> </td>
+	</tr>
+<tr>
+<td> Small Integer </td>
+		<td> Int </td>
+	</tr>
+<tr>
+<td> Integer </td>
+		<td> Int </td>
+	</tr>
+<tr>
+<td> Float </td>
+		<td> Double </td>
+	</tr>
+<tr>
+<td> Boolean </td>
+		<td> Boolean </td>
+	</tr>
+<tr>
+<td> Atom </td>
+		<td> Symbol </td>
+	</tr>
+<tr>
+<td> Reference </td>
+		<td> <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/Reference.scala">Reference</a> </td>
+	</tr>
+<tr>
+<td> Port </td>
+		<td> <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/Port.scala">Port</a> </td>
+	</tr>
+<tr>
+<td> Pid </td>
+		<td> <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/Pid.scala">Pid</a> </td>
+	</tr>
+<tr>
+<td> Small Tuple </td>
+		<td> Tuple </td>
+	</tr>
+<tr>
+<td> Large Tuple </td>
+		<td> <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/BigTuple.scala">BigTuple</a> </td>
+	</tr>
+<tr>
+<td> String </td>
+		<td> String </td>
+	</tr>
+<tr>
+<td> List </td>
+		<td> List </td>
+	</tr>
+<tr>
+<td> Binary </td>
+		<td> <a href="http://download.oracle.com/javase/6/docs/api/java/nio/ByteBuffer.html">ByteBuffer</a> </td>
+	</tr>
+<tr>
+<td> Small Bignum </td>
+		<td> Long </td>
+	</tr>
+<tr>
+<td> Large Bignum </td>
+		<td> BigInt </td>
+	</tr>
+<tr>
+<td> Fun </td>
+		<td> <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/Fun.scala">Fun</a> </td>
+	</tr>
+<tr>
+<td> Bistring </td>
+		<td> <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/BitString.scala">Bitstring</a> </td>
+	</tr>
+</table><table>
+<tr>
+<td> <b>From Scala</b> </td>
+		<td> <b>To Erlang</b> </td>
+	</tr>
+<tr>
+<td> Byte </td>
+		<td> Small Integer </td>
+	</tr>
+<tr>
+<td> Int </td>
+		<td> Integer </td>
+	</tr>
+<tr>
+<td> Long </td>
+		<td> Small Bignum </td>
+	</tr>
+<tr>
+<td> Double </td>
+		<td> Float </td>
+	</tr>
+<tr>
+<td> Symbol </td>
+		<td> Atom </td>
+	</tr>
+<tr>
+<td> Reference </td>
+		<td> Reference </td>
+	</tr>
+<tr>
+<td> Port </td>
+		<td> Port </td>
+	</tr>
+<tr>
+<td> Pid </td>
+		<td> Pid </td>
+	</tr>
+<tr>
+<td> Fun </td>
+		<td> Fun </td>
+	</tr>
+<tr>
+<td> String </td>
+		<td> String </td>
+	</tr>
+<tr>
+<td> List </td>
+		<td> List </td>
+	</tr>
+<tr>
+<td> BigInteger </td>
+		<td> Large Bignum </td>
+	</tr>
+<tr>
+<td> Array[Byte] </td>
+		<td> Binary </td>
+	</tr>
+<tr>
+<td> ByteBuffer </td>
+		<td> Binary </td>
+	</tr>
+<tr>
+<td> BitString </td>
+		<td> Bitstring </td>
+	</tr>
+<tr>
+<td> Tuple </td>
+		<td> Tuple </td>
+	</tr>
+<tr>
+<td> BigTuple </td>
+		<td> Tuple </td>
+	</tr>
+</table><h2>
+<a name="user-content-rich-type-mappings" class="anchor" href="#rich-type-mappings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rich Type Mappings</h2>
+<p>Sometimes the built-in type mappings in Scalang are not sufficient for an application’s message format.  Scalang provides the TypeFactory trait for client code to provide custom decoding behavior.  A TypeFactory is invoked when Scalang comes across a term that looks like an erlang record: a tuple where the first element is an atom.  The createType method is called with the first tuple element as the name and the arity of the tuple.</p>
+<pre>
+<code>
+  object StructFactory extends TypeFactory {
+    def createType(name : Symbol, arity : Int, reader : TermReader) : Option[Seq[Any]] = {
+      try {
+        reader.mark
+        (name,arity) match {
+          case ('struct,2) =&gt; Some(readMap(reader))
+          case _ =&gt; None
+        }
+      }
+    }
+
+    protected def readSeq(reader : TermReader) : Map[Symbol,Any] = {
+      val proplist = reader.readAs[List[Symbol,Any]]
+      proplist.toMap
+    }
+  }
+
+  val node = Node("test", cookie, NodeConfig(
+    typeFactory = StructFactory))
+</code>
+</pre>
+<p>The above code will spawn a Scalang node that uses the StructFactory singleton to decode into a map any arity 2 tuples that begin with the atom <code>struct</code>.  Anything else will get decoded with the normal type mappings.</p>
+<p>A more complex example is the <a href="https://github.com/boundary/scalang/blob/master/src/main/scala/scalang/node/CaseClassFactory.scala">CaseClassFactory</a>.  It will attempt to decode Erlang records into Scala <a href="http://www.scala-lang.org/node/107">case classes</a> reflectively.</p>
+<h2>
+<a name="user-content-services" class="anchor" href="#services" aria-hidden="true"><span class="octicon octicon-link"></span></a>Services</h2>
+<p>Most modern Erlang applications are built using the OTP framework, and in particular the <a href="http://www.erlang.org/doc/design_principles/gen_server_concepts.html">gen_server</a>.  In order to more effectively interface with gen_server based processes, Scalang has a special kind of process known as a service.  Services respond to casts and calls like a gen_server and allow you to send casts and calls to gen_servers running in an Erlang VM.</p>
+<pre>
+<code>
+  case class EchoServiceArgs(name : String)
+  class EchoService(ctx : ServiceContext[EchoServiceArgs]) extends Service(ctx) {
+    val EchoServiceArgs(name) = ctx.args
+
+    override def handleCall(tag: (Pid, Reference), request: Any): Any = { 
+      name + " " + request
+    }   
+
+    override def handleCast(request : Any) {
+      log.info("Can't echo a cast. %s", request)
+    }   
+
+    override def handleInfo(request : Any) {
+      log.info("A wild message appeared. %s, request")
+    }   
+  }
+
+  val node = Node("test", cookie)
+  val pid = node.spawnService[EchoService, EchoServiceArgs]("echo", EchoServiceArgs("test_echo"))
+</code>
+</pre>
+<p>This will spawn a new process with the registered name “echo” and it will be initialized with the argument “test_echo”.  The handleCall method will automatically send its return value to the caller.  Casts are meant to be one directional, therefore the return value of handleCast is discarded.  The handleInfo method is invoked when a message shows up without the appropriate call or cast semantics.</p>
+<h1>
+<a name="user-content-roadmap" class="anchor" href="#roadmap" aria-hidden="true"><span class="octicon octicon-link"></span></a>Roadmap</h1>
+<h2>
+<a name="user-content-upgrade-node-protocol" class="anchor" href="#upgrade-node-protocol" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrade Node Protocol</h2>
+<p>Scalang uses the same version of Erlang’s node protocol as JInterface.  This means that for some operations Scalang nodes are not treated as full fledged members of the cluster.  For instance, features like monitors and atom caches are not currently supported.  Additionally, Scalang nodes will appear as <a href="http://www.erlang.org/doc/reference_manual/distributed.html#id82462">hidden nodes</a>.  This is disadvantageous for Scalang’s goal of transparent interoperability.</p>
+<h2>
+<a name="user-content-supervision-trees" class="anchor" href="#supervision-trees" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supervision Trees</h2>
+<p>Scalang needs its own implementation of Erlang OTP’s supervision tree.  All of the primitives are in place to support supervision trees currently, so an implementation of the actual supervisor process is all that’s needed.</p>
+<h2>
+<a name="user-content-pre-emptable-actors" class="anchor" href="#pre-emptable-actors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pre-emptable Actors</h2>
+<p>Scalang uses Jetlang’s thread pool based actor implementation.  There is currently no API for pre-empting these types of Jetlang actors.  Therefore either Jetlang needs to be patched to allow this or another actor backend needs to be chosen.</p></article></div>

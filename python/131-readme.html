@@ -1,0 +1,168 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-a-powerline-style-prompt-for-your-shell" class="anchor" href="#a-powerline-style-prompt-for-your-shell" aria-hidden="true"><span class="octicon octicon-link"></span></a>A Powerline style prompt for your shell</h1>
+
+<p>A <a href="https://github.com/Lokaltog/vim-powerline">Powerline</a> like prompt for Bash, ZSH and Fish:</p>
+
+<p><a href="https://camo.githubusercontent.com/62467c4ea38001da03ff98e15657a72a030a918a/68747470733a2f2f7261772e6769746875622e636f6d2f6d696c6b62696b69732f646f7466696c65732d6d61632f6d61737465722f626173682d706f7765726c696e652d73637265656e73686f742e706e67" target="_blank"><img src="https://camo.githubusercontent.com/62467c4ea38001da03ff98e15657a72a030a918a/68747470733a2f2f7261772e6769746875622e636f6d2f6d696c6b62696b69732f646f7466696c65732d6d61632f6d61737465722f626173682d706f7765726c696e652d73637265656e73686f742e706e67" alt="MacVim+Solarized+Powerline+CtrlP" data-canonical-src="https://raw.github.com/milkbikis/dotfiles-mac/master/bash-powerline-screenshot.png" style="max-width:100%;"></a></p>
+
+<ul class="task-list">
+<li> Shows some important details about the git/svn/hg/fossil branch:
+
+<ul class="task-list">
+<li> Displays the current branch which changes background color when the branch is dirty</li>
+<li> A '+' appears when untracked files are present</li>
+<li> When the local branch differs from the remote, the difference in number of commits is shown along with '⇡' or '⇣' indicating whether a git push or pull is pending</li>
+</ul>
+</li>
+<li> Changes color if the last command exited with a failure code</li>
+<li> If you're too deep into a directory tree, shortens the displayed path with an ellipsis</li>
+<li> Shows the current Python <a href="http://www.virtualenv.org/">virtualenv</a> environment</li>
+<li> It's easy to customize and extend. See below for details.</li>
+</ul><h1>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h1>
+
+<p>This script uses ANSI color codes to display colors in a terminal. These are
+notoriously non-portable, so may not work for you out of the box, but try
+setting your $TERM to <code>xterm-256color</code>, because that works for me.</p>
+
+<ul class="task-list">
+<li>
+<p>Patch the font you use for your terminal: see <a href="https://github.com/Lokaltog/powerline-fonts">https://github.com/Lokaltog/powerline-fonts</a></p>
+
+<ul class="task-list">
+<li>If you struggle too much to get working fonts in your terminal, you can use "compatible" mode.</li>
+<li>If you're using old patched fonts, you have to use the older symbols. Basically reverse <a href="https://github.com/milkbikis/powerline-shell/commit/2a84ecc">this commit</a> in your copy</li>
+</ul>
+</li>
+<li>
+<p>Clone this repository somewhere:</p>
+
+<pre><code>git clone https://github.com/milkbikis/powerline-shell
+</code></pre>
+</li>
+<li>
+<p>Copy <code>config.py.dist</code> to <code>config.py</code> and edit it to configure the segments you want. Then run</p>
+
+<pre><code>./install.py
+</code></pre>
+
+<ul class="task-list">
+<li>This will generate <code>powerline-shell.py</code>
+</li>
+</ul>
+</li>
+<li>
+<p>(optional) Create a symlink to this python script in your home:</p>
+
+<pre><code>ln -s &lt;path/to/powerline-shell.py&gt; ~/powerline-shell.py
+</code></pre>
+
+<ul class="task-list">
+<li>If you don't want the symlink, just modify the path in the commands below</li>
+</ul>
+</li>
+<li>
+<p>For python2.6 you have to install argparse</p>
+
+<pre><code>pip install argparse
+</code></pre>
+</li>
+</ul><h3>
+<a name="user-content-all-shells" class="anchor" href="#all-shells" aria-hidden="true"><span class="octicon octicon-link"></span></a>All Shells:</h3>
+
+<p>There are a few optional arguments which can be seen by running <code>powerline-shell.py --help</code>.</p>
+
+<pre><code>  --cwd-only            Only show the current directory
+  --cwd-max-depth CWD_MAX_DEPTH
+                        Maximum number of directories to show in path
+  --colorize-hostname   Colorize the hostname based on a hash of itself.
+  --mode {patched,compatible,flat}
+                        The characters used to make separators between
+                        segments
+</code></pre>
+
+<h3>
+<a name="user-content-bash" class="anchor" href="#bash" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bash:</h3>
+
+<p>Add the following to your <code>.bashrc</code>:</p>
+
+<pre><code>    function _update_ps1() {
+       export PS1="$(~/powerline-shell.py $? 2&gt; /dev/null)"
+    }
+
+    export PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
+</code></pre>
+
+<h3>
+<a name="user-content-zsh" class="anchor" href="#zsh" aria-hidden="true"><span class="octicon octicon-link"></span></a>ZSH:</h3>
+
+<p>Add the following to your <code>.zshrc</code>:</p>
+
+<pre><code>    function powerline_precmd() {
+      export PS1="$(~/powerline-shell.py $? --shell zsh 2&gt; /dev/null)"
+    }
+
+    function install_powerline_precmd() {
+      for s in "${precmd_functions[@]}"; do
+        if [ "$s" = "powerline_precmd" ]; then
+          return
+        fi
+      done
+      precmd_functions+=(powerline_precmd)
+    }
+
+    install_powerline_precmd
+</code></pre>
+
+<h3>
+<a name="user-content-fish" class="anchor" href="#fish" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fish:</h3>
+
+<p>Redefine <code>fish_prompt</code> in ~/.config/fish/config.fish:</p>
+
+<pre><code>    function fish_prompt
+        ~/powerline-shell.py $status --shell bare ^/dev/null
+    end
+</code></pre>
+
+<h1>
+<a name="user-content-customization" class="anchor" href="#customization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Customization</h1>
+
+<h3>
+<a name="user-content-adding-removing-and-re-arranging-segments" class="anchor" href="#adding-removing-and-re-arranging-segments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adding, Removing and Re-arranging segments</h3>
+
+<p>The <code>config.py</code> file defines which segments are drawn and in which order. Simply
+comment out and rearrange segment names to get your desired arrangement. Every
+time you change <code>config.py</code>, run <code>install.py</code>, which will generate a new
+<code>powerline-shell.py</code> customized to your configuration. You should see the new
+prompt immediately.</p>
+
+<h3>
+<a name="user-content-contributing-new-types-of-segments" class="anchor" href="#contributing-new-types-of-segments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing new types of segments</h3>
+
+<p>The <code>segments</code> directory contains python scripts which are injected as is into
+a single file <code>powerline-shell.py.template</code>. Each segment script defines a
+function that inserts one or more segments into the prompt. If you want to add a
+new segment, simply create a new file in the segments directory and add its name
+to the <code>config.py</code> file at the appropriate location.</p>
+
+<p>Make sure that your script does not introduce new globals which might conflict
+with other scripts. Your script should fail silently and run quickly in any
+scenario.</p>
+
+<p>Make sure you introduce new default colors in <code>themes/default.py</code> for every new
+segment you create. Test your segment with this theme first.</p>
+
+<h3>
+<a name="user-content-themes" class="anchor" href="#themes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Themes</h3>
+
+<p>The <code>themes</code> directory stores themes for your prompt, which are basically color
+values used by segments. The <code>default.py</code> defines a default theme which can be
+used standalone, and every other theme falls back to it if they miss colors for
+any segments. Create new themes by copying any other existing theme and
+changing the values. To use a theme, set the <code>THEME</code> variable in <code>config.py</code> to
+the name of your theme.</p>
+
+<p>A script for testing color combinations is provided at <code>themes/colortest.py</code>.
+Note that the colors you see may vary depending on your terminal. When designing
+a theme, please test your theme on multiple terminals, especially with default
+settings.</p></article></div>

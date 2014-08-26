@@ -1,0 +1,1001 @@
+<div class="announce instapaper_body rst" data-path="README.rst" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p><strong>parboiled2</strong>  – A Macro-Based PEG Parser Generator for Scala 2.10.3+</p>
+<div>
+<p>Contents of this Document</p>
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#features">Features</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#example">Example</a></li>
+<li><a href="#quick-start">Quick Start</a></li>
+<li><a href="#how-the-parser-matches-input">How the Parser matches Input</a></li>
+<li>
+<a href="#the-rule-dsl">The Rule DSL</a><ul>
+<li><a href="#rule-types-and-the-value-stack">Rule Types and the Value Stack</a></li>
+<li><a href="#basic-character-matching">Basic Character Matching</a></li>
+<li><a href="#rule-combinators-and-modifiers">Rule Combinators and Modifiers</a></li>
+<li><a href="#parser-actions">Parser Actions</a></li>
+<li><a href="#additional-helpers">Additional Helpers</a></li>
+</ul>
+</li>
+<li>
+<a href="#common-mistakes">Common Mistakes</a><ul>
+<li><a href="#disregarding-order-choice">Disregarding Order Choice</a></li>
+<li><a href="#unchecked-mutable-state">Unchecked Mutable State</a></li>
+<li><a href="#handling-whitespace">Handling Whitespace</a></li>
+</ul>
+</li>
+<li><a href="#grammar-debugging">Grammar Debugging</a></li>
+<li>
+<a href="#access-to-parser-results">Access to Parser Results</a><ul>
+<li><a href="#alternative-deliveryschemes">Alternative DeliverySchemes</a></li>
+</ul>
+</li>
+<li><a href="#running-the-examples">Running the Examples</a></li>
+<li>
+<a href="#alternatives">Alternatives</a><ul>
+<li><a href="#parboiled2-vs-parboiled-1-x">parboiled2 vs. parboiled 1.x</a></li>
+<li><a href="#parboiled2-vs-scala-parser-combinators">parboiled2 vs. Scala Parser Combinators</a></li>
+<li><a href="#parboiled2-vs-regular-expressions">parboiled2 vs. Regular Expressions</a></li>
+</ul>
+</li>
+<li><a href="#roadmap">Roadmap</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#support">Support</a></li>
+<li><a href="#references">References</a></li>
+<li><a href="#credits">Credits</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+</div>
+<h2>
+<a name="user-content-introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id9">Introduction</a>
+</h2>
+<p><em>parboiled2</em> is a Scala 2.10.3+ library enabling lightweight and easy-to-use, yet powerful, fast and elegant parsing of
+arbitrary input text. It implements a macro-based parser generator for <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">Parsing Expression Grammars</a> (PEGs), which
+runs at compile time and translates a grammar rule definition (written in an internal Scala DSL) into corresponding JVM
+bytecode.</p>
+<p>PEGs are an alternative to <a href="http://en.wikipedia.org/wiki/Context-free_grammar">Context-Free Grammars</a> (CFGs) for formally specifying syntax, they make a good replacement
+for regular expressions and have some advantages over the "traditional" way of building parsers via CFGs (like not
+needing a separate lexer/scanner phase).</p>
+<p><em>parboiled2</em> is the successor of <a href="http://parboiled.org">parboiled 1.x</a> , which provides a similar capability (for Scala as well as Java) but
+does not actually <em>generate</em> a parser. Rather <a href="http://parboiled.org">parboiled 1.x</a> interprets a rule tree structure (which is also created
+via an internal DSL) against the input, which results in a much lower parsing performance.
+For more info on how <a href="http://parboiled.org">parboiled 1.x</a> and <em>parboiled2</em> compare see <a href="#parboiled2-vs-parboiled-1-x">parboiled2 vs. parboiled 1.x</a>.
+You might also be interested in reading about <a href="#parboiled2-vs-scala-parser-combinators">parboiled2 vs. Scala Parser Combinators</a> and
+<a href="#parboiled2-vs-regular-expressions">parboiled2 vs. Regular Expressions</a>.</p>
+<h2>
+<a name="user-content-features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id10">Features</a>
+</h2>
+<ul>
+<li>Concise, flexible and type-safe DSL for expressing parsing logic</li>
+<li>Full expressive power of <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">Parsing Expression Grammars</a>, for effectively dealing with most real-world parsing needs</li>
+<li>Excellent reporting of parse errors</li>
+<li>Parsing performance comparable to hand-written parsers</li>
+<li>Easy to learn and use (just one parsing phase (no lexer code required), rather small API)</li>
+<li>Light-weight enough to serve as a replacement for regular expressions (also strictly more powerful than regexes)</li>
+</ul><h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id11">Installation</a>
+</h2>
+<p>The artifacts for <em>parboiled2</em> live on <a href="http://search.maven.org/">Maven Central</a> and can be tied into your SBT-based Scala project like this:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.parboiled"</span> <span class="o">%%</span> <span class="s">"parboiled"</span> <span class="o">%</span> <span class="s">"2.0.0"</span>
+</pre></div>
+<p>The latest released version is <strong>2.0.0</strong>. It is available for Scala 2.10.3+ as well as Scala 2.11.</p>
+<p><em>parboiled2</em> has only one single dependency that it will transitively pull into your classpath: <a href="https://github.com/milessabin/shapeless">shapeless</a>
+(currently version 2.0.0).</p>
+<p>Once on your classpath you can use this single import to bring everything you need into scope:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">import</span> <span class="nn">org.parboiled2._</span>
+</pre></div>
+<p>There might be potentially newer snapshot builds available in the <em>sonatype snapshots</em> repository located at:
+<a href="https://oss.sonatype.org/content/repositories/snapshots/">https://oss.sonatype.org/content/repositories/snapshots/</a></p>
+<p>You can find the latest ones here:
+<a href="https://oss.sonatype.org/content/repositories/snapshots/org/parboiled/parboiled_2.10/">https://oss.sonatype.org/content/repositories/snapshots/org/parboiled/parboiled_2.10/</a> (Scala 2.10) and
+<a href="https://oss.sonatype.org/content/repositories/snapshots/org/parboiled/parboiled_2.11/">https://oss.sonatype.org/content/repositories/snapshots/org/parboiled/parboiled_2.11/</a> (Scala 2.11)</p>
+<h2>
+<a name="user-content-example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id12">Example</a>
+</h2>
+<p>This is what a simple <em>parboiled2</em> parser looks like:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">import</span> <span class="nn">org.parboiled2._</span>
+
+<span class="k">class</span> <span class="nc">Calculator</span><span class="o">(</span><span class="k">val</span> <span class="n">input</span><span class="k">:</span> <span class="kt">ParserInput</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">Parser</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="nc">InputLine</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="nc">Expression</span> <span class="o">~</span> <span class="nc">EOI</span> <span class="o">}</span>
+
+  <span class="k">def</span> <span class="nc">Expression</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span>
+    <span class="nc">Term</span> <span class="o">~</span> <span class="n">zeroOrMore</span><span class="o">(</span>
+      <span class="sc">'+'</span> <span class="o">~</span> <span class="nc">Term</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="k">_:</span> <span class="kt">Int</span><span class="o">)</span> <span class="o">+</span> <span class="k">_</span><span class="o">)</span>
+    <span class="o">|</span> <span class="sc">'-'</span> <span class="o">~</span> <span class="nc">Term</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="k">_:</span> <span class="kt">Int</span><span class="o">)</span> <span class="o">-</span> <span class="k">_</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="nc">Term</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span>
+    <span class="nc">Factor</span> <span class="o">~</span> <span class="n">zeroOrMore</span><span class="o">(</span>
+      <span class="sc">'*'</span> <span class="o">~</span> <span class="nc">Factor</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="k">_:</span> <span class="kt">Int</span><span class="o">)</span> <span class="o">*</span> <span class="k">_</span><span class="o">)</span>
+    <span class="o">|</span> <span class="sc">'/'</span> <span class="o">~</span> <span class="nc">Factor</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="k">_:</span> <span class="kt">Int</span><span class="o">)</span> <span class="o">/</span> <span class="k">_</span><span class="o">))</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="nc">Factor</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="nc">Number</span> <span class="o">|</span> <span class="nc">Parens</span> <span class="o">}</span>
+
+  <span class="k">def</span> <span class="nc">Parens</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="sc">'('</span> <span class="o">~</span> <span class="nc">Expression</span> <span class="o">~</span> <span class="sc">')'</span> <span class="o">}</span>
+
+  <span class="k">def</span> <span class="nc">Number</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="n">capture</span><span class="o">(</span><span class="nc">Digits</span><span class="o">)</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">toInt</span><span class="o">)</span> <span class="o">}</span>
+
+  <span class="k">def</span> <span class="nc">Digits</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="n">oneOrMore</span><span class="o">(</span><span class="nc">CharPredicate</span><span class="o">.</span><span class="nc">Digit</span><span class="o">)</span> <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="k">new</span> <span class="nc">Calculator</span><span class="o">(</span><span class="s">"1+1"</span><span class="o">).</span><span class="nc">InputLine</span><span class="o">.</span><span class="n">run</span><span class="o">()</span> <span class="c1">// evaluates to `scala.util.Success(2)`</span>
+</pre></div>
+<p>This implements a parser for simple integer expressions like <tt>1+(2-3*4)/5</tt> and runs the actual calculation in-phase
+with the parser. If you'd like to see it run and try it out yourself check out <a href="#running-the-examples">Running the Examples</a>.</p>
+<h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id13">Quick Start</a>
+</h2>
+<p>A <em>parboiled2</em> parser is a class deriving from <tt>org.parboiled2.Parser</tt>, which defines one abstract member:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">def</span> <span class="n">input</span><span class="k">:</span> <span class="kt">ParserInput</span>
+</pre></div>
+<p>holding the input for the parsing run. Usually it is best implemented as a <tt>val</tt> parameter in the constructor
+(as shown in the <a href="#example">Example</a> above). As you can see from this design you need to (re-)create a new parser instance for
+every parsing run (parser instances are very lightweight).</p>
+<p>The "productions" (or "rules") of your grammar are then defined as simple methods, which in most cases consist of a
+single call to the <tt>rule</tt> macro whose argument is a <a href="#the-rule-dsl">DSL expression</a> defining what input the rule is to match and
+what <a href="#parser-actions">actions</a> to perform.</p>
+<p>In order to run your parser against a given input you create a new instance and call <tt>run()</tt> on the top-level rule,
+e.g:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">val</span> <span class="n">parser</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">MyParser</span><span class="o">(</span><span class="n">input</span><span class="o">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">topLevelRule</span><span class="o">.</span><span class="n">run</span><span class="o">()</span> <span class="c1">// by default returns a `scala.util.Try`</span>
+</pre></div>
+<p>For more info on what options you have with regard to accessing the results of a parsing run check out the section
+on <a href="#access-to-parser-results">Access to Parser Results</a>.</p>
+<h2>
+<a name="user-content-how-the-parser-matches-input" class="anchor" href="#how-the-parser-matches-input" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id14">How the Parser matches Input</a>
+</h2>
+<p><a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">PEG</a> parsers are quite easy to understand as they work just like most people without a lot of background in parsing
+theory would build a parser "by hand": recursive-descent with backtracking. They have only one parsing phase (not two,
+like mosts parsers produced by traditional parser generators like <a href="http://www.antlr.org/">ANTLR</a>), do not require any look-ahead and perform
+quite well in most real-world scenarios (although they <em>can</em> exhibit exponential runtime for certain pathological
+languages and inputs).</p>
+<p>A <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">PEG</a> parser consists of a number of rules that logically form a "tree", with one "root" rule at the top calling zero
+or more lower-level rules, which can each call other rules and so on. Since rules can also call themselves or any of
+their parents the rule "tree" is not really a tree but rather a potentially cyclic directed graph, but in most cases the
+tree structure dominates, which is why its useful to think of it as a tree with potential cycles.</p>
+<p>When a rule is executed against the current position in an input buffer it applies its specific matching logic to the
+input, which can either succeed or fail. In the success case the parser advances the input position (the <em>cursor</em>) and
+potentially executes the next rule. Otherwise, when the rule fails, the cursor is reset and the parser backtracks in
+search of another parsing alternative that might succeed.</p>
+<p>For example consider this simple <em>parboiled2</em> rule:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">def</span> <span class="n">foo</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="-Symbol">'a</span><span class="err">'</span> <span class="o">~</span> <span class="o">(</span><span class="-Symbol">'b</span><span class="err">'</span> <span class="o">~</span> <span class="-Symbol">'c</span><span class="err">'</span> <span class="o">|</span> <span class="-Symbol">'b</span><span class="err">'</span> <span class="o">~</span> <span class="-Symbol">'d</span><span class="err">'</span><span class="o">)</span> <span class="o">}</span>
+</pre></div>
+<p>When this rule is confronted with the input <tt>abd</tt> the parser matches the input in these steps:</p>
+<ol>
+<li>Rule <tt>foo</tt> starts executing, which calls its first sub-rule <tt>'a'</tt>. The cursor is at position 0.</li>
+<li>Rule <tt>'a'</tt> is executed against input position 0, matches (succeeds) and the cursor is advanced to position 1.</li>
+<li>Rule <tt>'b' ~ 'c' | 'b' ~ 'd'</tt> starts executing, which calls its first sub-rule <tt>'b' ~ 'c'</tt>.</li>
+<li>Rule <tt>'b' ~ 'c'</tt> starts executing, which calls its first sub-rule <tt>'b'</tt>.</li>
+<li>Rule <tt>'b'</tt> is executed against input position 1, matches (succeeds) and the cursor is advanced to position 2.</li>
+<li>Rule <tt>'c'</tt> is executed against input position 2 and mismatches (fails).</li>
+<li>Rule <tt>'b' ~ 'c' | 'b' ~ 'd'</tt> notices that its first sub-rule has failed, resets the cursor to position 1 and
+calls its 2nd sub-rule <tt>'b' ~ 'd'</tt>.</li>
+<li>Rule <tt>'b' ~ 'd'</tt> starts executing, which calls its first sub-rule <tt>'b'</tt>.</li>
+<li>Rule <tt>'b'</tt> is executed against input position 1, matches and the cursor is advanced to position 2.</li>
+<li>Rule <tt>'d'</tt> is executed against input position 2, matches and the cursor is advanced to position 3.</li>
+<li>Rule <tt>'b' ~ 'd'</tt> completes successfully, as its last sub-rule has succeeded.</li>
+<li>Rule <tt>'b' ~ 'c' | 'b' ~ 'd'</tt> completes successfully, as one of its sub-rules has succeeded.</li>
+<li>Rule <tt>foo</tt> completes execution successfully, as its last sub-rule has succeeded.
+The whole input "abd" was matched and the cursor is left at position 3 (after the last-matched character).</li>
+</ol><h2>
+<a name="user-content-the-rule-dsl" class="anchor" href="#the-rule-dsl" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id15">The Rule DSL</a>
+</h2>
+<p>In order to work with <em>parboiled2</em> effectively you should understand the core concepts behind its rule DSL, mainly
+the "Value Stack" and how <em>parboiled2</em> encodes value stack operations in the Scala type system.</p>
+<h3>
+<a name="user-content-rule-types-and-the-value-stack" class="anchor" href="#rule-types-and-the-value-stack" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id16">Rule Types and the Value Stack</a>
+</h3>
+<p>Apart from the input buffer and the cursor the parser manages another important structure: the "Value Stack".
+The value stack is a simple stack construct that serves as temporary storage for your <a href="#parser-actions">Parser Actions</a>. In many cases
+it is used for constructing an <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a> during the parsing run but it can also be used for "in-phase" computations
+(like in the <a href="#example">Example</a> above) or for any other purpose.</p>
+<p>When a rule of a <em>parboiled2</em> parser executes it performs any combination of the following three things:</p>
+<ul>
+<li>match input, i.e. advance the input cursor</li>
+<li>operate on the value stack, i.e. pop values off and/or push values to the value stack</li>
+<li>perform side-effects</li>
+</ul><p>Matching input is done by calling <a href="#basic-character-matching">Basic Character Matching</a> rules, which do nothing but match input and advance
+the cursor. Value stack operations (and other potential side-effects) are performed by <a href="#parser-actions">Parser Actions</a>.</p>
+<p>It is important to understand that rules in <em>parboiled2</em> (i.e. the rule methods in your parser class) do not directly
+return some custom value as a method result. Instead, all their consuming and producing values happens as side-effects
+to the value stack. Thereby the way that a rule interacts with value stack is encoded in the rule's type.</p>
+<p>This is the general definition of a <em>parboiled2</em> rule:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">class</span> <span class="nc">Rule</span><span class="o">[</span><span class="kt">-I</span> <span class="k">&lt;:</span> <span class="kt">HList</span>, <span class="kt">+O</span> <span class="k">&lt;:</span> <span class="kt">HList</span><span class="o">]</span>
+</pre></div>
+<p>This can look scary at first but is really quite simple. An <tt>HList</tt> is defined by <a href="https://github.com/milessabin/shapeless">shapeless</a> and is essentially a type
+of list whose element number and element types are statically known at compile time. The <tt>I</tt> type parameter on
+<tt>Rule</tt> encodes what values (the number and types) the rule pops off the value stack and the <tt>O</tt> type parameter
+encodes what values (the number and types) the rule then pushes onto the value stack.</p>
+<p>Luckily, in most cases, you won't have to work with these types directly as they can either be inferred or you can use
+one of these predefined aliases:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">type</span> <span class="kt">Rule0</span> <span class="o">=</span> <span class="nc">RuleN</span><span class="o">[</span><span class="kt">HNil</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">T</span><span class="o">]</span> <span class="k">=</span> <span class="nc">RuleN</span><span class="o">[</span><span class="kt">T</span> <span class="kt">::</span> <span class="kt">HNil</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">Rule2</span><span class="o">[</span><span class="kt">A</span>, <span class="kt">B</span><span class="o">]</span> <span class="k">=</span> <span class="nc">RuleN</span><span class="o">[</span><span class="kt">A</span> <span class="kt">::</span> <span class="kt">B</span> <span class="kt">::</span> <span class="kt">HNil</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">RuleN</span><span class="o">[</span><span class="kt">L</span> <span class="k">&lt;:</span> <span class="kt">HList</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Rule</span><span class="o">[</span><span class="kt">HNil</span>, <span class="kt">L</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">PopRule</span><span class="o">[</span><span class="kt">L</span> <span class="k">&lt;:</span> <span class="kt">HList</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Rule</span><span class="o">[</span><span class="kt">L</span>, <span class="kt">HNil</span><span class="o">]</span>
+</pre></div>
+<p>Here is what these type aliases denote:</p>
+<dl>
+<dt>Rule0</dt>
+<dd>A rule that neither pops off nor pushes to the value stack, i.e. has no effect on the value stack whatsoever.
+All <a href="#basic-character-matching">Basic Character Matching</a> rules are of this type.</dd>
+<dt>Rule1[T]</dt>
+<dd>Pushes exactly one value of type <tt>T</tt> onto the value stack. After <tt>Rule0</tt> this is the second-most frequently
+used rule type.</dd>
+<dt>Rule2[A, B]</dt>
+<dd>Pushes exactly two values of types <tt>A</tt> and <tt>B</tt> onto the value stack.</dd>
+<dt>RuleN[L &lt;: HList]</dt>
+<dd>Pushes a number of values onto the value stack, which correspond to the given <tt>L &lt;: HList</tt> type parameter.</dd>
+<dt>PopRule[L &lt;: HList]</dt>
+<dd>Pops a number of values off the value stack (corresponding to the given <tt>L &lt;: HList</tt> type parameter) and does
+not produce any new value itself.</dd>
+</dl><p>The rule DSL makes sure that the rule types are properly assembled and carried through your rule structure as you
+combine <a href="#basic-character-matching">Basic Character Matching</a>  with <a href="#rule-combinators-and-modifiers">Rule Combinators and Modifiers</a> and <a href="#parser-actions">Parser Actions</a>, so
+as long as you don't write any logic that circumvents the value stack your parser will be completely type-safe and
+the compiler will be able to catch you if you make mistakes by combining rules in an unsound way.</p>
+<h3>
+<a name="user-content-basic-character-matching" class="anchor" href="#basic-character-matching" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id17">Basic Character Matching</a>
+</h3>
+<p>The following basic character matching rules are the only way to cause the parser to match actual input and
+"make progress". They are the "atomic" elements of the rule DSL which are then used by the
+<a href="#rule-combinators-and-modifiers">Rule Combinators and Modifiers</a> to form higher-level rules.</p>
+<hr><dl>
+<dt>implicit def ch(c: Char): Rule0</dt>
+<dd>
+<tt>Char</tt> values can be directly used in the rule DSL and match themselves. There is one notable case where you will
+have to use the explicit <tt>ch</tt> wrapper: You cannot use the <tt>|</tt> operator directly on chars as it denotes the
+built-in Scala binary "or" operator defined on numeric types (<tt>Char</tt> is an unsigned 16-bit integer).
+So rather than saying <tt>'a' | 'b'</tt> you will have to say <tt>ch('a') | 'b'</tt>.</dd>
+</dl><hr><dl>
+<dt>implicit def str(s: String): Rule0</dt>
+<dd>
+<tt>String</tt> values can be directly used in the rule DSL and match themselves.</dd>
+</dl><hr><dl>
+<dt>implicit def predicate(p: CharPredicate): Rule0</dt>
+<dd>You can use <tt>org.parboiled2.CharPredicate</tt> values directly in the rule DSL. <tt>CharPredicate</tt> is an efficient
+implementation of character sets and already comes with a number pre-defined character classes like
+<tt>CharPredicate.Digit</tt> or <tt>CharPredicate.LowerHexLetter</tt>.</dd>
+</dl><hr><dl>
+<dt>implicit def valueMap[T](m: Map[String, T]): R</dt>
+<dd>
+<p>Values of type <tt>Map[String, T]</tt> can be directly used in the rule DSL and match any of the given map's keys and
+push the respective value upon a successful match. The resulting rule type depends on <tt>T</tt>:</p>
+<table>
+<thead valign="bottom"><tr>
+<th><tt>T</tt></th>
+<th><tt>R</tt></th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Unit</tt></td>
+<td><tt>Rule0</tt></td>
+</tr>
+<tr>
+<td><tt>L &lt;: HList</tt></td>
+<td>
+<tt>RuleN[L]</tt> (pushes all values of <tt>L</tt>)</td>
+</tr>
+<tr>
+<td>
+<tt>T</tt> (otherwise)</td>
+<td>
+<tt>Rule1[T]</tt> (pushes only one value)</td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl><hr><dl>
+<dt>def anyOf(chars: String): Rule0</dt>
+<dd>This constructs a <tt>Rule0</tt> which matches any of the given strings characters.</dd>
+</dl><hr><dl>
+<dt>def noneOf(chars: String): Rule0</dt>
+<dd>This constructs a <tt>Rule0</tt> which matches any single character except the ones in the given string and except EOI.</dd>
+</dl><hr><dl>
+<dt>def ignoreCase(c: Char): Rule0</dt>
+<dd>Matches the given single character case insensitively.
+Note: <strong>The given character must be specified in lower-case!</strong> This requirement is currently NOT enforced!</dd>
+</dl><hr><dl>
+<dt>def ignoreCase(s: String): Rule0</dt>
+<dd>Matches the given string of characters case insensitively.
+Note: <strong>The given string must be specified in all lower-case!</strong> This requirement is currently NOT enforced!</dd>
+</dl><hr><dl>
+<dt>def ANY: Rule0</dt>
+<dd>Matches any character except <em>EOI</em> (end-of-input).</dd>
+</dl><hr><dl>
+<dt>def EOI: Char</dt>
+<dd>The <em>EOI</em> (end-of-input) character, which is a virtual character that the parser "appends" after the last
+character of the actual input.</dd>
+</dl><hr><dl>
+<dt>def MATCH: Rule0</dt>
+<dd>Matches no character (i.e. doesn't cause the parser to make any progress) but succeeds always. It's the "empty"
+rule that is mostly used as a neutral element in rule composition.</dd>
+</dl><hr><dl>
+<dt>def MISMATCH[I &lt;: HList, O &lt;: HList]: Rule[I, O]</dt>
+<dd>A rule that always fails. Fits any rule signature.</dd>
+</dl><hr><dl>
+<dt>def MISMATCH0: Rule0</dt>
+<dd>Same as <tt>MISMATCH</tt> but with a clearly defined type. Use it (rather then <tt>MISMATCH</tt>) if the call site doesn't
+clearly "dictate" a certain rule type and using <tt>MISMATCH</tt> therefore gives you a compiler error.</dd>
+</dl><h3>
+<a name="user-content-rule-combinators-and-modifiers" class="anchor" href="#rule-combinators-and-modifiers" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id18">Rule Combinators and Modifiers</a>
+</h3>
+<p>Rules can be freely combined/modified with these operations:</p>
+<hr><dl>
+<dt>a ~ b</dt>
+<dd>
+<p>Two rules <tt>a</tt> and <tt>b</tt> can be combined with the <tt>~</tt> operator resulting in a rule that only matches if first
+<tt>a</tt> matches and then <tt>b</tt> matches. The computation of the resulting rule type is somewhat involved.
+Here is an illustration (using an abbreviated HList notation):</p>
+<table>
+<thead valign="bottom"><tr>
+<th>a</th>
+<th>b</th>
+<th>a ~ b</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Rule[, A]</tt></td>
+<td><tt>Rule[, B]</tt></td>
+<td><tt>Rule[, A:B]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[A:B:C, D:E:F]</tt></td>
+<td><tt>Rule[F, G:H]</tt></td>
+<td><tt>Rule[A:B:C, D:E:G:H]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[A, B:C]</tt></td>
+<td><tt>Rule[D:B:C, E:F]</tt></td>
+<td><tt>Rule[D:A, E:F]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[A, B:C]</tt></td>
+<td><tt>Rule[D:C, E:F]</tt></td>
+<td>Illegal if <tt>D</tt> != <tt>B</tt>
+</td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl><hr><dl>
+<dt>a | b</dt>
+<dd>Two rules <tt>a</tt> and <tt>b</tt> can be combined with the <tt>|</tt> operator to form an "ordered choice" in <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">PEG</a> speak.
+The resulting rule tries to match <tt>a</tt> and succeeds if this succeeds. Otherwise the parser is reset and <tt>b</tt>
+is tried. This operator can only be used on compatible rules.</dd>
+</dl><hr><dl>
+<dt>&amp;(a)</dt>
+<dd>Creates a "positive syntactic predicate", i.e. a rule that tests if the underlying rule matches but doesn't cause
+the parser to make any progress (i.e. match any input) itself. Also, all effects that the underlying rule might
+have had on the value stack are cleared out, the resulting rule type is therefore always <tt>Rule0</tt>,
+independently of the type of the underlying rule.</dd>
+</dl><hr><dl>
+<dt>!a</dt>
+<dd>Creates a "negative syntactic predicate", i.e. a rule that matches only if the underlying one mismatches and vice
+versa. A syntactic predicate doesn't cause the parser to make any progress (i.e. match any input) and also clears
+out all effects that the underlying rule might have had on the value stack. The resulting rule type is therefore
+always <tt>Rule0</tt>, independently of the type of the underlying rule.</dd>
+</dl><hr><dl>
+<dt>optional(a)</dt>
+<dd>
+<p>Runs its inner rule and succeeds even if the inner rule doesn't. The resulting rule type depends on the type
+of the inner rule:</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Type of <tt>a</tt>
+</th>
+<th>Type of <tt>optional(a)</tt>
+</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Rule0</tt></td>
+<td><tt>Rule0</tt></td>
+</tr>
+<tr>
+<td><tt>Rule1[T]</tt></td>
+<td><tt>Rule1[Option[T]]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[I, O &lt;: I]</tt></td>
+<td><tt>Rule[I, O]</tt></td>
+</tr>
+</tbody>
+</table>
+<p>The last case is a so-called "reduction rule", which leaves the value stack unchanged on a type level.
+This is an example of a reduction rule wrapped with <tt>optional</tt>:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="n">capture</span><span class="o">(</span><span class="nc">CharPredicate</span><span class="o">.</span><span class="nc">Digit</span><span class="o">)</span> <span class="o">~</span> <span class="n">optional</span><span class="o">(</span><span class="n">ch</span><span class="o">(</span><span class="-Symbol">'h</span><span class="err">'</span><span class="o">)</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">s</span> <span class="o">+</span> <span class="s">"hex"</span><span class="o">))</span>
+</pre></div>
+<p>The inner rule of <tt>optional</tt> here has type <tt>Rule[String :: HNil, String :: HNil]</tt>, i.e. it pops one <tt>String</tt>
+off the stack and pushes another one onto it, which means that the number of elements on the value stack as well as
+their types remain the same, even though the actual values might have changed.</p>
+</dd>
+</dl><hr><dl>
+<dt>zeroOrMore(a)</dt>
+<dd>
+<p>Runs its inner rule until it fails, always succeeds. The resulting rule type depends on the type of the inner rule:</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Type of <tt>a</tt>
+</th>
+<th>Type of <tt>zeroOrMore(a)</tt>
+</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Rule0</tt></td>
+<td><tt>Rule0</tt></td>
+</tr>
+<tr>
+<td><tt>Rule1[T]</tt></td>
+<td><tt>Rule1[Seq[T]]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[I, O &lt;: I]</tt></td>
+<td><tt>Rule[I, O]</tt></td>
+</tr>
+</tbody>
+</table>
+<p>The last case is a so-called "reduction rule", which leaves the value stack unchanged on a type level.
+This is an example of a reduction rule wrapped with <tt>zeroOrMore</tt>:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">factor</span> <span class="k">:</span><span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span> <span class="o">~</span> <span class="n">zeroOrMore</span><span class="o">(</span><span class="sc">'*'</span> <span class="o">~</span> <span class="n">factor</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="n">a</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">b</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="o">))</span>
+</pre></div>
+<p>The inner rule of <tt>zeroOrMore</tt> here has type <tt>Rule[Int :: HNil, Int :: HNil]</tt>, i.e. it pops one <tt>Int</tt>
+off the stack and pushes another one onto it, which means that the number of elements on the value stack as well as
+their types remain the same, even though the actual values might have changed.</p>
+</dd>
+</dl><hr><dl>
+<dt>oneOrMore(a)</dt>
+<dd>
+<p>Runs its inner rule until it fails, succeeds if its inner rule succeeded at least once.
+The resulting rule type depends on the type of the inner rule:</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Type of <tt>a</tt>
+</th>
+<th>Type of <tt>oneOrMore(a)</tt>
+</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Rule0</tt></td>
+<td><tt>Rule0</tt></td>
+</tr>
+<tr>
+<td><tt>Rule1[T]</tt></td>
+<td><tt>Rule1[Seq[T]]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[I, O &lt;: I]</tt></td>
+<td><tt>Rule[I, O]</tt></td>
+</tr>
+</tbody>
+</table>
+<p>The last case is a so-called "reduction rule", which leaves the value stack unchanged on a type level.
+This is an example of a reduction rule wrapped with <tt>oneOrMore</tt>:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">factor</span> <span class="k">:</span><span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span> <span class="o">~</span> <span class="n">oneOrMore</span><span class="o">(</span><span class="sc">'*'</span> <span class="o">~</span> <span class="n">factor</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="n">a</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">b</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="o">))</span>
+</pre></div>
+<p>The inner rule of <tt>oneOrMore</tt> here has type <tt>Rule[Int :: HNil, Int :: HNil]</tt>, i.e. it pops one <tt>Int</tt>
+off the stack and pushes another one onto it, which means that the number of elements on the value stack as well as
+their types remain the same, even though the actual values might have changed.</p>
+</dd>
+</dl><hr><dl>
+<dt>xxx.times(a)</dt>
+<dd>
+<p>Repeats a rule a given number of times. <tt>xxx</tt> can be either an <tt>Int</tt> value or a range <tt>(&lt;x&gt; to &lt;y&gt;)</tt> whereby
+both <tt>&lt;x&gt;</tt> and <tt>&lt;y&gt;</tt> are <tt>Int</tt> values. If the upper bound is zero the rule is equivalent to <tt>MATCH</tt>.
+The resulting rule type depends on the type of the inner rule:</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Type of <tt>a</tt>
+</th>
+<th>Type of <tt>xxx.times(a)</tt>
+</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Rule0</tt></td>
+<td><tt>Rule0</tt></td>
+</tr>
+<tr>
+<td><tt>Rule1[T]</tt></td>
+<td><tt>Rule1[Seq[T]]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule[I, O &lt;: I]</tt></td>
+<td><tt>Rule[I, O]</tt></td>
+</tr>
+</tbody>
+</table>
+<p>The last case is a so-called "reduction rule", which leaves the value stack unchanged on a type level.
+This is an example of a reduction rule wrapped with <tt>oneOrMore</tt>:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">factor</span> <span class="k">:</span><span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span> <span class="o">~</span> <span class="o">(</span><span class="mi">0</span> <span class="n">to</span> <span class="mi">5</span><span class="o">).</span><span class="n">times</span><span class="o">(</span><span class="sc">'*'</span> <span class="o">~</span> <span class="n">factor</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="n">a</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">b</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="o">))</span>
+</pre></div>
+<p>The inner rule here has type <tt>Rule[Int :: HNil, Int :: HNil]</tt>, i.e. it pops one <tt>Int</tt> off the stack and pushes
+another one onto it, which means that the number of elements on the value stack as well as their types remain the
+same, even though the actual values might have changed.</p>
+</dd>
+</dl><hr><dl>
+<dt>a.separatedBy(separator: Rule0)</dt>
+<dd>You can use <tt>a.separatedBy(b)</tt> to create a rule with efficient and automatic support for element separators if
+<tt>a</tt> is a rule produced by the <tt>zeroOrMore</tt>, <tt>oneOrMore</tt> or <tt>xxx.times</tt> modifier and <tt>b</tt> is a <tt>Rule0</tt>.
+The resulting rule has the same type as <tt>a</tt> but expects the individual repetition elements to be separated by
+a successful match of the <tt>separator</tt> rule.</dd>
+</dl><h3>
+<a name="user-content-parser-actions" class="anchor" href="#parser-actions" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id19">Parser Actions</a>
+</h3>
+<p>The <a href="#basic-character-matching">Basic Character Matching</a>  rules and the <a href="#rule-combinators-and-modifiers">Rule Combinators and Modifiers</a> allow you to build <em>recognizers</em> for
+potentially complex languages, but usually your parser is supposed to do more than simply determine whether a given
+input conforms to the defined grammar. In order to run custom logic during parser execution, e.g. for creating custom
+objects (like an <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a>), you will have to add some "actions" to your rules.</p>
+<hr><dl>
+<dt>push(value)</dt>
+<dd>
+<p><tt>push(value)</tt> creates a rule that matches no input (but always succeeds, as a rule) and pushes the given value
+onto the value stack. Its rule type depends on the given value:</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Type of <tt>value</tt>
+</th>
+<th>Type of <tt>push(value)</tt>
+</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Unit</tt></td>
+<td>
+<tt>Rule0</tt> (identical to <tt>run</tt> in this case)</td>
+</tr>
+<tr>
+<td><tt>L &lt;: HList</tt></td>
+<td>
+<tt>RuleN[L]</tt> (pushes all values of <tt>L</tt>)</td>
+</tr>
+<tr>
+<td>
+<tt>T</tt> (otherwise)</td>
+<td>
+<tt>Rule1[T]</tt> (pushes only one value)</td>
+</tr>
+</tbody>
+</table>
+<p>Also note that, due to the macro expansion the <em>parboiled2</em> rule DSL is based on, the given value expression behaves
+like a call-by-name parameter even though it is not marked as one! This means that the argument expression to
+<tt>push</tt> is (re-)evaluated for every rule execution.</p>
+</dd>
+</dl><hr><dl>
+<dt>capture(a)</dt>
+<dd>
+<p>Wrapping a rule <tt>a</tt> with <tt>capture</tt> turns that rule into one that pushes an additional <tt>String</tt> instance onto
+the value stack (in addition to all values that <tt>a</tt> already pushes itself): the input text matched by <tt>a</tt>.</p>
+<p>For example <tt>capture(oneOrMore(CharPredicate.Digit))</tt> has type <tt>Rule1[String]</tt> and pushes one value onto the
+value stack: the string of digit characters matched by <tt>oneOrMore(CharPredicate.Digit)</tt>.</p>
+<p>Another example: <tt>capture("foo" ~ push(42))</tt> has type <tt>Rule2[Int, String]</tt> and will match input "foo". After
+successful execution the value stack will have the String <tt>"foo"</tt> as its top element and <tt>42</tt> underneath.</p>
+</dd>
+</dl><hr><dl>
+<dt>test(condition: Boolean): Rule0</dt>
+<dd>
+<tt>test</tt> implements "semantic predicates". It creates a rule that matches no input and succeeds only if the given
+condition expression evaluates to true. Note that, due to the macro expansion the <em>parboiled2</em> rule DSL is based on,
+the given argument behaves like a call-by-name parameter even though it is not marked as one!
+This means that the argument expression to <tt>test</tt> is (re-)evaluated for every rule execution, just as if <tt>test</tt>
+would have been defined as <tt>def test(condition: =&gt; Boolean): Rule0</tt>.</dd>
+</dl><hr><dl>
+<dt>a ~&gt; (...)</dt>
+<dd>
+<p>The <tt>~&gt;</tt> operator is the "action operator" and as such the most frequently used way to add custom logic to a rule.
+It can be applied to any rule and appends action logic to it. The argument to <tt>~&gt;</tt> is always a function, what
+functions are allowed and what the resulting rule type is depends on the type of <tt>a</tt>.</p>
+<p>The basic idea is that the input of the function is popped of the value stack and the result of the function is
+pushed back onto it. In its basic form the <tt>~&gt;</tt> operator therefore transforms the top elements of the value stack
+into some other object(s).</p>
+<p>Let's look at some examples:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="n">i</span> <span class="k">=&gt;</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span><span class="o">)</span>
+</pre></div>
+<p>This results in a <tt>Rule1[Int]</tt> which multiplies the "output" of rule <tt>foo</tt> by 2.</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule2</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="n">i</span><span class="o">,</span> <span class="n">s</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">s</span> <span class="o">+</span> <span class="n">i</span><span class="o">.</span><span class="n">toString</span><span class="o">)</span>
+</pre></div>
+<p>This results in a <tt>Rule1[String]</tt> which combines the two "outputs" of rule <tt>foo</tt> (an <tt>Int</tt> and a <tt>String</tt>)
+into one single <tt>String</tt>.</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule2</span><span class="o">[</span><span class="kt">Int</span>, <span class="kt">String</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">toDouble</span><span class="o">)</span>
+</pre></div>
+<p>This results in a <tt>Rule2[Int, Double]</tt>. As you can see the function argument to <tt>~&gt;</tt> doesn't always have to
+"take" the complete output of the rule its applied to. It can also take fewer or even more elements. Its parameters
+are simply matched left to right against the top of the value stack (the right-most parameter matching the top-level
+element).</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">((</span><span class="n">i</span> <span class="k">:</span><span class="kt">Int</span><span class="o">,</span> <span class="n">s</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">s</span> <span class="o">+</span> <span class="n">i</span><span class="o">.</span><span class="n">toString</span><span class="o">)</span>
+</pre></div>
+<p>This results in a <tt>Rule[Int :: HNil, String :: HNil]</tt>, i.e. a rule that pops one <tt>Int</tt> value off the stack and
+replaces it with a <tt>String</tt>. Note that, while the parameter types to the action function can be inferred if they
+can be matched against an "output" of the underlying rule, this is not the case for parameters that don't directly
+correspond to an underlying output. In these cases you need to add an explicit type annotation to the respective
+action function parameter(s).</p>
+<p>If an action function returns <tt>Unit</tt> it doesn't push anything on the stack. So this rule</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="n">println</span><span class="o">(</span><span class="k">_</span><span class="o">))</span>
+</pre></div>
+<p>has type <tt>Rule0</tt>.</p>
+<p>Also, an action function can also be a <tt>Function0</tt>, i.e. a function without any parameters:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">(()</span> <span class="k">=&gt;</span> <span class="mi">42</span><span class="o">)</span>
+</pre></div>
+<p>This rule has type <tt>Rule2[String, Int]</tt> and is equivalent to this:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">~</span> <span class="n">push</span><span class="o">(</span><span class="mi">42</span><span class="o">)</span>
+</pre></div>
+<p>An action function can also produce more than one output by returning an <tt>HList</tt> instance:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="n">s</span> <span class="k">=&gt;</span> <span class="n">s</span><span class="o">.</span><span class="n">toInt</span> <span class="o">::</span> <span class="mf">3.14</span> <span class="o">::</span> <span class="nc">HNil</span><span class="o">)</span>
+</pre></div>
+<p>This has type <tt>Rule2[Int, Double]</tt>.</p>
+<p>One more very useful feature is special support for case class instance creation:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">Person</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">age</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span>
+
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule2</span><span class="o">[</span><span class="kt">String</span>, <span class="kt">Int</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="nc">Person</span>
+</pre></div>
+<p>This has type <tt>Rule1[Person]</tt>. The top elements of the value stack are popped off and replaced by an instance
+of the case class if they match in number, order and types to the case class members. This is great for building
+<a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a>-like structures! Check out the <a href="https://github.com/sirthias/parboiled2/blob/master/examples/src/main/scala/org/parboiled2/examples/Calculator2.scala">Calculator2</a> example to see this form in action.</p>
+<p>Note that there is one quirk: For some reason this notation stops working if you explicitly define a companion
+object for your case class. You'll have to write <tt>~&gt; (Person(_, _))</tt> instead.</p>
+<p>And finally, there is one more very powerful action type: the action function can itself return a rule!
+If an action returns a rule this rule is immediately executed after the action application just as if it
+had been concatenated to the underlying rule with the <tt>~</tt> operator. You can therefore do things like</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="o">(</span><span class="n">foo</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">])</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="n">i</span> <span class="k">=&gt;</span> <span class="n">test</span><span class="o">(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="o">~</span> <span class="n">push</span><span class="o">(</span><span class="n">i</span><span class="o">))</span>
+</pre></div>
+<p>which is a <tt>Rule1[Int]</tt> that only produces even integers and fails for all others. Or, somewhat unusual
+but still perfectly legal:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="n">capture</span><span class="o">(</span><span class="s">"x"</span><span class="o">)</span> <span class="o">~&gt;</span> <span class="o">(</span><span class="n">str</span><span class="o">(</span><span class="k">_</span><span class="o">))</span>
+</pre></div>
+<p>which is a <tt>Rule0</tt> that is identical to <tt>'x' ~ 'x'</tt>.</p>
+</dd>
+</dl><hr><dl>
+<dt>run(expression)</dt>
+<dd>
+<p><tt>run</tt> is the most versatile parser action. It can have several shapes, depending on the type of its argument
+expression. If the argument expression evaluates to</p>
+<ul>
+<li>a rule (i.e. has type <tt>R &lt;: Rule[_, _]</tt>) the result type of <tt>run</tt> is this rule's type (i.e. <tt>R</tt>) and the
+produced rule is immediately executed.</li>
+<li>a function with 1 to 5 parameters these parameters are mapped against the top of the value stack, popped
+and the function executed. Thereby the function behaves just like an action function for the <tt>~&gt;</tt> operator,
+i.e. if it produces a <tt>Unit</tt> value this result is simply dropped. <tt>HList</tt> results are pushed onto the value
+stack (all their elements individually), rule results are immediately executed and other result values are pushed
+onto the value stack as a single element.
+The difference between using <tt>run</tt> and attaching an action function with the <tt>~&gt;</tt> operator is that in the
+latter case the compiler can usually infer the types of the function parameters (if they map to "output" values
+of the base rule) while with <tt>run</tt> you <em>always</em> have to explicitly attach type annotation to the function
+parameters.</li>
+<li>a function with one <tt>HList</tt> parameter the behavior is similar to the previous case with the difference that the
+elements of this parameter <tt>HList</tt> are mapped against the value stack top. This allows for consumption of an
+arbitrary number of value stack elements (Note: This feature of <tt>run</tt> is not yet currently implemented.)</li>
+<li>any other value the result type of <tt>run</tt> is an always succeeding <tt>Rule0</tt>. Since in this case it doesn't
+interact with the value stack and doesn't match any input all it can do is perform "unchecked" side effects.
+Note that by using <tt>run</tt> in this way you are leaving the "safety-net" that the value stack and the rule type
+system gives you! Make sure you understand what you are doing before using these kinds of <tt>run</tt> actions!</li>
+</ul>
+<p>Also note that, due to the macro expansion the <em>parboiled2</em> rule DSL is based on, the given block behaves like a
+call-by-name parameter even though it is not marked as one! This means that the argument expression to <tt>run</tt> is
+(re-)evaluated for every rule execution.</p>
+</dd>
+</dl><hr><dl>
+<dt>runSubParser(f: ParserInput ⇒ Rule[I, O]): Rule[I, O]</dt>
+<dd>This action allows creation of a sub parser and running of one of its rules as part of the current parsing process.
+The subparser will start parsing at the current input position and the outer parser (the one calling
+<tt>runSubParser</tt>) will continue where the sub-parser stopped.</dd>
+</dl><hr><p>There are a few more members of the <tt>Parser</tt> class that are useful for writing efficient action logic:</p>
+<dl>
+<dt>def cursor: Int</dt>
+<dd>The index of the next (yet unmatched) input character.
+Note: Might be equal to <tt>input.length</tt> if the cursor is currently behind the last input character!</dd>
+<dt>def cursorChar: Char</dt>
+<dd>The next (yet unmatched) input character, i.e. the one at the <tt>cursor</tt> index.
+Identical to <tt>if (cursor &lt; input.length) input.charAt(cursor) else EOI</tt> but more efficient.</dd>
+<dt>def lastChar: Char</dt>
+<dd>Returns the last character that was matched, i.e. the one at index <tt>cursor - 1</tt> and as such is equivalent
+to <tt>charAt(-1)</tt>. Note that for performance optimization this method does <em>not</em> do a range check, i.e. depending on
+the <tt>ParserInput</tt> implementation you might get an exception when calling this method before any character was
+matched by the parser.</dd>
+<dt>def charAt(offset: Int): Char</dt>
+<dd>Returns the character at the input index with the given delta to the cursor and as such is equivalent to
+<tt>input.charAt(cursor + offset)</tt>. Note that for performance optimization this method does <em>not</em> do a range check,
+i.e. depending on the <tt>ParserInput</tt> implementation you might get an exception if the computed index is out of
+bounds.</dd>
+<dt>def charAtRC(offset: Int): Char</dt>
+<dd>Same as <tt>charAt</tt> but range-checked. Returns the input character at the index with the given offset from the
+cursor. If this index is out of range the method returns <tt>EOI</tt>.</dd>
+</dl><p>You can use these to write efficient character-level logic like this:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">def</span> <span class="n">hexDigit</span><span class="k">:</span> <span class="kt">Rule1</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span>
+  <span class="nc">CharPredicate</span><span class="o">.</span><span class="nc">HexAlpha</span> <span class="o">~</span> <span class="n">push</span><span class="o">(</span><span class="nc">CharUtils</span><span class="o">.</span><span class="n">hexValue</span><span class="o">(</span><span class="n">lastChar</span><span class="o">))</span>
+<span class="o">}</span>
+</pre></div>
+<h3>
+<a name="user-content-additional-helpers" class="anchor" href="#additional-helpers" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id20">Additional Helpers</a>
+</h3>
+<dl>
+<dt>Base64Parsing</dt>
+<dd>For parsing <a href="http://tools.ietf.org/html/rfc2045#section-6.8">RFC2045</a> (Base64) encoded strings <em>parboiled</em> provides the <tt>Base64Parsing</tt> trait which you can
+mix into your <tt>Parser</tt> class. See <a href="https://github.com/sirthias/parboiled2/blob/v2.0.0-RC1/parboiled/src/main/scala/org/parboiled2/Base64Parsing.scala">its source</a> for more info on what exactly it provides.
+<em>parboiled</em> also comes with the <tt>org.parboiled2.util.Base64</tt> class which provides an efficient Base64
+encoder/decoder for the standard as well as custom alphabets.</dd>
+</dl><hr><dl>
+<dt>DynamicRuleDispatch</dt>
+<dd>Sometimes an application cannot fully specify at compile-time which of a given set of rules is to be called at
+runtime. For example, a parser for parsing HTTP header values might need to select the right parser rule for a
+header name that is only known once the HTTP request has actually been read from the network.
+To prevent you from having to write a large (and not really efficient) <tt>match</tt> against the header name for
+separating out all the possible cases <em>parboiled</em> provides the <tt>DynamicRuleDispatch</tt> facility.
+Check out <a href="https://github.com/sirthias/parboiled2/blob/v2.0.0-RC1/parboiled/src/test/scala/org/parboiled2/DynamicRuleDispatchSpec.scala">its test</a> for more info on how to use it.</dd>
+</dl><hr><dl>
+<dt>StringBuilding</dt>
+<dd>For certain high-performance use-cases it is sometimes better to construct Strings that the parser is to
+produce/extract from the input in a char-by-char fashion. To support you in doing this <em>parboiled</em> provides
+the <tt>StringBuilding</tt> trait which you can mix into your <tt>Parser</tt> class.
+It provides convenient access to a <strong>single</strong> and <strong>mutable</strong> <tt>StringBuilder</tt> instance.
+As such it operates outside of the value stack and therefore without the full "safety net" that parboiled's
+DSL otherwise gives you. If you don't understand what this means you probably shouldn't be using
+the <tt>StringBuilding</tt> trait but resort to <tt>capture</tt> and ordinary parser actions instead.</dd>
+</dl><h2>
+<a name="user-content-common-mistakes" class="anchor" href="#common-mistakes" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id21">Common Mistakes</a>
+</h2>
+<h3>
+<a name="user-content-disregarding-order-choice" class="anchor" href="#disregarding-order-choice" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id22">Disregarding Order Choice</a>
+</h3>
+<p>There is one mistake that new users frequently make when starting out with writing <a href="http://en.wikipedia.org/wiki/Parsing_expression_grammar">PEG</a> grammars: disregarding the
+"ordered choice" logic of the <tt>|</tt> operator. This operator always tries all alternatives <em>in the order that they were
+defined</em> and picks the first match.</p>
+<p>As a consequence earlier alternatives that are a prefix of later alternatives will always "shadow" the later ones, the
+later ones will never be able to match!</p>
+<p>For example in this simple rule</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">def</span> <span class="n">foo</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="s">"foo"</span> <span class="o">|</span> <span class="s">"foobar"</span> <span class="o">}</span>
+</pre></div>
+<p>"foobar" will never match. Reordering the alternatives to either "factor out" all common prefixes or putting the more
+specific alternatives first are the canonical solutions.</p>
+<p>If your parser is not behaving the way you expect it to watch out for this "wrong ordering" problem, which might be
+not that easy to spot in more complicated rule structures.</p>
+<h3>
+<a name="user-content-unchecked-mutable-state" class="anchor" href="#unchecked-mutable-state" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id23">Unchecked Mutable State</a>
+</h3>
+<p><em>parboiled2</em> parsers work with mutable state as a design choice for achieving good parsing performance. Matching input
+and operating on the value stack happen as side-effects to rule execution and mutate the parser state.
+However, as long as you confine yourself to the value stack and do not add parser actions that mutate custom parser
+members the rule DSL will protect you from making mistakes.</p>
+<p>It is important to understand that, in case of rule mismatch, the parser state (cursor and value stack) is reset to
+what it was before the rule execution was started. However, if you write rules that have side-effects beyond matching
+input and operating on the value stack than these side-effects <em>cannot</em> be automatically rolled-back!
+This means that you will have to make sure that you action logic "cleans up after itself" in the case of rule mismatches
+or is only used in locations where you know that rule execution can never fail.
+These techniques are considered advanced and are not recommended for beginners.</p>
+<p>The rule DSL is powerful enough to support even very complex parsing logic without the need to resort to custom mutable
+state, we consider the addition of mutable members as an optimization that should be well justified.</p>
+<h3>
+<a name="user-content-handling-whitespace" class="anchor" href="#handling-whitespace" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id24">Handling Whitespace</a>
+</h3>
+<p>One disadvantage of PEGs over lexer-based parser can be the handling of white space. In a "traditional" parser with a
+separate lexer (scanner) phase this lexer can simply skip all white space and only generate tokens for the actual
+parser to operate on. This can free the higher-level parser grammar from all white space treatment.</p>
+<p>Since PEGs do not have a lexer but directly operate on the raw input they have to deal with white space in the grammar
+itself. Language designers with little experience in PEGs can sometime be unsure of how to best handle white space in
+their grammar.</p>
+<p>The common and highly recommended pattern is to
+<strong>match white space always immediately after a terminal (a single character or string) but not in any other place</strong>.
+This helps with keeping your grammar rules properly structured and white space "taken care of" without it getting in the
+way.</p>
+<hr><p>In order to reduce boilerplate in your grammar definition parboiled allows for cleanly factoring out whitespace matching
+logic into a dedicated rule. By defining a custom implicit conversion from <tt>String</tt> to <tt>Rule0</tt> you can implicitly
+match whitespace after a string terminal:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">class</span> <span class="nc">FooParser</span><span class="o">(</span><span class="k">val</span> <span class="n">input</span><span class="k">:</span> <span class="kt">ParserInput</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">Parser</span> <span class="o">{</span>
+  <span class="k">implicit</span> <span class="k">def</span> <span class="n">wspStr</span><span class="o">(</span><span class="n">s</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">Rule0</span> <span class="o">=</span> <span class="n">rule</span> <span class="o">{</span>
+    <span class="n">str</span><span class="o">(</span><span class="n">s</span><span class="o">)</span> <span class="o">~</span> <span class="n">zeroOrMore</span><span class="o">(</span><span class="sc">' '</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="k">def</span> <span class="n">foo</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="s">"foo"</span> <span class="o">|</span> <span class="s">"foobar"</span> <span class="o">}</span> <span class="c1">// implicitly matches trailing blanks</span>
+  <span class="k">def</span> <span class="n">fooNoWSP</span> <span class="k">=</span> <span class="n">rule</span> <span class="o">{</span> <span class="n">str</span><span class="o">(</span><span class="s">"foo"</span><span class="o">)</span> <span class="o">|</span> <span class="n">str</span><span class="o">(</span><span class="s">"foobar"</span><span class="o">)</span> <span class="o">}</span> <span class="c1">// doesn't match trailing blanks</span>
+<span class="o">}</span>
+</pre></div>
+<p>In this example all usages of a plain string literal in the parser rules will implicitly match trailing space characters.
+In order to <em>not</em> apply the implicit whitespace matching in this case simply say <tt>str("foo")</tt> instead of just <tt>"foo"</tt>.</p>
+<h2>
+<a name="user-content-grammar-debugging" class="anchor" href="#grammar-debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id25">Grammar Debugging</a>
+</h2>
+<p>TODO</p>
+<p>(e.g., use <tt>parse.formatError(error, showTraces = true)</tt>)</p>
+<h2>
+<a name="user-content-access-to-parser-results" class="anchor" href="#access-to-parser-results" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id26">Access to Parser Results</a>
+</h2>
+<p>In order to run the top-level parser rule against a given input you create a new instance of your parser class and
+call <tt>run()</tt> on it, e.g:</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">val</span> <span class="n">parser</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">MyParser</span><span class="o">(</span><span class="n">input</span><span class="o">)</span>
+<span class="k">val</span> <span class="n">result</span> <span class="k">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">rootRule</span><span class="o">.</span><span class="n">run</span><span class="o">()</span>
+</pre></div>
+<p>By default the type of <tt>result</tt> in this snippet will be a <tt>Try[T]</tt> whereby <tt>T</tt> depends on the type
+of <tt>rootRule</tt>:</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Type of <tt>rootRule</tt>
+</th>
+<th>Type of <tt>rootRule.run()</tt>
+</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td><tt>Rule0</tt></td>
+<td><tt>Try[Unit]</tt></td>
+</tr>
+<tr>
+<td><tt>Rule1[T]</tt></td>
+<td><tt>Try[T]</tt></td>
+</tr>
+<tr>
+<td>
+<tt>RuleN[L &lt;: HList]</tt> (otherwise)</td>
+<td><tt>Try[L]</tt></td>
+</tr>
+</tbody>
+</table><p>The contents of the value stack at the end of the <tt>rootRule</tt> execution constitute the result of the parsing run.
+Note that <tt>run()</tt> is not available on rules that are not of type <tt>RuleN[L &lt;: HList]</tt>.</p>
+<p>If the parser is not able to match the input successfully it creates an instance of class <tt>ParseError</tt> , which is
+defined like this</p>
+<div class="highlight highlight-Scala"><pre>
+<span class="k">case</span> <span class="k">class</span> <span class="nc">ParseError</span><span class="o">(</span><span class="n">position</span><span class="k">:</span> <span class="kt">Position</span><span class="o">,</span> <span class="n">traces</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">RuleTrace</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">RuntimeException</span>
+</pre></div>
+<p>In such cases the <tt>Try</tt> is completed with a <tt>scala.util.Failure</tt> holding the <tt>ParseError</tt>.
+If other exceptions occur during the parsing run (e.g. because some parser action failed) these will also end up as
+a <tt>Try</tt> failure.</p>
+<p><em>parboiled2</em> has quite powerful error reporting facilities, which should help you (and your users) to easily understand
+why a particular input does not conform to the defined grammar and how this can be fixed.
+The <tt>formatError</tt> method available on the <tt>Parser</tt> class is of great utility here, as it can "pretty print"
+a parse error instance, to display something like this (excerpt from the <a href="https://github.com/sirthias/parboiled2/blob/master/parboiled/src/test/scala/org/parboiled2/ErrorReportingSpec.scala">ErrorReportingSpec</a>):</p>
+<pre>
+Invalid input 'x', expected 'f', Digit, hex or UpperAlpha (line 1, column 4):
+abcx
+   ^
+
+4 rules mismatched at error location:
+  targetRule / | / "fgh" / 'f'
+  targetRule / | / Digit
+  targetRule / | / hex
+  targetRule / | / UpperAlpha
+</pre>
+<h3>
+<a name="user-content-alternative-deliveryschemes" class="anchor" href="#alternative-deliveryschemes" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id27">Alternative DeliverySchemes</a>
+</h3>
+<p>Apart from delivering your parser results as a <tt>Try[T]</tt> <em>parboiled2</em> allows you to select another one of the
+pre-defined <tt>Parser.DeliveryScheme</tt> alternatives, or even define your own. They differ in how they wrap the three
+possible outcomes of a parsing run:</p>
+<ul>
+<li>parsing completed successfully, deliver a result of type <tt>T</tt>
+</li>
+<li>parsing failed with a <tt>ParseError</tt>
+</li>
+<li>parsing failed due to another exception</li>
+</ul><p>This table compares the built-in <tt>Parser.DeliveryScheme</tt> alternatives (the first one being the default):</p>
+<table>
+<thead valign="bottom"><tr>
+<th>Import</th>
+<th>Type of <tt>rootRule.run()</tt>
+</th>
+<th>Success</th>
+<th>ParseError</th>
+<th>Other Exceptions</th>
+</tr></thead>
+<tbody valign="top">
+<tr>
+<td>import Parser.DeliveryScheme.Try</td>
+<td>Try[T]</td>
+<td>Success</td>
+<td>Failure</td>
+<td>Failure</td>
+</tr>
+<tr>
+<td>import Parser.DeliveryScheme.Either</td>
+<td>Either[ParseError, T]</td>
+<td>Right</td>
+<td>Left</td>
+<td>thrown</td>
+</tr>
+<tr>
+<td>import Parser.DeliveryScheme.Throw</td>
+<td>T</td>
+<td>T</td>
+<td>thrown</td>
+<td>thrown</td>
+</tr>
+</tbody>
+</table><h2>
+<a name="user-content-running-the-examples" class="anchor" href="#running-the-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id28">Running the Examples</a>
+</h2>
+<p>Follow these steps to run the example parsers defined <a href="https://github.com/sirthias/parboiled2/tree/master/examples/src/main/scala/org/parboiled2/examples">here</a> on your own machine:</p>
+<ol>
+<li>
+<p>Clone the <em>parboiled2</em> repository:</p>
+<pre>
+git clone git://github.com/sirthias/parboiled2.git
+</pre>
+</li>
+<li>
+<p>Change into the base directory:</p>
+<pre>
+cd parboiled2
+</pre>
+</li>
+<li>
+<p>Run SBT:</p>
+<pre>
+sbt "project examples" run
+</pre>
+</li>
+</ol><h2>
+<a name="user-content-alternatives" class="anchor" href="#alternatives" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id29">Alternatives</a>
+</h2>
+<h3>
+<a name="user-content-parboiled2-vs-parboiled-1x" class="anchor" href="#parboiled2-vs-parboiled-1x" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id30">parboiled2 vs. parboiled 1.x</a>
+</h3>
+<p>TODO</p>
+<p>(about one order of magnitude faster, more powerful DSL, improved error reporting, fewer dependencies (more lightweight),
+but Scala 2.10.3+ only, no error recovery (yet) and no Java version (ever))</p>
+<h3>
+<a name="user-content-parboiled2-vs-scala-parser-combinators" class="anchor" href="#parboiled2-vs-scala-parser-combinators" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id31">parboiled2 vs. Scala Parser Combinators</a>
+</h3>
+<p>TODO</p>
+<p>(several hundred times (!) faster, better error reporting, more concise and elegant DSL, similarly powerful in terms of
+language class capabilities, but Scala 2.10.3+ only, 2 added dependencies (parboiled2 + shapeless))</p>
+<h3>
+<a name="user-content-parboiled2-vs-regular-expressions" class="anchor" href="#parboiled2-vs-regular-expressions" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id32">parboiled2 vs. Regular Expressions</a>
+</h3>
+<p>TODO</p>
+<p>(much easier to read and maintain, more powerful (e.g. regexes do not support recursive structures), faster,
+but Scala 2.10.3+ only, 2 added dependencies (parboiled2 + shapeless))</p>
+<h2>
+<a name="user-content-roadmap" class="anchor" href="#roadmap" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id33">Roadmap</a>
+</h2>
+<p>TODO</p>
+<h2>
+<a name="user-content-contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id34">Contributing</a>
+</h2>
+<p>TODO</p>
+<h2>
+<a name="user-content-support" class="anchor" href="#support" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id35">Support</a>
+</h2>
+<p>In most cases the <a href="https://groups.google.com/forum/#!forum/parboiled-user">parboiled2 mailing list</a> is probably the best place for your needs with regard to
+support, feedback and general discussion.</p>
+<p><strong>Note:</strong> Your first post after signup is going to be moderated (for spam protection), but we'll immediately
+give you full posting privileges if your message doesn't unmask you as a spammer.</p>
+<h2>
+<a name="user-content-references" class="anchor" href="#references" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id36">References</a>
+</h2>
+<p>TODO</p>
+<h2>
+<a name="user-content-credits" class="anchor" href="#credits" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id37">Credits</a>
+</h2>
+<p>Much of <em>parboiled2</em> was developed by <a href="https://github.com/alexander-myltsev">Alexander Myltsev</a> during <a href="http://www.google-melange.com/gsoc/homepage/google/gsoc2013">GSoc 2013</a>, a big thank you for his great work!</p>
+<p>Also, without the <a href="http://docs.scala-lang.org/overviews/macros/paradise.html">Macro Paradise</a> made available by <a href="https://github.com/xeno-by">Eugene Burmako</a> <em>parboiled2</em> would probably still not be ready
+and its codebase would look a lot more messy.</p>
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#id38">License</a>
+</h2>
+<p><em>parboiled2</em> is released under the <a href="http://en.wikipedia.org/wiki/Apache_license">Apache License 2.0</a></p></article></div>

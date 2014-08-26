@@ -1,0 +1,167 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-scala-async-project" class="anchor" href="#scala-async-project" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scala Async Project</h1>
+
+<p><a href="http://travis-ci.org/scala/async"><img src="https://camo.githubusercontent.com/1f62ddbc1991854e28cf8bba1e4e644219bf5687/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f7363616c612f6173796e632e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/scala/async.png" style="max-width:100%;"></a></p>
+
+<p>Note: this branch targets Scala 2.11.x, support for Scala 2.10.x has been moved to <a href="https://github.com/scala/async/tree/2.10.x">this branch</a>.</p>
+
+<h2>
+<a name="user-content-quick-start" class="anchor" href="#quick-start" aria-hidden="true"><span class="octicon octicon-link"></span></a>Quick start</h2>
+
+<p>Add a dependency:</p>
+
+<div class="highlight highlight-scala"><pre><span class="c1">// SBT</span>
+<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.scala-lang.modules"</span> <span class="o">%%</span> <span class="s">"scala-async"</span> <span class="o">%</span> <span class="s">"0.9.2"</span>
+</pre></div>
+
+<p>Write your first <code>async</code> block:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">ExecutionContext.Implicits.global</span>
+<span class="k">import</span> <span class="nn">scala.async.Async.</span><span class="o">{</span><span class="n">async</span><span class="o">,</span> <span class="n">await</span><span class="o">}</span>
+
+<span class="k">val</span> <span class="n">future</span> <span class="k">=</span> <span class="n">async</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">f1</span> <span class="k">=</span> <span class="n">async</span> <span class="o">{</span> <span class="o">...;</span> <span class="kc">true</span> <span class="o">}</span>
+  <span class="k">val</span> <span class="n">f2</span> <span class="k">=</span> <span class="n">async</span> <span class="o">{</span> <span class="o">...;</span> <span class="mi">42</span> <span class="o">}</span>
+  <span class="k">if</span> <span class="o">(</span><span class="n">await</span><span class="o">(</span><span class="n">f1</span><span class="o">))</span> <span class="n">await</span><span class="o">(</span><span class="n">f2</span><span class="o">)</span> <span class="k">else</span> <span class="mi">0</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-what-is-async" class="anchor" href="#what-is-async" aria-hidden="true"><span class="octicon octicon-link"></span></a>What is <code>async</code>?</h2>
+
+<p><code>async</code> marks a block of asynchronous code. Such a block usually contains
+one or more <code>await</code> calls, which marks a point at which the computation
+will be suspended until the awaited <code>Future</code> is complete.</p>
+
+<p>By default, <code>async</code> blocks operate on <code>scala.concurrent.{Future, Promise}</code>.
+The system can be adapted to alternative implementations of the
+<code>Future</code> pattern.</p>
+
+<p>Consider the following example:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">slowCalcFuture</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="o">...</span>             <span class="c1">// 01</span>
+<span class="k">def</span> <span class="n">combined</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="n">async</span> <span class="o">{</span>               <span class="c1">// 02</span>
+  <span class="n">await</span><span class="o">(</span><span class="n">slowCalcFuture</span><span class="o">)</span> <span class="o">+</span> <span class="n">await</span><span class="o">(</span><span class="n">slowCalcFuture</span><span class="o">)</span>   <span class="c1">// 03</span>
+<span class="o">}</span>
+<span class="k">val</span> <span class="n">x</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="nc">Await</span><span class="o">.</span><span class="n">result</span><span class="o">(</span><span class="n">combined</span><span class="o">,</span> <span class="mf">10.</span><span class="n">seconds</span><span class="o">)</span>   <span class="c1">// 05</span>
+</pre></div>
+
+<p>Lines 1 defines an asynchronous method: it returns a <code>Future</code>.</p>
+
+<p>Line 2 begins an <code>async</code> block. During compilation,
+the contents of this block will be analyzed to identify
+the <code>await</code> calls, and transformed into non-blocking
+code.</p>
+
+<p>Control flow will immediately pass to line 5, as the
+computation in the <code>async</code> block is not executed
+on the caller's thread.</p>
+
+<p>Line 3 begins by triggering <code>slowCalcFuture</code>, and then
+suspending until it has been calculating. Only after it
+has finished, we trigger it again, and suspend again.
+Finally, we add the results and complete <code>combined</code>, which
+in turn will release line 5 (unless it had already timed out).</p>
+
+<p>It is important to note that while line 1-4 is non-blocking,
+it is not parallel. If we wanted to parallelize the two computations,
+we could rearrange the code as follows.</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">combined</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="n">async</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="n">future1</span> <span class="k">=</span> <span class="n">slowCalcFuture</span>
+  <span class="k">val</span> <span class="n">future2</span> <span class="k">=</span> <span class="n">slowCalcFuture</span>
+  <span class="n">await</span><span class="o">(</span><span class="n">future1</span><span class="o">)</span> <span class="o">+</span> <span class="n">await</span><span class="o">(</span><span class="n">future2</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<h2>
+<a name="user-content-comparison-with-direct-use-of-future-api" class="anchor" href="#comparison-with-direct-use-of-future-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>Comparison with direct use of <code>Future</code> API</h2>
+
+<p>This computation could also be expressed by directly using the
+higher-order functions of Futures:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">slowCalcFuture</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="o">...</span>
+<span class="k">val</span> <span class="n">future1</span> <span class="k">=</span> <span class="n">slowCalcFuture</span>
+<span class="k">val</span> <span class="n">future2</span> <span class="k">=</span> <span class="n">slowCalcFuture</span>
+<span class="k">def</span> <span class="n">combined</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Int</span><span class="o">]</span> <span class="k">=</span> <span class="k">for</span> <span class="o">{</span>
+  <span class="n">r1</span> <span class="k">&lt;-</span> <span class="n">future1</span>
+  <span class="n">r2</span> <span class="k">&lt;-</span> <span class="n">future2</span>
+<span class="o">}</span> <span class="k">yield</span> <span class="n">r1</span> <span class="o">+</span> <span class="n">r2</span>
+</pre></div>
+
+<p>The <code>async</code> approach has two advantages over the use of
+<code>map</code> and <code>flatMap</code>.</p>
+
+<ol class="task-list">
+<li>The code more directly reflects the programmers intent,
+ and does not require us to name the results <code>r1</code> and <code>r2</code>.
+ This advantage is even more pronounced when we mix control
+ structures in <code>async</code> blocks.</li>
+<li>
+<code>async</code> blocks are compiled to a single anonymous class,
+ as opposed to a separate anonymous class for each closure
+ required at each generator (<code>&lt;-</code>) in the for-comprehension.
+ This reduces the size of generated code, and can avoid boxing
+ of intermediate results.</li>
+</ol><h2>
+<a name="user-content-comparison-with-cps-plugin" class="anchor" href="#comparison-with-cps-plugin" aria-hidden="true"><span class="octicon octicon-link"></span></a>Comparison with CPS plugin</h2>
+
+<p>The existing continuations (CPS) plugin for Scala can also be used
+to provide a syntactic layer like <code>async</code>. This approach has been
+used in Akka's <a href="http://doc.akka.io/docs/akka/snapshot/scala/dataflow.html">Dataflow Concurrency</a></p>
+
+<p>CPS-based rewriting of asynchronous code also produces a closure
+for each suspension. It can also lead to type errors that are
+difficult to understand.</p>
+
+<h2>
+<a name="user-content-how-it-works" class="anchor" href="#how-it-works" aria-hidden="true"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<ul class="task-list">
+<li>The async macro analyses the block of code, looking for control
+structures and locations of await calls. It then breaks the code
+into 'chunks'. Each chunk contains a linear sequence of statements
+that concludes with a branching decision, or with the registration
+of a subsequent state handler as the continuation.</li>
+<li>Before this analysis and transformation, the program is normalized
+into a form amenable to this manipulation. This is called the
+"A Normal Form" (ANF), and roughly means that:
+
+<ul class="task-list">
+<li>
+<code>if</code> and <code>match</code> constructs are only used as statements;
+they cannot be used as an expression.</li>
+<li>calls to await are not allowed in compound expressions.</li>
+</ul>
+</li>
+<li>Identify vals, vars and defs that are accessed from multiple
+states. These will be lifted out to fields in the state machine
+object.</li>
+<li>Synthesize a class that holds:
+
+<ul class="task-list">
+<li>an integer representing the current state ID</li>
+<li>the lifted definitions</li>
+<li>an <code>apply(value: Try[Any]): Unit</code> method that will be
+called on completion of each future. The behavior of
+this method is determined by the current state. It records
+the downcast result of the future in a field, and calls the
+<code>resume()</code> method.</li>
+<li>the <code>resume(): Unit</code> method that switches on the current state
+and runs the users code for one 'chunk', and either:
+ a) registers the state machine as the handler for the next future
+b) completes the result Promise of the async block, if at the terminal state.</li>
+<li>an <code>apply(): Unit</code> method that starts the computation.</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h2>
+
+<ul class="task-list">
+<li>See the <a href="https://github.com/scala/async/tree/master/src/test/scala/scala/async/neg">neg</a> test cases for
+for constructs that are not allowed in a async block</li>
+<li>See the <a href="https://github.com/scala/async/issues?state=open">issue list</a> for which of these restrictions are planned
+to be dropped in the next milestone.</li>
+<li>See <a href="https://github.com/scala/async/issues/13">#13</a> for why <code>await</code> is not possible in closures, and for suggestions on
+ways to structure the code to work around this limitation.</li>
+</ul></article></div>

@@ -1,0 +1,62 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-postgresql-workload-analyzer" class="anchor" href="#postgresql-workload-analyzer" aria-hidden="true"><span class="octicon octicon-link"></span></a>PostgreSQL Workload Analyzer</h1>
+
+<p>PoWA is an extension designed to historize informations given by the
+<code>pg_stat_statements extension</code>. It provides sql SRF (Set Returning Functions)
+to gather useful information on a specified time interval.</p>
+
+<p>PoWA requires PostgreSQL 9.3 or more.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<ul class="task-list">
+<li>make install in the main directory</li>
+<li>Make sure you have installed and configured <code>pg_stat_statements</code>
+</li>
+<li>create a dedicated database (powa for instance)</li>
+<li>create extension powa in this databse</li>
+<li>add "powa" in the <code>shared_preload_libraries</code> in postgresql.conf (you should already have configured "<code>pg_stat_statements</code>")</li>
+<li>configure GUC in postgresql.conf (see the §Configuration below)</li>
+<li>restart instance</li>
+</ul><h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration:</h2>
+
+<p>Here are the configuration parameters (GUC) available:</p>
+
+<ul class="task-list">
+<li><p><code>powa.frequency</code> : Defines the frequency of the snapshots. Minimum 5s. You can use the usual postgresql time abbreviations. If not specified, the unit is seconds. Defaults to 5 minutes.</p></li>
+<li><p><code>powa.retention</code> : Automatically purge data older than that. If not specified, the unit is minutes. Defaults to 1 day.</p></li>
+<li><p><code>powa.database</code> : Defines the database of the workload repository. Defaults to powa.</p></li>
+<li><p><code>powa.coalesce</code> : Defines the amount of records to group together in the table.</p></li>
+</ul><p>The more you coalesce, the more PostgreSQL can compress. But the more it has
+to uncompact when queried. Defaults to 100.</p>
+
+<p>If you can afford it, put a rather high work_mem for the database powa. It will help, as the queries used to display the ui are doing lots of sampling, implying lots of sorts.</p>
+
+<p>We use this:
+<code>ALTER DATABASE powa SET work_mem TO '256MB';</code></p>
+
+<p>It's only used for the duration of the queries anyway, this is not statically allocated memory.</p>
+
+<h2>
+<a name="user-content-reset-the-stats" class="anchor" href="#reset-the-stats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reset the stats:</h2>
+
+<p><code>SELECT powa_stats_reset();</code> (in the powa database of course)</p>
+
+<h2>
+<a name="user-content-set-up-the-ui" class="anchor" href="#set-up-the-ui" aria-hidden="true"><span class="octicon octicon-link"></span></a>Set up the UI:</h2>
+
+<p>Read <a href="https://github.com/dalibo/powa/blob/master/ui/README.md">ui/README.md</a>.</p>
+
+<h2>
+<a name="user-content-impact-on-performances" class="anchor" href="#impact-on-performances" aria-hidden="true"><span class="octicon octicon-link"></span></a>Impact on performances</h2>
+
+<p>Using POWA will have a small negative impact on your PostgreSQL server performances. It is hard to evaluate precisely this impact but we can analyze it in 3 parts :</p>
+
+<ul class="task-list">
+<li><p>First of all, you need to activate the <code>pg_stat_statements</code> module. This module itself may slow down your instance, but some benchmarks show that the impact is not that big. 
+For more details, please read : <a href="http://pgsnaga.blogspot.fr/2011/10/performance-impact-of-pgstatstatements.html">http://pgsnaga.blogspot.fr/2011/10/performance-impact-of-pgstatstatements.html</a> </p></li>
+<li><p>Second, the POWA collector should have a very low impact, but of course that depends on the frequency at which you collect data. If you do it every 5 seconds, you'll definitely see something. At 5 minutes, the impact should be minimal. </p></li>
+<li><p>And finally the POWA GUI will have an impact too if you run it on the PostgreSQL instance, but it really depends on many user will have access to it.</p></li>
+</ul><p>All in all, we strongly feel that the performance impact of POWA is nothing compared to being in the dark and not knowing what is running on your database. </p></article></div>

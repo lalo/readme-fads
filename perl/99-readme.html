@@ -1,0 +1,317 @@
+<div class="announce instapaper_body pod" data-path="README.pod" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><a name="user-content-___top" aria-hidden="true"></a>
+
+<h1>
+<a name="user-content-name" class="anchor" href="#name" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-NAME" aria-hidden="true">NAME</a>
+</h1>
+
+<p>recs - Record Stream Manipulation and output</p>
+
+<h1>
+<a name="user-content-abstract" class="anchor" href="#abstract" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-ABSTRACT" aria-hidden="true">ABSTRACT</a>
+</h1>
+
+<p>App::RecordStream - System for commandline analysis of data</p>
+
+<h1>
+<a name="user-content-synposis" class="anchor" href="#synposis" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-SYNPOSIS" aria-hidden="true">SYNPOSIS</a>
+</h1>
+
+<p>A set of programs for creating,
+manipulating,
+and outputing a stream of Records,
+or JSON hashes.
+Inspired by Monad.</p>
+
+<h1>
+<a name="user-content-description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-DESCRIPTION" aria-hidden="true">DESCRIPTION</a>
+</h1>
+
+<p>The recs system consists of 3 basic sets of scripts.
+Input scripts responsible for generating streams of record objects,
+Manipulation scripts responsible for analyzing,
+select,
+and manipulating records,
+and output scripts which take record streams and produce output for humans.
+These scripts can interface with other systems to retrieve data,
+parse existing files,
+or just regex out some values from a text stream.</p>
+
+<h1>
+<a name="user-content-key-specs" class="anchor" href="#key-specs" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-KEY_SPECS" aria-hidden="true">KEY SPECS</a>
+</h1>
+
+<p>Many of the scripts below take key arguments to specify or assign to a key in a record.
+Almost all of the places where you can specify a key (which normally means a first level key in the record),
+you can instead specify a key spec.</p>
+
+<p>A key spec may be nested,
+and may index into arrays.
+Use a '/' to nest into a hash and a '#NUM' to index into an array (i.e.
+#2)</p>
+
+<p>An example is in order,
+take a record like this:</p>
+
+<pre>  {"biz":["a","b","c"],"foo":{"bar 1":1},"zap":"blah1"}
+  {"biz":["a","b","c"],"foo":{"bar 1":2},"zap":"blah2"}
+  {"biz":["a","b","c"],"foo":{"bar 1":3},"zap":"blah3"}</pre>
+
+<p>In this case a key spec of 'foo/bar 1' would have the values 1,2, and 3 respectively.</p>
+
+<p>Similarly, 'biz/#0' would have the value of 'a' for all 3 records</p>
+
+<p>You can also prefix key specs with '@' to engage the fuzzy matching logic</p>
+
+<p>Matching works like this in order, first key to match wins 1. Exact match ( eq ) 2. Prefix match ( m/^/ ) 3. Match anywehre in the key (m//)</p>
+
+<p>So, in the above example '@b/#2', the 'b' portion would expand to 'biz' and 2 would be the index into the array, so all records would have the value of 'c'</p>
+
+<p>Simiarly, @f/b would have values 1, 2, and 3</p>
+
+<h1>
+<a name="user-content-scripts" class="anchor" href="#scripts" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-SCRIPTS" aria-hidden="true">SCRIPTS</a>
+</h1>
+
+<h2>
+<a name="user-content-input-generation" class="anchor" href="#input-generation" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Input_Generation" aria-hidden="true">Input Generation</a>
+</h2>
+
+<dl>
+<dt><a name="user-content-recs-fromcsv" aria-hidden="true">recs-fromcsv</a></dt>
+
+<dd>
+<p>Produces records from a csv file/stream</p>
+
+</dd>
+<dt><a name="user-content-recs-fromdb" aria-hidden="true">recs-fromdb</a></dt>
+
+<dd>
+<p>Produces records for a db table, or from a SELECT statment into a db.</p>
+
+</dd>
+<dt><a name="user-content-recs-fromre" aria-hidden="true">recs-fromre</a></dt>
+
+<dd>
+<p>Matches input streams against a regex, puts capture groups into hashes</p>
+
+</dd>
+<dt><a name="user-content-recs-frommongo" aria-hidden="true">recs-frommongo</a></dt>
+
+<dd>
+<p>Generate a record stream from a MongoDB query.</p>
+
+</dd>
+<dt><a name="user-content-recs-frommultire" aria-hidden="true">recs-frommultire</a></dt>
+
+<dd>
+<p>Matches input streams against several regexs, puts capture groups into the record</p>
+
+</dd>
+<dt><a name="user-content-recs-fromsplit" aria-hidden="true">recs-fromsplit</a></dt>
+
+<dd>
+<p>Splits input stream on a delimeter</p>
+
+</dd>
+<dt><a name="user-content-recs-fromps" aria-hidden="true">recs-fromps</a></dt>
+
+<dd>
+<p>Generate records from the process tree</p>
+
+</dd>
+<dt><a name="user-content-recs-fromatomfeed" aria-hidden="true">recs-fromatomfeed</a></dt>
+
+<dd>
+<p>Produces records for an optionally paginated atom feed.</p>
+
+</dd>
+<dt><a name="user-content-recs-fromxml" aria-hidden="true">recs-fromxml</a></dt>
+
+<dd>
+<p>Produces records for an XML document.</p>
+
+</dd>
+<dt><a name="user-content-recs-fromkv" aria-hidden="true">recs-fromkv</a></dt>
+
+<dd>
+<p>Produces records from input streams containing loosely formed key/value pairs</p>
+
+</dd>
+<dt><a name="user-content-recs-fromtcpdump" aria-hidden="true">recs-fromtcpdump</a></dt>
+
+<dd>
+<p>Produces records from packet capture files (.pcap) as made by tcpdump</p>
+</dd>
+</dl><h2>
+<a name="user-content-stream-manipulation" class="anchor" href="#stream-manipulation" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Stream_Manipulation" aria-hidden="true">Stream Manipulation</a>
+</h2>
+
+<dl>
+<dt><a name="user-content-recs-annotate" aria-hidden="true">recs-annotate</a></dt>
+
+<dd>
+<p>Annotate records with common fields, will memoize additions to speed up common annotations</p>
+
+</dd>
+<dt><a name="user-content-recs-collate" aria-hidden="true">recs-collate</a></dt>
+
+<dd>
+<p>Perforce aggregation operations on records. Group by a field, get an average, sum, corellation, etc. Very powerful</p>
+
+</dd>
+<dt><a name="user-content-recs-delta" aria-hidden="true">recs-delta</a></dt>
+
+<dd>
+<p>Transform values into deltas between adjacent records</p>
+
+</dd>
+<dt><a name="user-content-recs-eval" aria-hidden="true">recs-eval</a></dt>
+
+<dd>
+<p>Eval a string of perl against each record</p>
+
+</dd>
+<dt><a name="user-content-recs-flatten" aria-hidden="true">recs-flatten</a></dt>
+
+<dd>
+<p>Flatten records of input to one level</p>
+
+</dd>
+<dt><a name="user-content-recs-grep" aria-hidden="true">recs-grep</a></dt>
+
+<dd>
+<p>Select records for which a string of perl evaluates to true.</p>
+
+</dd>
+<dt><a name="user-content-recs-multiplex" aria-hidden="true">recs-multiplex</a></dt>
+
+<dd>
+<p>Take records, grouped by keys, and run a separate recs script for each group.</p>
+
+</dd>
+<dt><a name="user-content-recs-normalizetime" aria-hidden="true">recs-normalizetime</a></dt>
+
+<dd>
+<p>Based on a time field, tag records with a normalized time, i.e. every 5 minute buckets</p>
+
+</dd>
+<dt><a name="user-content-recs-join" aria-hidden="true">recs-join</a></dt>
+
+<dd>
+<p>Perform an inner join of two record streams. Associate records in one stream with another stream.</p>
+
+</dd>
+<dt><a name="user-content-recs-substream" aria-hidden="true">recs-substream</a></dt>
+
+<dd>
+<p>Filter to a range of matching records with paired perl snippets --start and --end.</p>
+
+</dd>
+<dt><a name="user-content-recs-sort" aria-hidden="true">recs-sort</a></dt>
+
+<dd>
+<p>Sort records based on keys, may specify multiple levels of sorting, as well as numerical or lexical sort ordering</p>
+
+</dd>
+<dt><a name="user-content-recs-topn" aria-hidden="true">recs-topn</a></dt>
+
+<dd>
+<p>Outputs the top n records. You may segment the input based on a list of keys such that unique values of keys are treated as distinct input streams. This enables top n listings per value groupings.</p>
+
+</dd>
+<dt><a name="user-content-recs-xform" aria-hidden="true">recs-xform</a></dt>
+
+<dd>
+<p>Perform a block of perl on each record, which may modify the record, Record is then output</p>
+
+</dd>
+<dt><a name="user-content-recs-generate" aria-hidden="true">recs-generate</a></dt>
+
+<dd>
+<p>Perform a block of perl on each record to generate a record stream, which is then output with a chain link back to the original record.</p>
+</dd>
+</dl><h2>
+<a name="user-content-output-generation" class="anchor" href="#output-generation" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-Output_Generation" aria-hidden="true">Output Generation</a>
+</h2>
+
+<dl>
+<dt><a name="user-content-recs-todb" aria-hidden="true">recs-todb</a></dt>
+
+<dd>
+<p>Inserts records into a DBI supported SQL database. Will crate a local sqlite database by default</p>
+
+</dd>
+<dt><a name="user-content-recs-tocsv" aria-hidden="true">recs-tocsv</a></dt>
+
+<dd>
+<p>Generates correctly quoted CSV files from record streams.</p>
+
+</dd>
+<dt><a name="user-content-recs-tognuplot" aria-hidden="true">recs-tognuplot</a></dt>
+
+<dd>
+<p>Create a graph of field values in a record using GNU Plot.</p>
+
+</dd>
+<dt><a name="user-content-recs-totable" aria-hidden="true">recs-totable</a></dt>
+
+<dd>
+<p>Pretty prints a table of results.</p>
+
+</dd>
+<dt><a name="user-content-recs-tohtml" aria-hidden="true">recs-tohtml</a></dt>
+
+<dd>
+<p>Prints out an html table of the record stream</p>
+
+</dd>
+<dt><a name="user-content-recs-toprettyprint" aria-hidden="true">recs-toprettyprint</a></dt>
+
+<dd>
+<p>Prettily prints records, one key to a line, great for making sense of very large records</p>
+
+</dd>
+<dt><a name="user-content-recs-toptable" aria-hidden="true">recs-toptable</a></dt>
+
+<dd>
+<p>Prints a multi-dimensional (pivot) table of values. Very powerful.</p>
+</dd>
+</dl><h1>
+<a name="user-content-notes" class="anchor" href="#notes" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-NOTES" aria-hidden="true">NOTES</a>
+</h1>
+
+<p>The data stream format of the recs scripts is JSON hashes separated by new lines. If you wish to write your own recs script in your own language, just get a JSON parser and you should be good to go. The recs scripts use JSON::Syck, a fast xs-binding of a c implementation of a YAML parser/outputer</p>
+
+<h1>
+<a name="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-EXAMPLES" aria-hidden="true">EXAMPLES</a>
+</h1>
+
+<pre>  # look in the access log for all accesses with greater than 5 seconds, display in a table
+  cat access.log | recs-fromre --fieds ip,time '^(\d+).*TIME: (\d+)' | recs-grep '$r-&gt;{time} &gt; 5' | recs-totable</pre>
+
+<h1>
+<a name="user-content-see-also" class="anchor" href="#see-also" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-SEE_ALSO" aria-hidden="true">SEE ALSO</a>
+</h1>
+
+<p>Each of the recs-* scripts discussed have a --help mode available to print out usage and examples for the particular script, See that documentation for detailed information on the operation of each of the scripts. Also see some other man pages:</p>
+
+<dl>
+<dt>
+<a name="user-content-recs-examples(3)_-_A_set_of_simple_recs_examples" aria-hidden="true"></a><a href="http://man.he.net/man3/recs-examples">recs-examples(3)</a> - A set of simple recs examples</dt>
+
+<dd>
+</dd>
+<dt>
+<a name="user-content-recs-story(3)_-_A_humorous_introduction_to_RecordStream" aria-hidden="true"></a><a href="http://man.he.net/man3/recs-story">recs-story(3)</a> - A humorous introduction to RecordStream</dt>
+</dl><h1>
+<a name="user-content-authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-AUTHORS" aria-hidden="true">AUTHORS</a>
+</h1>
+
+<pre>  Benjamin Bernard &lt;perlhacker@benjaminbernard.com&gt;
+  Keith Amling &lt;keith.amling@gmail.com&gt;</pre>
+
+<h1>
+<a name="user-content-copyright-and-license" class="anchor" href="#copyright-and-license" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="#___top" title="click to go to top of document" name="user-content-COPYRIGHT_AND_LICENSE" aria-hidden="true">COPYRIGHT AND LICENSE</a>
+</h1>
+
+<p>Copyright 2007 by Benjamin Bernard and Keith Amling This software is released under the MIT license</p></article></div>

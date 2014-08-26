@@ -1,0 +1,162 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-dispatchvim" class="anchor" href="#dispatchvim" aria-hidden="true"><span class="octicon octicon-link"></span></a>dispatch.vim</h1>
+
+<p>Leverage the power of Vim's compiler plugins without being bound by
+synchronicity.  Kick off builds and test suites using one of several
+asynchronous adapters (including tmux, screen, iTerm, Windows, and a headless
+mode), and when the job completes, errors will be loaded and parsed
+automatically.</p>
+
+<p>If that doesn't excite you, then perhaps <a href="http://vimeo.com/tpope/vim-dispatch-teaser">this video</a> will change your
+mind.</p>
+
+<h2>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>If you don't have a preferred installation method, I recommend
+installing <a href="https://github.com/tpope/vim-pathogen">pathogen.vim</a>, and
+then simply copy and paste:</p>
+
+<pre><code>cd ~/.vim/bundle
+git clone git://github.com/tpope/vim-dispatch.git
+</code></pre>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The core of Vim's compiler system is <code>:make</code>, a command similar to <code>:grep</code>
+that runs a build tool and parses the resulting errors.  The default build
+tool is of course <code>make</code>, but you can switch it (and the associated error
+parser) with <code>:compiler</code>.  There are lots of built-in compilers, and they do
+more than just compile things.  Plus you can make your own.</p>
+
+<p>We'll start by looking at dispatch.vim's <code>:make</code> wrapper <code>:Make</code>, and then
+move on to higher abstractions.</p>
+
+<h3>
+<a name="user-content-foreground-builds" class="anchor" href="#foreground-builds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Foreground builds</h3>
+
+<p>Kick off quick tasks with <code>:Make</code>.  What happens next depends on which adapter
+takes charge.</p>
+
+<ul class="task-list">
+<li>If you're in tmux, a small split will be opened at the bottom.</li>
+<li>If you have iTerm running, a new tab is opened.</li>
+<li>On Windows, a minimized cmd.exe window is spawned.</li>
+<li>Otherwise, you get a plain old <code>:make</code> invocation.</li>
+</ul><p>When the task completes, the window closes, the errors are loaded and parsed,
+and the quickfix window automatically opens.  At no point will your focus be
+stolen.</p>
+
+<h3>
+<a name="user-content-background-builds" class="anchor" href="#background-builds" aria-hidden="true"><span class="octicon octicon-link"></span></a>Background builds</h3>
+
+<p>Use <code>:Make!</code> for longer running tasks, like "run the entire test suite".</p>
+
+<ul class="task-list">
+<li>If you're in tmux or GNU screen, a new window is created in the background.</li>
+<li>If you have iTerm running, a new tab is opened but not selected.</li>
+<li>Windows still spawns a minimized cmd.exe window.</li>
+<li>Otherwise, you get a headless invocation.  You can't see it, but it's
+running in the background.</li>
+</ul><p>You won't be interrupted with a quickfix window for a background build.
+Instead, open it at your leisure with <code>:Copen</code>.</p>
+
+<p>You can also use <code>:Copen</code> on a build that's still running to retrieve and
+parse any errors that have already happened.</p>
+
+<h3>
+<a name="user-content-compiler-switching" class="anchor" href="#compiler-switching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compiler switching</h3>
+
+<p>As hinted earlier, it's easy to switch compilers.</p>
+
+<pre><code>:compiler rubyunit
+:make test/models/user_test.rb
+</code></pre>
+
+<p>Wait, that's still twice as many commands as it needs to be.  Plus, it
+requires you to make the leap from <code>testrb</code> (the executable) to <code>rubyunit</code>
+(the compiler plugin).  The <code>:Dispatch</code> command looks for a compiler for an
+executable and sets it up automatically.</p>
+
+<pre><code>:Dispatch testrb test/models/user_test.rb
+</code></pre>
+
+<p>If no compiler plugin is found, <code>:Dispatch</code> simply captures all output.</p>
+
+<pre><code>:Dispatch bundle install
+</code></pre>
+
+<p>As with <code>:make</code>, you can use <code>%</code> expansions for the current filename.</p>
+
+<pre><code>:Dispatch rspec %
+</code></pre>
+
+<p>The <code>:Dispatch</code> command switches the compiler back afterwards, so you can pick
+a primary compiler for <code>:Make</code>, and use <code>:Dispatch</code> for secondary concerns.</p>
+
+<h3>
+<a name="user-content-default-dispatch" class="anchor" href="#default-dispatch" aria-hidden="true"><span class="octicon octicon-link"></span></a>Default dispatch</h3>
+
+<p>With no arguments, <code>:Dispatch</code> looks for a <code>b:dispatch</code> variable.  You
+can set it interactively, or in an autocommand:</p>
+
+<pre><code>autocmd FileType java let b:dispatch = 'javac %'
+</code></pre>
+
+<p>If no <code>b:dispatch</code> is found, it falls back to <code>:Make</code>.</p>
+
+<p><code>:Dispatch</code> makes a great map:</p>
+
+<pre><code>nnoremap &lt;F9&gt; :Dispatch&lt;CR&gt;
+</code></pre>
+
+<h3>
+<a name="user-content-focusing" class="anchor" href="#focusing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Focusing</h3>
+
+<p>Use <code>:FocusDispatch</code> (or just <code>:Focus</code>) to temporarily, globally override the
+default dispatch:</p>
+
+<pre><code>:Focus rake spec:models
+</code></pre>
+
+<p>Now every bare call to <code>:Dispatch</code> will call <code>:Dispatch rake spec:models</code>.
+You'll be getting a lot of mileage out of that <code>:Dispatch</code> map.</p>
+
+<p>Use <code>:Focus!</code> to reset back to the default.</p>
+
+<h3>
+<a name="user-content-spawning-interactive-processes" class="anchor" href="#spawning-interactive-processes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Spawning interactive processes</h3>
+
+<p>Sometimes you just want to kick off a process without any output capturing or
+error parsing.  That's what <code>:Start</code> is for:</p>
+
+<pre><code>:Start lein repl
+</code></pre>
+
+<p>Unlike <code>:Make</code>, the new window will be in focus, since the idea is that you
+want to interact with it.  Use <code>:Start!</code> to launch it in the background.</p>
+
+<h3>
+<a name="user-content-plugin-support" class="anchor" href="#plugin-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Plugin support</h3>
+
+<p>Using dispatch.vim from a plugin is a simple matter of checking for and using
+<code>:Make</code> and <code>:Start</code> if they're available instead of <code>:make</code> and <code>:!</code>.  Your
+favorite plugin already supports it, assuming your favorite plugin is
+<a href="https://github.com/tpope/vim-rails">rails.vim</a>.</p>
+
+<h2>
+<a name="user-content-self-promotion" class="anchor" href="#self-promotion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Self-Promotion</h2>
+
+<p>Like dispatch.vim?  Follow the repository on
+<a href="https://github.com/tpope/vim-dispatch">GitHub</a> and vote for it on
+<a href="http://www.vim.org/scripts/script.php?script_id=4504">vim.org</a>.  And if
+you're feeling especially charitable, follow <a href="http://tpo.pe/">tpope</a> on
+<a href="http://twitter.com/tpope">Twitter</a> and
+<a href="https://github.com/tpope">GitHub</a>.</p>
+
+<h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>Copyright © Tim Pope.  Distributed under the same terms as Vim itself.
+See <code>:help license</code>.</p></article></div>

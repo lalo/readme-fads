@@ -1,0 +1,76 @@
+<div class="announce instapaper_body markdown" data-path="README.markdown" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h2>
+<a name="user-content-net-client-library-for-the-dropbox-api" class="anchor" href="#net-client-library-for-the-dropbox-api" aria-hidden="true"><span class="octicon octicon-link"></span></a>.NET Client library for the Dropbox API</h2>
+
+<p>Full documentation here: <a href="http://dkdevelopment.net/what-im-doing/dropnet/">http://dkdevelopment.net/what-im-doing/dropnet/</a></p>
+
+<h2>
+<a name="user-content-how-do-i-use-it" class="anchor" href="#how-do-i-use-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I use it?</h2>
+
+<h5>
+<a name="user-content-the-client" class="anchor" href="#the-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Client:</h5>
+
+<p>To use DropNet you need an instance of the DropNetClient class, this class does everything for DropNet. This class takes the API Key and API Secret (These must be obtained from Dropbox to access the API).</p>
+
+<div class="highlight highlight-csharp"><pre>    <span class="n">_client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DropNetClient</span><span class="p">(</span><span class="s">"API KEY"</span><span class="p">,</span> <span class="s">"API SECRET"</span><span class="p">);</span>
+</pre></div>
+
+<h5>
+<a name="user-content-logintokens" class="anchor" href="#logintokens" aria-hidden="true"><span class="octicon octicon-link"></span></a>Login/Tokens:</h5>
+
+<p>Dropbox now requires a web authentication to get a usable token/secret, so this is a 3 step process.</p>
+
+<p><strong>Step 1.</strong> Get Request Token - This step gets an oauth token from dropbox (NOTE: the token must pass the other steps before it can be used)</p>
+
+<div class="highlight highlight-csharp"><pre>    <span class="c1">// Sync</span>
+    <span class="n">_client</span><span class="p">.</span><span class="n">GetToken</span><span class="p">();</span>
+
+    <span class="c1">// Async</span>
+    <span class="n">_client</span><span class="p">.</span><span class="n">GetTokenAsync</span><span class="p">((</span><span class="n">userLogin</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="p">{</span>
+            <span class="c1">//Dont really need to do anything with userLogin, DropNet takes care of it for now</span>
+        <span class="p">},</span>
+        <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="p">{</span>
+            <span class="c1">//Handle error</span>
+        <span class="p">});</span>
+</pre></div>
+
+<p><strong>Step 2.</strong> Authorize App with Dropbox - This step involves sending the user to a login page on the dropbox site and having them authenticate there. The DropNet client has a function to return the url for you but the rest must be handled in app, this function also takes a callback url for redirecting the user to after they have logged in. (NOTE: The token still cant be used yet.)</p>
+
+<div class="highlight highlight-csharp"><pre>    <span class="kt">var</span> <span class="n">url</span> <span class="p">=</span> <span class="n">_client</span><span class="p">.</span><span class="n">BuildAuthorizeUrl</span><span class="p">();</span>
+    <span class="c1">//Use the url in a browser so the user can login</span>
+</pre></div>
+
+<p>Open a browser with the url returned by BuildAuthorizeUrl - After we have the authorize url we need to direct the user there (use some sort of browser here depending on the platform) and navigate the user to the url. This will prompt them to login and authorize your app with the API.</p>
+
+<p><strong>Step 3.</strong> Get an Access Token from the Request Token - This is the last stage of the process, converting the oauth request token into a usable dropbox API token. This function will use the clients stored Request Token but this can be overloaded if you need to specify a token to use.</p>
+
+<div class="highlight highlight-csharp"><pre>    <span class="c1">// Sync</span>
+    <span class="kt">var</span> <span class="n">accessToken</span> <span class="p">=</span> <span class="n">_client</span><span class="p">.</span><span class="n">GetAccessToken</span><span class="p">();</span> <span class="c1">//Store this token for "remember me" function</span>
+
+    <span class="c1">// Async</span>
+    <span class="n">_client</span><span class="p">.</span><span class="n">GetAccessTokenAsync</span><span class="p">((</span><span class="n">accessToken</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="p">{</span>
+            <span class="c1">//Store this token for "remember me" function</span>
+        <span class="p">},</span>
+        <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="p">=&gt;</span>
+        <span class="p">{</span>
+            <span class="c1">//Handle error</span>
+        <span class="p">});</span>
+</pre></div>
+
+<p><strong>Best Practices:</strong> Dropbox's Developer page states several times in bold red font that applications should not store a users Dropbox password and to help enforce this DropNet allows you to manually set a users Token and Secret on the client.</p>
+
+<div class="highlight highlight-csharp"><pre>    <span class="n">_client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DropNetClient</span><span class="p">(</span><span class="s">"API KEY"</span><span class="p">,</span> <span class="s">"API SECRET"</span><span class="p">,</span> <span class="s">"USER TOKEN"</span><span class="p">,</span> <span class="s">"USER SECRET"</span><span class="p">);</span>
+    <span class="c1">// OR</span>
+    <span class="n">_client</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DropNetClient</span><span class="p">(</span><span class="s">"API KEY"</span><span class="p">,</span> <span class="s">"API SECRET"</span><span class="p">);</span>
+    <span class="n">_client</span><span class="p">.</span><span class="n">UserLogin</span> <span class="p">=</span> <span class="k">new</span> <span class="n">UserLogin</span> <span class="p">{</span> <span class="n">Token</span> <span class="p">=</span> <span class="s">"USER TOKEN"</span><span class="p">,</span> <span class="n">Secret</span> <span class="p">=</span> <span class="s">"USER SECRET"</span> <span class="p">};</span>
+</pre></div>
+
+<hr><p>Want to chat about DropNet? <a href="http://jabbr.net/#/rooms/DropNet">http://jabbr.net/#/rooms/DropNet</a></p>
+
+<p>Questions? <a href="http://stackoverflow.com/questions/tagged/dropnet">http://stackoverflow.com/questions/tagged/dropnet</a></p>
+
+<hr><p><strong>Like DropNet?</strong> Endorse me on Coderwall</p>
+
+<p><a href="http://coderwall.com/dkarzon"><img src="https://camo.githubusercontent.com/37c1be3243838eb70f4fdb2a0033a1491512aabd/687474703a2f2f6170692e636f64657277616c6c2e636f6d2f646b61727a6f6e2f656e646f727365636f756e742e706e67" alt="endorse" data-canonical-src="http://api.coderwall.com/dkarzon/endorsecount.png" style="max-width:100%;"></a></p></article></div>

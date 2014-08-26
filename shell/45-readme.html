@@ -1,0 +1,123 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><p>Drip is a launcher for the Java Virtual Machine that provides much faster
+startup times than the <code>java</code> command. The <code>drip</code> script is intended to be a
+drop-in replacement for the <code>java</code> command, only faster.</p>
+
+<p>Drip is a single bash script and a little bit of C and Java code. It is intended
+to work with any JVM-based language and anywhere bash is available.</p>
+
+<h1>
+<a name="user-content-how-does-it-work" class="anchor" href="#how-does-it-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>How does it work?</h1>
+
+<p>Unlike other tools intended to solve the JVM startup problem (e.g. Nailgun,
+Cake), Drip does not use a persistent JVM. There are many pitfalls to using a
+persistent JVM, which we discovered while working on the Cake build tool for
+Clojure. The main problem is that the state of the persistent JVM gets dirty
+over time, producing strange errors and requiring liberal use of <code>cake kill</code>
+whenever any error is encountered, <em>just in case</em> dirty state is the cause.</p>
+
+<p>Instead of going down this road, Drip uses a different strategy. It keeps a
+fresh JVM spun up in reserve with the correct classpath and other JVM options
+so you can quickly connect and use it when needed, then throw it away. Drip
+hashes the JVM options and stores information about how to connect to the JVM
+in a directory with the hash value as its name.</p>
+
+<h1>
+<a name="user-content-installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>The following instructions assume that <code>~/bin</code> is on your <code>$PATH</code>. If that is
+not the case, you can substitute your favorite location.</p>
+
+<p><strong>Standalone</strong> — <em>We recommend this to get started quickly.</em></p>
+
+<pre><code>curl -L http://drip.flatland.org &gt; ~/bin/drip
+chmod 755 ~/bin/drip
+</code></pre>
+
+<p><strong>Checkout</strong> — <em>If you want to hack on Drip or follow the latest
+development, this is the way to go.</em></p>
+
+<pre><code>git clone https://github.com/flatland/drip.git
+cd drip &amp;&amp; make prefix=~/bin install
+</code></pre>
+
+<p><strong>Homebrew</strong> — <em>This is a convenient way to brew drip on OS X.</em></p>
+
+<pre><code>brew install drip
+</code></pre>
+
+<p>Note: Installing brew requires <code>gcc</code>. Here are <a href="http://stackoverflow.com/questions/9353444">instructions</a>
+for how to install it on OS X Mountain Lion.</p>
+
+<h1>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>You can call <code>drip</code> with the same arguments as <code>java</code>. Try it. The first time
+you execute <code>drip</code> with new arguments, it will take as long as a plain <code>java</code>
+command, because it has to spin up a JVM from scratch, but after that it will be
+fast.</p>
+
+<p>For example, to start a Clojure repl with drip:</p>
+
+<pre><code>drip -cp clojure.jar clojure.main
+</code></pre>
+
+<p>The Drip JVM will eventually shut itself down if you never connect to it. The
+time limit defaults to four hours, but you can change this by setting the
+<code>DRIP_SHUTDOWN</code> environment variable before calling <code>drip</code> to set a timeout, in
+minutes:</p>
+
+<pre><code>DRIP_SHUTDOWN=30 drip -cp clojure.jar clojure.main
+</code></pre>
+
+<p>This creates a Clojure repl as usual, either by starting up a new one or
+connecting to a waiting JVM. But the JVM that is spun up to serve future
+requests with the same classpath will have a 30-minute timeout to deactivation.</p>
+
+<h3>
+<a name="user-content-jvm-language-integration" class="anchor" href="#jvm-language-integration" aria-hidden="true"><span class="octicon octicon-link"></span></a>JVM Language Integration</h3>
+
+<p>For more information about how to integrate Drip with your favorite JVM
+language, check out the <a href="https://github.com/flatland/drip/wiki">wiki</a>.</p>
+
+<h1>
+<a name="user-content-advanced-settings" class="anchor" href="#advanced-settings" aria-hidden="true"><span class="octicon octicon-link"></span></a>Advanced settings</h1>
+
+<p>Drip supports the following advanced settings.</p>
+
+<h2>
+<a name="user-content-pre-initialization" class="anchor" href="#pre-initialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pre-Initialization</h2>
+
+<p>By default, Drip only loads your main class at startup, but you can tell Drip to
+run additional code at startup. This can be used to load classes or execute any
+initialization code you like. For a language like Clojure, which compiles code
+on-the-fly, this can be used to precompile commonly used code by requiring it.</p>
+
+<p>To tell Drip how to initialize a new JVM, use the <code>DRIP_INIT</code> and
+<code>DRIP_INIT_CLASS</code> environment variables. <code>DRIP_INIT</code> should be a
+newline-separated list of args to be passed to the <code>main()</code> function of
+<code>DRIP_INIT_CLASS</code>. <code>DRIP_INIT_CLASS</code> defaults to the main class the JVM was
+started with.</p>
+
+<h2>
+<a name="user-content-system-properties" class="anchor" href="#system-properties" aria-hidden="true"><span class="octicon octicon-link"></span></a>System Properties</h2>
+
+<p>Sometimes, you need to set Java system properties, but you don't want them to be
+included in the JVM options used for hashing. In this case, use two dashes
+instead of one, and the options won't be passed to the JVM at startup, instead
+they will be passed at runtime. Keep in mind that any system properties passed
+this way will not be set during initialization.</p>
+
+<h2>
+<a name="user-content-environment-variables" class="anchor" href="#environment-variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Environment Variables</h2>
+
+<p>Drip passes all environment variables exported at runtime to the JVM and merges
+them into the map returned by <code>System.getenv</code>. Keep in mind that the environment
+isn't modified until we connect to the JVM; during initialization, the
+environment will be derived from the previous process that launched the spare
+JVM. </p>
+
+<h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>Drip is licensed under the EPL Eclipse Public License. See LICENSE for
+details.</p></article></div>

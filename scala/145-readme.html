@@ -1,0 +1,1301 @@
+<div class="announce instapaper_body md" data-path="readme.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-scalatags-040" class="anchor" href="#scalatags-040" aria-hidden="true"><span class="octicon octicon-link"></span></a>ScalaTags 0.4.0</h1>
+
+<p>ScalaTags is a small, <a href="#performance">fast</a> XML/HTML construction library for <a href="http://www.scala-lang.org/">Scala</a> that takes fragments in plain Scala code that look like this:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="n">src</span><span class="o">:=</span><span class="s">"..."</span><span class="o">),</span>
+    <span class="n">script</span><span class="o">(</span>
+      <span class="s">"alert('Hello World')"</span>
+    <span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">div</span><span class="o">(</span>
+      <span class="n">h1</span><span class="o">(</span><span class="n">id</span><span class="o">:=</span><span class="s">"title"</span><span class="o">,</span> <span class="s">"This is a title"</span><span class="o">),</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"This is a big paragraph of text"</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>And turns them into HTML like this:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"..."</span><span class="nt">&gt;&lt;/script&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">alert</span><span class="p">(</span><span class="s1">'Hello World'</span><span class="p">)</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;h1</span> <span class="na">id=</span><span class="s">"title"</span><span class="nt">&gt;</span>This is a title<span class="nt">&lt;/h1&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is a big paragraph of text<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h1>
+<a name="user-content-contents" class="anchor" href="#contents" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contents</h1>
+
+<ul class="task-list">
+<li><a href="https://groups.google.com/forum/#!forum/scalatags">Mailing List</a></li>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#scalajs">ScalaJS</a></li>
+<li><a href="#why-scalatags">Why Scalatags</a></li>
+<li>
+<a href="#basic-examples">Basic Examples</a>
+
+<ul class="task-list">
+<li><a href="#hello-world">Hello World</a></li>
+<li><a href="#attributes">Attributes</a></li>
+<li><a href="#css--classes">CSS and Classes</a></li>
+<li><a href="#non-string-attributes-and-styles">Non-String Attributes and Styles</a></li>
+<li><a href="#managing-imports">Managing Imports</a></li>
+<li><a href="#variables">Variables</a></li>
+<li><a href="#control-flow">Control Flow</a></li>
+<li><a href="#functions">Functions</a></li>
+<li><a href="#auto-escaping-and-unsanitized-input">Auto-escaping and unsanitized Input</a></li>
+<li><a href="#layouts">Layouts</a></li>
+<li><a href="#inheritance">Inheritance</a></li>
+</ul>
+</li>
+<li>
+<a href="#dom-backend">DOM Backend</a>
+
+<ul class="task-list">
+<li><a href="#using-the-dom">Using the DOM</a></li>
+</ul>
+</li>
+<li><a href="#performance">Performance</a></li>
+<li>
+<a href="#internals">Internals</a>
+
+<ul class="task-list">
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#extensibility">Extensibility</a></li>
+<li><a href="#cross-backend-code">Cross-backend Code</a></li>
+</ul>
+</li>
+<li>
+<a href="#prior-work">Prior Work</a>
+
+<ul class="task-list">
+<li><a href="#old-school-templates">Old-school Templates</a></li>
+<li><a href="#razor-and-play-templates">Razor and Play Templates</a></li>
+<li><a href="#xhp-and-pyxl">XHP and Pyxl</a></li>
+<li><a href="#scalatags-1">Scalatags</a></li>
+</ul>
+</li>
+<li><a href="#license">License</a></li>
+<li><a href="http://lihaoyi.github.io/scalatags/#package">Scaladoc</a></li>
+</ul><h1>
+<a name="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h1>
+
+<p>ScalaTags is hosted on <a href="http://search.maven.org/#search%7Cga%7C1%7Cscalatags">Maven Central</a>; to get started, simply add the following to your <code>build.sbt</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.scalatags"</span> <span class="o">%%</span> <span class="s">"scalatags"</span> <span class="o">%</span> <span class="s">"0.4.0"</span>
+</pre></div>
+
+<p>And you're good to go! Open up a <code>sbt console</code> and you can start working through the <a href="#Examples">Examples</a>, which should just work when copied and pasted into the console.</p>
+
+<h1>
+<a name="user-content-scalajs" class="anchor" href="#scalajs" aria-hidden="true"><span class="octicon octicon-link"></span></a>ScalaJS</h1>
+
+<p>To use Scalatags with a ScalaJS project, add the following to the <code>built.sbt</code> of your ScalaJS project:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.scalatags"</span> <span class="o">%%%</span> <span class="s">"scalatags"</span> <span class="o">%</span> <span class="s">"0.4.0"</span>
+</pre></div>
+
+<p>And you should be good to go generating HTML fragments in the browser! Scalatags has no dependencies, and so all the examples should work right off the bat whether run in Chrome, Firefox or Rhino. Scalatags 0.3.9 is currently only compatibly with ScalaJS 0.5.3+.</p>
+
+<h1>
+<a name="user-content-why-scalatags" class="anchor" href="#why-scalatags" aria-hidden="true"><span class="octicon octicon-link"></span></a>Why Scalatags</h1>
+
+<p>The core functionality of Scalatags is a <a href="shared/main/scala/scalatags/generic/Core.scala">tiny amount of code</a>, and yet it provides all the functionality of large frameworks like Python's <a href="http://jinja.pocoo.org/docs/sandbox/">Jinja2</a> or C#'s <a href="http://msdn.microsoft.com/en-us/vs2010trainingcourse_aspnetmvc3razor.aspx">Razor</a>, and out-performs the competition by a <a href="#performance">large margin</a>. It does this by leveraging the functionality of the Scala language to do almost <em>everything</em>, meaning you don't need to learn a second template pseudo-language just to stitch your HTML fragments together</p>
+
+<p>Since ScalaTags is pure Scala, any editor that understands Scala will understand scalatags.Text. Not only do you get syntax highlighting, you also get code completion:</p>
+
+<p><a href="docs/Autocomplete.png" target="_blank"><img src="docs/Autocomplete.png" alt="Autocomplete" style="max-width:100%;"></a></p>
+
+<p>and Error Highlighting:</p>
+
+<p><a href="docs/ErrorHighlighting.png" target="_blank"><img src="docs/ErrorHighlighting.png" alt="Error Highlighting" style="max-width:100%;"></a></p>
+
+<p>and in-editor documentation:</p>
+
+<p><a href="docs/InlineDocs.png" target="_blank"><img src="docs/InlineDocs.png" alt="Inline Documentation" style="max-width:100%;"></a></p>
+
+<p>And all the other good things (<em>jump to definition</em>, <em>extract method</em>, etc.) you're used to in a statically typed language. No more digging around in templates which mess up the highlighting of your HTML editor, or waiting months for the correct plugin to materialize.</p>
+
+<p>Take a look at the <a href="#prior-work">prior work</a> section for a more detailed analysis of Scalatags in comparison to other popular libraries.</p>
+
+<h1>
+<a name="user-content-basic-examples" class="anchor" href="#basic-examples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Examples</h1>
+
+<p>This is a bunch of simple examples to get you started using Scalatags. These examples are all in the <a href="shared/test/scala/scalatags/ExampleTests.scala">unit tests</a>.</p>
+
+<h2>
+<a name="user-content-hello-world" class="anchor" href="#hello-world" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hello World</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalatags.Text.all._</span>
+
+<span class="k">val</span> <span class="n">frag</span> <span class="k">=</span> <span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"This is my first paragraph"</span><span class="o">),</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"This is my second paragraph"</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>The core of Scalatags is a way to generate (X)HTML fragments using plain Scala. This is done by values such as <code>head</code>, <code>script</code>, and so on, which are automatically imported into your program when you <code>import scalatags.Text.all._</code>. See <a href="#managing-imports">below</a> if you want more fine-grained control over what's imported.</p>
+
+<p>This example code creates a Scalatags fragment. We could do many things with a fragment: store it, return it, etc. since it's just a normal Scala value. Eventually, though, you will want to convert it into HTML. To do this, simply use:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">frag</span><span class="o">.</span><span class="n">toString</span>
+</pre></div>
+
+<p>Which will give you a String containing the HTML representation:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;&lt;head&gt;&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;&lt;/head&gt;&lt;body&gt;&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;&lt;div&gt;&lt;p&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;&lt;p&gt;</span>This is my second paragraph<span class="nt">&lt;/p&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</span>
+</pre></div>
+
+<p>This representation omits unnecesary whitespace. To improve readability we could pretty-print it using some XML processing:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">prettier</span> <span class="k">=</span> <span class="k">new</span> <span class="n">scala</span><span class="o">.</span><span class="n">xml</span><span class="o">.</span><span class="nc">PrettyPrinter</span><span class="o">(</span><span class="mi">80</span><span class="o">,</span> <span class="mi">4</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">prettier</span><span class="o">.</span><span class="n">format</span><span class="o">(</span><span class="n">scala</span><span class="o">.</span><span class="n">xml</span><span class="o">.</span><span class="nc">XML</span><span class="o">.</span><span class="n">loadString</span><span class="o">(</span><span class="n">frag</span><span class="o">.</span><span class="n">toString</span><span class="o">)))</span>
+</pre></div>
+
+<p>Executing the above prints out:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is my second paragraph<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>The following examples will simply show the initial Scalatag fragment and the final pretty-printed HTML, skipping the intermediate steps.</p>
+
+<h2>
+<a name="user-content-attributes" class="anchor" href="#attributes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Attributes</h2>
+
+<div class="highlight highlight-scala"><pre><span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span>
+      <span class="n">p</span><span class="o">(</span><span class="n">onclick</span><span class="o">:=</span><span class="s">"... do some js"</span><span class="o">)(</span>
+        <span class="s">"This is my first paragraph"</span>
+      <span class="o">),</span>
+      <span class="n">a</span><span class="o">(</span><span class="n">href</span><span class="o">:=</span><span class="s">"www.google.com"</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>In Scalatags, each attribute has an associated value which can be used to set it. This example shows how you set the <code>onclick</code> and <code>href</code> attributes with the <code>:=</code> operator. Attributes are all instances of the <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attr">Attr</a> class.</p>
+
+<p>The common HTML attributes all have static values to use in your fragments, and the list can be seen <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">here</a>. This keeps things concise and statically checked. However, inevitably you'll want to set some attribute which isn't in the initial list defined by scalatags.Text. This can be done with the <code>.attr</code> method that Scalatags adds to Strings:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"onclick"</span><span class="o">.</span><span class="n">attr</span><span class="o">:=</span><span class="s">"... do some js"</span><span class="o">)(</span>
+        <span class="s">"This is my first paragraph"</span>
+      <span class="o">),</span>
+      <span class="n">a</span><span class="o">(</span><span class="s">"href"</span><span class="o">.</span><span class="n">attr</span><span class="o">:=</span><span class="s">"www.google.com"</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>If you wish to, you can also take the result of the <code>.attr</code> call and assign it to a variable for you to use later in an identical way.</p>
+
+<p>Both the above examples print the same thing:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;p</span> <span class="na">onclick=</span><span class="s">"... do some js"</span><span class="nt">&gt;</span>
+                This is my first paragraph
+            <span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">"www.google.com"</span><span class="nt">&gt;</span>
+                <span class="nt">&lt;p&gt;</span>Goooogle<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;/a&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-css--classes" class="anchor" href="#css--classes" aria-hidden="true"><span class="octicon octicon-link"></span></a>CSS &amp; Classes</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">contentpara</span> <span class="k">=</span> <span class="s">"contentpara"</span><span class="o">.</span><span class="n">cls</span>
+<span class="k">val</span> <span class="n">first</span> <span class="k">=</span> <span class="s">"first"</span><span class="o">.</span><span class="n">cls</span>
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">,</span> <span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">,</span> <span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span>
+      <span class="n">p</span><span class="o">(</span><span class="n">contentpara</span><span class="o">,</span> <span class="n">first</span><span class="o">)(</span>
+        <span class="s">"This is my first paragraph"</span>
+      <span class="o">),</span>
+      <span class="n">a</span><span class="o">(</span><span class="n">opacity</span><span class="o">:=</span><span class="mf">0.9</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="s">"contentpara"</span><span class="o">.</span><span class="n">cls</span><span class="o">)(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>In HTML, the <code>class</code> and <code>style</code> attributes are often thought of not as normal attributes (which contain strings), but as lists of strings (for <code>class</code>) and lists of key-value pairs (for <code>style</code>). Furthermore, there is a large but finite number of styles, and a style cannot simply be any arbitrary string. The above example shows how CSS classes and inline-styles are typically set.</p>
+
+<p>Note that in this case, <code>backgroundColor</code>, <code>color</code>, <code>contentpara</code>, <code>first</code> and <code>opacity</code> are all statically typed identifiers. The two CSS classes <code>contentpara</code> and <code>first</code> (instances of <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Cls">Cls</a>) are defined just before, while <code>backgroundColor</code>, <code>color</code> and <code>opacity</code> (instances of <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Style">Style</a>) are <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">defined by Scalatags</a>.</p>
+
+<p>Of course, <code>class</code> and <code>style</code> are in the end just attributes, so you can treat them as such and bind them directly without any fuss:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="n">style</span><span class="o">:=</span><span class="s">"background-color: blue; color: red;"</span><span class="o">)(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="n">style</span><span class="o">:=</span><span class="s">"background-color: blue; color: red;"</span><span class="o">)(</span>
+      <span class="n">p</span><span class="o">(</span><span class="n">`class`</span><span class="o">:=</span><span class="s">"contentpara first"</span><span class="o">)(</span>
+        <span class="s">"This is my first paragraph"</span>
+      <span class="o">),</span>
+      <span class="n">a</span><span class="o">(</span><span class="n">style</span><span class="o">:=</span><span class="s">"opacity: 0.9;"</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="s">"contentpara"</span><span class="o">.</span><span class="n">cls</span><span class="o">)(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Both the above examples print the same thing:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1</span> <span class="na">style=</span><span class="s">"background-color: blue; color: red;"</span><span class="nt">&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">"background-color: blue; color: red;"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;p</span> <span class="na">class=</span><span class="s">"contentpara first"</span><span class="nt">&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;a</span> <span class="na">style=</span><span class="s">"opacity: 0.9;"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;p</span> <span class="na">class=</span><span class="s">"contentpara"</span><span class="nt">&gt;</span>Goooogle<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/a&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>A list of the attributes and styles provided by ScalaTags can be found in <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">Attrs</a> and <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">Styles</a>. This of course won't include any which you define yourself.</p>
+
+<h1>
+<a name="user-content-non-string-attributes-and-styles" class="anchor" href="#non-string-attributes-and-styles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Non-String Attributes and Styles</h1>
+
+<div class="highlight highlight-scala"><pre><span class="n">div</span><span class="o">(</span>
+  <span class="n">p</span><span class="o">(</span><span class="n">float</span><span class="o">.</span><span class="n">left</span><span class="o">)(</span>
+    <span class="s">"This is my first paragraph"</span>
+  <span class="o">),</span>
+  <span class="n">a</span><span class="o">(</span><span class="n">tabindex</span><span class="o">:=</span><span class="mi">10</span><span class="o">)(</span>
+    <span class="n">p</span><span class="o">(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">input</span><span class="o">(</span><span class="n">disabled</span><span class="o">:=</span><span class="kc">true</span><span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Not all attributes and styles take strings; some, like <code>float</code>, have an enumeration of valid values, and can be referenced by <code>float.left</code>, <code>float.right</code>, etc.. Others, like <code>tabindex</code> or <code>disabled</code>, take Ints and Booleans respectively. These are used directly as shown in the example above. </p>
+
+<p>Even for styles or attributes which take values other than strings (e.g. <code>tabindex</code>), the <code>:=</code> operator can still be used to force assignment:</p>
+
+<div class="highlight highlight-scala"><pre><span class="n">div</span><span class="o">(</span>
+  <span class="n">p</span><span class="o">(</span><span class="n">float</span><span class="o">:=</span><span class="s">"left"</span><span class="o">)(</span>
+    <span class="s">"This is my first paragraph"</span>
+  <span class="o">),</span>
+  <span class="n">a</span><span class="o">(</span><span class="n">tabindex</span><span class="o">:=</span><span class="s">"10"</span><span class="o">)(</span>
+    <span class="n">p</span><span class="o">(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">input</span><span class="o">(</span><span class="n">disabled</span><span class="o">:=</span><span class="s">"true"</span><span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Both of the above examples print the same thing:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;div&gt;</span>
+    <span class="nt">&lt;p</span> <span class="na">style=</span><span class="s">"float: left;"</span><span class="nt">&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;</span>
+    <span class="nt">&lt;a</span> <span class="na">tabindex=</span><span class="s">"10"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;p&gt;</span>Goooogle<span class="nt">&lt;/p&gt;</span>
+    <span class="nt">&lt;/a&gt;</span>
+    <span class="nt">&lt;input</span> <span class="na">disabled=</span><span class="s">"true"</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;/div&gt;</span>
+</pre></div>
+
+<h1>
+<a name="user-content-managing-imports" class="anchor" href="#managing-imports" aria-hidden="true"><span class="octicon octicon-link"></span></a>Managing Imports</h1>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalatags.Text.Text.</span><span class="o">{</span><span class="n">attrs</span> <span class="k">=&gt;</span> <span class="n">a</span><span class="o">,</span> <span class="n">styles</span> <span class="k">=&gt;</span> <span class="n">s</span><span class="o">,</span> <span class="k">_</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">scalatags.Text.Text.tags._</span>
+<span class="n">div</span><span class="o">(</span>
+  <span class="n">p</span><span class="o">(</span><span class="n">s</span><span class="o">.</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="s">"Red Text"</span><span class="o">),</span>
+  <span class="n">img</span><span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="n">href</span><span class="o">:=</span><span class="s">"www.imgur.com/picture.jpg"</span><span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Apart from using <code>import scalatags.Text.all._</code>, it is possible to perform the imports manually, renaming whatever you feel like renaming. The example above provides an example which imports all HTML tags, but imports <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">Attrs</a> and <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">Styles</a> aliased rather than dumping their contents into your global namespace. This helps avoid polluting your namespace with lots of common names (e.g. <code>value</code>, <code>id</code>, etc.) that you may not use.</p>
+
+<p>The main objects which you can import things from are:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.generic.Tags">tags</a>: common HTML tags</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.generic.Tags2">tags2</a>: less common HTML tags</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">attrs</a>: common HTML attributes</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">styles</a>: common CSS styles</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles2">styles2</a>: less common CSS styles</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Svg">svgTags</a>: SVG tags</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.SvgStyles">svgStyles</a>: CSS styles only associated with SVG elements</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.DataConverters">DataConverters</a>: convenient extensions (e.g. <code>10.px</code>) to create the CSS datatypes</li>
+</ul><p>You can pick and choose exactly which bits you want to import, or you can use one of the provided aggregates:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.package%24%24all%24">all</a>: this imports the contents of <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.generic.Tags">Tags</a>, <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">Attrs</a>, <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">Styles</a> and <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.DataConverters">DataConverters</a>
+</li>
+<li>
+<a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.package%24%24short%24">short</a>: this imports the contents of <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.generic.Tags">Tags</a> and <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.DataConverters">DataConverters</a>, but aliases <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">Attrs</a> and <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">Styles</a> as <code>*</code>
+</li>
+</ul><p>Thus, you can choose exactly what you want to import, and how:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalatags.Text.</span><span class="o">{</span><span class="n">attrs</span> <span class="k">=&gt;</span> <span class="n">attr</span><span class="o">,</span> <span class="n">styles</span> <span class="k">=&gt;</span> <span class="n">css</span><span class="o">,</span> <span class="k">_</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">scalatags.Text.tags._</span>
+<span class="n">div</span><span class="o">(</span>
+  <span class="n">p</span><span class="o">(</span><span class="n">css</span><span class="o">.</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="s">"Red Text"</span><span class="o">),</span>
+  <span class="n">img</span><span class="o">(</span><span class="n">attr</span><span class="o">.</span><span class="n">href</span><span class="o">:=</span><span class="s">"www.imgur.com/picture.jpg"</span><span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Or you can rely on a aggregator like <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.package%24%24all%24">all</a> (which the rest of the examples use) or <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.package%24%24short%24">short</a>. <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.package%24%24short%24">short</a> imports <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Attrs">Attrs</a> and <a href="http://lihaoyi.github.io/scalatags/#scalatags.Text.Styles">Styles</a> as <code>*</code>, making them quick to access without cluttering the global namespace:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalatags.Text.short._</span>
+<span class="n">div</span><span class="o">(</span>
+  <span class="n">p</span><span class="o">(*.</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="s">"Red Text"</span><span class="o">),</span>
+  <span class="n">img</span><span class="o">(*.</span><span class="n">href</span><span class="o">:=</span><span class="s">"www.imgur.com/picture.jpg"</span><span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Both these examples print:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;div&gt;</span>
+    <span class="nt">&lt;p</span> <span class="na">style=</span><span class="s">"color: red;"</span><span class="nt">&gt;</span>Red Text<span class="nt">&lt;/p&gt;</span>
+    <span class="nt">&lt;img</span> <span class="na">href=</span><span class="s">"www.imgur.com/picture.jpg"</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;/div&gt;</span>
+</pre></div>
+
+<p>This custom import object also provides you a place to define your own custom tags that will be imported throughout your project e.g. a <code>js(s: String)</code> tag as shorthand for <code>script(src:=s)</code>. You can even override the default definitions, e.g. making <code>script</code> be a shorthand for <code>script(type:="javascript")</code> so that you can never forget to use your own custom version.</p>
+
+<p>The lesser used tags or styles are generally not imported wholesale by default, but you can always import the ones you need:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">Styles2.pageBreakBefore</span>
+<span class="k">import</span> <span class="nn">Tags2.address</span>
+<span class="k">import</span> <span class="nn">scalatags.JsDom.svgTags._</span>
+<span class="k">import</span> <span class="nn">scalatags.JsDom.svgStyles._</span>
+<span class="n">div</span><span class="o">(</span>
+  <span class="n">p</span><span class="o">(</span><span class="n">pageBreakBefore</span><span class="o">.</span><span class="n">always</span><span class="o">,</span> <span class="s">"a long paragraph which should not be broken"</span><span class="o">),</span>
+  <span class="n">address</span><span class="o">(</span><span class="s">"500 Memorial Drive, Cambridge MA"</span><span class="o">),</span>
+  <span class="n">svg</span><span class="o">(</span><span class="n">stroke</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>This prints:</p>
+
+<div class="highlight highlight-scala"><pre><span class="o">&lt;</span><span class="n">div</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">p</span> <span class="n">style</span><span class="o">=</span><span class="s">"page-break-before: always;"</span><span class="o">&gt;</span>
+        <span class="n">a</span> <span class="n">long</span> <span class="n">paragraph</span> <span class="n">which</span> <span class="n">should</span> <span class="n">not</span> <span class="n">be</span> <span class="n">broken</span>
+    <span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">address</span><span class="o">&gt;</span><span class="mi">500</span> <span class="nc">Memorial</span> <span class="nc">Drive</span><span class="o">,</span> <span class="nc">Cambridge</span> <span class="nc">MA</span><span class="o">&lt;/</span><span class="n">address</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="n">svg</span> <span class="n">style</span><span class="o">=</span><span class="s">"stroke: blue;"</span> <span class="o">/&gt;</span>
+<span class="o">&lt;/</span><span class="n">div</span><span class="o">&gt;</span>
+</pre></div>
+
+<h1>
+<a name="user-content-custom-bundles" class="anchor" href="#custom-bundles" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Bundles</h1>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">CustomBundle</span> <span class="k">extends</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Cap</span> <span class="k">with</span> <span class="n">text</span><span class="o">.</span><span class="nc">Tags</span> <span class="k">with</span> <span class="n">text</span><span class="o">.</span><span class="nc">Tags2</span> <span class="k">with</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Aggregate</span><span class="o">{</span>
+  <span class="k">object</span> <span class="nc">st</span> <span class="k">extends</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Cap</span> <span class="k">with</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Styles</span> <span class="k">with</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Styles2</span>
+  <span class="k">object</span> <span class="nc">at</span> <span class="k">extends</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Cap</span> <span class="k">with</span> <span class="nc">Text</span><span class="o">.</span><span class="nc">Attrs</span>
+<span class="o">}</span>
+
+<span class="k">import</span> <span class="nn">CustomBundle._</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="n">st</span><span class="o">.</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">,</span> <span class="n">st</span><span class="o">.</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="n">st</span><span class="o">.</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">,</span> <span class="n">st</span><span class="o">.</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span>
+      <span class="n">p</span><span class="o">(</span><span class="n">at</span><span class="o">.</span><span class="n">cls</span> <span class="o">:=</span> <span class="s">"contentpara first"</span><span class="o">)(</span>
+        <span class="s">"This is my first paragraph"</span>
+      <span class="o">),</span>
+      <span class="n">a</span><span class="o">(</span><span class="n">st</span><span class="o">.</span><span class="n">opacity</span><span class="o">:=</span><span class="mf">0.9</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="n">at</span><span class="o">.</span><span class="n">cls</span> <span class="o">:=</span> <span class="s">"contentpara"</span><span class="o">)(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>In addition to importing things piecemeal from various pre-defined namespaces, Scalatags allows you to build a custom bundle which can be used to provide a single-import syntax for whatever import convention you're using. For example, the above snippet sets up a custom bundle which dumps <code>Tags</code> and <code>Tags2</code> in the local namespace, assigns <code>Styles</code> and <code>Styles2</code> to the <code>st</code> object, <code>Attrs</code> to the <code>at</code> object, and ignores Svg-related styles and tags entirely. This lets you enforce a particular convention without having to duplicate the same import-renamings in multiple files in your application.</p>
+
+<p>The above snippet prints the following:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1</span> <span class="na">style=</span><span class="s">"background-color: blue; color: red;"</span><span class="nt">&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">style=</span><span class="s">"background-color: blue; color: red;"</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;p</span> <span class="na">class=</span><span class="s">"contentpara first"</span><span class="nt">&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;a</span> <span class="na">style=</span><span class="s">"opacity: 0.9;"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;p</span> <span class="na">class=</span><span class="s">"contentpara"</span><span class="nt">&gt;</span>Goooogle<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/a&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>Despite its usefulness in enforcing a particular import convention, custom bundles are completely interoperable with each other or with the default <code>all</code> and <code>short</code> bundles, and the above snippet could equally be written as:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">CustomBundle.</span><span class="o">{</span><span class="n">st</span><span class="o">,</span> <span class="n">at</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">Text.all._</span>
+
+<span class="nc">CustomBundle</span><span class="o">.</span><span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="nc">CustomBundle</span><span class="o">.</span><span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">,</span> <span class="n">st</span><span class="o">.</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="n">st</span><span class="o">.</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">,</span> <span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span>
+      <span class="n">p</span><span class="o">(</span><span class="n">cls</span> <span class="o">:=</span> <span class="s">"contentpara first"</span><span class="o">)(</span>
+        <span class="s">"This is my first paragraph"</span>
+      <span class="o">),</span>
+      <span class="nc">CustomBundle</span><span class="o">.</span><span class="n">a</span><span class="o">(</span><span class="n">st</span><span class="o">.</span><span class="n">opacity</span><span class="o">:=</span><span class="mf">0.9</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="n">at</span><span class="o">.</span><span class="n">cls</span> <span class="o">:=</span> <span class="s">"contentpara"</span><span class="o">)(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Mixing both things from the <code>all</code> bundle as well as <code>st</code> and <code>at</code> from our own <code>CustomBundle</code>. That's not to say you <em>should</em> do this, but if for some reason if e.g. you're using different conventions for different source files, you can be sure that they'll work together just fine.</p>
+
+<h1>
+<a name="user-content-variables" class="anchor" href="#variables" aria-hidden="true"><span class="octicon octicon-link"></span></a>Variables</h1>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">title</span> <span class="k">=</span> <span class="s">"title"</span>
+<span class="k">val</span> <span class="n">numVisitors</span> <span class="k">=</span> <span class="mi">1023</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my "</span><span class="o">,</span> <span class="n">title</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"This is my first paragraph"</span><span class="o">),</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"you are the "</span><span class="o">,</span> <span class="n">numVisitors</span><span class="o">.</span><span class="n">toString</span><span class="o">,</span> <span class="s">"th visitor!"</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Variables can be inserted into the templates as Strings, simply by adding them to an element's children. This prints:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;p&gt;</span>you are the 1023th visitor!<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-control-flow" class="anchor" href="#control-flow" aria-hidden="true"><span class="octicon octicon-link"></span></a>Control Flow</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">numVisitors</span> <span class="k">=</span> <span class="mi">1023</span>
+<span class="k">val</span> <span class="n">posts</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span>
+  <span class="o">(</span><span class="s">"alice"</span><span class="o">,</span> <span class="s">"i like pie"</span><span class="o">),</span>
+  <span class="o">(</span><span class="s">"bob"</span><span class="o">,</span> <span class="s">"pie is evil i hate you"</span><span class="o">),</span>
+  <span class="o">(</span><span class="s">"charlie"</span><span class="o">,</span> <span class="s">"i like pie and pie is evil, i hat myself"</span><span class="o">)</span>
+<span class="o">)</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="s">"posts"</span><span class="o">),</span>
+    <span class="k">for</span> <span class="o">((</span><span class="n">name</span><span class="o">,</span> <span class="n">text</span><span class="o">)</span> <span class="k">&lt;-</span> <span class="n">posts</span><span class="o">)</span> <span class="k">yield</span> <span class="n">div</span><span class="o">(</span>
+        <span class="n">h2</span><span class="o">(</span><span class="s">"Post by "</span><span class="o">,</span> <span class="n">name</span><span class="o">),</span>
+        <span class="n">p</span><span class="o">(</span><span class="n">text</span><span class="o">)</span>
+    <span class="o">),</span>
+    <span class="k">if</span><span class="o">(</span><span class="n">numVisitors</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="o">)</span> <span class="n">p</span><span class="o">(</span><span class="s">"No more posts!"</span><span class="o">)</span>
+    <span class="k">else</span> <span class="n">p</span><span class="o">(</span><span class="s">"Please post below..."</span><span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Like most other XML templating languages, ScalaTags contains control flow statements like <code>if</code> and <code>for</code>. Unlike other templating languages which have their own <a href="http://jinja.pocoo.org/docs/templates/#list-of-control-structures">crufty little programming language embedded inside them for control flow</a>, you probably already know how to use ScalaTags' control flow syntax. It's just Scala after all.</p>
+
+<p>This prints out:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div&gt;</span>posts<span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;h2&gt;</span>Post by alice<span class="nt">&lt;/h2&gt;</span>
+            <span class="nt">&lt;p&gt;</span>i like pie<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;h2&gt;</span>Post by bob<span class="nt">&lt;/h2&gt;</span>
+            <span class="nt">&lt;p&gt;</span>pie is evil i hate you<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;h2&gt;</span>Post by charlie<span class="nt">&lt;/h2&gt;</span>
+            <span class="nt">&lt;p&gt;</span>i like pie and pie is evil, i hat myself<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;p&gt;</span>No more posts!<span class="nt">&lt;/p&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-functions" class="anchor" href="#functions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Functions</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">imgBox</span><span class="o">(</span><span class="n">source</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">text</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">=</span> <span class="n">div</span><span class="o">(</span>
+  <span class="n">img</span><span class="o">(</span><span class="n">src</span><span class="o">:=</span><span class="n">source</span><span class="o">),</span>
+  <span class="n">div</span><span class="o">(</span>
+    <span class="n">p</span><span class="o">(</span><span class="n">text</span><span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">imgBox</span><span class="o">(</span><span class="s">"www.mysite.com/imageOne.png"</span><span class="o">,</span> <span class="s">"This is the first image displayed on the site"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="n">`class`</span><span class="o">:=</span><span class="s">"content"</span><span class="o">)(</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"blah blah blah i am text"</span><span class="o">),</span>
+      <span class="n">imgBox</span><span class="o">(</span><span class="s">"www.mysite.com/imageTwo.png"</span><span class="o">,</span> <span class="s">"This image is very interesting"</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Many other templating systems define <a href="http://guides.rubyonrails.org/layouts_and_rendering.html#using-partials">incredibly</a> <a href="http://jinja.pocoo.org/docs/templates/#macros">roundabout</a> ways of creating re-usable parts of the template. In ScalaTags, we don't need to re-invent the wheel, because Scala has these amazing things called <em>functions</em>.</p>
+
+<p>The above example prints:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">"www.mysite.com/imageOne.png"</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;div&gt;</span>
+                <span class="nt">&lt;p&gt;</span>This is the first image displayed on the site<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">"content"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;p&gt;</span>blah blah blah i am text<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;div&gt;</span>
+                <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">"www.mysite.com/imageTwo.png"</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;div&gt;</span>
+                <span class="nt">&lt;p&gt;</span>This image is very interesting<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;/div&gt;</span>
+            <span class="nt">&lt;/div&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-auto-escaping-and-unsanitized-input" class="anchor" href="#auto-escaping-and-unsanitized-input" aria-hidden="true"><span class="octicon octicon-link"></span></a>Auto-escaping and unsanitized Input</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">evilInput1</span> <span class="k">=</span> <span class="s">"\"&gt;&lt;script&gt;alert('hello!')&lt;/script&gt;"</span>
+<span class="k">val</span> <span class="n">evilInput2</span> <span class="k">=</span> <span class="s">"&lt;script&gt;alert('hello!')&lt;/script&gt;"</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span>
+      <span class="n">title</span><span class="o">:=</span><span class="n">evilInput1</span><span class="o">,</span>
+      <span class="s">"This is my title"</span>
+    <span class="o">),</span>
+    <span class="n">evilInput2</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>By default, any text that's put into the Scalatags templates, whether as a attribute value or a text node, is properly escaped when it is rendered. Thus, when you run the following snippet, you get this:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1</span> <span class="na">title=</span><span class="s">"&amp;quot;&amp;gt;&amp;lt;script&amp;gt;alert('hello!')&amp;lt;/script&amp;gt;"</span><span class="nt">&gt;</span>
+            This is my title
+        <span class="nt">&lt;/h1&gt;</span>
+        <span class="ni">&amp;lt;</span>script<span class="ni">&amp;gt;</span>alert('hello!')<span class="ni">&amp;lt;</span>/script<span class="ni">&amp;gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>As you can see, the contents of the variables <code>evilInput1</code> and <code>evilInput2</code> have been HTML-escaped, so you do not have to worry about un-escaped user input messing up your DOM or causing XSS injections. Furthermore, the names of the tags (e.g. "html") and attributes (e.g. "href") are themselves validated: passing in an invalid name to either of those (e.g. a tag or attribute name with a space inside) will throw an <code>IllegalArgumentException</code>).</p>
+
+<p>If you <em>really</em> want, for whatever reason, to put unsanitized input into your HTML, simply surround the string with a <code>raw</code> tag:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">evilInput</span> <span class="k">=</span> <span class="s">"&lt;script&gt;alert('hello!')&lt;/script&gt;"</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">raw</span><span class="o">(</span><span class="n">evilInput</span><span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>prints</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">alert</span><span class="p">(</span><span class="s1">'hello!'</span><span class="p">)</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<p>As you can see, the <code>&lt;script&gt;</code> tags in <code>evilInput</code> have been passed through to the resultant HTML string unchanged. Although this makes it easy to open up XSS holes (as shown above!), if you know what you're doing, go ahead.</p>
+
+<p>There isn't any way to put unescaped text inside tag names, attribute names, or attribute values.</p>
+
+<h2>
+<a name="user-content-layouts" class="anchor" href="#layouts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Layouts</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">def</span> <span class="n">page</span><span class="o">(</span><span class="n">scripts</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">Node</span><span class="o">],</span> <span class="n">content</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">Node</span><span class="o">])</span> <span class="k">=</span>
+  <span class="n">html</span><span class="o">(</span>
+    <span class="n">head</span><span class="o">(</span><span class="n">scripts</span><span class="o">),</span>
+    <span class="n">body</span><span class="o">(</span>
+      <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+      <span class="n">div</span><span class="o">(</span><span class="s">"content"</span><span class="o">.</span><span class="n">cls</span><span class="o">)(</span><span class="n">content</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+
+
+<span class="n">page</span><span class="o">(</span>
+  <span class="nc">Seq</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="nc">Seq</span><span class="o">(</span>
+    <span class="n">p</span><span class="o">(</span><span class="s">"This is the first "</span><span class="o">,</span> <span class="n">b</span><span class="o">(</span><span class="s">"image"</span><span class="o">),</span> <span class="s">" displayed on the "</span><span class="o">,</span> <span class="n">a</span><span class="o">(</span><span class="s">"site"</span><span class="o">)),</span>
+    <span class="n">img</span><span class="o">(</span><span class="n">src</span><span class="o">:=</span><span class="s">"www.myImage.com/image.jpg"</span><span class="o">),</span>
+    <span class="n">p</span><span class="o">(</span><span class="s">"blah blah blah i am text"</span><span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">)</span>
+</pre></div>
+
+<p>Again, this is something that many other templating languages have their own <a href="http://guides.rubyonrails.org/layouts_and_rendering.html#using-nested-layouts">special</a> <a href="http://jinja.pocoo.org/docs/templates/#template-inheritance">implementations</a> of. In ScalaTags, this can be done simply by just using functions! The above snippet gives you:</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+            <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">"content"</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is the first <span class="nt">&lt;b&gt;</span>image<span class="nt">&lt;/b&gt;</span> displayed on the <span class="nt">&lt;a&gt;</span>site<span class="nt">&lt;/a&gt;&lt;/p&gt;</span>
+                <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">"www.myImage.com/image.jpg"</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;p&gt;</span>blah blah blah i am text<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h2>
+<a name="user-content-inheritance" class="anchor" href="#inheritance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inheritance</h2>
+
+<div class="highlight highlight-scala"><pre><span class="k">class</span> <span class="nc">Parent</span><span class="o">{</span>
+  <span class="k">def</span> <span class="n">render</span> <span class="k">=</span> <span class="n">html</span><span class="o">(</span>
+    <span class="n">headFrag</span><span class="o">,</span>
+    <span class="n">bodyFrag</span>
+
+  <span class="o">)</span>
+  <span class="k">def</span> <span class="n">headFrag</span> <span class="k">=</span> <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some script"</span><span class="o">)</span>
+  <span class="o">)</span>
+  <span class="k">def</span> <span class="n">bodyFrag</span> <span class="k">=</span> <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="s">"This is my title"</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"This is my first paragraph"</span><span class="o">),</span>
+      <span class="n">p</span><span class="o">(</span><span class="s">"This is my second paragraph"</span><span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">}</span>
+
+<span class="k">object</span> <span class="nc">Child</span> <span class="k">extends</span> <span class="nc">Parent</span><span class="o">{</span>
+  <span class="k">override</span> <span class="k">def</span> <span class="n">headFrag</span> <span class="k">=</span> <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"some other script"</span><span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">}</span>
+
+<span class="nc">Child</span><span class="o">.</span><span class="n">render</span>
+</pre></div>
+
+<p>Most of the time, functions are sufficient to keep things DRY, but if for some reason you want to use inheritance to structure your code, you probably already know how to do so. Again, unlike <a href="http://wsgiarea.pocoo.org/jinja/docs/inheritance.html">other</a> <a href="http://docs.makotemplates.org/en/latest/inheritance.html">frameworks</a> that have implemented complex inheritance systems themselves, Scalatags is just Scala, and it behaves as you'd expect.</p>
+
+<div class="highlight highlight-html"><pre><span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;script&gt;</span><span class="nx">some</span> <span class="nx">other</span> <span class="nx">script</span><span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;h1&gt;</span>This is my title<span class="nt">&lt;/h1&gt;</span>
+        <span class="nt">&lt;div&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is my first paragraph<span class="nt">&lt;/p&gt;</span>
+            <span class="nt">&lt;p&gt;</span>This is my second paragraph<span class="nt">&lt;/p&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</pre></div>
+
+<h1>
+<a name="user-content-dom-backend" class="anchor" href="#dom-backend" aria-hidden="true"><span class="octicon octicon-link"></span></a>DOM Backend</h1>
+
+<p>Although Scalatags was originally a HTML-String generation library, it now ships with an additional backend that runs only on ScalaJS, available by replacing </p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalatags.Text._</span>
+</pre></div>
+
+<p>with</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">import</span> <span class="nn">scalatags.JsDom._</span>
+</pre></div>
+
+<p>This gives you a version of Scalatags that renders directly to <code>dom.Element</code>s, rather than spitting out strings. With the DOM backend, <code>toString</code> still works and generates a HTML string, but is implemented by constructing a tree of <code>dom.Element</code>s and calling <code>.outerHTML</code> on them, and the resultant string may have subtle differences (e.g. order of attributes, or whitespace between styles) from the Text backend.</p>
+
+<h2>
+<a name="user-content-using-the-dom" class="anchor" href="#using-the-dom" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the DOM</h2>
+
+<p>The DOM backend provides an additional method <code>.render</code> on all Scalatags fragments, which converts the fragment into a DOM tree:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">elem</span> <span class="k">=</span> <span class="n">div</span><span class="o">.</span><span class="n">render</span>
+<span class="n">println</span><span class="o">(</span><span class="n">elem</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">length</span><span class="o">)</span> <span class="c1">// 0</span>
+<span class="n">elem</span><span class="o">.</span><span class="n">appendChild</span><span class="o">(</span><span class="n">p</span><span class="o">(</span><span class="s">"omg"</span><span class="o">,</span> <span class="s">"wtf"</span><span class="o">,</span> <span class="s">"bbq"</span><span class="o">).</span><span class="n">render</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">elem</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">length</span><span class="o">)</span> <span class="c1">// 1</span>
+<span class="k">val</span> <span class="n">pElem</span> <span class="k">=</span> <span class="n">elem</span><span class="o">.</span><span class="n">children</span><span class="o">(</span><span class="mi">0</span><span class="o">).</span><span class="n">asInstanceOf</span><span class="o">[</span><span class="kt">dom.HTMLParagraphElement</span><span class="o">]</span>
+<span class="n">println</span><span class="o">(</span><span class="n">pElem</span><span class="o">.</span><span class="n">childNodes</span><span class="o">.</span><span class="n">length</span><span class="o">)</span> <span class="c1">// 3</span>
+<span class="n">println</span><span class="o">(</span><span class="n">pElem</span><span class="o">.</span><span class="n">textContent</span><span class="o">)</span> <span class="c1">// "omgwtfbbq"</span>
+</pre></div>
+
+<p>As you can see, you can manipulate DOM elements directly, calling standard DOM APIs like <code>.children</code>, <code>.appendChild</code>, etc.</p>
+
+<p>In addition to the default ability to splice <code>String</code>s, <code>Boolean</code>s and <code>Int</code>s into the Scalatags fragment, the DOM backend allows you to bind arbitrary <code>js.Any</code>-convertible objects, e.g. the function literal shown below:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">var</span> <span class="n">count</span> <span class="k">=</span> <span class="mi">0</span>
+<span class="k">val</span> <span class="n">elem</span> <span class="k">=</span> <span class="n">div</span><span class="o">(</span>
+  <span class="n">onclick</span> <span class="o">:=</span> <span class="o">{()</span> <span class="k">=&gt;</span> <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span><span class="o">},</span>
+  <span class="n">tabindex</span> <span class="o">:=</span> <span class="mi">1</span>
+<span class="o">).</span><span class="n">render</span>
+
+<span class="n">assert</span><span class="o">(</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span>
+<span class="n">elem</span><span class="o">.</span><span class="n">onclick</span><span class="o">(</span><span class="kc">null</span><span class="o">)</span>
+<span class="n">assert</span><span class="o">(</span><span class="n">count</span> <span class="o">==</span> <span class="mi">1</span><span class="o">)</span>
+</pre></div>
+
+<p>As you can see, the function literal is kept intact rather than being serialized (as you would expect in the Text backend). When called via the attribute of the element, you can see that it functions intact and properly increments the counter.</p>
+
+<h2>
+<a name="user-content-use-cases" class="anchor" href="#use-cases" aria-hidden="true"><span class="octicon octicon-link"></span></a>Use Cases</h2>
+
+<p>Having direct access to the DOM allows a great deal of flexibility that you do not have when working with strings. For example, the example below defines an input-label pair which clears the label when you focus on the input, a common pattern:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">labelElem</span> <span class="k">=</span> <span class="n">label</span><span class="o">(</span><span class="s">"Default"</span><span class="o">).</span><span class="n">render</span>
+
+<span class="k">val</span> <span class="n">inputElem</span> <span class="k">=</span> <span class="n">input</span><span class="o">(</span>
+  <span class="n">`type`</span><span class="o">:=</span><span class="s">"text"</span><span class="o">,</span>
+  <span class="n">onfocus</span> <span class="o">:=</span> <span class="o">{</span> <span class="o">()</span> <span class="k">=&gt;</span> <span class="n">labelElem</span><span class="o">.</span><span class="n">textContent</span> <span class="k">=</span> <span class="s">""</span><span class="o">}</span>
+<span class="o">).</span><span class="n">render</span>
+
+<span class="k">val</span> <span class="n">box</span> <span class="k">=</span> <span class="n">div</span><span class="o">(</span>
+  <span class="n">inputElem</span><span class="o">,</span>
+  <span class="n">labelElem</span>
+<span class="o">).</span><span class="n">render</span>
+
+<span class="n">println</span><span class="o">(</span><span class="n">labelElem</span><span class="o">.</span><span class="n">textContent</span><span class="o">)</span> <span class="c1">// "Default"</span>
+<span class="n">inputElem</span><span class="o">.</span><span class="n">onfocus</span><span class="o">(</span><span class="kc">null</span><span class="o">)</span>
+<span class="n">println</span><span class="o">(</span><span class="n">labelElem</span><span class="o">.</span><span class="n">textContent</span><span class="o">)</span> <span class="c1">// ""</span>
+</pre></div>
+
+<p>This allows a very convenient direct-binding of behaviors without having to trawl through the DOM with jquery selectors or creating lots of IDs and worrying about collisions. </p>
+
+<hr><p>The DOM backend currently requires you to separately add a dependency on <a href="https://github.com/scala-js/scala-js-dom">scala-js-dom</a> for it to function. </p>
+
+<h1>
+<a name="user-content-performance" class="anchor" href="#performance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance</h1>
+
+<table>
+<thead><tr>
+<th>Template Engine</th>
+<th align="right">Renders</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Scalatags</td>
+<td align="right">7436041</td>
+</tr>
+<tr>
+<td>scala-xml</td>
+<td align="right">3794707</td>
+</tr>
+<tr>
+<td>Twirl</td>
+<td align="right">1902274</td>
+</tr>
+<tr>
+<td>Scalate-Mustache</td>
+<td align="right">500975</td>
+</tr>
+<tr>
+<td>Scalate-Jade</td>
+<td align="right">396224</td>
+</tr>
+</tbody>
+</table><p>These numbers are the number of times each template engine is able to render (to a String) a simple, dynamic HTML fragment in 60 seconds.</p>
+
+<p>The fragment (shown below) is designed to exercise a bunch of different functionality in each template engine: functions/partials, loops, value-interpolation, etc.. The templates were structured identically despite the different languages used by the various engines. All templates were loaded and rendered once before the benchmarking begun, to allow for any file-operations/pre-compilation to happen.</p>
+
+<p>The numbers speak for themselves; Scalatags is almost twice as fast as splicing/serializing <code>scala-xml</code> literals, almost four times as fast as <a href="http://www.playframework.com/documentation/2.2.x/ScalaTemplates">Twirl</a>, and 10-15 times as fast as the various <a href="http://scalate.fusesource.org/">Scalate</a> alternatives. This is likely due to overhead from the somewhat bloated data structures used by <code>scala-xml</code> (which Twirl also uses) and the heavy-use of dictionaries used to implement the custom scoping in the Scalate templates. Although this is a microbenchmark, and probably does not perfectly match real-world usage patterns, the conclusion is pretty clear: Scalatags is fast!</p>
+
+<p>This is the Scalatags fragment that was rendered:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">val</span> <span class="n">contentpara</span> <span class="k">=</span> <span class="s">"contentpara"</span><span class="o">.</span><span class="n">cls</span>
+<span class="k">val</span> <span class="n">first</span> <span class="k">=</span> <span class="s">"first"</span><span class="o">.</span><span class="n">cls</span>
+
+<span class="k">def</span> <span class="n">para</span><span class="o">(</span><span class="n">n</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span> <span class="k">=</span> <span class="n">p</span><span class="o">(</span>
+  <span class="n">contentpara</span><span class="o">,</span>
+  <span class="n">title</span><span class="o">:=</span><span class="n">s</span><span class="s">"this is paragraph $n"</span>
+<span class="o">)</span>
+
+<span class="k">val</span> <span class="n">titleString</span> <span class="k">=</span> <span class="s">"This is my title"</span>
+<span class="k">val</span> <span class="n">firstParaString</span> <span class="k">=</span> <span class="s">"This is my first paragraph"</span>
+
+<span class="n">html</span><span class="o">(</span>
+  <span class="n">head</span><span class="o">(</span>
+    <span class="n">script</span><span class="o">(</span><span class="s">"console.log(1)"</span><span class="o">)</span>
+  <span class="o">),</span>
+  <span class="n">body</span><span class="o">(</span>
+    <span class="n">h1</span><span class="o">(</span><span class="n">color</span><span class="o">:=</span><span class="s">"red"</span><span class="o">)(</span><span class="n">titleString</span><span class="o">),</span>
+    <span class="n">div</span><span class="o">(</span><span class="n">backgroundColor</span><span class="o">:=</span><span class="s">"blue"</span><span class="o">)(</span>
+      <span class="n">para</span><span class="o">(</span><span class="mi">0</span><span class="o">)(</span>
+        <span class="n">first</span><span class="o">,</span>
+        <span class="n">firstParaString</span>
+      <span class="o">),</span>
+      <span class="n">a</span><span class="o">(</span><span class="n">href</span><span class="o">:=</span><span class="s">"www.google.com"</span><span class="o">)(</span>
+        <span class="n">p</span><span class="o">(</span><span class="s">"Goooogle"</span><span class="o">)</span>
+      <span class="o">),</span>
+      <span class="k">for</span><span class="o">(</span><span class="n">i</span> <span class="k">&lt;-</span> <span class="mi">0</span> <span class="n">until</span> <span class="mi">5</span><span class="o">)</span> <span class="k">yield</span> <span class="n">para</span><span class="o">(</span><span class="n">i</span><span class="o">)(</span>
+        <span class="n">s</span><span class="s">"Paragraph $i"</span><span class="o">,</span>
+        <span class="n">color</span><span class="o">:=(</span><span class="k">if</span> <span class="o">(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="o">)</span> <span class="s">"red"</span> <span class="k">else</span> <span class="s">"green"</span><span class="o">)</span>
+      <span class="o">)</span>
+    <span class="o">)</span>
+  <span class="o">)</span>
+<span class="o">).</span><span class="n">toString</span><span class="o">()</span>
+</pre></div>
+
+<p>The rest of the code involved in this micro-benchmark can be found in <a href="shared/test/scala/scalatags/PerfTests.scala">PerfTests.scala</a></p>
+
+<h1>
+<a name="user-content-internals" class="anchor" href="#internals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Internals</h1>
+
+<p>The primary data structure Scalatags uses are the <code>TypedTag</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">TypedTag</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">+Output</span>, <span class="kt">FragT</span><span class="o">]</span> <span class="nc">extends</span> <span class="nc">Frag</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">FragT</span><span class="o">]{</span>
+  <span class="k">def</span> <span class="n">tag</span><span class="k">:</span> <span class="kt">String</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * The modifiers that are applied to a TypedTag are kept in this linked-Seq</span>
+<span class="cm">   * (which are actually WrappedArrays) data-structure in order for maximum</span>
+<span class="cm">   * performance.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">modifiers</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Seq</span><span class="o">[</span><span class="kt">Modifier</span><span class="o">[</span><span class="kt">Builder</span><span class="o">]]]</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Add the given modifications (e.g. additional children, or new attributes)</span>
+<span class="cm">   * to the [[TypedTag]].</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">xs</span><span class="k">:</span> <span class="kt">Modifier</span><span class="o">[</span><span class="kt">Builder</span><span class="o">]*)</span><span class="k">:</span> <span class="kt">Self</span>
+
+  <span class="cm">/**</span>
+<span class="cm">   * Collapses this scalatags tag tree and returns an [[Output]]</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">render</span><span class="k">:</span> <span class="kt">Output</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>The <code>Modifier</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">Modifier</span><span class="o">[</span><span class="kt">Builder</span><span class="o">]</span> <span class="o">{</span>
+  <span class="cm">/**</span>
+<span class="cm">   * Applies this modifier to the specified [[Builder]], such that when</span>
+<span class="cm">   * rendering is complete the effect of adding this modifier can be seen.</span>
+<span class="cm">   */</span>
+  <span class="k">def</span> <span class="n">applyTo</span><span class="o">(</span><span class="n">t</span><span class="k">:</span> <span class="kt">Builder</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>And the <code>Frag</code>:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">Frag</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">FragT</span><span class="o">]</span> <span class="nc">extends</span> <span class="nc">Modifier</span><span class="o">[</span><span class="kt">Builder</span><span class="o">]{</span>
+  <span class="k">def</span> <span class="n">render</span><span class="k">:</span> <span class="kt">FragT</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>A <code>TypedTag</code> is basically a tag-name together with a loose bag of <code>Modifier</code>s, and is itself a <code>Modifier</code> so it can be nested within other <code>TypedTag</code>s. A <code>Modifier</code> is a tag, a sequence of tags, an attribute binding, a style binding, or anything else that can be used to modify how a tag will be rendered. Lastly, a <code>Frag</code> represents the smallest standalone atom, which includes tags, loose strings, numbers, and other things. </p>
+
+<p>In the text backend you have the alias</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">type</span> <span class="kt">Tag</span> <span class="o">=</span> <span class="nc">TypedTag</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span>
+</pre></div>
+
+<p>Since everything renders to a string. In the DOM backend you have:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">type</span> <span class="kt">HtmlTag</span> <span class="o">=</span> <span class="nc">JsDom</span><span class="o">.</span><span class="nc">TypedTag</span><span class="o">[</span><span class="kt">dom.HTMLElement</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">SvgTag</span> <span class="o">=</span> <span class="nc">JsDom</span><span class="o">.</span><span class="nc">TypedTag</span><span class="o">[</span><span class="kt">dom.SVGElement</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">Tag</span> <span class="o">=</span> <span class="nc">JsDom</span><span class="o">.</span><span class="nc">TypedTag</span><span class="o">[</span><span class="kt">dom.Element</span><span class="o">]</span>
+</pre></div>
+
+<p>These aliases help you keep your code short by letting you refer to the most common versions of <code>TypedTag</code> via concise names.</p>
+
+<p>Each Scalatags backend has its own refinements, e.g. <code>Text.TypedTag</code>, <code>Text.Frag</code> and <code>Text.Modifier</code> have the <code>Builder</code> type-parameter fixed as <code>text.Builder</code>, and the <code>Output</code> type-parameter fixed as <code>String</code>. Their <code>JsDom.*</code> counterparts have <code>Builder</code> fixed as <code>dom.Element</code>, and <code>Output</code>fixed to various subclasses of <code>dom.Element</code>. The various other classes/traits (e.g. <code>Attr</code>, <code>AttrPair</code>, StylePair`, etc.) are similarly abstract with concrete versions in each backend. </p>
+
+<p>The current selection of <code>Modifier</code> (or implicitly convertable) types include</p>
+
+<ul class="task-list">
+<li>
+<code>TypedTag</code>s and <code>String</code>s: appends itself to the parent's <code>children</code> list.</li>
+<li>
+<code>AttrPair</code>s: sets a key in the parent's <code>attrs</code> list.</li>
+<li>
+<code>StylePair</code>s: appends the inline <code>style: value;</code> to the parent's <code>style</code> attribute.</li>
+<li>
+<code>StringFrag</code>s: append the string as a child.</li>
+<li>
+<code>RawFrag</code>s: append the string to the parent as unescaped HTML.</li>
+</ul><p>The bulk of Scalatag's ~5000 lines of code is static bindings (and inline documentation!) for the myriad of CSS rules and HTML tags and attributes that exist. The core of Scalatags lives in <a href="shared/main/scala/scalatags/Core.scala">Core.scala</a>, with most of the implicit extensions and conversions living in <a href="shared/main/scala/scalatags/package.scala">package.scala</a>.</p>
+
+<h2>
+<a name="user-content-architecture" class="anchor" href="#architecture" aria-hidden="true"><span class="octicon octicon-link"></span></a>Architecture</h2>
+
+<p>Scalatags has pretty odd internals in order to support code re-use between the Text and Dom packages. Essentially, each Scalatags package is an instance of </p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">Bundle</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">Output</span> <span class="k">&lt;:</span> <span class="kt">FragT</span>, <span class="kt">FragT</span><span class="o">]{</span>
+</pre></div>
+
+<p>Which is parametrized on the <code>Builder</code> used to generate the output, the type generated by rendering a <code>Frag</code>, as well as the final <code>Output</code> type generated by rendering a <code>TypedTag</code>. The Text package is defined as </p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">Text</span> <span class="k">extends</span> <span class="nc">Bundle</span><span class="o">[</span><span class="kt">text.Builder</span>, <span class="kt">String</span>, <span class="kt">String</span><span class="o">]</span> <span class="o">{</span>
+</pre></div>
+
+<p>Since it uses a custom <code>text.Builder</code> object for maximum performance and spits out a <code>String</code>, while the Dom package is defined as as </p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">JsDom</span> <span class="k">extends</span> <span class="n">generic</span><span class="o">.</span><span class="nc">Bundle</span><span class="o">[</span><span class="kt">dom.Element</span>, <span class="kt">dom.Element</span>, <span class="kt">dom.Node</span><span class="o">]</span>
+</pre></div>
+
+<p>Since it uses <code>dom.Element</code>s both as the intermediate builder as well as the final result.</p>
+
+<p>This layout allows Scalatags to specify formally which types are common between the two backends (i.e. those in <code>generic.Bundle</code>) and which can vary. For example, both backends have a concept of <code>TypedTag</code>s, <code>Frag</code>s and <code>Modifier</code>s. On the other hand, The Text backend has <code>TypedTag[String]</code> aliased as <code>Tag</code> since it will always be <code>String</code>, while the Dom backend has it left as</p>
+
+<div class="highlight highlight-scala"><pre><span class="nc">TypedTag</span><span class="o">[</span><span class="kt">+Output</span> <span class="k">&lt;:</span> <span class="kt">dom.Element</span><span class="o">]</span>
+</pre></div>
+
+<p>With helper types bound as:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">type</span> <span class="kt">HtmlTag</span> <span class="o">=</span> <span class="nc">TypedTag</span><span class="o">[</span><span class="kt">dom.HTMLElement</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">SvgTag</span> <span class="o">=</span> <span class="nc">TypedTag</span><span class="o">[</span><span class="kt">dom.SVGElement</span><span class="o">]</span>
+<span class="k">type</span> <span class="kt">Tag</span> <span class="o">=</span> <span class="nc">TypedTag</span><span class="o">[</span><span class="kt">dom.Element</span><span class="o">]</span>
+</pre></div>
+
+<p>Since it is likely that working with the Dom backend you will want to distinguish these.</p>
+
+<h2>
+<a name="user-content-extensibility" class="anchor" href="#extensibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Extensibility</h2>
+
+<p>A mix of typeclasses and implicit conversions is used to control what you can put into a Scalatags fragment. For example, the typeclasses</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">trait</span> <span class="nc">AttrValue</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">T</span><span class="o">]{</span>
+  <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">t</span><span class="k">:</span> <span class="kt">Builder</span><span class="o">,</span> <span class="n">a</span><span class="k">:</span> <span class="kt">Attr</span><span class="o">,</span> <span class="n">v</span><span class="k">:</span> <span class="kt">T</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="k">trait</span> <span class="nc">StyleValue</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">T</span><span class="o">]{</span>
+  <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">t</span><span class="k">:</span> <span class="kt">Builder</span><span class="o">,</span> <span class="n">s</span><span class="k">:</span> <span class="kt">Style</span><span class="o">,</span> <span class="n">v</span><span class="k">:</span> <span class="kt">T</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Allow you to specify what (and how) types can be used as attributes and styles respectively, while implicit conversions to <code>Modifier</code> or <code>Frag</code> are used to allow you to use arbitrary types as children. The use of implicit conversions in this case is to allow it to work with variable length argument lists (i.e. <code>(mods: *Modifier)</code>), which is difficult to do with typeclasses.</p>
+
+<p>Due to this design, and the parametrization of the bundles described earlier, it is possible to define behavior for a particular type only where it makes sense. e.g. there is a pair of typeclass instances</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">implicit</span> <span class="k">object</span> <span class="nc">bindJsAny</span> <span class="k">extends</span> <span class="n">generic</span><span class="o">.</span><span class="nc">AttrValue</span><span class="o">[</span><span class="kt">dom.Element</span>, <span class="kt">js.Any</span><span class="o">]</span>
+<span class="k">implicit</span> <span class="k">def</span> <span class="n">bindJsAnyLike</span><span class="o">[</span><span class="kt">T</span> <span class="k">&lt;%</span> <span class="kt">js.Any</span><span class="o">]</span> <span class="k">=</span> <span class="k">new</span> <span class="n">generic</span><span class="o">.</span><span class="nc">AttrValue</span><span class="o">[</span><span class="kt">dom.Element</span>, <span class="kt">T</span><span class="o">]</span>
+</pre></div>
+
+<p>Which allows you to bind anything convertible to a <code>js.Any</code> into the JsDom fragments, since they can just be assigned directly to the attributes of the <code>dom.Element</code> objects. Doing the same thing for Text fragments doesn't make sense, and would correctly fail to compile. </p>
+
+<p>You can easier add other typeclass instances to handle binding e.g. <code>Future</code>s (which will add a child or set an attr/style on completion), or reactive variables (which would constantly update the child/attr/style every time it changes).</p>
+
+<h2>
+<a name="user-content-cross-backend-code" class="anchor" href="#cross-backend-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cross-backend Code</h2>
+
+<p>If you wish to, it is possible to write code that is generic against the Scalatags backend used, and can be compiled and run on both Text and JsDom backends at the same time! This is done by adding an explicit dependency on <code>generic.Bundle[Builder, Output, FragT]</code>, e.g. how it is done in the unit tests:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">class</span> <span class="nc">ExampleTests</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">Output</span>, <span class="kt">FragT</span><span class="o">](</span><span class="n">bundle</span><span class="k">:</span> <span class="kt">Bundle</span><span class="o">[</span><span class="kt">Builder</span>, <span class="kt">Output</span>, <span class="kt">FragT</span><span class="o">])</span> <span class="k">extends</span> <span class="nc">TestSuite</span><span class="o">{</span>
+  <span class="k">import</span> <span class="nn">bundle._</span>
+  <span class="o">...</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>Inside this scope, you are limited to only using the common functionality defined in <code>generic.Bundle</code>, and can't use any Text or JsDom specific APIs. However, in exchange you can write code that works in either backend, by instantiating it with the respective bundle:</p>
+
+<div class="highlight highlight-scala"><pre><span class="k">object</span> <span class="nc">ExampleTests</span> <span class="k">extends</span> <span class="n">generic</span><span class="o">.</span><span class="nc">ExampleTests</span><span class="o">(</span><span class="n">scalatags</span><span class="o">.</span><span class="nc">Text</span><span class="o">)</span>
+<span class="k">object</span> <span class="nc">ExampleTests</span> <span class="k">extends</span> <span class="n">generic</span><span class="o">.</span><span class="nc">ExampleTests</span><span class="o">(</span><span class="n">scalatags</span><span class="o">.</span><span class="nc">JsDom</span><span class="o">)</span>
+</pre></div>
+
+<p>This is currently used to shared the bulk of unit tests between the Text and JsDom backends, and could be useful in other scenarios where you may want to swap between them (e.g. using Text on the server, and JsDom on the client where it's available) while sharing as much code as possible.</p>
+
+<h1>
+<a name="user-content-prior-work" class="anchor" href="#prior-work" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prior Work</h1>
+
+<p>Scalatags was made after experience with a broad range of HTML generation systems. This experience (with both the pros and cons of existing systems) informed the design of scalatags.Text.</p>
+
+<h2>
+<a name="user-content-old-school-templates" class="anchor" href="#old-school-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Old-school Templates</h2>
+
+<p><a href="http://jinja.pocoo.org/docs/">Jinja2</a> is the templating engine that comes bundled with <a href="http://flask.pocoo.org/">Flask</a>, a similar (but somewhat weaker) system comes bundled with <a href="https://docs.djangoproject.com/en/dev/topics/templates/">Django</a>, and another system in a similar vein is <a href="http://guides.rubyonrails.org/layouts_and_rendering.html">Ruby on Rail's ERB</a> rendering engine. This spread more-or-less represents the old-school way of rendering HTML, in that they:</p>
+
+<ul class="task-list">
+<li>Are effectively string-based</li>
+<li>Use special syntax for both interpolating variables as well as for basic control flow logic</li>
+<li>Have a ruby/python-like (but not quite!) language for logic within the template</li>
+<li>Are generally with one template per file.</li>
+</ul><p>They also showcase many of the weaknesses of this style of templating system:</p>
+
+<ul class="task-list">
+<li>The fact that it's string based means it's vulnerable to XSS injections, or plain-old malformed HTML output.</li>
+<li>The one-template-per-file rule discourages you from building your page from small re-usable fragments, because who wants to keep track of hundreds of individual files. People are reluctant to make a file with 3-5 lines in it, which is understandable but unfortunate because factoring templates into re-usable 3-5 line snippets is a good way of staying sane.</li>
+<li>The API is complex and novel: Jinja2 for example contains logic around <a href="http://jinja.pocoo.org/docs/api/#loaders">file-loading</a> &amp; <a href="http://jinja.pocoo.org/docs/api/#bytecode-cache">caching</a>, as well as custom Jinja2-specific ways of doing <a href="http://jinja.pocoo.org/docs/templates/#for">loops</a>, <a href="http://jinja.pocoo.org/docs/templates/#if">conditionals</a>, <a href="http://jinja.pocoo.org/docs/templates/#macros">functions</a>, <a href="http://jinja.pocoo.org/docs/templates/#comments">comments</a>, <a href="http://jinja.pocoo.org/docs/templates/#template-inheritance">inheritance</a>, <a href="http://jinja.pocoo.org/docs/templates/#block-nesting-and-scope">scoping</a>, <a href="http://jinja.pocoo.org/docs/templates/#import-context-behavior">imports</a> and other things. All these are things you would have to learn.</li>
+<li>The syntax is completely new; finding an editor that properly supports all the quirks and semantics (or even simply highlighting things properly) is hard. You could hack together something quick and extremely fragile, or you could wait ages for a solid plugin to materialize.</li>
+<li>Abstraction is clunky: inbuilt tags are used via <code>&lt;div /&gt;</code>, while user-defined components are called e.g. by <code>{{ component() }}</code>. You're left with a choice between not using much abstraction and mainly sticking to inbuilt tags, or creating components and accepting the fact that your templates will basically be totally composed of <code>{{ curly braces }}</code>. Neither choice is satisfying.</li>
+<li>Have no sort of static checking at all; you're just passing dicts around, and waiting for silly mistakes to blow up at run-time so you can fix them.</li>
+</ul><h2>
+<a name="user-content-razor-and-play-templates" class="anchor" href="#razor-and-play-templates" aria-hidden="true"><span class="octicon octicon-link"></span></a>Razor and Play Templates</h2>
+
+<p><a href="https://github.com/Antaris/RazorEngine">Razor</a> (the ASP.NET MVC template engine) and the Play framework's <a href="http://www.playframework.com/documentation/2.3-SNAPSHOT/ScalaTemplates">template engine</a> go in a new direction. Their templates generally:</p>
+
+<ul class="task-list">
+<li>Are statically-compiled</li>
+<li>Re-use large chunks of the host language</li>
+</ul><p>Both templating systems generally use <code>@</code> to delimit "code"; e.g. <code>@for(...){...}</code> declares a for-loop. Nice things are:</p>
+
+<ul class="task-list">
+<li>The API is far simpler: all the custom control-flow/logic/syntax basically collapses into the simple statement "do it the way C#/Scala does it".</li>
+<li>Static checking in templates is nice.</li>
+</ul><p>However, they still have their downsides:</p>
+
+<ul class="task-list">
+<li>Abstractions are less clunky to use than in old-school templates, e.g. <code>@component()</code> rather than <code>{{ component() }}</code>, but still not ideal.</li>
+<li>The one-template-per-file rule is still there, making abstractions clunky to define.</li>
+<li>They still require their own special build-system-integration, run-time compilation, caching, and other things, which a templating language really shouldn't need. <a href="http://scalate.fusesource.org/index.html">Scalate</a>, which has a runtime dependency on the entire Scala compiler, suffers from the same problem.</li>
+<li>The syntax still poses a problem for editors; both HTML editors and C#/Scala editors won't want to work with these templates, so you still end up with sub-par support or waiting for plugins.</li>
+<li>You still end up with weird <a href="http://stackoverflow.com/questions/13973009/complex-pattern-matching-on-templace-using-scala-play">edge</a> <a href="http://stackoverflow.com/questions/12070625/compilation-error-of-play-framework-templates">cases</a> due to the fact that you're squashing together two completely unrelated syntaxes.</li>
+</ul><h2>
+<a name="user-content-xhp-and-pyxl" class="anchor" href="#xhp-and-pyxl" aria-hidden="true"><span class="octicon octicon-link"></span></a>XHP and Pyxl</h2>
+
+<p><a href="https://github.com/facebook/xhp">XHP</a> and <a href="https://github.com/dropbox/pyxl">Pyxl</a> are HTML generation systems used at Facebook and Dropbox. In short, they allow you to:</p>
+
+<ul class="task-list">
+<li>Embed sections of your HTML as literals within your PHP and Python code</li>
+<li>Reference them as objects (e.g. calling methods and modifying fields)</li>
+<li>Provide a way to interpolate values and combine them.</li>
+</ul><p>The Pyxl homepage provides this example:</p>
+
+<div class="highlight highlight-python"><pre><span class="n">image_name</span> <span class="o">=</span> <span class="s">"bolton.png"</span>
+<span class="n">image</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">img</span> <span class="n">src</span><span class="o">=</span><span class="s">"/static/images/{image_name}"</span> <span class="o">/&gt;</span>
+
+<span class="n">text</span> <span class="o">=</span> <span class="s">"Michael Bolton"</span>
+<span class="n">block</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">div</span><span class="o">&gt;</span><span class="p">{</span><span class="n">image</span><span class="p">}{</span><span class="n">text</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">div</span><span class="o">&gt;</span>
+
+<span class="n">element_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">image</span><span class="p">,</span> <span class="n">text</span><span class="p">]</span>
+<span class="n">block2</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">div</span><span class="o">&gt;</span><span class="p">{</span><span class="n">element_list</span><span class="p">}</span><span class="o">&lt;/</span><span class="n">div</span><span class="o">&gt;</span>
+</pre></div>
+
+<p>Which shows how you can generate HTML directly in your python code, using your python variables. These libraries are basically the same thing, and have some nice properties:</p>
+
+<ul class="task-list">
+<li>The one-template-per-file rule is gone! This encourages you to make more, smaller fragments and then compose them, which is great.</li>
+<li>They're no longer string-based, so you won't have problems with XSS or malformed output.</li>
+<li>The API is really simple; maybe a dozen different things you need to remember, and the rest is "just use Python/PHP". E.g. they don't need to load templates from the filesystem any more (with all the associated discovery/loading/caching logic) since it's all just in your code.</li>
+<li>The syntax is completely familiar too; apart from maybe one new rule (using <code>{...}</code> to interpolate values) the rest of your templates and logic are bog-standard HTML/Python/PHP.</li>
+<li>Abstraction is almost seamless; both systems allow you to define custom components and have them called via <code>&lt;component arg="..." /&gt;</code>
+</li>
+</ul><p>But they're not quite there:</p>
+
+<ul class="task-list">
+<li>Although the syntax is familiar to you, it's not familiar to your editor, and probably will mess up your syntax highlighting (and other tooling) in your Python/PHP files.</li>
+<li>Defining custom components (e.g. in <a href="https://github.com/dropbox/pyxl#ui-modules">Pyxl</a>) is much more verbose/tedious than it needs to be. Most of the time, all you want is a function; very rarely do you want a fragment that is long lived and has mutable state, which is where classes/objects are really necessary.</li>
+<li>Even using custom components gets tedious; at some scale, everything you pass into a component will be a structured Python value rather than a string, and you end up with code like <code>&lt;component arg1="{value1}" arg2="{value2}" arg3="{value3}" arg4="{value4}" /&gt;</code>. It's nice to have inbuilt/custom components behave uniformly, but you wonder what the XML syntax is really buying you other than forcing you to only use keyword-arguments and to wrap arguments in <code>"{...}"</code>.</li>
+<li>It's still XML! People spend <a href="https://github.com/visionmedia/jade">a lot</a> <a href="http://haml.info/">of time</a> trying to get XML out of their templates; it seems odd to spend just as much time trying to put it into your source code.</li>
+</ul><h2>
+<a name="user-content-scalatags" class="anchor" href="#scalatags" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scalatags</h2>
+
+<p>And that's why I created Scalatags:</p>
+
+<ul class="task-list">
+<li>Structured and immune to malformed output/XSS.</li>
+<li>No more one-template-per-file rule; make small templates to your heart's content!</li>
+<li>Dead-simple API, which re-uses 100% of what you know about Scala's language and libraries.</li>
+<li>100% Scala syntax; no more bumping into weird edge cases with the parser.</li>
+<li>Syntax highlighting, error-highlighting, jump-to-definition, in-editor-documentation, and all the other nice IDE features out of the box. No more waiting for plugins!</li>
+<li>Inbuilt and custom tags are uniformly just function calls (e.g. <code>div("hello world")</code>)</li>
+<li>Custom components are trivial to create (<code>def component(x: Int, y: Int) = ...</code>) and trivial to use (<code>component(value1, value2)</code>) because they're just functions.</li>
+<li>No dependencies! No need for SBT integration, filesystem loading, runtime compilation, caching, and all that jazz. You create a Scala object, call <code>.toString()</code>, and that's it!</li>
+</ul><p>On top of fixing all the old problems, Scalatags targets some new ones:</p>
+
+<ul class="task-list">
+<li>Typesafe-ish access to HTML tags, attributes and CSS classes and styles. No more weird bugs due to typos like <code>flaot: left</code> or <code>&lt;dvi&gt;</code>.</li>
+<li>Cross compiles to run on both JVM and Javascript via <a href="https://github.com/scala-js/scala-js">ScalaJS</a>, which is a property few other engines (e.g. <a href="http://mustache.github.io/">Mustache</a>) have.</li>
+<li><a href="#performance">Blazing fast</a></li>
+</ul><p>Scalatags is still a work in progress, but I think I've hit most of the pain points I was feeling with the old systems, and hope to continually improve it over time. Pull requests are welcome!</p>
+
+<h1>
+<a name="user-content-changelog" class="anchor" href="#changelog" aria-hidden="true"><span class="octicon octicon-link"></span></a>Changelog</h1>
+
+<h2>
+<a name="user-content-040" class="anchor" href="#040" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.4.0</h2>
+
+<ul class="task-list">
+<li>Removed unused type param from <code>Frag</code>
+</li>
+<li>Changed <code>bindNode</code> from <code>Modifier[dom.Element]</code> to <code>Frag[dom.Element, dom.Node]</code>
+</li>
+</ul><h2>
+<a name="user-content-039" class="anchor" href="#039" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.9</h2>
+
+<ul class="task-list">
+<li>Better error messages for missing implicits</li>
+<li>Added attribuets <code>method</code>, <code>role</code>, <code>content</code>, <code>httpEquiv</code>, <code>onkeyup</code>, <code>onkeypress</code>
+</li>
+<li>Added implicit conversion from <code>Seq[Frag]</code> to <code>Frag</code>
+</li>
+</ul><h2>
+<a name="user-content-038" class="anchor" href="#038" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.8</h2>
+
+<ul class="task-list">
+<li>Added <code>Frag</code> alias in <code>Bundle</code>, to match all the other aliases per-bundle</li>
+</ul><h2>
+<a name="user-content-037" class="anchor" href="#037" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.7</h2>
+
+<ul class="task-list">
+<li>Added <code>implicits</code> object, for people who want to import all the implicit conversions/typeclasses without importing tags or other things</li>
+</ul><h2>
+<a name="user-content-036" class="anchor" href="#036" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.6</h2>
+
+<ul class="task-list">
+<li>Added unit test and readme-section to document making custom-bundles, to allow customizable single-import syntax to bring all the things you want into scope.</li>
+<li>Deleted dead code in <code>Platform</code>
+</li>
+<li>Enforce lack of cycles between internal files</li>
+<li>Removed <code>StyleValue[T: Numeric]</code> and <code>AttrValue[T: Numeric]</code> in favor of <code>Byte</code>/<code>Short</code>/<code>Int</code>/etc. versions, to work around bug in type-inference in 2.10</li>
+</ul><h2>
+<a name="user-content-035" class="anchor" href="#035" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.5</h2>
+
+<ul class="task-list">
+<li>Fixed a bug in <code>Text</code> backend that blew up when you had more than 8 attributes</li>
+</ul><h2>
+<a name="user-content-034" class="anchor" href="#034" aria-hidden="true"><span class="octicon octicon-link"></span></a>0.3.4</h2>
+
+<ul class="task-list">
+<li>Added a separate type parameter for <code>Frag.render</code>, distinct from the type of <code>TypedTag.render</code>, to more accurately type the API and allow the usage of <code>Frag</code>s on their own.</li>
+</ul><h1>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h1>
+
+<p>The MIT License (MIT)</p>
+
+<p>Copyright (c) 2013, Li Haoyi</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></article></div>

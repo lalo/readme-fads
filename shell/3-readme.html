@@ -1,0 +1,220 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-dokku" class="anchor" href="#dokku" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dokku</h1>
+
+<p>Docker powered mini-Heroku. The smallest PaaS implementation you've ever seen.</p>
+
+<p><a href="https://travis-ci.org/progrium/dokku"><img src="https://camo.githubusercontent.com/0bca3f30daf498c4aeef7e109c28b860c69cfb4d/68747470733a2f2f7472617669732d63692e6f72672f70726f677269756d2f646f6b6b752e706e673f6272616e63683d6d6173746572" alt="Build Status" data-canonical-src="https://travis-ci.org/progrium/dokku.png?branch=master" style="max-width:100%;"></a></p>
+
+<h2>
+<a name="user-content-requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>Ubuntu 14.04 x64 or 12.04 x64. Ideally have a domain ready to point to your host. It's designed for and is probably best to use a fresh VM. The bootstrapper will install everything it needs.</p>
+
+<p><strong>Note: Support for 12.04 will be sunsetting in the near future after dokku &amp; 14.04 have been more thoroughly tested.</strong></p>
+
+<h2>
+<a name="user-content-installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing</h2>
+
+<h3>
+<a name="user-content-stable" class="anchor" href="#stable" aria-hidden="true"><span class="octicon octicon-link"></span></a>Stable</h3>
+
+<pre><code>$ wget -qO- https://raw.github.com/progrium/dokku/v0.2.3/bootstrap.sh | sudo DOKKU_TAG=v0.2.3 bash
+</code></pre>
+
+<p><strong>Note</strong>: Users on 12.04 will need to run <code>apt-get install -y python-software-properties</code> before bootstrapping stable.</p>
+
+<h3>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h3>
+
+<pre><code>$ wget -qO- https://raw.github.com/progrium/dokku/master/bootstrap.sh | sudo bash
+</code></pre>
+
+<p>This may take around 5 minutes. Certainly better than the several hours it takes to bootstrap Cloud Foundry.</p>
+
+<p>You may also wish to take a look at the <a href="http://progrium.viewdocs.io/dokku/advanced-installation">advanced installation</a> document for additional installation options.</p>
+
+<h2>
+<a name="user-content-configuring" class="anchor" href="#configuring" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring</h2>
+
+<p>Set up a domain and a wildcard domain pointing to that host. Make sure <code>/home/dokku/VHOST</code> is set to this domain. By default it's set to whatever hostname the host has. This file is only created if the hostname can be resolved by dig (<code>dig +short $(hostname -f)</code>). Otherwise you have to create the file manually and set it to your preferred domain. If this file still is not present when you push your app, dokku will publish the app with a port number (i.e. <code>http://example.com:49154</code> - note the missing subdomain).</p>
+
+<p>You'll have to add a public key associated with a username by doing something like this from your local machine:</p>
+
+<pre><code>$ cat ~/.ssh/id_rsa.pub | ssh progriumapp.com "sudo sshcommand acl-add dokku progrium"
+</code></pre>
+
+<p>That's it!</p>
+
+<h2>
+<a name="user-content-deploy-an-app" class="anchor" href="#deploy-an-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deploy an App</h2>
+
+<p>Now you can deploy apps on your Dokku. Let's deploy the <a href="https://github.com/heroku/node-js-sample">Heroku Node.js sample app</a>. All you have to do is add a remote to name the app. It's created on-the-fly.</p>
+
+<pre><code>$ cd node-js-sample
+$ git remote add progrium dokku@progriumapp.com:node-js-app
+$ git push progrium master
+Counting objects: 296, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (254/254), done.
+Writing objects: 100% (296/296), 193.59 KiB, done.
+Total 296 (delta 25), reused 276 (delta 13)
+-----&gt; Building node-js-app ...
+       Node.js app detected
+-----&gt; Resolving engine versions
+
+... blah blah blah ...
+
+-----&gt; Application deployed:
+       http://node-js-app.progriumapp.com
+</code></pre>
+
+<p>You're done!</p>
+
+<p>Dokku only supports deploying from its master branch, so if you'd like to deploy a different local branch use: <code>git push progrium &lt;local branch&gt;:master</code> </p>
+
+<p>Right now Buildstep supports buildpacks for Node.js, Ruby, Python, <a href="https://github.com/progrium/buildstep#supported-buildpacks">and more</a>. It's not hard to add more, <a href="https://github.com/progrium/buildstep#adding-buildpacks">go add more</a>!
+Please check the documentation for your particular build pack as you may need to include configuration files (such as a Procfile) in your project root.</p>
+
+<h2>
+<a name="user-content-remote-commands" class="anchor" href="#remote-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Remote commands</h2>
+
+<p>Dokku commands can be run over ssh. Anywhere you would run <code>dokku &lt;command&gt;</code>, just run <code>ssh -t dokku@progriumapp.com &lt;command&gt;</code>
+The <code>-t</code> is used to request a pty. It is highly recommended to do so.
+To avoid the need to type the <code>-t</code> option each time, simply create/modify a section in the <code>.ssh/config</code> on the client side, as follows :</p>
+
+<pre><code>Host progriumapp.com
+RequestTTY yes
+</code></pre>
+
+<h2>
+<a name="user-content-run-a-command-in-the-app-environment" class="anchor" href="#run-a-command-in-the-app-environment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Run a command in the app environment</h2>
+
+<p>It's possible to run commands in the environment of the deployed application:</p>
+
+<pre><code>$ dokku run node-js-app ls -alh
+$ dokku run &lt;app&gt; &lt;cmd&gt;
+</code></pre>
+
+<h2>
+<a name="user-content-plugins" class="anchor" href="#plugins" aria-hidden="true"><span class="octicon octicon-link"></span></a>Plugins</h2>
+
+<p>Dokku itself is built out of plugins. Checkout the wiki for information about
+creating your own and a list of existing plugins:</p>
+
+<p><a href="https://github.com/progrium/dokku/wiki/Plugins">https://github.com/progrium/dokku/wiki/Plugins</a></p>
+
+<h2>
+<a name="user-content-removing-a-deployed-app" class="anchor" href="#removing-a-deployed-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>Removing a deployed app</h2>
+
+<p>SSH onto the server, then execute:</p>
+
+<pre><code>$ dokku delete myapp
+</code></pre>
+
+<h2>
+<a name="user-content-environment-variable-management" class="anchor" href="#environment-variable-management" aria-hidden="true"><span class="octicon octicon-link"></span></a>Environment variable management</h2>
+
+<p>Typically an application will require some environment variables to run properly. Environment variables may contain private data, such as passwords or API keys, so it is not recommend to store them in your application's repository.</p>
+
+<p>The <code>config</code> plugin provides the following commands to manage your variables:</p>
+
+<pre><code>config &lt;app&gt; - display the config vars for an app  
+config:get &lt;app&gt; KEY - display a config value for an app  
+config:set &lt;app&gt; KEY1=VALUE1 [KEY2=VALUE2 ...] - set one or more config vars
+config:unset &lt;app&gt; KEY1 [KEY2 ...] - unset one or more config vars
+</code></pre>
+
+<h2>
+<a name="user-content-tlsspdy-support" class="anchor" href="#tlsspdy-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>TLS/SPDY support</h2>
+
+<p>Dokku provides easy TLS/SPDY support out of the box. This can be done app-by-app or for all subdomains at once. Note that whenever TLS support is enabled SPDY is also enabled.</p>
+
+<h3>
+<a name="user-content-per-app" class="anchor" href="#per-app" aria-hidden="true"><span class="octicon octicon-link"></span></a>Per App</h3>
+
+<p>To enable TLS connection to to one of your applications, copy or symlink the <code>.crt</code>/<code>.pem</code> and <code>.key</code> files into the application's <code>/home/dokku/:app/tls</code> folder (create this folder if it doesn't exist) as <code>server.crt</code> and <code>server.key</code> respectively.</p>
+
+<p>Redeployment of the application will be needed to apply TLS configuration. Once it is redeployed, the application will be accessible by <code>https://</code> (redirection from <code>http://</code> is applied as well).</p>
+
+<h3>
+<a name="user-content-all-subdomains" class="anchor" href="#all-subdomains" aria-hidden="true"><span class="octicon octicon-link"></span></a>All Subdomains</h3>
+
+<p>To enable TLS connections for all your applications at once you will need a wildcard TLS certificate.</p>
+
+<p>To enable TLS across all apps, copy or symlink the <code>.crt</code>/<code>.pem</code> and <code>.key</code> files into the  <code>/home/dokku/tls</code> folder (create this folder if it doesn't exist) as <code>server.crt</code> and <code>server.key</code> respectively. Then, enable the certificates by editing <code>/etc/nginx/conf.d/dokku.conf</code> and uncommenting these two lines (remove the #):</p>
+
+<pre><code>ssl_certificate /home/dokku/tls/server.crt;
+ssl_certificate_key /home/dokku/tls/server.key;
+</code></pre>
+
+<p>The nginx configuration will need to be reloaded in order for the updated TLS configuration to be applied. This can be done either via the init system or by re-deploying the application. Once TLS is enabled, the application will be accessible by <code>https://</code> (redirection from <code>http://</code> is applied as well).</p>
+
+<p><strong>Note</strong>: TLS will not be enabled unless the application's VHOST matches the certificate's name. (i.e. if you have a cert for *.example.com TLS won't be enabled for something.example.org or example.net)</p>
+
+<h3>
+<a name="user-content-hsts-header" class="anchor" href="#hsts-header" aria-hidden="true"><span class="octicon octicon-link"></span></a>HSTS Header</h3>
+
+<p>The <a href="https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security">HSTS header</a> is an HTTP header that can inform browsers that all requests to a given site should be made via HTTPS. dokku does not, by default, enable this header. It is thus left up to you, the user, to enable it for your site.</p>
+
+<p>Beware that if you enable the header and a subsequent deploy of your application results in an HTTP deploy (for whatever reason), the way the header works means that a browser will not attempt to request the HTTP version of your site if the HTTPS version fails.</p>
+
+<h2>
+<a name="user-content-upgrading" class="anchor" href="#upgrading" aria-hidden="true"><span class="octicon octicon-link"></span></a>Upgrading</h2>
+
+<p>Dokku is in active development. You can update the deployment step and the build step separately.</p>
+
+<p><strong>Note</strong>: If you are upgrading from a revision prior to <a href="https://github.com/progrium/dokku/commit/27d4bc8c3c19fe580ef3e65f2f85b85101cd83e4">27d4bc8c3c</a>, follow the instructions in <a href="https://github.com/progrium/dokku/wiki/Migrating-to-Dokku-0.2.0">this wiki entry</a>.</p>
+
+<p>To update the deploy step (this is updated less frequently):</p>
+
+<pre><code>$ cd ~/dokku
+$ git pull origin master
+$ sudo make install
+</code></pre>
+
+<p>Nothing needs to be restarted. Changes will take effect on the next push / deployment.</p>
+
+<p>To update the build step:</p>
+
+<pre><code>$ git clone https://github.com/progrium/buildstep.git
+$ cd buildstep
+$ git pull origin master
+$ sudo make build
+</code></pre>
+
+<p>This will build a fresh Ubuntu Quantal image, install a number of packages, and
+eventually replace the Docker image for buildstep.</p>
+
+<h2>
+<a name="user-content-support" class="anchor" href="#support" aria-hidden="true"><span class="octicon octicon-link"></span></a>Support</h2>
+
+<p>You can use <a href="https://github.com/progrium/dokku/issues">Github Issues</a>, check <a href="https://github.com/progrium/dokku/wiki/Troubleshooting">Troubleshooting</a> on the wiki, or join us on <a href="https://webchat.freenode.net/?channels=%23dokku">freenode in #dokku</a></p>
+
+<h2>
+<a name="user-content-components" class="anchor" href="#components" aria-hidden="true"><span class="octicon octicon-link"></span></a>Components</h2>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/dotcloud/docker">Docker</a> - Container runtime and manager</li>
+<li>
+<a href="https://github.com/progrium/buildstep">Buildstep</a> - Buildpack builder</li>
+<li>
+<a href="https://github.com/progrium/pluginhook">pluginhook</a> - Shell based plugins and hooks</li>
+<li>
+<a href="https://github.com/progrium/sshcommand">sshcommand</a> - Fixed commands over SSH</li>
+</ul><p>Looking to keep codebase as simple and hackable as possible, so try to keep your line count down.</p>
+
+<h2>
+<a name="user-content-things-this-project-wont-do" class="anchor" href="#things-this-project-wont-do" aria-hidden="true"><span class="octicon octicon-link"></span></a>Things this project won't do</h2>
+
+<ul class="task-list">
+<li>
+<strong>Multi-host.</strong> Not a huge leap, but this isn't the project for it. Have a look at <a href="https://flynn.io/">Flynn</a>.</li>
+<li>
+<strong>Multitenancy.</strong> It's ready for it, but again, have a look at <a href="https://flynn.io/">Flynn</a>.</li>
+<li>
+<strong>Client app.</strong> Given the constraints, running commands remotely via SSH is fine.</li>
+</ul><h2>
+<a name="user-content-license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>MIT</p></article></div>

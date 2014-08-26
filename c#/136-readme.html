@@ -1,0 +1,385 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h3>
+<a name="user-content-jil" class="anchor" href="#jil" aria-hidden="true"><span class="octicon octicon-link"></span></a>Jil</h3>
+
+<p>A fast JSON (de)serializer, built on <a href="https://github.com/kevin-montrose/Sigil">Sigil</a> with a number of somewhat crazy optimization tricks.</p>
+
+<p><a href="https://www.nuget.org/packages/Jil/">Releases are available on Nuget</a> in addition to this repository.</p>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<h3>
+<a name="user-content-serializing" class="anchor" href="#serializing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serializing</h3>
+
+<pre><code>    using(var output = new StringWriter())
+    {
+        JSON.Serialize(
+            new
+            {
+                MyInt = 1,
+                MyString = "hello world",
+                // etc.
+            },
+            output
+        );
+    }
+</code></pre>
+
+<p>There is also a <code>Serialize</code> method that returns a string.</p>
+
+<p>The first time Jil is used to serialize a given configuration and type pair, it will spend extra time building the serializer.
+Subsequent invocations will be much faster, so if a consistently fast runtime is necessary in your code you may want to "prime the pump"
+with an earlier "throw away" serialization.</p>
+
+<h3>
+<a name="user-content-dynamic-serialization" class="anchor" href="#dynamic-serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Serialization</h3>
+
+<p>If you need to serialize compile-time unknown types (including subclasses, and virtual properties) you should use <code>JSON.SerializeDynamic</code> instead.
+<code>JSON.SerializeDynamic</code> does not require a generic type parameter, and can cope with subclasses, <code>object</code>/<code>dynamic</code> members, and <a href="http://msdn.microsoft.com/en-us/library/dd233052(v=vs.110).aspx">DLR</a> participating 
+types such as <a href="http://msdn.microsoft.com/en-us/library/system.dynamic.expandoobject(v=vs.110).aspx">ExpandoObject</a> and <a href="http://msdn.microsoft.com/en-us/library/system.dynamic.dynamicobject(v=vs.110).aspx">DynamicObject</a>.</p>
+
+<h3>
+<a name="user-content-deserializing" class="anchor" href="#deserializing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deserializing</h3>
+
+<pre><code>    using(var input = new StringReader(myString))
+    {
+        var result = JSON.Deserialize&lt;MyType&gt;(input);
+    }
+</code></pre>
+
+<p>There is also a <code>Deserialize</code> method that takes a string as input.</p>
+
+<p>The first time Jil is used to deserialize a given configuration and type pair, it will spend extra time building the deserializer.
+Subsequent invocations will be much faster, so if a consistently fast runtime is necessary in your code you may want to "prime the pump"
+with an earlier "throw away" deserialization.</p>
+
+<h3>
+<a name="user-content-dynamic-deserialization" class="anchor" href="#dynamic-deserialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dynamic Deserialization</h3>
+
+<pre><code>    using(var input = new StringReader(myString))
+    {
+        var result = JSON.DeserializeDynamic(input);
+    }
+</code></pre>
+
+<p>There is also a <code>DeserializeDynamic</code> method that works directly on strings.</p>
+
+<p>These methods return <code>dynamic</code>, and support the following operations:</p>
+
+<ul class="task-list">
+<li>Casts
+
+<ul class="task-list">
+<li>ie. <code>(int)JSON.DeserializeDynamic("123")</code>
+</li>
+</ul>
+</li>
+<li>Member access
+
+<ul class="task-list">
+<li>ie. <code>JSON.DeserializeDynamic(@"{""A"":123}").A</code>
+</li>
+</ul>
+</li>
+<li>Indexers
+
+<ul class="task-list">
+<li>ie. <code>JSON.DeserializeDynamic(@"{""A"":123}")["A"]</code>
+</li>
+<li>or <code>JSON.DeserializeDynamic("[0, 1, 2]")[0]</code>
+</li>
+</ul>
+</li>
+<li>Foreach loops
+
+<ul class="task-list">
+<li>ie. <code>foreach(var keyValue in JSON.DeserializeDynamic(@"{""A"":123}")) { ... }</code>
+
+<ul class="task-list">
+<li>in this example, <code>keyValue</code> is a dynamic with <code>Key</code> and <code>Value</code> properties</li>
+</ul>
+</li>
+<li>or <code>foreach(var item in JSON.DeserializeDynamic("[0, 1, 2]")) { ... }</code>
+
+<ul class="task-list">
+<li>in this example, <code>item</code> is a <code>dynamic</code> and will have values 0, 1, and 2</li>
+</ul>
+</li>
+<li>Common unary operators (+, -, and !)</li>
+<li>Common binary operators (&amp;&amp;, ||, +, -, *, /, ==, !=, &lt;, &lt;=, &gt;, and &gt;=)</li>
+<li>
+<code>.Length</code> &amp; <code>.Count</code> on arrays</li>
+<li>
+<code>.ContainsKey(string)</code> on objects</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-supported-types" class="anchor" href="#supported-types" aria-hidden="true"><span class="octicon octicon-link"></span></a>Supported Types</h2>
+
+<p>Jil will only (de)serialize types that can be reasonably represented as <a href="http://json.org">JSON</a>.</p>
+
+<p>The following types (and any user defined types composed of them) are supported:</p>
+
+<ul class="task-list">
+<li>Strings (including char)</li>
+<li>Booleans</li>
+<li>Integer numbers (int, long, byte, etc.)</li>
+<li>Floating point numbers (float, double, and decimal)</li>
+<li>DateTimes &amp; DateTimeOffsets
+
+<ul class="task-list">
+<li>See Configuration for further details</li>
+</ul>
+</li>
+<li>Nullable types</li>
+<li>Enumerations
+
+<ul class="task-list">
+<li>Including [Flags]</li>
+</ul>
+</li>
+<li>Guids
+
+<ul class="task-list">
+<li>Only the <a href="http://msdn.microsoft.com/en-us/library/97af8hh4.aspx">"D" format</a>
+</li>
+</ul>
+</li>
+<li>IList&lt;T&gt; implementations</li>
+<li>IDictionary&lt;TKey, TValue&gt; implementations where TKey is a string or enumeration</li>
+</ul><p>Jil deserializes public fields and properties; the order in which they are serialized is not defined (it is unlikely to be in
+declaration order).  The <a href="http://msdn.microsoft.com/en-us/library/system.runtime.serialization.datamemberattribute.name(v=vs.110).aspx"><code>DataMemberAttribute.Name</code> property</a> and <a href="http://msdn.microsoft.com/en-us/library/system.runtime.serialization.ignoredatamemberattribute.aspx"><code>IgnoreDataMemberAttribute</code></a> are respected by Jil, as is the <a href="http://msdn.microsoft.com/en-us/library/53b8022e(v=vs.110).aspx">ShouldSerializeXXX() pattern</a>.  For situations where <code>DataMemberAttribute</code> and <code>IgnoreDataMemberAttribute</code> cannot be used, Jil provides the <a href="https://github.com/kevin-montrose/Jil/blob/master/Jil/JilDirectiveAttribute.cs"><code>JilDirectiveAttribute</code></a> which provides equivalent functionality.</p>
+
+<h2>
+<a name="user-content-configuration" class="anchor" href="#configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>Jil's <code>JSON.Serialize</code> and <code>JSON.Deserialize</code> methods take an optional <code>Options</code> parameter which controls:</p>
+
+<ul class="task-list">
+<li>The format of DateTimes &amp; DateTimeOffsets, one of
+
+<ul class="task-list">
+<li>NewtonsoftStyleMillisecondsSinceUnixEpoch, a string, ie. "\/Date(##...##)\/"</li>
+<li>MillisecondsSinceUnixEpoch, a number, which can be passed directly to <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date">JavaScript's Date() constructor</a>
+</li>
+<li>SecondsSinceUnixEpoch, a number, commonly refered to as <a href="http://en.wikipedia.org/wiki/Unix_time">unix time</a>
+</li>
+<li>ISO8601, a string, ie. "2011-07-14T19:43:37Z"</li>
+</ul>
+</li>
+<li>Whether or not to exclude null values when serializing dictionaries, and object members</li>
+<li>Whether or not to "pretty print" while serializing, which adds extra linebreaks and whitespace for presentation's sake</li>
+<li>Whether or not the serialized JSON will be used as JSONP (which requires slightly more work be done w.r.t. escaping)</li>
+<li>Whether or not to include inherited members when serializing</li>
+<li>Whether or not to try to use hash functions when deserializing member names and enumerations 
+
+<ul class="task-list">
+<li>Collisions may be forced if input is malicious</li>
+</ul>
+</li>
+</ul><h2>
+<a name="user-content-benchmarks" class="anchor" href="#benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Benchmarks</h2>
+
+<p>Jil aims to be the fastest general purpose JSON (de)serializer for .NET.  Flexibility and "nice to have" features are explicitly discounted
+in the pursuit of speed.</p>
+
+<p>These benchmarks were run on a machine with the following specs:</p>
+
+<ul class="task-list">
+<li>Operating System: Windows 8 Enterprise 64-bit (6.2, Build 9200) (9200.win8_gdr.130531-1504)</li>
+ <li>System Manufacturer: Apple Inc.</li>
+ <li>System Model: MacBookPro8,2</li>
+ <li>Processor: Intel(R) Core(TM) i7-2860QM CPU @ 2.50GHz (8 CPUs), ~2.5GHz</li>
+ <li>Memory: 8192MB RAM</li>
+ <ul class="task-list">
+<li>DDR3</li>
+  <li>Dual Channel</li>
+  <li>665.2 MHZ</li>
+ </ul>
+</ul><p>As with all benchmarks, take these with a grain of salt.</p>
+
+<h3>
+<a name="user-content-serialization" class="anchor" href="#serialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Serialization</h3>
+
+<p>For comparison, here's how Jil stacks up against other popular .NET serializers in a <a href="https://github.com/kevin-montrose/Jil/tree/3ccb091e1f2659e5d6832518657ae9e3a42e3634/Benchmark">synthetic benchmark</a>:</p>
+
+<ul class="task-list">
+<li>
+<a href="http://james.newtonking.com/json">Json.NET</a> - JSON library included with ASP.NET MVC</li>
+<li>
+<a href="https://github.com/ServiceStack/ServiceStack.Text">ServiceStack.Text</a> - JSON, CSV, and JSV library; a part of the <a href="https://github.com/ServiceStack/ServiceStack">ServiceStack framework</a>
+</li>
+<li>
+<a href="https://code.google.com/p/protobuf-net/">protobuf-net</a> - binary serializer for Google's <a href="https://code.google.com/p/protobuf/">Protocol Buffers</a>
+
+<ul class="task-list">
+<li>
+<strong>does not</strong> serialize JSON, included as a baseline</li>
+</ul>
+</li>
+</ul><p>All three libraries are in use at <a href="https://stackexchange.com/">Stack Exchange</a> in various production roles.</p>
+
+<p><a href="https://camo.githubusercontent.com/4b9fc94961a32e64b5b606383c363a045252508a/68747470733a2f2f692e696d6775722e636f6d2f4442707a4f79742e706e67" target="_blank"><img src="https://camo.githubusercontent.com/4b9fc94961a32e64b5b606383c363a045252508a/68747470733a2f2f692e696d6775722e636f6d2f4442707a4f79742e706e67" data-canonical-src="https://i.imgur.com/DBpzOyt.png" style="max-width:100%;"></a></p>
+
+<p><a href="https://camo.githubusercontent.com/a8e1be76a85b7b4d5f0efc7c6412bd381560d2e3/68747470733a2f2f692e696d6775722e636f6d2f6e556237344d762e706e67" target="_blank"><img src="https://camo.githubusercontent.com/a8e1be76a85b7b4d5f0efc7c6412bd381560d2e3/68747470733a2f2f692e696d6775722e636f6d2f6e556237344d762e706e67" data-canonical-src="https://i.imgur.com/nUb74Mv.png" style="max-width:100%;"></a></p>
+
+<p><a href="https://camo.githubusercontent.com/f2dc2d9d55cafb7da962f1c1f73cd8bbe672242d/68747470733a2f2f692e696d6775722e636f6d2f337a47756558302e706e67" target="_blank"><img src="https://camo.githubusercontent.com/f2dc2d9d55cafb7da962f1c1f73cd8bbe672242d/68747470733a2f2f692e696d6775722e636f6d2f337a47756558302e706e67" data-canonical-src="https://i.imgur.com/3zGueX0.png" style="max-width:100%;"></a></p>
+
+<p>Numbers can found in <a href="https://docs.google.com/spreadsheet/ccc?key=0AjfqnvvE279FdENqWE5QTVhsSjZUMV9MQVg1SV9TNnc&amp;usp=sharing">this Google Document</a>.</p>
+
+<p>The Question, Answer, and User types are taken from the <a href="http://api.stackexchange.com/">Stack Exchange API</a>.</p>
+
+<p>Data for each type is randomly generated from a fixed seed.  Random text is biased towards ASCII<sup>*</sup>, but includes all unicode.</p>
+
+<p>To sanity check these results, <a href="http://theburningmonk.com/benchmarks/">a serializer benchmark from theburningmonk</a> was forked to include Jil.
+<a href="https://github.com/kevin-montrose/SimpleSpeedTester">Source available on Github</a>.</p>
+
+<p><a href="https://camo.githubusercontent.com/e0d129e4c4955147fafc6f7181ce13de85b371f3/687474703a2f2f692e696d6775722e636f6d2f437178723263672e706e67" target="_blank"><img src="https://camo.githubusercontent.com/e0d129e4c4955147fafc6f7181ce13de85b371f3/687474703a2f2f692e696d6775722e636f6d2f437178723263672e706e67" data-canonical-src="http://i.imgur.com/Cqxr2cg.png" style="max-width:100%;"></a></p>
+
+<p>Numbers can be found in <a href="https://docs.google.com/spreadsheet/ccc?key=0AjfqnvvE279FdHRpNUdTeTY3cm9LT0pzUHktNTU0SHc&amp;usp=sharing">this Google Document</a>.
+Note that times are in milliseconds in this benchmark, and in <em>microseconds</em> in the preceeding one.  Also be aware that the following serializers
+in theburningmonk benchmark are <strong>not</strong> JSON serializers: protobuf-net, MongoDB Driver BSON, and Json.Net BSON.</p>
+
+<p><sub>*This is meant to simulate typical content from the Stack Exchange API.</sub></p>
+
+<h3>
+<a name="user-content-deserialization" class="anchor" href="#deserialization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Deserialization</h3>
+
+<p>The same libraries and same types were used to test deserialization.</p>
+
+<p><a href="https://camo.githubusercontent.com/5da9a07d6cc6fcf41b1ea9f118f555ed1cb0cd86/687474703a2f2f692e696d6775722e636f6d2f4e58514f53386e2e706e67" target="_blank"><img src="https://camo.githubusercontent.com/5da9a07d6cc6fcf41b1ea9f118f555ed1cb0cd86/687474703a2f2f692e696d6775722e636f6d2f4e58514f53386e2e706e67" data-canonical-src="http://i.imgur.com/NXQOS8n.png" style="max-width:100%;"></a></p>
+
+<p><a href="https://camo.githubusercontent.com/b7a03f25d34cd727773d8a023c0eb770a04a9a70/687474703a2f2f692e696d6775722e636f6d2f6f705545644f732e706e67" target="_blank"><img src="https://camo.githubusercontent.com/b7a03f25d34cd727773d8a023c0eb770a04a9a70/687474703a2f2f692e696d6775722e636f6d2f6f705545644f732e706e67" data-canonical-src="http://i.imgur.com/opUEdOs.png" style="max-width:100%;"></a></p>
+
+<p><a href="https://camo.githubusercontent.com/20f965fb0b3549f61169cec79b35a1c7ece7bb6f/687474703a2f2f692e696d6775722e636f6d2f363268386858662e706e67" target="_blank"><img src="https://camo.githubusercontent.com/20f965fb0b3549f61169cec79b35a1c7ece7bb6f/687474703a2f2f692e696d6775722e636f6d2f363268386858662e706e67" data-canonical-src="http://i.imgur.com/62h8hXf.png" style="max-width:100%;"></a></p>
+
+<p>Numbers can be found in <a href="https://docs.google.com/spreadsheet/ccc?key=0AjfqnvvE279FdHEwZ3FCZDB3aEZCelZUMElBUUIyRnc&amp;usp=drive_web#gid=0">this Google Document</a>.</p>
+
+<p><a href="http://theburningmonk.com/2014/02/json-serializers-benchmarks-updated/">Recent JSON serializer benchmarks by theburningmonk</a> have included Jil 1.0.x as well.</p>
+
+<h2>
+<a name="user-content-tricks" class="anchor" href="#tricks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tricks</h2>
+
+<p>Jil has a lot of tricks to make it fast.  These may be interesting, even if Jil itself is too limited for your use.</p>
+
+<h3>
+<a name="user-content-sigil" class="anchor" href="#sigil" aria-hidden="true"><span class="octicon octicon-link"></span></a>Sigil</h3>
+
+<p>Jil does a lot of IL generation to produce tight, focused code.  While possible with <a href="http://msdn.microsoft.com/en-us/library/system.reflection.emit.ilgenerator.aspx">ILGenerator</a>, Jil instead uses the <a href="https://github.com/kevin-montrose/Sigil">Sigil library</a>.
+Sigil automatically does a lot of the busy work you'd normally have to do manually to produce ideal IL.
+Using Sigil also makes hacking on Jil much more productive, as debuging IL generation without it is pretty slow going.</p>
+
+<h3>
+<a name="user-content-trade-memory-for-speed" class="anchor" href="#trade-memory-for-speed" aria-hidden="true"><span class="octicon octicon-link"></span></a>Trade Memory For Speed</h3>
+
+<p>Jil's internal serializers and deserializers are (in the absense of recursive types) monolithic, and per-type; avoiding extra runtime lookups, and giving
+.NET's JIT more context when generating machine code.</p>
+
+<p>The methods Jil create also do no Options checking at serialization time; Options are baked in at first use.  This means
+that Jil may create up to 32 different serializers and 8 different deserializers for a single type (though in practice, many fewer).</p>
+
+<h3>
+<a name="user-content-optimizing-member-access-order" class="anchor" href="#optimizing-member-access-order" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optimizing Member Access Order</h3>
+
+<p>Perhaps the <a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/Utils.cs#L52">most arcane code in Jil</a> determines the preferred order to access members, so the CPU doesn't stall waiting for values from memory.</p>
+
+<p>Members are divided up into 4 groups:</p>
+
+<ul class="task-list">
+<li>Simple
+    <ul class="task-list">
+<li>primitive ValueTypes such as int, double, etc.</li>
+    </ul>
+</li>
+  <li>Nullable Types</li>
+  <li>Recursive Types</li>
+  <li>Everything Else</li>
+</ul><p>Members within each group are ordered by the offset of the fields backing them (properties are decompiled to determine fields they use).</p>
+
+<p>This is a fairly naive implementation of this idea, there's almost certainly more that could be squeezed out especially with regards to consistency of gains.</p>
+
+<h3>
+<a name="user-content-dont-allocate-if-you-can-avoid-it" class="anchor" href="#dont-allocate-if-you-can-avoid-it" aria-hidden="true"><span class="octicon octicon-link"></span></a>Don't Allocate If You Can Avoid It</h3>
+
+<p>.NET's GC is excellent, but no-GC is still faster than any-GC.</p>
+
+<p>Jil tries to avoid allocating any reference types, with some exceptions:</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/InlineSerializer.cs#L2785">a 36-length char[]</a> if any integer numbers, DateTimes, or GUIDs are being serialized</li>
+<li>
+<a href="https://github.com/kevin-montrose/Jil/blob/44aef95ecb762b34827ec22967ea263056b96434/Jil/Deserialize/InlineDeserializer.cs#L64">a 32-length char[]</a> if any strings, user defined objects, or ISO8601 DateTimes are being deserialized</li>
+</ul><p>Depending on the data being deserialized a <code>StringBuilder</code> may also be allocated.  If a <code>TextWriter</code> does not have an invariant culture, strings may also be allocated when serializing floating point numbers.</p>
+
+<h3>
+<a name="user-content-escaping-tricks" class="anchor" href="#escaping-tricks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Escaping Tricks</h3>
+
+<p>JSON has escaping rules for <code>\</code>, <code>"</code>, and control characters.  These can be kind of time consuming to deal with. Jil avoids it as much as possible in two ways.</p>
+
+<p>First, all known key names are determined once and baked into the generated delegates <a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/InlineSerializer.cs#L980">like so</a>.
+Known keys are member names and enumeration values.</p>
+
+<p>Second, rather than lookup encoded characters in a dictionary or a long series of branches Jil does explicit checks for <code>"</code> and <code>\</code> and turns the rest into
+a subtraction and jump table lookup.  This comes out to ~three branches (with mostly consistently taken paths, good for branch prediction in theory) per character.</p>
+
+<p>This works because control characters in .NET strings (bascally UTF-16, but might as well be ASCII for this trick) are sequential, being [0,31].</p>
+
+<p>JSONP also requires escaping of line separator (\u2028) and paragraph separator (\u2029) characters.  When configured to serialize JSONP,
+Jil escapes them in the same manner as <code>\</code> and <code>"</code>.</p>
+
+<h3>
+<a name="user-content-custom-number-formatting" class="anchor" href="#custom-number-formatting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Number Formatting</h3>
+
+<p>While number formatting in .NET is pretty fast, it has a lot of baggage to handle custom number formatting.</p>
+
+<p>Since JSON has a strict definition of a number, a Write() implementation without configuration is noticeably faster.
+To go the extra mile, Jil contains <a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/Methods.cs#L803">separate implementations for <code>int</code>, <code>uint</code>, <code>ulong</code>, and <code>long</code></a>.</p>
+
+<p>Jil <strong>does not</strong> include custom <code>decimal</code>, <code>double</code>, or <code>single</code> Write() implementations, as despite my best efforts I haven't been able to beat the ones built into .NET.
+If you think you're up to the challenge, I'd be really interested in seeing code that <em>is</em> faster than the included implementations.</p>
+
+<h3>
+<a name="user-content-custom-date-formatting" class="anchor" href="#custom-date-formatting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Date Formatting</h3>
+
+<p>Similarly to numbers, each of Jil's date formats has a custom Write() implementation.</p>
+
+<ul class="task-list">
+<li>
+<a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/Methods.cs#L142">ISO8601</a> can be unrolled into a smaller number of <code>/</code> and <code>%</code> instructions</li>
+<li>
+<a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/InlineSerializer.cs#L471">Newtonsoft-style</a> is a subtraction and division, then fed into the custom <code>long</code> writing code</li>
+<li>
+<a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/InlineSerializer.cs#L528">Milliseconds since the unix epoch</a> is essentially the same</li>
+<li>
+<a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/InlineSerializer.cs#L577">Seconds since the unix epoch</a> just has a different divisor</li>
+</ul><h3>
+<a name="user-content-custom-guid-formatting" class="anchor" href="#custom-guid-formatting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Guid Formatting</h3>
+
+<p>Noticing a pattern?</p>
+
+<p>Jil has a <a href="https://github.com/kevin-montrose/Jil/blob/519a0c552e9fb93a4df94eed0b2f9804271f2fef/Jil/Serialize/Methods.cs#L18">custom Guid writer</a> (which is one of the reasons Jil only supports the D format).</p>
+
+<p>Fun fact about this method, I tested a more branch heavy version (which removed the byte lookup) which turned out to be considerably slower than the built-in method due to <a href="http://stackoverflow.com/a/11227902/80572">branch prediction failures</a>.
+Type 4 Guids being random makes for something quite close to the worst case for branch prediciton.</p>
+
+<h3>
+<a name="user-content-different-code-for-arrays" class="anchor" href="#different-code-for-arrays" aria-hidden="true"><span class="octicon octicon-link"></span></a>Different Code For Arrays</h3>
+
+<p>Although arrays implement <code>IList&lt;T&gt;</code> the JIT generates much better code if you give it array-ish IL to chew on, so Jil does so.</p>
+
+<h3>
+<a name="user-content-special-casing-enumerations-with-sequential-values" class="anchor" href="#special-casing-enumerations-with-sequential-values" aria-hidden="true"><span class="octicon octicon-link"></span></a>Special Casing Enumerations With Sequential Values</h3>
+
+<p>Many enums end up having sequential values, Jil will exploit this if possible and generate a subtraction and jump table lookup.
+Non-sequential enumerations are handled with a long series of branches.</p>
+
+<h3>
+<a name="user-content-custom-number-readers" class="anchor" href="#custom-number-readers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Custom Number Readers</h3>
+
+<p>Just like Jil maintains many different methods for writing integer types, it also maintains <a href="https://github.com/kevin-montrose/Jil/blob/44aef95ecb762b34827ec22967ea263056b96434/Jil/Deserialize/Methods.ReadNumbers.cs">different methods for reading them</a>.  These methods omit unnecessary sign checks, overflow checks, and culture-specific formatting support.</p>
+
+<h3>
+<a name="user-content-hash-based-member-name-lookups" class="anchor" href="#hash-based-member-name-lookups" aria-hidden="true"><span class="octicon octicon-link"></span></a>Hash Based Member Name Lookups</h3>
+
+<p>Rather than read a member name into a string or buffer when deserializing, Jil will try to hash it one character at a time and use the remainder operator and a jump table instead.  Jil uses <a href="https://github.com/kevin-montrose/Jil/blob/44aef95ecb762b34827ec22967ea263056b96434/Jil/Deserialize/Methods.Hashes.cs">variants</a> of the <a href="http://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function">Fowler–Noll–Vo hash function</a> for this purpose, and falls back to Dictionary lookups if it fails.</p></article></div>

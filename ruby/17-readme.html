@@ -1,0 +1,902 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-capybara" class="anchor" href="#capybara" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capybara</h1>
+
+<p><a href="http://travis-ci.org/jnicklas/capybara"><img src="https://camo.githubusercontent.com/22f04a4b596b78eca6879cad62646e3d97ef7cde/68747470733a2f2f7365637572652e7472617669732d63692e6f72672f6a6e69636b6c61732f63617079626172612e706e67" alt="Build Status" data-canonical-src="https://secure.travis-ci.org/jnicklas/capybara.png" style="max-width:100%;"></a>
+<a href="https://gemnasium.com/jnicklas/capybara"><img src="https://camo.githubusercontent.com/72529c2b5b620f22b8fc82a5605d2b7c7f5f116f/68747470733a2f2f67656d6e617369756d2e636f6d2f6a6e69636b6c61732f63617079626172612e706e67" alt="Dependency Status" data-canonical-src="https://gemnasium.com/jnicklas/capybara.png" style="max-width:100%;"></a>
+<a href="https://codeclimate.com/github/jnicklas/capybara"><img src="https://camo.githubusercontent.com/fad680e92afe5a38457d52237d02bccb577f4720/68747470733a2f2f636f6465636c696d6174652e636f6d2f6769746875622f6a6e69636b6c61732f63617079626172612e706e67" alt="Code Climate" data-canonical-src="https://codeclimate.com/github/jnicklas/capybara.png" style="max-width:100%;"></a></p>
+
+<p>Capybara helps you test web applications by simulating how a real user would
+interact with your app. It is agnostic about the driver running your tests and
+comes with Rack::Test and Selenium support built in. WebKit is supported
+through an external gem.</p>
+
+<p><strong>Need help?</strong> Ask on the mailing list (please do not open an issue on
+GitHub): <a href="http://groups.google.com/group/ruby-capybara">http://groups.google.com/group/ruby-capybara</a></p>
+
+<h2>
+<a name="user-content-key-benefits" class="anchor" href="#key-benefits" aria-hidden="true"><span class="octicon octicon-link"></span></a>Key benefits</h2>
+
+<ul class="task-list">
+<li>
+<strong>No setup</strong> necessary for Rails and Rack application. Works out of the box.</li>
+<li>
+<strong>Intuitive API</strong> which mimics the language an actual user would use.</li>
+<li>
+<strong>Switch the backend</strong> your tests run against from fast headless mode
+to an actual browser with no changes to your tests.</li>
+<li>
+<strong>Powerful synchronization</strong> features mean you never have to manually wait
+for asynchronous processes to complete.</li>
+</ul><h2>
+<a name="user-content-setup" class="anchor" href="#setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setup</h2>
+
+<p>Capybara requires Ruby 1.9.3 or later. To install, add this line to your
+<code>Gemfile</code> and run <code>bundle install</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">gem</span> <span class="s1">'capybara'</span>
+</pre></div>
+
+<p>If the application that you are testing is a Rails app, add this line to your test helper file:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'capybara/rails'</span>
+</pre></div>
+
+<p>If the application that you are testing is a Rack app, but not Rails, set Capybara.app to your Rack app:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="no">MyRackApp</span>
+</pre></div>
+
+<p>If you need to test JavaScript, or if your app interacts with (or is located at)
+a remote URL, you'll need to <a href="#drivers">use a different driver</a>.</p>
+
+<h2>
+<a name="user-content-using-capybara-with-cucumber" class="anchor" href="#using-capybara-with-cucumber" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Capybara with Cucumber</h2>
+
+<p>The <code>cucumber-rails</code> gem comes with Capybara support built-in. If you
+are not using Rails, manually load the <code>capybara/cucumber</code> module:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'capybara/cucumber'</span>
+<span class="no">Capybara</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="no">MyRackApp</span>
+</pre></div>
+
+<p>You can use the Capybara DSL in your steps, like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">When</span> <span class="sr">/I sign in/</span> <span class="k">do</span>
+  <span class="n">within</span><span class="p">(</span><span class="s2">"#session"</span><span class="p">)</span> <span class="k">do</span>
+    <span class="n">fill_in</span> <span class="s1">'Email'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span>
+    <span class="n">fill_in</span> <span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'password'</span>
+  <span class="k">end</span>
+  <span class="n">click_button</span> <span class="s1">'Sign in'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can switch to the <code>Capybara.javascript_driver</code> (<code>:selenium</code>
+by default) by tagging scenarios (or features) with <code>@javascript</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="vi">@javascript</span>
+<span class="ss">Scenario</span><span class="p">:</span> <span class="k">do</span> <span class="n">something</span> <span class="no">Ajaxy</span>
+  <span class="no">When</span> <span class="n">I</span> <span class="n">click</span> <span class="n">the</span> <span class="no">Ajax</span> <span class="n">link</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+</pre></div>
+
+<p>There are also explicit <code>@selenium</code> and <code>@rack_test</code>
+tags set up for you.</p>
+
+<h2>
+<a name="user-content-using-capybara-with-rspec" class="anchor" href="#using-capybara-with-rspec" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Capybara with RSpec</h2>
+
+<p>Load RSpec 2.x support by adding the following line (typically to your
+<code>spec_helper.rb</code> file):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'capybara/rspec'</span>
+</pre></div>
+
+<p>If you are using Rails, put your Capybara specs in <code>spec/features</code>.</p>
+
+<p>If you are not using Rails, tag all the example groups in which you want to use
+Capybara with <code>:type =&gt; :feature</code>.</p>
+
+<p>You can now write your specs like so:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">describe</span> <span class="s2">"the signin process"</span><span class="p">,</span> <span class="ss">:type</span> <span class="o">=&gt;</span> <span class="ss">:feature</span> <span class="k">do</span>
+  <span class="n">before</span> <span class="ss">:each</span> <span class="k">do</span>
+    <span class="no">User</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="ss">:email</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span><span class="p">,</span> <span class="ss">:password</span> <span class="o">=&gt;</span> <span class="s1">'caplin'</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="n">it</span> <span class="s2">"signs me in"</span> <span class="k">do</span>
+    <span class="n">visit</span> <span class="s1">'/sessions/new'</span>
+    <span class="n">within</span><span class="p">(</span><span class="s2">"#session"</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">fill_in</span> <span class="s1">'Email'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span>
+      <span class="n">fill_in</span> <span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'password'</span>
+    <span class="k">end</span>
+    <span class="n">click_button</span> <span class="s1">'Sign in'</span>
+    <span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_content</span> <span class="s1">'Success'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Use <code>:js =&gt; true</code> to switch to the <code>Capybara.javascript_driver</code>
+(<code>:selenium</code> by default), or provide a <code>:driver</code> option to switch
+to one specific driver. For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">describe</span> <span class="s1">'some stuff which requires js'</span><span class="p">,</span> <span class="ss">:js</span> <span class="o">=&gt;</span> <span class="kp">true</span> <span class="k">do</span>
+  <span class="n">it</span> <span class="s1">'will use the default js driver'</span>
+  <span class="n">it</span> <span class="s1">'will switch to one specific driver'</span><span class="p">,</span> <span class="ss">:driver</span> <span class="o">=&gt;</span> <span class="ss">:webkit</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Finally, Capybara also comes with a built in DSL for creating descriptive acceptance tests:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">feature</span> <span class="s2">"Signing in"</span> <span class="k">do</span>
+  <span class="n">background</span> <span class="k">do</span>
+    <span class="no">User</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="ss">:email</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span><span class="p">,</span> <span class="ss">:password</span> <span class="o">=&gt;</span> <span class="s1">'caplin'</span><span class="p">)</span>
+  <span class="k">end</span>
+
+  <span class="n">scenario</span> <span class="s2">"Signing in with correct credentials"</span> <span class="k">do</span>
+    <span class="n">visit</span> <span class="s1">'/sessions/new'</span>
+    <span class="n">within</span><span class="p">(</span><span class="s2">"#session"</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">fill_in</span> <span class="s1">'Email'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span>
+      <span class="n">fill_in</span> <span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'caplin'</span>
+    <span class="k">end</span>
+    <span class="n">click_button</span> <span class="s1">'Sign in'</span>
+    <span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_content</span> <span class="s1">'Success'</span>
+  <span class="k">end</span>
+
+  <span class="n">given</span><span class="p">(</span><span class="ss">:other_user</span><span class="p">)</span> <span class="p">{</span> <span class="no">User</span><span class="o">.</span><span class="n">make</span><span class="p">(</span><span class="ss">:email</span> <span class="o">=&gt;</span> <span class="s1">'other@example.com'</span><span class="p">,</span> <span class="ss">:password</span> <span class="o">=&gt;</span> <span class="s1">'rous'</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="n">scenario</span> <span class="s2">"Signing in as another user"</span> <span class="k">do</span>
+    <span class="n">visit</span> <span class="s1">'/sessions/new'</span>
+    <span class="n">within</span><span class="p">(</span><span class="s2">"#session"</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">fill_in</span> <span class="s1">'Email'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="n">other_user</span><span class="o">.</span><span class="n">email</span>
+      <span class="n">fill_in</span> <span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="n">other_user</span><span class="o">.</span><span class="n">password</span>
+    <span class="k">end</span>
+    <span class="n">click_button</span> <span class="s1">'Sign in'</span>
+    <span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_content</span> <span class="s1">'Invalid email or password'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p><code>feature</code> is in fact just an alias for <code>describe ..., :type =&gt; :feature</code>,
+<code>background</code> is an alias for <code>before</code>, <code>scenario</code> for <code>it</code>, and
+<code>given</code>/<code>given!</code> aliases for <code>let</code>/<code>let!</code>, respectively.</p>
+
+<h2>
+<a name="user-content-using-capybara-with-testunit" class="anchor" href="#using-capybara-with-testunit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Capybara with Test::Unit</h2>
+
+<ul class="task-list">
+<li>
+<p>If you are using Rails, add the following code in your <code>test_helper.rb</code>
+file to make Capybara available in all test cases deriving from
+<code>ActionDispatch::IntegrationTest</code>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ActionDispatch</span><span class="o">::</span><span class="no">IntegrationTest</span>
+  <span class="c1"># Make the Capybara DSL available in all integration tests</span>
+  <span class="kp">include</span> <span class="no">Capybara</span><span class="o">::</span><span class="no">DSL</span>
+<span class="k">end</span>
+</pre></div>
+</li>
+<li>
+<p>If you are not using Rails, define a base class for your Capybara tests like
+so:</p>
+
+<div class="highlight highlight-ruby"><pre>  <span class="k">class</span> <span class="nc">CapybaraTestCase</span> <span class="o">&lt;</span> <span class="no">Test</span><span class="o">::</span><span class="no">Unit</span><span class="o">::</span><span class="no">TestCase</span>
+    <span class="kp">include</span> <span class="no">Capybara</span><span class="o">::</span><span class="no">DSL</span>
+
+    <span class="k">def</span> <span class="nf">teardown</span>
+      <span class="no">Capybara</span><span class="o">.</span><span class="n">reset_sessions!</span>
+      <span class="no">Capybara</span><span class="o">.</span><span class="n">use_default_driver</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+</pre></div>
+
+<p>Remember to call <code>super</code> in any subclasses that override
+  <code>teardown</code>.</p>
+</li>
+</ul><p>To switch the driver, set <code>Capybara.current_driver</code>. For instance,</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">BlogTest</span> <span class="o">&lt;</span> <span class="no">ActionDispatch</span><span class="o">::</span><span class="no">IntegrationTest</span>
+  <span class="n">setup</span> <span class="k">do</span>
+    <span class="no">Capybara</span><span class="o">.</span><span class="n">current_driver</span> <span class="o">=</span> <span class="no">Capybara</span><span class="o">.</span><span class="n">javascript_driver</span> <span class="c1"># :selenium by default</span>
+  <span class="k">end</span>
+
+  <span class="nb">test</span> <span class="s1">'shows blog posts'</span> <span class="k">do</span>
+    <span class="c1"># ... this test is run with Selenium ...</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-using-capybara-with-minitestspec" class="anchor" href="#using-capybara-with-minitestspec" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using Capybara with MiniTest::Spec</h2>
+
+<p>Set up your base class as with Test::Unit. (On Rails, the right base class
+could be something other than ActionDispatch::IntegrationTest.)</p>
+
+<p>The capybara_minitest_spec gem (<a href="https://github.com/ordinaryzelig/capybara_minitest_spec">GitHub</a>,
+<a href="https://rubygems.org/gems/capybara_minitest_spec">rubygems.org</a>) provides MiniTest::Spec
+expectations for Capybara. For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">page</span><span class="o">.</span><span class="n">must_have_content</span><span class="p">(</span><span class="s1">'Important!'</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-drivers" class="anchor" href="#drivers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Drivers</h2>
+
+<p>Capybara uses the same DSL to drive a variety of browser and headless drivers.</p>
+
+<h3>
+<a name="user-content-selecting-the-driver" class="anchor" href="#selecting-the-driver" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selecting the Driver</h3>
+
+<p>By default, Capybara uses the <code>:rack_test</code> driver, which is fast but limited: it
+does not support JavaScript, nor is it able to access HTTP resources outside of
+your Rack application, such as remote APIs and OAuth services. To get around
+these limitations, you can set up a different default driver for your features.
+For example if you'd prefer to run everything in Selenium, you could do:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">default_driver</span> <span class="o">=</span> <span class="ss">:selenium</span>
+</pre></div>
+
+<p>However, if you are using RSpec or Cucumber, you may instead want to consider
+leaving the faster <code>:rack_test</code> as the <strong>default_driver</strong>, and marking only those
+tests that require a JavaScript-capable driver using <code>:js =&gt; true</code> or
+<code>@javascript</code>, respectively.  By default, JavaScript tests are run using the
+<code>:selenium</code> driver. You can change this by setting
+<code>Capybara.javascript_driver</code>.</p>
+
+<p>You can also change the driver temporarily (typically in the Before/setup and
+After/teardown blocks):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">current_driver</span> <span class="o">=</span> <span class="ss">:webkit</span> <span class="c1"># temporarily select different driver</span>
+<span class="o">.</span><span class="n">.</span><span class="o">.</span> <span class="n">tests</span> <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="no">Capybara</span><span class="o">.</span><span class="n">use_default_driver</span>       <span class="c1"># switch back to default driver</span>
+</pre></div>
+
+<p><strong>Note</strong>: switching the driver creates a new session, so you may not be able to
+switch in the middle of a test.</p>
+
+<h3>
+<a name="user-content-racktest" class="anchor" href="#racktest" aria-hidden="true"><span class="octicon octicon-link"></span></a>RackTest</h3>
+
+<p>RackTest is Capybara's default driver. It is written in pure Ruby and does not
+have any support for executing JavaScript. Since the RackTest driver interacts
+directly with Rack interfaces, it does not require a server to be started.
+However, this means that if your application is not a Rack application (Rails,
+Sinatra and most other Ruby frameworks are Rack applications) then you cannot
+use this driver. Furthermore, you cannot use the RackTest driver to test a
+remote application, or to access remote URLs (e.g., redirects to external
+sites, external APIs, or OAuth services) that your application might interact
+with.</p>
+
+<p><a href="https://github.com/jeroenvandijk/capybara-mechanize">capybara-mechanize</a>
+provides a similar driver that can access remote servers.</p>
+
+<p>RackTest can be configured with a set of headers like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">register_driver</span> <span class="ss">:rack_test</span> <span class="k">do</span> <span class="o">|</span><span class="n">app</span><span class="o">|</span>
+  <span class="no">Capybara</span><span class="o">::</span><span class="no">RackTest</span><span class="o">::</span><span class="no">Driver</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="ss">:headers</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="s1">'HTTP_USER_AGENT'</span> <span class="o">=&gt;</span> <span class="s1">'Capybara'</span> <span class="p">})</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>See the section on adding and configuring drivers.</p>
+
+<h3>
+<a name="user-content-selenium" class="anchor" href="#selenium" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selenium</h3>
+
+<p>At the moment, Capybara supports <a href="http://seleniumhq.org/docs/01_introducing_selenium.html#selenium-2-aka-selenium-webdriver">Selenium 2.0
+(Webdriver)</a>,
+<em>not</em> Selenium RC. In order to use Selenium, you'll need to install the
+<code>selenium-webdriver</code> gem, and add it to your Gemfile if you're using bundler.
+Provided Firefox is installed, everything is set up for you, and you should be
+able to start using Selenium right away.</p>
+
+<p><strong>Note</strong>: drivers which run the server in a different thread may not share the
+same transaction as your tests, causing data not to be shared between your test
+and test server, see "Transactions and database setup" below.</p>
+
+<h3>
+<a name="user-content-capybara-webkit" class="anchor" href="#capybara-webkit" aria-hidden="true"><span class="octicon octicon-link"></span></a>Capybara-webkit</h3>
+
+<p>The <a href="https://github.com/thoughtbot/capybara-webkit">capybara-webkit driver</a> is for true headless
+testing. It uses QtWebKit to start a rendering engine process. It can execute JavaScript as well.
+It is significantly faster than drivers like Selenium since it does not load an entire browser.</p>
+
+<p>You can install it with:</p>
+
+<div class="highlight highlight-bash"><pre>gem install capybara-webkit
+</pre></div>
+
+<p>And you can use it by:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">javascript_driver</span> <span class="o">=</span> <span class="ss">:webkit</span>
+</pre></div>
+
+<h3>
+<a name="user-content-poltergeist" class="anchor" href="#poltergeist" aria-hidden="true"><span class="octicon octicon-link"></span></a>Poltergeist</h3>
+
+<p><a href="https://github.com/jonleighton/poltergeist">Poltergeist</a> is another
+headless driver which integrates Capybara with
+<a href="http://phantomjs.org/">PhantomJS</a>. It is truly headless, so doesn't
+require Xvfb to run on your CI server. It will also detect and report
+any Javascript errors that happen within the page.</p>
+
+<h2>
+<a name="user-content-the-dsl" class="anchor" href="#the-dsl" aria-hidden="true"><span class="octicon octicon-link"></span></a>The DSL</h2>
+
+<p><em>A complete reference is available at
+<a href="http://rubydoc.info/github/jnicklas/capybara/master">rubydoc.info</a></em>.</p>
+
+<p><strong>Note</strong>: All searches in Capybara are <em>case sensitive</em>. This is because
+Capybara heavily uses XPath, which doesn't support case insensitivity.</p>
+
+<h3>
+<a name="user-content-navigating" class="anchor" href="#navigating" aria-hidden="true"><span class="octicon octicon-link"></span></a>Navigating</h3>
+
+<p>You can use the
+<tt><a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Session#visit-instance_method">visit</a></tt>
+method to navigate to other pages:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">visit</span><span class="p">(</span><span class="s1">'/projects'</span><span class="p">)</span>
+<span class="n">visit</span><span class="p">(</span><span class="n">post_comments_path</span><span class="p">(</span><span class="n">post</span><span class="p">))</span>
+</pre></div>
+
+<p>The visit method only takes a single parameter, the request method is <strong>always</strong>
+GET.</p>
+
+<p>You can get the <a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Session#current_path-instance_method">current path</a>
+of the browsing session for test assertions:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">expect</span><span class="p">(</span><span class="n">current_path</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="n">post_comments_path</span><span class="p">(</span><span class="n">post</span><span class="p">))</span>
+</pre></div>
+
+<h3>
+<a name="user-content-clicking-links-and-buttons" class="anchor" href="#clicking-links-and-buttons" aria-hidden="true"><span class="octicon octicon-link"></span></a>Clicking links and buttons</h3>
+
+<p><em>Full reference: <a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Node/Actions">Capybara::Node::Actions</a></em></p>
+
+<p>You can interact with the webapp by following links and buttons. Capybara
+automatically follows any redirects, and submits forms associated with buttons.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">click_link</span><span class="p">(</span><span class="s1">'id-of-link'</span><span class="p">)</span>
+<span class="n">click_link</span><span class="p">(</span><span class="s1">'Link Text'</span><span class="p">)</span>
+<span class="n">click_button</span><span class="p">(</span><span class="s1">'Save'</span><span class="p">)</span>
+<span class="n">click_on</span><span class="p">(</span><span class="s1">'Link Text'</span><span class="p">)</span> <span class="c1"># clicks on either links or buttons</span>
+<span class="n">click_on</span><span class="p">(</span><span class="s1">'Button Value'</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-interacting-with-forms" class="anchor" href="#interacting-with-forms" aria-hidden="true"><span class="octicon octicon-link"></span></a>Interacting with forms</h3>
+
+<p><em>Full reference: <a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Node/Actions">Capybara::Node::Actions</a></em></p>
+
+<p>There are a number of tools for interacting with form elements:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">fill_in</span><span class="p">(</span><span class="s1">'First Name'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'John'</span><span class="p">)</span>
+<span class="n">fill_in</span><span class="p">(</span><span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'Seekrit'</span><span class="p">)</span>
+<span class="n">fill_in</span><span class="p">(</span><span class="s1">'Description'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'Really Long Text...'</span><span class="p">)</span>
+<span class="n">choose</span><span class="p">(</span><span class="s1">'A Radio Button'</span><span class="p">)</span>
+<span class="n">check</span><span class="p">(</span><span class="s1">'A Checkbox'</span><span class="p">)</span>
+<span class="n">uncheck</span><span class="p">(</span><span class="s1">'A Checkbox'</span><span class="p">)</span>
+<span class="n">attach_file</span><span class="p">(</span><span class="s1">'Image'</span><span class="p">,</span> <span class="s1">'/path/to/image.jpg'</span><span class="p">)</span>
+<span class="nb">select</span><span class="p">(</span><span class="s1">'Option'</span><span class="p">,</span> <span class="ss">:from</span> <span class="o">=&gt;</span> <span class="s1">'Select Box'</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-querying" class="anchor" href="#querying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Querying</h3>
+
+<p><em>Full reference: <a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Node/Matchers">Capybara::Node::Matchers</a></em></p>
+
+<p>Capybara has a rich set of options for querying the page for the existence of
+certain elements, and working with and manipulating those elements.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">page</span><span class="o">.</span><span class="n">has_selector?</span><span class="p">(</span><span class="s1">'table tr'</span><span class="p">)</span>
+<span class="n">page</span><span class="o">.</span><span class="n">has_selector?</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//table/tr'</span><span class="p">)</span>
+
+<span class="n">page</span><span class="o">.</span><span class="n">has_xpath?</span><span class="p">(</span><span class="s1">'//table/tr'</span><span class="p">)</span>
+<span class="n">page</span><span class="o">.</span><span class="n">has_css?</span><span class="p">(</span><span class="s1">'table tr.foo'</span><span class="p">)</span>
+<span class="n">page</span><span class="o">.</span><span class="n">has_content?</span><span class="p">(</span><span class="s1">'foo'</span><span class="p">)</span>
+</pre></div>
+
+<p><strong>Note:</strong> The negative forms like <code>has_no_selector?</code> are different from <code>not
+has_selector?</code>. Read the section on asynchronous JavaScript for an explanation.</p>
+
+<p>You can use these with RSpec's magic matchers:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_selector</span><span class="p">(</span><span class="s1">'table tr'</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_selector</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//table/tr'</span><span class="p">)</span>
+
+<span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_xpath</span><span class="p">(</span><span class="s1">'//table/tr'</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_css</span><span class="p">(</span><span class="s1">'table tr.foo'</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_content</span><span class="p">(</span><span class="s1">'foo'</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-finding" class="anchor" href="#finding" aria-hidden="true"><span class="octicon octicon-link"></span></a>Finding</h3>
+
+<p><em>Full reference: <a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Node/Finders">Capybara::Node::Finders</a></em></p>
+
+<p>You can also find specific elements, in order to manipulate them:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">find_field</span><span class="p">(</span><span class="s1">'First Name'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+<span class="n">find_link</span><span class="p">(</span><span class="s1">'Hello'</span><span class="p">)</span><span class="o">.</span><span class="n">visible?</span>
+<span class="n">find_button</span><span class="p">(</span><span class="s1">'Send'</span><span class="p">)</span><span class="o">.</span><span class="n">click</span>
+
+<span class="n">find</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s2">"//table/tr"</span><span class="p">)</span><span class="o">.</span><span class="n">click</span>
+<span class="n">find</span><span class="p">(</span><span class="s2">"#overlay"</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">"h1"</span><span class="p">)</span><span class="o">.</span><span class="n">click</span>
+<span class="n">all</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)</span><span class="o">.</span><span class="n">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">a</span><span class="o">|</span> <span class="n">a</span><span class="o">[</span><span class="ss">:href</span><span class="o">]</span> <span class="p">}</span>
+</pre></div>
+
+<p><strong>Note</strong>: <code>find</code> will wait for an element to appear on the page, as explained in the
+Ajax section. If the element does not appear it will raise an error.</p>
+
+<p>These elements all have all the Capybara DSL methods available, so you can restrict them
+to specific parts of the page:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">find</span><span class="p">(</span><span class="s1">'#navigation'</span><span class="p">)</span><span class="o">.</span><span class="n">click_link</span><span class="p">(</span><span class="s1">'Home'</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">find</span><span class="p">(</span><span class="s1">'#navigation'</span><span class="p">))</span><span class="o">.</span><span class="n">to</span> <span class="n">have_button</span><span class="p">(</span><span class="s1">'Sign out'</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-scoping" class="anchor" href="#scoping" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scoping</h3>
+
+<p>Capybara makes it possible to restrict certain actions, such as interacting with
+forms or clicking links and buttons, to within a specific area of the page. For
+this purpose you can use the generic
+<tt><a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Session#within-instance_method">within</a></tt>
+method. Optionally you can specify which kind of selector to use.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">within</span><span class="p">(</span><span class="s2">"li#employee"</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">fill_in</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'Jimmy'</span>
+<span class="k">end</span>
+
+<span class="n">within</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s2">"//li[@id='employee']"</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">fill_in</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'Jimmy'</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>There are special methods for restricting the scope to a specific fieldset,
+identified by either an id or the text of the fieldset's legend tag, and to a
+specific table, identified by either id or text of the table's caption tag.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">within_fieldset</span><span class="p">(</span><span class="s1">'Employee'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">fill_in</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'Jimmy'</span>
+<span class="k">end</span>
+
+<span class="n">within_table</span><span class="p">(</span><span class="s1">'Employee'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">fill_in</span> <span class="s1">'Name'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'Jimmy'</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-working-with-windows" class="anchor" href="#working-with-windows" aria-hidden="true"><span class="octicon octicon-link"></span></a>Working with windows</h3>
+
+<p>Capybara provides some methods to ease finding and switching windows:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">facebook_window</span> <span class="o">=</span> <span class="n">window_opened_by</span> <span class="k">do</span>
+  <span class="n">click_button</span> <span class="s1">'Like'</span>
+<span class="k">end</span>
+<span class="n">within_window</span> <span class="n">facebook_window</span> <span class="k">do</span>
+  <span class="n">find</span><span class="p">(</span><span class="s1">'#login_email'</span><span class="p">)</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">'a@example.com'</span><span class="p">)</span>
+  <span class="n">find</span><span class="p">(</span><span class="s1">'#login_password'</span><span class="p">)</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">'qwerty'</span><span class="p">)</span>
+  <span class="n">click_button</span> <span class="s1">'Submit'</span>
+<span class="k">end</span>
+</pre></div>
+
+<h3>
+<a name="user-content-scripting" class="anchor" href="#scripting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scripting</h3>
+
+<p>In drivers which support it, you can easily execute JavaScript:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">page</span><span class="o">.</span><span class="n">execute_script</span><span class="p">(</span><span class="s2">"$('body').empty()"</span><span class="p">)</span>
+</pre></div>
+
+<p>For simple expressions, you can return the result of the script. Note
+that this may break with more complicated expressions:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">result</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">evaluate_script</span><span class="p">(</span><span class="s1">'4 + 4'</span><span class="p">);</span>
+</pre></div>
+
+<h3>
+<a name="user-content-modals" class="anchor" href="#modals" aria-hidden="true"><span class="octicon octicon-link"></span></a>Modals</h3>
+
+<p>In drivers which support it, you can accept, dismiss and respond to alerts, confirms and prompts.</p>
+
+<p>You can accept or dismiss alert messages by wrapping the code that produces an alert in a block:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">accept_alert</span> <span class="k">do</span>
+  <span class="n">click_link</span><span class="p">(</span><span class="s1">'Show Alert'</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can accept or dismiss a confirmation by wrapping it in a block, as well:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">dismiss_confirm</span> <span class="k">do</span>
+  <span class="n">click_link</span><span class="p">(</span><span class="s1">'Show Confirm'</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>You can accept or dismiss prompts as well, and also provide text to fill in for the response:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">accept_prompt</span><span class="p">(</span><span class="ss">with</span><span class="p">:</span> <span class="s1">'Linus Torvalds'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">click_link</span><span class="p">(</span><span class="s1">'Show Prompt About Linux'</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>All modal methods return the message that was presented. So, you can access the prompt message
+by assigning the return to a variable:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">message</span> <span class="o">=</span> <span class="n">accept_prompt</span><span class="p">(</span><span class="ss">with</span><span class="p">:</span> <span class="s1">'Linus Torvalds'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">click_link</span><span class="p">(</span><span class="s1">'Show Prompt About Linux'</span><span class="p">)</span>
+<span class="k">end</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">eq</span><span class="p">(</span><span class="s1">'Who is the chief architect of Linux?'</span><span class="p">)</span>
+</pre></div>
+
+<h3>
+<a name="user-content-debugging" class="anchor" href="#debugging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debugging</h3>
+
+<p>It can be useful to take a snapshot of the page as it currently is and take a
+look at it:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">save_and_open_page</span>
+</pre></div>
+
+<p>You can also retrieve the current state of the DOM as a string using
+<tt><a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Session#html-instance_method">page.html</a></tt>.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">print</span> <span class="n">page</span><span class="o">.</span><span class="n">html</span>
+</pre></div>
+
+<p>This is mostly useful for debugging. You should avoid testing against the
+contents of <code>page.html</code> and use the more expressive finder methods instead.</p>
+
+<p>Finally, in drivers that support it, you can save a screenshot:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">page</span><span class="o">.</span><span class="n">save_screenshot</span><span class="p">(</span><span class="s1">'screenshot.png'</span><span class="p">)</span>
+</pre></div>
+
+<p>Or have it save and automatically open:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">save_and_open_screenshot</span>
+</pre></div>
+
+<h2>
+<a name="user-content-matching" class="anchor" href="#matching" aria-hidden="true"><span class="octicon octicon-link"></span></a>Matching</h2>
+
+<p>It is possible to customize how Capybara finds elements. At your disposal
+are two options, <code>Capybara.exact</code> and <code>Capybara.match</code>.</p>
+
+<h3>
+<a name="user-content-exactness" class="anchor" href="#exactness" aria-hidden="true"><span class="octicon octicon-link"></span></a>Exactness</h3>
+
+<p><code>Capybara.exact</code> and the <code>exact</code> option work together with the <code>is</code> expression
+inside the XPath gem. When <code>exact</code> is true, all <code>is</code> expressions match exactly,
+when it is false, they allow substring matches. Many of the selectors built into
+Capybara use the <code>is</code> expression. This way you can specify whether you want to
+allow substring matches or not. <code>Capybara.exact</code> is false by default.</p>
+
+<p>For example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">click_link</span><span class="p">(</span><span class="s2">"Password"</span><span class="p">)</span> <span class="c1"># also matches "Password confirmation"</span>
+<span class="no">Capybara</span><span class="o">.</span><span class="n">exact</span> <span class="o">=</span> <span class="kp">true</span>
+<span class="n">click_link</span><span class="p">(</span><span class="s2">"Password"</span><span class="p">)</span> <span class="c1"># does not match "Password confirmation"</span>
+<span class="n">click_link</span><span class="p">(</span><span class="s2">"Password"</span><span class="p">,</span> <span class="ss">exact</span><span class="p">:</span> <span class="kp">false</span><span class="p">)</span> <span class="c1"># can be overridden</span>
+</pre></div>
+
+<h3>
+<a name="user-content-strategy" class="anchor" href="#strategy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Strategy</h3>
+
+<p>Using <code>Capybara.match</code> and the equivalent <code>match</code> option, you can control how
+Capybara behaves when multiple elements all match a query. There are currently
+four different strategies built into Capybara:</p>
+
+<ol class="task-list">
+<li>
+<strong>first:</strong> Just picks the first element that matches.</li>
+<li>
+<strong>one:</strong> Raises an error if more than one element matches.</li>
+<li>
+<strong>smart:</strong> If <code>exact</code> is <code>true</code>, raises an error if more than one element
+matches, just like <code>one</code>. If <code>exact</code> is <code>false</code>, it will first try to find
+an exact match. An error is raised if more than one element is found. If no
+element is found, a new search is performed which allows partial matches. If
+that search returns multiple matches, an error is raised.</li>
+<li>
+<strong>prefer_exact:</strong> If multiple matches are found, some of which are exact,
+and some of which are not, then the first exactly matching element is
+returned.</li>
+</ol><p>The default for <code>Capybara.match</code> is <code>:smart</code>. To emulate the behaviour in
+Capybara 2.0.x, set <code>Capybara.match</code> to <code>:one</code>. To emulate the behaviour in
+Capybara 1.x, set <code>Capybara.match</code> to <code>:prefer_exact</code>.</p>
+
+<h2>
+<a name="user-content-transactions-and-database-setup" class="anchor" href="#transactions-and-database-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transactions and database setup</h2>
+
+<p>Some Capybara drivers need to run against an actual HTTP server. Capybara takes
+care of this and starts one for you in the same process as your test, but on
+another thread. Selenium is one of those drivers, whereas RackTest is not.</p>
+
+<p>If you are using a SQL database, it is common to run every test in a
+transaction, which is rolled back at the end of the test, rspec-rails does this
+by default out of the box for example. Since transactions are usually not
+shared across threads, this will cause data you have put into the database in
+your test code to be invisible to Capybara.</p>
+
+<p>Cucumber handles this by using truncation instead of transactions, i.e. they
+empty out the entire database after each test. You can get the same behaviour
+by using a gem such as <a href="https://github.com/bmabey/database_cleaner">database_cleaner</a>.</p>
+
+<p>It is also possible to force your ORM to use the same transaction for all
+threads.  This may have thread safety implications and could cause strange
+failures, so use caution with this approach. It can be implemented in
+ActiveRecord through the following monkey patch:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="k">class</span> <span class="nc">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">mattr_accessor</span> <span class="ss">:shared_connection</span>
+  <span class="vc">@@shared_connection</span> <span class="o">=</span> <span class="kp">nil</span>
+
+  <span class="k">def</span> <span class="nc">self</span><span class="o">.</span><span class="nf">connection</span>
+    <span class="vc">@@shared_connection</span> <span class="o">||</span> <span class="n">retrieve_connection</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+<span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">shared_connection</span> <span class="o">=</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">.</span><span class="n">connection</span>
+</pre></div>
+
+<h2>
+<a name="user-content-asynchronous-javascript-ajax-and-friends" class="anchor" href="#asynchronous-javascript-ajax-and-friends" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous JavaScript (Ajax and friends)</h2>
+
+<p>When working with asynchronous JavaScript, you might come across situations
+where you are attempting to interact with an element which is not yet present
+on the page. Capybara automatically deals with this by waiting for elements
+to appear on the page.</p>
+
+<p>When issuing instructions to the DSL such as:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">click_link</span><span class="p">(</span><span class="s1">'foo'</span><span class="p">)</span>
+<span class="n">click_link</span><span class="p">(</span><span class="s1">'bar'</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_content</span><span class="p">(</span><span class="s1">'baz'</span><span class="p">)</span>
+</pre></div>
+
+<p>If clicking on the <em>foo</em> link triggers an asynchronous process, such as
+an Ajax request, which, when complete will add the <em>bar</em> link to the page,
+clicking on the <em>bar</em> link would be expected to fail, since that link doesn't
+exist yet. However Capybara is smart enough to retry finding the link for a
+brief period of time before giving up and throwing an error. The same is true of
+the next line, which looks for the content <em>baz</em> on the page; it will retry
+looking for that content for a brief time. You can adjust how long this period
+is (the default is 2 seconds):</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">default_wait_time</span> <span class="o">=</span> <span class="mi">5</span>
+</pre></div>
+
+<p>Be aware that because of this behaviour, the following two statements are <strong>not</strong>
+equivalent, and you should <strong>always</strong> use the latter!</p>
+
+<div class="highlight highlight-ruby"><pre><span class="o">!</span><span class="n">page</span><span class="o">.</span><span class="n">has_xpath?</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)</span>
+<span class="n">page</span><span class="o">.</span><span class="n">has_no_xpath?</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)</span>
+</pre></div>
+
+<p>The former would immediately fail because the content has not yet been removed.
+Only the latter would wait for the asynchronous process to remove the content
+from the page.</p>
+
+<p>Capybara's Rspec matchers, however, are smart enough to handle either form.
+The two following statements are functionally equivalent:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">not_to</span> <span class="n">have_xpath</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)</span>
+<span class="n">expect</span><span class="p">(</span><span class="n">page</span><span class="p">)</span><span class="o">.</span><span class="n">to</span> <span class="n">have_no_xpath</span><span class="p">(</span><span class="s1">'a'</span><span class="p">)</span>
+</pre></div>
+
+<p>Capybara's waiting behaviour is quite advanced, and can deal with situations
+such as the following line of code:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">expect</span><span class="p">(</span><span class="n">find</span><span class="p">(</span><span class="s1">'#sidebar'</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">'h1'</span><span class="p">))</span><span class="o">.</span><span class="n">to</span> <span class="n">have_content</span><span class="p">(</span><span class="s1">'Something'</span><span class="p">)</span>
+</pre></div>
+
+<p>Even if JavaScript causes <code>#sidebar</code> to disappear off the page, Capybara
+will automatically reload it and any elements it contains. So if an AJAX
+request causes the contents of <code>#sidebar</code> to change, which would update
+the text of the <code>h1</code> to "Something", and this happened, this test would
+pass. If you do not want this behaviour, you can set
+<code>Capybara.automatic_reload</code> to <code>false</code>.</p>
+
+<h2>
+<a name="user-content-using-the-dsl-elsewhere" class="anchor" href="#using-the-dsl-elsewhere" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the DSL elsewhere</h2>
+
+<p>You can mix the DSL into any context by including <tt>Capybara::DSL</tt>:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'capybara'</span>
+<span class="nb">require</span> <span class="s1">'capybara/dsl'</span>
+
+<span class="no">Capybara</span><span class="o">.</span><span class="n">default_driver</span> <span class="o">=</span> <span class="ss">:webkit</span>
+
+<span class="k">module</span> <span class="nn">MyModule</span>
+  <span class="kp">include</span> <span class="no">Capybara</span><span class="o">::</span><span class="no">DSL</span>
+
+  <span class="k">def</span> <span class="nf">login!</span>
+    <span class="n">within</span><span class="p">(</span><span class="s2">"//form[@id='session']"</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">fill_in</span> <span class="s1">'Email'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span>
+      <span class="n">fill_in</span> <span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'password'</span>
+    <span class="k">end</span>
+    <span class="n">click_button</span> <span class="s1">'Sign in'</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>This enables its use in unsupported testing frameworks, and for general-purpose scripting.</p>
+
+<h2>
+<a name="user-content-calling-remote-servers" class="anchor" href="#calling-remote-servers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Calling remote servers</h2>
+
+<p>Normally Capybara expects to be testing an in-process Rack application, but you
+can also use it to talk to a web server running anywhere on the internet, by
+setting app_host:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">current_driver</span> <span class="o">=</span> <span class="ss">:selenium</span>
+<span class="no">Capybara</span><span class="o">.</span><span class="n">app_host</span> <span class="o">=</span> <span class="s1">'http://www.google.com'</span>
+<span class="o">.</span><span class="n">.</span><span class="o">.</span>
+<span class="n">visit</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span>
+</pre></div>
+
+<p><strong>Note</strong>: the default driver (<code>:rack_test</code>) does not support running
+against a remote server. With drivers that support it, you can also visit any
+URL directly:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">visit</span><span class="p">(</span><span class="s1">'http://www.google.com'</span><span class="p">)</span>
+</pre></div>
+
+<p>By default Capybara will try to boot a rack application automatically. You
+might want to switch off Capybara's rack server if you are running against a
+remote application:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">run_server</span> <span class="o">=</span> <span class="kp">false</span>
+</pre></div>
+
+<h2>
+<a name="user-content-using-the-sessions-manually" class="anchor" href="#using-the-sessions-manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using the sessions manually</h2>
+
+<p>For ultimate control, you can instantiate and use a
+<a href="http://rubydoc.info/github/jnicklas/capybara/master/Capybara/Session">Session</a>
+manually.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="nb">require</span> <span class="s1">'capybara'</span>
+
+<span class="n">session</span> <span class="o">=</span> <span class="no">Capybara</span><span class="o">::</span><span class="no">Session</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="ss">:webkit</span><span class="p">,</span> <span class="n">my_rack_app</span><span class="p">)</span>
+<span class="n">session</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="s2">"//form[@id='session']"</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">session</span><span class="o">.</span><span class="n">fill_in</span> <span class="s1">'Email'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'user@example.com'</span>
+  <span class="n">session</span><span class="o">.</span><span class="n">fill_in</span> <span class="s1">'Password'</span><span class="p">,</span> <span class="ss">:with</span> <span class="o">=&gt;</span> <span class="s1">'password'</span>
+<span class="k">end</span>
+<span class="n">session</span><span class="o">.</span><span class="n">click_button</span> <span class="s1">'Sign in'</span>
+</pre></div>
+
+<h2>
+<a name="user-content-xpath-css-and-selectors" class="anchor" href="#xpath-css-and-selectors" aria-hidden="true"><span class="octicon octicon-link"></span></a>XPath, CSS and selectors</h2>
+
+<p>Capybara does not try to guess what kind of selector you are going to give it,
+and will always use CSS by default.  If you want to use XPath, you'll need to
+do:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">within</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//ul/li'</span><span class="p">)</span> <span class="p">{</span> <span class="o">.</span><span class="n">.</span><span class="o">.</span> <span class="p">}</span>
+<span class="n">find</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//ul/li'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="n">find</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//li[contains(.//a[@href = "#"]/text(), "foo")]'</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+</pre></div>
+
+<p>Alternatively you can set the default selector to XPath:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">default_selector</span> <span class="o">=</span> <span class="ss">:xpath</span>
+<span class="n">find</span><span class="p">(</span><span class="s1">'//ul/li'</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+</pre></div>
+
+<p>Capybara allows you to add custom selectors, which can be very useful if you
+find yourself using the same kinds of selectors very often:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">add_selector</span><span class="p">(</span><span class="ss">:id</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">xpath</span> <span class="p">{</span> <span class="o">|</span><span class="nb">id</span><span class="o">|</span> <span class="no">XPath</span><span class="o">.</span><span class="n">descendant</span><span class="o">[</span><span class="no">XPath</span><span class="o">.</span><span class="n">attr</span><span class="p">(</span><span class="ss">:id</span><span class="p">)</span> <span class="o">==</span> <span class="nb">id</span><span class="o">.</span><span class="n">to_s</span><span class="o">]</span> <span class="p">}</span>
+<span class="k">end</span>
+
+<span class="no">Capybara</span><span class="o">.</span><span class="n">add_selector</span><span class="p">(</span><span class="ss">:row</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">xpath</span> <span class="p">{</span> <span class="o">|</span><span class="n">num</span><span class="o">|</span> <span class="s2">".//tbody/tr[</span><span class="si">#{</span><span class="n">num</span><span class="si">}</span><span class="s2">]"</span> <span class="p">}</span>
+<span class="k">end</span>
+
+<span class="no">Capybara</span><span class="o">.</span><span class="n">add_selector</span><span class="p">(</span><span class="ss">:flash_type</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">css</span> <span class="p">{</span> <span class="o">|</span><span class="n">type</span><span class="o">|</span> <span class="s2">"#flash.</span><span class="si">#{</span><span class="n">type</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>The block given to xpath must always return an XPath expression as a String, or
+an XPath expression generated through the XPath gem. You can now use these
+selectors like this:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">find</span><span class="p">(</span><span class="ss">:id</span><span class="p">,</span> <span class="s1">'post_123'</span><span class="p">)</span>
+<span class="n">find</span><span class="p">(</span><span class="ss">:row</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">find</span><span class="p">(</span><span class="ss">:flash_type</span><span class="p">,</span> <span class="ss">:notice</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-beware-the-xpath--trap" class="anchor" href="#beware-the-xpath--trap" aria-hidden="true"><span class="octicon octicon-link"></span></a>Beware the XPath // trap</h2>
+
+<p>In XPath the expression // means something very specific, and it might not be what
+you think. Contrary to common belief, // means "anywhere in the document" not "anywhere
+in the current context". As an example:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">page</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//body'</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//script'</span><span class="p">)</span>
+</pre></div>
+
+<p>You might expect this to find all script tags in the body, but actually, it finds all
+script tags in the entire document, not only those in the body! What you're looking
+for is the .// expression which means "any descendant of the current node":</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">page</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//body'</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'.//script'</span><span class="p">)</span>
+</pre></div>
+
+<p>The same thing goes for within:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="n">within</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'//body'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="n">page</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'.//script'</span><span class="p">)</span>
+  <span class="n">within</span><span class="p">(</span><span class="ss">:xpath</span><span class="p">,</span> <span class="s1">'.//table/tbody'</span><span class="p">)</span> <span class="k">do</span>
+  <span class="o">.</span><span class="n">.</span><span class="o">.</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</pre></div>
+
+<h2>
+<a name="user-content-configuring-and-adding-drivers" class="anchor" href="#configuring-and-adding-drivers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring and adding drivers</h2>
+
+<p>Capybara makes it convenient to switch between different drivers. It also exposes
+an API to tweak those drivers with whatever settings you want, or to add your own
+drivers. This is how to override the selenium driver configuration to use chrome:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">register_driver</span> <span class="ss">:selenium</span> <span class="k">do</span> <span class="o">|</span><span class="n">app</span><span class="o">|</span>
+  <span class="no">Capybara</span><span class="o">::</span><span class="no">Selenium</span><span class="o">::</span><span class="no">Driver</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="ss">:browser</span> <span class="o">=&gt;</span> <span class="ss">:chrome</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>However, it's also possible to give this configuration a different name.</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">register_driver</span> <span class="ss">:selenium_chrome</span> <span class="k">do</span> <span class="o">|</span><span class="n">app</span><span class="o">|</span>
+  <span class="no">Capybara</span><span class="o">::</span><span class="no">Selenium</span><span class="o">::</span><span class="no">Driver</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="ss">:browser</span> <span class="o">=&gt;</span> <span class="ss">:chrome</span><span class="p">)</span>
+<span class="k">end</span>
+</pre></div>
+
+<p>Then tests can switch between using different browsers effortlessly:</p>
+
+<div class="highlight highlight-ruby"><pre><span class="no">Capybara</span><span class="o">.</span><span class="n">current_driver</span> <span class="o">=</span> <span class="ss">:selenium_chrome</span>
+</pre></div>
+
+<p>Whatever is returned from the block should conform to the API described by
+Capybara::Driver::Base, it does not however have to inherit from this class.
+Gems can use this API to add their own drivers to Capybara.</p>
+
+<p>The <a href="http://code.google.com/p/selenium/wiki/RubyBindings">Selenium wiki</a> has
+additional info about how the underlying driver can be configured.</p>
+
+<h2>
+<a name="user-content-gotchas" class="anchor" href="#gotchas" aria-hidden="true"><span class="octicon octicon-link"></span></a>Gotchas:</h2>
+
+<ul class="task-list">
+<li><p>Access to session and request is not possible from the test, Access to
+response is limited. Some drivers allow access to response headers and HTTP
+status code, but this kind of functionality is not provided by some drivers,
+such as Selenium.</p></li>
+<li><p>Access to Rails specific stuff (such as <code>controller</code>) is unavailable,
+since we're not using Rails' integration testing.</p></li>
+<li><p>Freezing time: It's common practice to mock out the Time so that features
+that depend on the current Date work as expected. This can be problematic,
+since Capybara's Ajax timing uses the system time, resulting in Capybara
+never timing out and just hanging when a failure occurs. It's still possible to
+use gems which allow you to travel in time, rather than freeze time.
+One such gem is <a href="http://github.com/travisjeffery/timecop">Timecop</a>.</p></li>
+<li><p>When using Rack::Test, beware if attempting to visit absolute URLs. For
+example, a session might not be shared between visits to <code>posts_path</code>
+and <code>posts_url</code>. If testing an absolute URL in an Action Mailer email,
+set <code>default_url_options</code> to match the Rails default of
+<code>www.example.com</code>.</p></li>
+</ul><h2>
+<a name="user-content-development" class="anchor" href="#development" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<p>To set up a development environment, simply do:</p>
+
+<div class="highlight highlight-bash"><pre>bundle install
+bundle <span class="nb">exec </span>rake  <span class="c"># run the test suite</span>
+</pre></div>
+
+<p>See
+<a href="https://github.com/jnicklas/capybara/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a>
+for how to send issues and pull requests.</p></article></div>

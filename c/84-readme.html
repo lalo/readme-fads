@@ -1,0 +1,214 @@
+<div class="announce instapaper_body md" data-path="README.md" id="readme"><article class="markdown-body entry-content" itemprop="mainContentOfPage"><h1>
+<a name="user-content-packr" class="anchor" href="#packr" aria-hidden="true"><span class="octicon octicon-link"></span></a>packr</h1>
+
+<p>Packages your JAR, assets and a JVM for distribution on Windows (ZIP), Linux (ZIP) and Mac OS X (.app), adding a native executable file to make it appear like the app is a native app. Packr is most suitable for GUI applications, such as games made with <a href="http://libgdx.badlogicgames.com/">libGDX</a></p>
+
+<h4>
+<a name="user-content-download-packr" class="anchor" href="#download-packr" aria-hidden="true"><span class="octicon octicon-link"></span></a><a href="http://bit.ly/packrgdx">Download Packr</a>
+</h4>
+
+<h2>
+<a name="user-content-usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>You point packr at your JAR file (containing all your code and assets), a JSON config file (specifying parameters to the JVM and the main class) and a URL or local file location to an OpenJDK build for the platform you want to build. Invoking packr from the command line may look like this:</p>
+
+<div class="highlight highlight-bash"><pre>java -jar packr.jar <span class="se">\</span>
+     -platform mac <span class="se">\</span>
+     -jdk <span class="s2">"openjdk-1.7.0-u45-unofficial-icedtea-2.4.3-macosx-x86_64-image.zip"</span> <span class="se">\</span>
+     -executable myapp <span class="se">\</span>
+     -appjar myapp.jar <span class="se">\</span>
+     -mainclass <span class="s2">"com/my/app/MainClass"</span> <span class="se">\</span>
+     -vmargs <span class="s2">"-Xmx1G"</span> <span class="se">\</span>
+     -resources pom.xml<span class="p">;</span>src/main/resources <span class="se">\</span>
+     -minimizejre <span class="s2">"soft"</span> <span class="se">\</span>
+     -outdir out
+</pre></div>
+
+<table>
+<thead><tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>platform</td>
+<td>one of "windows", "linux32", "linux64", "mac"</td>
+</tr>
+<tr>
+<td>jdk</td>
+<td>ZIP file location or URL to an OpenJDK build containing a JRE. Prebuild JDKs can be found at <a href="https://github.com/alexkasko/openjdk-unofficial-builds">https://github.com/alexkasko/openjdk-unofficial-builds</a>
+</td>
+</tr>
+<tr>
+<td>executable</td>
+<td>name of the native executable, without extension such as ".exe"</td>
+</tr>
+<tr>
+<td>appjar</td>
+<td>file location of the JAR to package</td>
+</tr>
+<tr>
+<td>mainclass</td>
+<td>the fully qualified name of the main class, using forward slashes to delimit package names</td>
+</tr>
+<tr>
+<td>vmargs</td>
+<td>list of arguments for the JVM, separated by <code>;</code>, e.g. "-Xmx1G"</td>
+</tr>
+<tr>
+<td>outdir</td>
+<td>output directory</td>
+</tr>
+<tr>
+<td>resources (optional)</td>
+<td>list of files and directories to be packaged next to the native executable, separated by <code>;</code>.</td>
+</tr>
+<tr>
+<td>minimizejre</td>
+<td>minimize the JRE by removing directories and files as specified by the config file. Comes with two config files out of the box called "soft" and "hard". See below for details on the minimization config file.</td>
+</tr>
+</tbody>
+</table><p>Alternatively, you can put all the command line arguments into a JSON file which might look like this:</p>
+
+<blockquote>
+<p>my-packaging-config.json</p>
+
+<div class="highlight highlight-json"><pre><span class="p">{</span>
+    <span class="nt">"platform"</span><span class="p">:</span> <span class="s2">"mac"</span><span class="p">,</span>
+    <span class="nt">"jdk"</span><span class="p">:</span> <span class="s2">"/Users/badlogic/Downloads/openjdk-1.7.0-u45-unofficial-icedtea-2.4.3-macosx-x86_64-image.zip"</span><span class="p">,</span>
+    <span class="nt">"executable"</span><span class="p">:</span> <span class="s2">"myapp"</span><span class="p">,</span>
+    <span class="nt">"appjar"</span><span class="p">:</span> <span class="s2">"myapp.jar"</span><span class="p">,</span>
+    <span class="nt">"mainclass"</span><span class="p">:</span> <span class="s2">"com/my/app/MainClass"</span><span class="p">,</span>
+    <span class="nt">"vmargs"</span><span class="p">:</span> <span class="p">[</span>
+       <span class="s2">"-Xmx1G"</span>
+    <span class="p">],</span>
+    <span class="nt">"resources"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"pom.xml"</span><span class="p">,</span>
+        <span class="s2">"src/main/resources"</span>
+    <span class="p">],</span>
+    <span class="nt">"minimizejre"</span><span class="p">:</span> <span class="s2">"soft"</span><span class="p">,</span>
+    <span class="nt">"outdir"</span><span class="p">:</span> <span class="s2">"out-mac"</span>
+<span class="p">}</span>
+</pre></div>
+</blockquote>
+
+<p>You can then invoke the tool like this:</p>
+
+<div class="highlight highlight-bash"><pre>java -jar packr.jar my-packaging-config.json
+</pre></div>
+
+<p>Finally, you can use packr from within your code. Just add the JAR file to your project, either manually, or via the following Maven dependency:</p>
+
+<div class="highlight highlight-xml"><pre><span class="nt">&lt;dependency&gt;</span>
+   <span class="nt">&lt;groupId&gt;</span>com.badlogicgames.packr<span class="nt">&lt;/groupId&gt;</span>
+   <span class="nt">&lt;artifactId&gt;</span>packr<span class="nt">&lt;/artifactId&gt;</span>
+   <span class="nt">&lt;version&gt;</span>1.1<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</pre></div>
+
+<p>To invoke packr, you need to create an instance of <code>Config</code> and pass it to <code>Packr#pack()</code></p>
+
+<div class="highlight highlight-java"><pre><span class="n">Config</span> <span class="n">config</span> <span class="o">=</span> <span class="k">new</span> <span class="nf">Config</span><span class="o">();</span>
+<span class="n">config</span><span class="o">.</span><span class="na">platform</span> <span class="o">=</span> <span class="n">Platform</span><span class="o">.</span><span class="na">windows</span><span class="o">;</span>
+<span class="n">config</span><span class="o">.</span><span class="na">jdk</span> <span class="o">=</span> <span class="s">"/User/badlogic/Downloads/openjdk-for-mac.zip"</span><span class="o">;</span>
+<span class="n">config</span><span class="o">.</span><span class="na">executable</span> <span class="o">=</span> <span class="s">"myapp"</span><span class="o">;</span>
+<span class="n">config</span><span class="o">.</span><span class="na">jar</span> <span class="o">=</span> <span class="s">"myjar.jar"</span><span class="o">;</span>
+<span class="n">config</span><span class="o">.</span><span class="na">mainClass</span> <span class="o">=</span> <span class="s">"com/my/app/MainClass"</span><span class="o">;</span>
+<span class="n">config</span><span class="o">.</span><span class="na">vmArgs</span> <span class="o">=</span> <span class="n">Arrays</span><span class="o">.</span><span class="na">asList</span><span class="o">(</span><span class="s">"-Xmx1G"</span><span class="o">);</span>
+<span class="n">config</span><span class="o">.</span><span class="na">minimizeJre</span> <span class="o">=</span> <span class="k">new</span> <span class="n">String</span><span class="o">[]</span> <span class="o">{</span> <span class="s">"jre/lib/rt/com/sun/corba"</span><span class="o">,</span> <span class="s">"jre/lib/rt/com/sun/jndi"</span> <span class="o">};</span>
+<span class="n">config</span><span class="o">.</span><span class="na">outDir</span> <span class="o">=</span> <span class="s">"out-mac"</span><span class="o">;</span>
+
+<span class="k">new</span> <span class="nf">Packr</span><span class="o">().</span><span class="na">pack</span><span class="o">(</span><span class="n">config</span><span class="o">)</span>
+</pre></div>
+
+<h2>
+<a name="user-content-minimization" class="anchor" href="#minimization" aria-hidden="true"><span class="octicon octicon-link"></span></a>Minimization</h2>
+
+<p>A standard JRE weighs about 90mb unpacked and about 50mb packed. Packr helps you cut down on that size, thus also reducing the download size of your app. </p>
+
+<p>To minimize the JRE that is bundled with your app, you have to specify a minimization configuration file via the <code>minimizejre</code> flag you supply to Packr. Such a minimization configuration contains the names of files and directories within the JRE to be removed, one per line in the file. E.g.:</p>
+
+<pre><code>jre/lib/rhino.jar
+jre/lib/rt/com/sun/corba 
+</code></pre>
+
+<p>This will remove the rhino.jar (about 1.1MB) and all the packages and classes in com.sun.corba from the rt.jar file. To specify files and packages to be removed from the JRE, simply prepend them with <code>jre/lib/rt/</code>.</p>
+
+<p>Packr comes with two such configurations out of the box, <a href="https://github.com/libgdx/packr/blob/master/src/main/resources/minimize/soft"><code>soft</code></a> and <a href="https://github.com/libgdx/packr/blob/master/src/main/resources/minimize/hard"><code>hard</code></a></p>
+
+<p>Additionally, Packr will compress the rt.jar file. By default, the JRE uses zero-compression on the rt.jar file to make application startup a little faster.</p>
+
+<h2>
+<a name="user-content-output" class="anchor" href="#output" aria-hidden="true"><span class="octicon octicon-link"></span></a>Output</h2>
+
+<p>When packing for Windows, the following folder structure will be generated</p>
+
+<pre><code>outdir/
+   executable.exe
+   yourjar.jar
+   config.json
+   jre/
+</code></pre>
+
+<p>Linux</p>
+
+<pre><code>outdir/
+   executable
+   yourjar.jar
+   config.json
+   jre/
+</code></pre>
+
+<p>Mac OS X</p>
+
+<pre><code>outdir/
+   Contents/
+      Info.plist
+      MacOS/
+         executable
+         yourjar.jar
+         config.json
+         jre/
+      Resources/
+</code></pre>
+
+<p>You can futher modify the Info.plist to your liking, e.g. add icons, a bundle identifier etc. If your <code>outdir</code> has the <code>.app</code> extension it will be treated as an application bundle by Mac OS X.</p>
+
+<h2>
+<a name="user-content-building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h2>
+
+<p>If you only modify the Java code, it's sufficient to invoke Maven</p>
+
+<pre><code>mvn clean package
+</code></pre>
+
+<p>This will create a <code>packr-VERSION.jar</code> file in <code>target</code> which you can invoke as described in the Usage section above.</p>
+
+<p>If you want to compile the exe files used by packr, install premake, Visual Studio 2010 Express on Windows, Xcode on Mac OS X and GCC on Linux, then invoke the build-xxx scripts in the <code>natives/</code> folder. Each script will create an executable file for the specific platform and place it under src/main/resources.</p>
+
+<h2>
+<a name="user-content-limitations" class="anchor" href="#limitations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Limitations</h2>
+
+<ul class="task-list">
+<li>Icons aren't set yet on any platform, need to do that manually.</li>
+<li>Windows is 32-bit only, Mac OS X is 64-bit only</li>
+<li>JRE minimization is very conservative, depending on your app, you can carve out stuff from a JRE yourself, disable minimization and pass your custom JRE to packr</li>
+</ul><h2>
+<a name="user-content-code-warning" class="anchor" href="#code-warning" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code Warning</h2>
+
+<p>You may find some style issues with this code, namely:</p>
+
+<ul class="task-list">
+<li>lack of proper logging</li>
+<li>lack of return value checking</li>
+</ul><p>This was conceived over a "weekend" so to speak, so please excuse any shortcomings. Happy to receive PRs!</p>
+
+<h2>
+<a name="user-content-license--contributions" class="anchor" href="#license--contributions" aria-hidden="true"><span class="octicon octicon-link"></span></a>License &amp; Contributions</h2>
+
+<p>The code is licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0.html">Apache 2 license</a>. By contributing to this repository, you automatically agree that your contribution can be distributed under the Apache 2 license by the author of this project. You will not be able to revoke this right once your contribution has been merged into this repository.</p>
+
+<h2>
+<a name="user-content-security" class="anchor" href="#security" aria-hidden="true"><span class="octicon octicon-link"></span></a>Security</h2>
+
+<p>Distributing a bundled JVM has security implications, just like bundling any other runtimes like Mono, Air, etc. Make sure you understand the implications before deciding to use this tool. Here's a <a href="http://www.reddit.com/r/gamedev/comments/24orpg/packr_package_your_libgdxjavascalajvm_appgame_for/ch99zk2">discussion on the topic</a>.</p></article></div>
